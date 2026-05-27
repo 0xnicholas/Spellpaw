@@ -7,6 +7,7 @@ import { ChatPanel } from '@/components/chat-panel/ChatPanel';
 import { FlowCanvasPanel } from '@/components/flow-canvas/FlowCanvasPanel';
 import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
 import { useHotkeys } from '@/hooks/useHotkeys';
+import { useToolBridge } from '@/hooks/useToolBridge';
 import { useProjectStore } from '@/stores/projectStore';
 import { useDetailStore } from '@/stores/detailStore';
 import { findNode } from '@/lib/treeUtils';
@@ -41,6 +42,9 @@ function MobileGuard({ children }: { children: React.ReactNode }) {
 }
 
 export function WorkspacePage() {
+  // Phase 2: connect to Tool Server WebSocket for Pandaria tool calls
+  useToolBridge();
+
   const selectedNodeId = useProjectStore((s) => s.selectedNodeId);
   const selectNode = useProjectStore((s) => s.selectNode);
   const getCurrentTree = useProjectStore((s) => s.getCurrentTree);

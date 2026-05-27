@@ -1,0 +1,78 @@
+{
+  "id": "underdog-comeback",
+  "name": "励志逆袭短剧",
+  "category": "drama",
+  "description": "三幕励志结构，从低谷到努力到成功。适合30-90秒短视频。",
+  "targetDuration": 60,
+  "targetPlatform": "portrait",
+  "structure": {
+    "acts": [
+      {
+        "title": "第一幕：困境",
+        "description": "主角处于人生低谷，面临巨大挑战",
+        "scenes": [
+          {
+            "title": "挫败",
+            "description": "主角遭遇重大打击",
+            "suggestedShotTypes": ["wide", "close-up"],
+            "metadata": { "duration": 15, "timeOfDay": "evening", "location": "办公室/家中" }
+          },
+          {
+            "title": "被看低",
+            "description": "周围人的不信任加重打击",
+            "suggestedShotTypes": ["medium", "close-up"],
+            "metadata": { "duration": 10, "timeOfDay": "day", "location": "公共场所" }
+          }
+        ]
+      },
+      {
+        "title": "第二幕：奋斗",
+        "description": "主角不放弃，开始训练/学习/努力",
+        "scenes": [
+          {
+            "title": "觉醒时刻",
+            "description": "一个契机让主角决定不放弃",
+            "suggestedShotTypes": ["close-up", "wide"],
+            "suggestedCameraMovement": "dolly",
+            "metadata": { "duration": 10, "timeOfDay": "night", "location": "训练场/书房" }
+          },
+          {
+            "title": "步步前行",
+            "description": "蒙太奇：汗水、挫折、进步",
+            "suggestedShotTypes": ["medium", "close-up"],
+            "suggestedCameraMovement": "handheld",
+            "metadata": { "duration": 15, "timeOfDay": "day", "location": "多个场景" }
+          }
+        ]
+      },
+      {
+        "title": "第三幕：证明",
+        "description": "主角用实力证明自己",
+        "scenes": [
+          {
+            "title": "关键一战",
+            "description": "最终挑战/比赛/展示",
+            "suggestedShotTypes": ["wide", "medium", "close-up"],
+            "suggestedCameraMovement": "dolly",
+            "metadata": { "duration": 15, "timeOfDay": "day", "location": "竞技场/舞台" }
+          },
+          {
+            "title": "赢得尊重",
+            "description": "结果揭晓，主角获得认可",
+            "suggestedShotTypes": ["close-up", "wide"],
+            "metadata": { "duration": 10, "timeOfDay": "day", "location": "竞技场/舞台" }
+          }
+        ]
+      }
+    ]
+  },
+  "stylePresets": {
+    "colorPalette": ["#ff8f00", "#ff6f00", "#e65100", "#bf360c"],
+    "pacing": "fast",
+    "visualStyle": "暖橙色调 · 高饱和度 · 运动镜头 · 燃向剪辑"
+  },
+  "tags": ["励志", "逆袭", "热血", "短剧", "30-90秒"],
+  "author": "Spellpaw",
+  "downloads": 0,
+  "version": 1
+}

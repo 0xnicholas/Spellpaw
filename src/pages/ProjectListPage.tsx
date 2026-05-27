@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Film, Plus, Clock, LayoutGrid, Trash2, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { NewProjectModal } from '@/components/modals/NewProjectModal';
+import type { NarrativeTemplate } from '@/types';
 import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
 import { useProjectStore } from '@/stores/projectStore';
 import { useCanvasStore } from '@/stores/canvasStore';
@@ -27,6 +28,15 @@ export function ProjectListPage() {
 
   const handleCreate = (title: string, description: string, coverColor: string) => {
     const projectId = createProject(title, description, coverColor);
+    navigate(`/project/${projectId}`);
+  };
+
+  const handleCreateFromTemplate = (template: NarrativeTemplate) => {
+    const projectId = createProject(template.name, template.description, template.stylePresets.colorPalette[0]);
+    // Apply template structure via toolRouter
+    import('../stores/toolRouter').then(({ toolRouter }) => {
+      toolRouter.apply_template({ action: 'apply_template', templateId: template.id, parentId: undefined });
+    });
     navigate(`/project/${projectId}`);
   };
 
@@ -166,6 +176,7 @@ export function ProjectListPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onCreate={handleCreate}
+        onCreateFromTemplate={handleCreateFromTemplate}
       />
 
       <DeleteConfirmDialog

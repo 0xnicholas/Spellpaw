@@ -42,10 +42,60 @@ export const toolRouter: ToolRouter = {
     return treeToText(node);
   },
 
-  add_node: async () => '(not implemented)',
-  update_node: async () => '(not implemented)',
-  delete_node: async () => '(not implemented)',
-  move_node: async () => '(not implemented)',
+  add_node: async (params) => {
+    const store = useProjectStore.getState();
+    const parentId = params.parentId as string;
+    const type = params.type as TreeNode['type'];
+    const title = params.title as string;
+
+    const newNode: TreeNode = {
+      id: crypto.randomUUID(),
+      type,
+      title,
+      status: 'draft',
+      metadata: {
+        duration: (params.duration as number) ?? 0,
+        description: params.description as string | undefined,
+        location: params.location as string | undefined,
+        timeOfDay: params.timeOfDay as TreeNode['metadata']['timeOfDay'],
+        shotType: params.shotType as TreeNode['metadata']['shotType'],
+        cameraMovement: params.cameraMovement as TreeNode['metadata']['cameraMovement'],
+        dialogue: params.dialogue as string | undefined,
+        notes: params.notes as string | undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    };
+
+    store.addTreeNode(parentId, newNode);
+    return `已添加 ${type}「${title}」(id: ${newNode.id})`;
+  },
+
+  update_node: async (params) => {
+    const store = useProjectStore.getState();
+    const nodeId = params.nodeId as string;
+    const changes = params.changes as Partial<TreeNode>;
+    store.updateTreeNode(nodeId, changes);
+    return `已更新 ${nodeId}`;
+  },
+
+  delete_node: async (params) => {
+    const store = useProjectStore.getState();
+    const nodeId = params.nodeId as string;
+    const tree = store.getCurrentTree();
+    const node = tree ? findNode(tree, nodeId) : null;
+    const label = node ? `${node.type}「${node.title}」` : nodeId;
+    store.deleteTreeNode(nodeId);
+    return `已删除 ${label}`;
+  },
+
+  move_node: async (params) => {
+    const store = useProjectStore.getState();
+    const nodeId = params.nodeId as string;
+    const newIndex = params.newIndex as number;
+    store.moveTreeNode(nodeId, newIndex);
+    return `已移动 ${nodeId}`;
+  },
   apply_template: async () => '(not implemented)',
   generate_storyboard: async () => '(not implemented)',
 };

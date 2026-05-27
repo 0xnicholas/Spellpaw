@@ -53,3 +53,76 @@ describe('toolRouter — 只读 tool', () => {
     expect(result).toContain('project');
   });
 });
+
+describe('toolRouter — 写入 tool', () => {
+  beforeEach(() => {
+    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null });
+  });
+
+  it('add_node 创建节点并返回确认', async () => {
+    seedTree();
+    const result = await toolRouter.add_node({
+      action: 'add_node', parentId: 'act-1', type: 'scene', title: '新场景'
+    });
+    expect(result).toMatch(/已添加 scene「新场景」/);
+
+    const tree = useProjectStore.getState().getCurrentTree();
+    const act1 = tree?.children?.[0];
+    expect(act1?.children?.some(c => c.title === '新场景')).toBe(true);
+  });
+
+  it('add_node 注入默认元数据（createdAt, updatedAt, duration=0）', async () => {
+    seedTree();
+    await toolRouter.add_node({
+      action: 'add_node', parentId: 'act-1', type: 'shot', title: '新镜头'
+    });
+    const tree = useProjectStore.getState().getCurrentTree();
+    const act1 = tree?.children?.[0];
+    const newShot = act1?.children?.find(c => c.title === '新镜头');
+    expect(newShot?.metadata?.createdAt).toBeDefined();
+    expect(newShot?.metadata?.duration).toBe(0);
+  });
+
+  it('update_node 修改标题并返回确认', async () => {
+    seedTree();
+    const result = await toolRouter.update_node({
+      action: 'update_node', nodeId: 'scene-1', changes: { title: '修改后的场景' }
+    });
+    expect(result).toMatch(/已更新 scene-1/);
+
+    const tree = useProjectStore.getState().getCurrentTree();
+    const act1 = tree?.children?.[0];
+    const scene = act1?.children?.[0];
+    expect(scene?.title).toBe('修改后的场景');
+  });
+
+  it('update_node 修改元数据', async () => {
+    seedTree();
+    await toolRouter.update_node({
+      action: 'update_node', nodeId: 'scene-1',
+      changes: { metadata: { description: '新描述', duration: 45 } }
+    });
+    const tree = useProjectStore.getState().getCurrentTree();
+    const scene = tree?.children?.[0]?.children?.[0];
+    expect(scene?.metadata?.description).toBe('新描述');
+    expect(scene?.metadata?.duration).toBe(45);
+  });
+
+  it('delete_node 删除节点并返回确认', async () => {
+    seedTree();
+    const result = await toolRouter.delete_node({ action: 'delete_node', nodeId: 'shot-1' });
+    expect(result).toMatch(/已删除/);
+
+    const tree = useProjectStore.getState().getCurrentTree();
+    const scene1 = tree?.children?.[0]?.children?.[0];
+    expect(scene1?.children?.length ?? 0).toBe(0);
+  });
+
+  it('move_node 调整顺序', async () => {
+    seedTree();
+    await toolRouter.add_node({ action: 'add_node', parentId: 'act-1', type: 'scene', title: '场景 2' });
+
+    const result = await toolRouter.move_node({ action: 'move_node', nodeId: 'scene-1', newIndex: 1 });
+    expect(result).toMatch(/已移动/);
+  });
+});

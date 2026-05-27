@@ -1,0 +1,10 @@
+{
+  "$type": "dimension",
+  "radius": {
+    "none": { "$value": "0px", "$description": "无圆角，用于锐角组件" },
+    "sm": { "$value": "2px", "$description": "小圆角，Linear 风格默认（输入框、按钮）" },
+    "base": { "$value": "4px", "$description": "标准圆角，卡片、弹窗" },
+    "lg": { "$value": "8px", "$description": "大圆角，浮动面板、模态框" },
+    "full": { "$value": "9999px", "$description": "全圆角，标签、徽章" }
+  }
+}

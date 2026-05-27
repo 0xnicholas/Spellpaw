@@ -1,0 +1,55 @@
+{
+  "$type": "color",
+  "color": {
+    "base": {
+      "white": {
+        "$value": "oklch(100% 0 250)",
+        "$description": "纯白，用于最高亮度表面"
+      },
+      "gray-50": {
+        "$value": "oklch(98% 0.005 250)",
+        "$description": "极浅灰，用于细微背景区分"
+      },
+      "gray-100": {
+        "$value": "oklch(95% 0.01 250)",
+        "$description": "浅灰，用于悬停或次要高亮背景"
+      },
+      "gray-200": {
+        "$value": "oklch(90% 0.01 250)",
+        "$description": "边框或分割线"
+      },
+      "gray-300": {
+        "$value": "oklch(80% 0.015 250)",
+        "$description": "禁用状态或次要边框"
+      },
+      "gray-400": {
+        "$value": "oklch(70% 0.015 250)",
+        "$description": "占位符文字"
+      },
+      "gray-500": {
+        "$value": "oklch(60% 0.015 250)",
+        "$description": "次要文字或图标"
+      },
+      "gray-600": {
+        "$value": "oklch(50% 0.02 250)",
+        "$description": "正文文字（在浅色背景上）"
+      },
+      "gray-700": {
+        "$value": "oklch(40% 0.02 250)",
+        "$description": "深色正文或强强调"
+      },
+      "gray-800": {
+        "$value": "oklch(30% 0.02 250)",
+        "$description": "标题文字"
+      },
+      "gray-900": {
+        "$value": "oklch(20% 0.015 250)",
+        "$description": "最深文字，用于最大对比度"
+      },
+      "black": {
+        "$value": "oklch(0% 0 250)",
+        "$description": "纯黑，极少使用"
+      }
+    }
+  }
+}

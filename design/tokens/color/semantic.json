@@ -1,0 +1,73 @@
+{
+  "$type": "color",
+  "color": {
+    "semantic": {
+      "bg": {
+        "primary": {
+          "$value": "{color.base.white}",
+          "$description": "主背景色"
+        },
+        "secondary": {
+          "$value": "{color.base.gray-50}",
+          "$description": "次背景色，用于卡片、侧边栏"
+        },
+        "tertiary": {
+          "$value": "{color.base.gray-100}",
+          "$description": "第三层背景，用于悬停态"
+        },
+        "inverse": {
+          "$value": "{color.base.gray-900}",
+          "$description": "反色背景，用于深色区域"
+        },
+        "accent": {
+          "$value": "{color.accent.500}",
+          "$description": "强调背景，主按钮"
+        },
+        "accent-subtle": {
+          "$value": "{color.accent.50}",
+          "$description": "轻量强调背景，选中态、标签"
+        }
+      },
+      "text": {
+        "primary": {
+          "$value": "{color.base.gray-900}",
+          "$description": "主文字色，标题与正文"
+        },
+        "secondary": {
+          "$value": "{color.base.gray-600}",
+          "$description": "次要文字，描述、元信息"
+        },
+        "tertiary": {
+          "$value": "{color.base.gray-500}",
+          "$description": "第三层文字，占位符"
+        },
+        "inverse": {
+          "$value": "{color.base.white}",
+          "$description": "反色文字，用于深色背景"
+        },
+        "accent": {
+          "$value": "{color.accent.500}",
+          "$description": "强调文字，链接、活动状态"
+        }
+      },
+      "border": {
+        "default": {
+          "$value": "{color.base.gray-200}",
+          "$description": "默认边框色"
+        },
+        "subtle": {
+          "$value": "{color.base.gray-100}",
+          "$description": "极淡边框，用于分割线"
+        },
+        "strong": {
+          "$value": "{color.base.gray-300}",
+          "$description": "强边框，聚焦态或高对比度"
+        },
+        "accent": {
+          "$value": "{color.accent.500}",
+          "$description": "强调边框"
+        }
+      }
+    }
+  }
+}

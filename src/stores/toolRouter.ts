@@ -96,6 +96,49 @@ export const toolRouter: ToolRouter = {
     store.moveTreeNode(nodeId, newIndex);
     return `已移动 ${nodeId}`;
   },
-  apply_template: async () => '(not implemented)',
-  generate_storyboard: async () => '(not implemented)',
+  apply_template: async (params) => {
+    const templateId = params.templateId as string;
+    try {
+      const response = await fetch(`/templates/${templateId}.spellpaw-template.json`);
+      if (!response.ok) throw new Error(`Template ${templateId} not found`);
+      const template = await response.json();
+
+      const store = useProjectStore.getState();
+      let nodeCount = 0;
+
+      function createNodes(parentId: string, nodes: Array<Record<string, unknown>>) {
+        for (const tn of nodes) {
+          const node: TreeNode = {
+            id: crypto.randomUUID(),
+            type: tn.type as TreeNode['type'],
+            title: tn.title as string,
+            status: 'draft',
+            metadata: {
+              ...(tn.metadata as Record<string, unknown>),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          };
+          store.addTreeNode(parentId, node);
+          nodeCount++;
+          if (tn.children) createNodes(node.id, tn.children as Array<Record<string, unknown>>);
+        }
+      }
+
+      // parentId 是树节点 ID；若未提供，用当前项目树根节点
+      const rootId = store.getCurrentTree()?.id;
+      const parentId = (params.parentId as string) || rootId;
+      if (!parentId) throw new Error('无法确定父节点：当前无项目打开');
+      createNodes(parentId, template.structure as Array<Record<string, unknown>>);
+
+      return `已套用模板「${template.name}」: 创建 ${nodeCount} 个节点`;
+    } catch (err) {
+      throw new Error(`套用模板失败: ${(err as Error).message}`);
+    }
+  },
+
+  generate_storyboard: async (params) => {
+    const nodeId = params.nodeId as string;
+    return `(分镜生成功能将在后续实现: nodeId=${nodeId})`;
+  },
 };

@@ -4,15 +4,32 @@ import type { ChatMessage } from '@/types';
 import { mockChatMessages } from '@/data/mockChatData';
 import { generateId } from '@/lib/utils';
 
+interface InFlightToolCall {
+  callId: string;
+  name: string;
+}
+
 interface ChatState {
   messages: ChatMessage[];
   isLoading: boolean;
   inputValue: string;
 
+  // Phase 2: SSE streaming
+  streamingMessage: string | null;        // partial assistant text being built
+  streamingMessageId: string | null;
+  toolCalls: InFlightToolCall[];         // in-flight tool calls
+
   sendMessage: (content: string) => void;
   setInputValue: (value: string) => void;
   appendMessage: (message: ChatMessage) => void;
   clearMessages: () => void;
+
+  // Phase 2: SSE actions
+  startStreaming: (messageId: string) => void;
+  appendDelta: (delta: string) => void;
+  startToolCall: (callId: string, name: string) => void;
+  endToolCall: (callId: string) => void;
+  endStreaming: (stopReason?: string) => void;
 }
 
 function mockAgentReply(userContent: string): ChatMessage {
@@ -42,6 +59,9 @@ export const useChatStore = create<ChatState>()(
       messages: mockChatMessages,
       isLoading: false,
       inputValue: '',
+      streamingMessage: null,
+      streamingMessageId: null,
+      toolCalls: [],
 
       sendMessage: (content) => {
         const userMsg: ChatMessage = {
@@ -68,6 +88,46 @@ export const useChatStore = create<ChatState>()(
         set((state) => ({ messages: [...state.messages, message] })),
 
       clearMessages: () => set({ messages: [] }),
+
+      // Phase 2: SSE streaming actions
+      startStreaming: (messageId) =>
+        set({ streamingMessageId: messageId, streamingMessage: '', isLoading: true }),
+
+      appendDelta: (delta) =>
+        set((state) => ({
+          streamingMessage: (state.streamingMessage ?? '') + delta,
+        })),
+
+      startToolCall: (callId, name) =>
+        set((state) => ({
+          toolCalls: [...state.toolCalls, { callId, name }],
+        })),
+
+      endToolCall: (callId) =>
+        set((state) => ({
+          toolCalls: state.toolCalls.filter((t) => t.callId !== callId),
+        })),
+
+      endStreaming: (_stopReason) => {
+        const state = useChatStore.getState();
+        if (state.streamingMessage && state.streamingMessageId) {
+          const finalMsg: ChatMessage = {
+            id: state.streamingMessageId,
+            role: 'agent',
+            content: state.streamingMessage,
+            type: 'text',
+            timestamp: new Date().toISOString(),
+          };
+          set((s) => ({
+            messages: [...s.messages, finalMsg],
+            streamingMessage: null,
+            streamingMessageId: null,
+            isLoading: false,
+          }));
+        } else {
+          set({ streamingMessage: null, streamingMessageId: null, isLoading: false });
+        }
+      },
     }),
     {
       name: 'spellpaw_chat',

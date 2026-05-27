@@ -9,12 +9,16 @@ import { QuickActions } from './QuickActions';
 import { useChatStore } from '@/stores/chatStore';
 import { useDetailStore } from '@/stores/detailStore';
 import { useProjectStore } from '@/stores/projectStore';
+import { useMockSSE } from '@/hooks/useMockSSE';
 
 export function ChatPanel() {
   const sendMessage = useChatStore((s) => s.sendMessage);
   const activeTab = useDetailStore((s) => s.activeTab);
   const setActiveTab = useDetailStore((s) => s.setActiveTab);
   const selectedNodeId = useProjectStore((s) => s.selectedNodeId);
+
+  // Phase 2: use mock SSE for dev (replace with usePandariaSSE when Pandaria ready)
+  useMockSSE();
 
   useEffect(() => {
     if (selectedNodeId) {

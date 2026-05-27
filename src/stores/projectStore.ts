@@ -15,6 +15,7 @@ interface ProjectState {
   updateTreeNode: (nodeId: string, updates: Partial<TreeNode>) => void;
   addTreeNode: (parentId: string, node: TreeNode) => void;
   deleteTreeNode: (nodeId: string) => void;
+  moveTreeNode: (nodeId: string, newIndex: number) => void;
   toggleExpanded: (nodeId: string) => void;
   selectNode: (nodeId: string | null) => void;
   getSelectedNodePath: () => string[];
@@ -47,7 +48,11 @@ export const useProjectStore = create<ProjectState>()(
           produce((state) => {
             function walk(node: TreeNode) {
               if (node.id === nodeId) {
-                Object.assign(node, updates);
+                if (updates.metadata && node.metadata) {
+                  Object.assign(node.metadata, updates.metadata);
+                }
+                Object.assign(node, { ...updates, metadata: node.metadata });
+                if (node.metadata) node.metadata.updatedAt = new Date().toISOString();
                 return true;
               }
               if (node.children) {
@@ -64,10 +69,21 @@ export const useProjectStore = create<ProjectState>()(
       addTreeNode: (parentId, node) =>
         set(
           produce((state) => {
+            const now = new Date().toISOString();
+            const newNode = {
+              ...node,
+              metadata: {
+                duration: 0,
+                createdAt: now,
+                updatedAt: now,
+                ...node.metadata,
+              },
+            };
             function walk(n: TreeNode) {
               if (n.id === parentId) {
                 if (!n.children) n.children = [];
-                n.children.push(node);
+                n.children.push(newNode);
+                n.expanded = true;
                 return true;
               }
               if (n.children) {
@@ -105,6 +121,26 @@ export const useProjectStore = create<ProjectState>()(
           })
         ),
 
+      moveTreeNode: (nodeId, newIndex) =>
+        set(
+          produce((state) => {
+            function walk(n: TreeNode): boolean {
+              if (!n.children) return false;
+              const idx = n.children.findIndex((c) => c.id === nodeId);
+              if (idx !== -1) {
+                const [node] = n.children.splice(idx, 1);
+                n.children.splice(newIndex, 0, node);
+                return true;
+              }
+              for (const child of n.children) {
+                if (walk(child)) return true;
+              }
+              return false;
+            }
+            if (state.treeData) walk(state.treeData);
+          })
+        ),
+
       toggleExpanded: (nodeId) =>
         set(
           produce((state) => {
@@ -134,6 +170,21 @@ export const useProjectStore = create<ProjectState>()(
     }),
     {
       name: 'spellpaw_project',
+      version: 2,
+      migrate: (persistedState: unknown, version) => {
+        const state = persistedState as Record<string, unknown>;
+        if (version < 2) {
+          function fillMeta(node: TreeNode) {
+            if (!node.metadata) node.metadata = { createdAt: '', updatedAt: '' };
+            node.metadata.duration ??= 0;
+            node.metadata.createdAt ??= new Date().toISOString();
+            node.metadata.updatedAt ??= new Date().toISOString();
+            node.children?.forEach((c: TreeNode) => fillMeta(c));
+          }
+          if (state.treeData) fillMeta(state.treeData as TreeNode);
+        }
+        return state as ProjectState;
+      },
       partialize: (state) => ({
         projects: state.projects,
         currentProjectId: state.currentProjectId,

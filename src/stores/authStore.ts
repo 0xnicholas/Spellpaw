@@ -27,6 +27,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'spellpaw_auth',
+      version: 1,
     }
   )
 );

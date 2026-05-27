@@ -39,4 +39,28 @@ describe('canvasStore', () => {
     useCanvasStore.getState().addEdge(edge);
     expect(useCanvasStore.getState().persistedEdges).toHaveLength(1);
   });
+
+  it('updates node data', () => {
+    useCanvasStore.getState().addNode({
+      id: 'test_1',
+      type: 'sceneCard',
+      position: { x: 0, y: 0 },
+      data: { title: 'Old', status: 'draft' },
+    });
+    useCanvasStore.getState().updateNodeData('test_1', { title: 'New' });
+    expect(useCanvasStore.getState().persistedNodes[0].data.title).toBe('New');
+  });
+
+  it('duplicates node as orphan', () => {
+    useCanvasStore.getState().addNode({
+      id: 'test_1',
+      type: 'sceneCard',
+      position: { x: 0, y: 0 },
+      data: { title: 'Original', linkedTreeNodeId: 'tree_1' },
+    });
+    useCanvasStore.getState().duplicateNode('test_1');
+    const dup = useCanvasStore.getState().persistedNodes[1];
+    expect(dup.data.title).toBe('Original');
+    expect(dup.data.linkedTreeNodeId).toBeUndefined();
+  });
 });

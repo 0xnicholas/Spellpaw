@@ -23,6 +23,7 @@ interface CanvasState {
   addNodeFromAsset: (asset: AssetItem, position: { x: number; y: number }) => void;
   removeNode: (id: string) => void;
   duplicateNode: (id: string) => void;
+  updateNodeData: (id: string, data: Partial<CanvasNodeData>) => void;
   addEdge: (edge: CanvasEdge) => void;
   removeEdge: (id: string) => void;
   syncFromTreeNode: (node: TreeNode) => void;
@@ -71,10 +72,17 @@ export const useCanvasStore = create<CanvasState>()(
           ...node,
           id: generateId('canvas_'),
           position: { x: node.position.x + 40, y: node.position.y + 40 },
-          data: { ...node.data },
+          data: { ...node.data, linkedTreeNodeId: undefined },
         };
         get().addNode(newNode);
       },
+
+      updateNodeData: (id, data) =>
+        set((state) => ({
+          persistedNodes: state.persistedNodes.map((n) =>
+            n.id === id ? { ...n, data: { ...n.data, ...data } } : n
+          ),
+        })),
 
       addEdge: (edge) =>
         set((state) => ({ persistedEdges: [...state.persistedEdges, edge] })),

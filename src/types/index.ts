@@ -9,6 +9,12 @@ export interface TreeNode {
   metadata?: {
     duration?: number;
     description?: string;
+    location?: string;
+    timeOfDay?: 'morning' | 'day' | 'evening' | 'night';
+    shotType?: 'wide' | 'medium' | 'close-up' | 'insert' | 'pov';
+    cameraMovement?: 'static' | 'pan' | 'tilt' | 'dolly' | 'handheld';
+    dialogue?: string;
+    notes?: string;
     createdAt: string;
     updatedAt: string;
   };
@@ -64,6 +70,7 @@ export interface CanvasNodeData extends Record<string, unknown> {
   thumbnail?: string;
   tags?: string[];
   color?: string;
+  linkedTreeNodeId?: string;
 }
 
 export interface CanvasNode {

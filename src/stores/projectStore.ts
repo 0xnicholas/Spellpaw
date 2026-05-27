@@ -4,14 +4,19 @@ import { produce } from 'immer';
 import type { TreeNode, Project } from '@/types';
 import { mockProjects } from '@/data/mockProjects';
 import { mockTreeData } from '@/data/mockTreeData';
+import { generateId } from '@/lib/utils';
 
 interface ProjectState {
   projects: Project[];
+  trees: Record<string, TreeNode>;
   currentProjectId: string | null;
-  treeData: TreeNode | null;
   selectedNodeId: string | null;
 
+  getCurrentTree: () => TreeNode | null;
   setCurrentProject: (id: string) => void;
+  createProject: (title: string, description: string, coverColor: string) => string;
+  deleteProject: (id: string) => void;
+  updateProject: (id: string, updates: Partial<Project>) => void;
   updateTreeNode: (nodeId: string, updates: Partial<TreeNode>) => void;
   addTreeNode: (parentId: string, node: TreeNode) => void;
   deleteTreeNode: (nodeId: string) => void;
@@ -37,15 +42,79 @@ export const useProjectStore = create<ProjectState>()(
   persist(
     (set, get) => ({
       projects: mockProjects,
+      trees: { 'proj_1': mockTreeData },
       currentProjectId: mockProjects[0]?.id ?? null,
-      treeData: mockTreeData,
       selectedNodeId: null,
 
-      setCurrentProject: (id) => set({ currentProjectId: id }),
+      getCurrentTree: () => {
+        const { trees, currentProjectId } = get();
+        return (currentProjectId && trees[currentProjectId]) ? trees[currentProjectId] : null;
+      },
+
+      setCurrentProject: (id) => set({ currentProjectId: id, selectedNodeId: null }),
+
+      createProject: (title, description, coverColor) => {
+        const id = generateId('proj_');
+        const now = new Date().toISOString();
+        const project: Project = {
+          id,
+          title,
+          description,
+          updatedAt: now,
+          sceneCount: 0,
+          duration: 0,
+          coverColor,
+        };
+        const treeRoot: TreeNode = {
+          id: generateId('tree_root_'),
+          type: 'project',
+          title: title,
+          status: 'draft',
+          expanded: true,
+          metadata: {
+            description,
+            duration: 0,
+            createdAt: now,
+            updatedAt: now,
+          },
+          children: [],
+        };
+        set((state) => ({
+          projects: [...state.projects, project],
+          trees: { ...state.trees, [id]: treeRoot },
+          currentProjectId: id,
+          selectedNodeId: null,
+        }));
+        return id;
+      },
+
+      deleteProject: (id) =>
+        set((state) => {
+          const { [id]: _removed, ...restTrees } = state.trees;
+          const newProjects = state.projects.filter((p) => p.id !== id);
+          const newCurrentId = state.currentProjectId === id
+            ? (newProjects[0]?.id ?? null)
+            : state.currentProjectId;
+          return {
+            projects: newProjects,
+            trees: restTrees,
+            currentProjectId: newCurrentId,
+            selectedNodeId: null,
+          };
+        }),
+
+      updateProject: (id, updates) =>
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
+          ),
+        })),
 
       updateTreeNode: (nodeId, updates) =>
         set(
-          produce((state) => {
+          produce((state: ProjectState) => {
+            const tree = state.trees[state.currentProjectId!];
+            if (!tree) return;
             function walk(node: TreeNode) {
               if (node.id === nodeId) {
                 if (updates.metadata && node.metadata) {
@@ -62,13 +131,15 @@ export const useProjectStore = create<ProjectState>()(
               }
               return false;
             }
-            if (state.treeData) walk(state.treeData);
+            walk(tree);
           })
         ),
 
       addTreeNode: (parentId, node) =>
         set(
-          produce((state) => {
+          produce((state: ProjectState) => {
+            const tree = state.trees[state.currentProjectId!];
+            if (!tree) return;
             const now = new Date().toISOString();
             const newNode = {
               ...node,
@@ -93,13 +164,15 @@ export const useProjectStore = create<ProjectState>()(
               }
               return false;
             }
-            if (state.treeData) walk(state.treeData);
+            walk(tree);
           })
         ),
 
       deleteTreeNode: (nodeId) =>
         set(
-          produce((state) => {
+          produce((state: ProjectState) => {
+            const tree = state.trees[state.currentProjectId!];
+            if (!tree) return;
             function walk(n: TreeNode): boolean {
               if (!n.children) return false;
               const idx = n.children.findIndex((c) => c.id === nodeId);
@@ -112,9 +185,7 @@ export const useProjectStore = create<ProjectState>()(
               }
               return false;
             }
-            if (state.treeData && state.treeData.id !== nodeId) {
-              walk(state.treeData);
-            }
+            if (tree.id !== nodeId) walk(tree);
             if (state.selectedNodeId === nodeId) {
               state.selectedNodeId = null;
             }
@@ -123,7 +194,9 @@ export const useProjectStore = create<ProjectState>()(
 
       moveTreeNode: (nodeId, newIndex) =>
         set(
-          produce((state) => {
+          produce((state: ProjectState) => {
+            const tree = state.trees[state.currentProjectId!];
+            if (!tree) return;
             function walk(n: TreeNode): boolean {
               if (!n.children) return false;
               const idx = n.children.findIndex((c) => c.id === nodeId);
@@ -137,13 +210,15 @@ export const useProjectStore = create<ProjectState>()(
               }
               return false;
             }
-            if (state.treeData) walk(state.treeData);
+            walk(tree);
           })
         ),
 
       toggleExpanded: (nodeId) =>
         set(
-          produce((state) => {
+          produce((state: ProjectState) => {
+            const tree = state.trees[state.currentProjectId!];
+            if (!tree) return;
             function walk(node: TreeNode) {
               if (node.id === nodeId) {
                 node.expanded = !node.expanded;
@@ -156,16 +231,17 @@ export const useProjectStore = create<ProjectState>()(
               }
               return false;
             }
-            if (state.treeData) walk(state.treeData);
+            walk(tree);
           })
         ),
 
       selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
 
       getSelectedNodePath: () => {
-        const { treeData, selectedNodeId } = get();
-        if (!treeData || !selectedNodeId) return [];
-        return findNodePath(treeData, selectedNodeId) ?? [];
+        const { trees, currentProjectId, selectedNodeId } = get();
+        const tree = currentProjectId ? trees[currentProjectId] : null;
+        if (!tree || !selectedNodeId) return [];
+        return findNodePath(tree, selectedNodeId) ?? [];
       },
     }),
     {
@@ -175,20 +251,35 @@ export const useProjectStore = create<ProjectState>()(
         const state = persistedState as Record<string, unknown>;
         if (version < 2) {
           function fillMeta(node: TreeNode) {
-            if (!node.metadata) node.metadata = { createdAt: '', updatedAt: '' };
+            if (!node.metadata) {
+              node.metadata = { createdAt: '', updatedAt: '' };
+            }
             node.metadata.duration ??= 0;
             node.metadata.createdAt ??= new Date().toISOString();
             node.metadata.updatedAt ??= new Date().toISOString();
             node.children?.forEach((c: TreeNode) => fillMeta(c));
           }
-          if (state.treeData) fillMeta(state.treeData as TreeNode);
+          // Handle old format: treeData at top level
+          if (state.treeData && !state.trees) {
+            const tree = state.treeData as TreeNode;
+            fillMeta(tree);
+            state.trees = { [state.currentProjectId as string ?? 'default']: tree };
+            delete state.treeData;
+          }
+          // Also handle if trees already exists (new format)
+          if (state.trees) {
+            const trees = state.trees as Record<string, TreeNode>;
+            for (const key of Object.keys(trees)) {
+              fillMeta(trees[key]);
+            }
+          }
         }
         return state as ProjectState;
       },
       partialize: (state) => ({
         projects: state.projects,
+        trees: state.trees,
         currentProjectId: state.currentProjectId,
-        treeData: state.treeData,
         selectedNodeId: state.selectedNodeId,
       }),
     }

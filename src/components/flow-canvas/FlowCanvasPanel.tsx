@@ -26,8 +26,8 @@ const nodeTypes: any = {
 };
 
 export function FlowCanvasPanel() {
-  const persistedNodes = useCanvasStore((s) => s.persistedNodes);
-  const persistedEdges = useCanvasStore((s) => s.persistedEdges);
+  const persistedNodes = useCanvasStore((s) => s.getCurrentNodes());
+  const persistedEdges = useCanvasStore((s) => s.getCurrentEdges());
   const syncNodes = useCanvasStore((s) => s.syncNodes);
   const syncEdges = useCanvasStore((s) => s.syncEdges);
   const addEdge = useCanvasStore((s) => s.addEdge);

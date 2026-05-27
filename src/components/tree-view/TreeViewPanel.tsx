@@ -22,7 +22,7 @@ function filterTree(node: TreeNode, query: string): TreeNode | null {
 }
 
 export function TreeViewPanel() {
-  const treeData = useProjectStore((s) => s.treeData);
+  const treeData = useProjectStore((s) => s.getCurrentTree());
   const selectedNodeId = useProjectStore((s) => s.selectedNodeId);
   const selectNode = useProjectStore((s) => s.selectNode);
   const toggleExpanded = useProjectStore((s) => s.toggleExpanded);

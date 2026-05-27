@@ -24,7 +24,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
   const project = useProjectStore((s) =>
     s.projects.find((p) => p.id === s.currentProjectId)
   );
-  const treeData = useProjectStore((s) => s.treeData);
+  const treeData = useProjectStore((s) => s.getCurrentTree());
   const selectedNodeId = useProjectStore((s) => s.selectedNodeId);
   const user = useAuthStore((s) => s.user);
 

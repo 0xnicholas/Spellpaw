@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CanvasNode, CanvasEdge, AssetItem, TreeNode } from '@/types';
+import type { CanvasNode, CanvasEdge, AssetItem } from '@/types';
 import { mockCanvasNodes, mockCanvasEdges } from '@/data/mockCanvasData';
 import { generateId } from '@/lib/utils';
+import { useProjectStore } from './projectStore';
 
 interface Viewport {
   x: number;
@@ -10,10 +11,18 @@ interface Viewport {
   zoom: number;
 }
 
-interface CanvasState {
-  persistedNodes: CanvasNode[];
-  persistedEdges: CanvasEdge[];
+interface CanvasEntry {
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
   viewport: Viewport;
+}
+
+interface CanvasState {
+  canvases: Record<string, CanvasEntry>;
+
+  getCurrentNodes: () => CanvasNode[];
+  getCurrentEdges: () => CanvasEdge[];
+  getCurrentViewport: () => Viewport;
 
   syncNodes: (nodes: CanvasNode[]) => void;
   syncEdges: (edges: CanvasEdge[]) => void;
@@ -23,25 +32,100 @@ interface CanvasState {
   addNodeFromAsset: (asset: AssetItem, position: { x: number; y: number }) => void;
   removeNode: (id: string) => void;
   duplicateNode: (id: string) => void;
-  updateNodeData: (id: string, data: Partial<CanvasNodeData>) => void;
+  updateNodeData: (id: string, data: Partial<CanvasNode['data']>) => void;
   addEdge: (edge: CanvasEdge) => void;
   removeEdge: (id: string) => void;
-  syncFromTreeNode: (node: TreeNode) => void;
+
+  clearCurrentProjectCanvas: () => void;
+}
+
+function ensureEntry(state: CanvasState): CanvasEntry {
+  const projectId = useProjectStore.getState().currentProjectId;
+  if (!projectId) return { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
+  if (!state.canvases[projectId]) {
+    state.canvases[projectId] = { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
+  }
+  return state.canvases[projectId];
 }
 
 export const useCanvasStore = create<CanvasState>()(
   persist(
     (set, get) => ({
-      persistedNodes: mockCanvasNodes,
-      persistedEdges: mockCanvasEdges,
-      viewport: { x: 0, y: 0, zoom: 1 },
+      canvases: {
+        'proj_1': {
+          nodes: mockCanvasNodes,
+          edges: mockCanvasEdges,
+          viewport: { x: 0, y: 0, zoom: 1 },
+        },
+      },
 
-      syncNodes: (nodes) => set({ persistedNodes: nodes }),
-      syncEdges: (edges) => set({ persistedEdges: edges }),
-      syncViewport: (viewport) => set({ viewport }),
+      getCurrentNodes: () => {
+        const projectId = useProjectStore.getState().currentProjectId;
+        return projectId ? get().canvases[projectId]?.nodes ?? [] : [];
+      },
+
+      getCurrentEdges: () => {
+        const projectId = useProjectStore.getState().currentProjectId;
+        return projectId ? get().canvases[projectId]?.edges ?? [] : [];
+      },
+
+      getCurrentViewport: () => {
+        const projectId = useProjectStore.getState().currentProjectId;
+        return projectId
+          ? get().canvases[projectId]?.viewport ?? { x: 0, y: 0, zoom: 1 }
+          : { x: 0, y: 0, zoom: 1 };
+      },
+
+      syncNodes: (nodes) =>
+        set((state) => {
+          const projectId = useProjectStore.getState().currentProjectId;
+          if (!projectId) return state;
+          return {
+            canvases: {
+              ...state.canvases,
+              [projectId]: { ...ensureEntry(state), nodes },
+            },
+          };
+        }),
+
+      syncEdges: (edges) =>
+        set((state) => {
+          const projectId = useProjectStore.getState().currentProjectId;
+          if (!projectId) return state;
+          return {
+            canvases: {
+              ...state.canvases,
+              [projectId]: { ...ensureEntry(state), edges },
+            },
+          };
+        }),
+
+      syncViewport: (viewport) =>
+        set((state) => {
+          const projectId = useProjectStore.getState().currentProjectId;
+          if (!projectId) return state;
+          return {
+            canvases: {
+              ...state.canvases,
+              [projectId]: { ...ensureEntry(state), viewport },
+            },
+          };
+        }),
 
       addNode: (node) =>
-        set((state) => ({ persistedNodes: [...state.persistedNodes, node] })),
+        set((state) => {
+          const projectId = useProjectStore.getState().currentProjectId;
+          if (!projectId) return state;
+          const entry = state.canvases[projectId]
+            ? { ...state.canvases[projectId] }
+            : { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
+          return {
+            canvases: {
+              ...state.canvases,
+              [projectId]: { ...entry, nodes: [...entry.nodes, node] },
+            },
+          };
+        }),
 
       addNodeFromAsset: (asset, position) => {
         const node: CanvasNode = {
@@ -58,15 +142,26 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       removeNode: (id) =>
-        set((state) => ({
-          persistedNodes: state.persistedNodes.filter((n) => n.id !== id),
-          persistedEdges: state.persistedEdges.filter(
-            (e) => e.source !== id && e.target !== id
-          ),
-        })),
+        set((state) => {
+          const projectId = useProjectStore.getState().currentProjectId;
+          if (!projectId) return state;
+          const entry = state.canvases[projectId];
+          if (!entry) return state;
+          return {
+            canvases: {
+              ...state.canvases,
+              [projectId]: {
+                ...entry,
+                nodes: entry.nodes.filter((n) => n.id !== id),
+                edges: entry.edges.filter((e) => e.source !== id && e.target !== id),
+              },
+            },
+          };
+        }),
 
       duplicateNode: (id) => {
-        const node = get().persistedNodes.find((n) => n.id === id);
+        const nodes = get().getCurrentNodes();
+        const node = nodes.find((n) => n.id === id);
         if (!node) return;
         const newNode: CanvasNode = {
           ...node,
@@ -78,51 +173,80 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       updateNodeData: (id, data) =>
-        set((state) => ({
-          persistedNodes: state.persistedNodes.map((n) =>
-            n.id === id ? { ...n, data: { ...n.data, ...data } } : n
-          ),
-        })),
-
-      addEdge: (edge) =>
-        set((state) => ({ persistedEdges: [...state.persistedEdges, edge] })),
-
-      removeEdge: (id) =>
-        set((state) => ({
-          persistedEdges: state.persistedEdges.filter((e) => e.id !== id),
-        })),
-
-      syncFromTreeNode: (node) => {
-        const existing = get().persistedNodes.find((n) => n.id === `canvas_${node.id}`);
-        if (existing) {
-          get().syncNodes(
-            get().persistedNodes.map((n) =>
-              n.id === existing.id
-                ? { ...n, data: { ...n.data, title: node.title, status: node.status } }
-                : n
-            )
-          );
-        } else {
-          const newNode: CanvasNode = {
-            id: `canvas_${node.id}`,
-            type: 'sceneCard',
-            position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
-            data: {
-              title: node.title,
-              description: node.metadata?.description ?? '',
-              status: node.status,
+        set((state) => {
+          const projectId = useProjectStore.getState().currentProjectId;
+          if (!projectId) return state;
+          const entry = state.canvases[projectId];
+          if (!entry) return state;
+          return {
+            canvases: {
+              ...state.canvases,
+              [projectId]: {
+                ...entry,
+                nodes: entry.nodes.map((n) =>
+                  n.id === id ? { ...n, data: { ...n.data, ...data } } : n
+                ),
+              },
             },
           };
-          get().addNode(newNode);
-        }
-      },
+        }),
+
+      addEdge: (edge) =>
+        set((state) => {
+          const projectId = useProjectStore.getState().currentProjectId;
+          if (!projectId) return state;
+          const entry = ensureEntry(state);
+          return {
+            canvases: {
+              ...state.canvases,
+              [projectId]: { ...entry, edges: [...entry.edges, edge] },
+            },
+          };
+        }),
+
+      removeEdge: (id) =>
+        set((state) => {
+          const projectId = useProjectStore.getState().currentProjectId;
+          if (!projectId) return state;
+          const entry = state.canvases[projectId];
+          if (!entry) return state;
+          return {
+            canvases: {
+              ...state.canvases,
+              [projectId]: { ...entry, edges: entry.edges.filter((e) => e.id !== id) },
+            },
+          };
+        }),
+
+      clearCurrentProjectCanvas: () =>
+        set((state) => {
+          const projectId = useProjectStore.getState().currentProjectId;
+          if (!projectId) return state;
+          const { [projectId]: _, ...rest } = state.canvases;
+          return { canvases: rest };
+        }),
     }),
     {
       name: 'spellpaw_canvas',
+      version: 2,
+      migrate: (persistedState: unknown, _version) => {
+        const state = persistedState as Record<string, unknown>;
+        // Handle old format: persistedNodes/persistedEdges/viewport at top level
+        if (state.persistedNodes || state.persistedEdges || state.viewport) {
+          const entry: CanvasEntry = {
+            nodes: (state.persistedNodes as CanvasNode[]) ?? [],
+            edges: (state.persistedEdges as CanvasEdge[]) ?? [],
+            viewport: (state.viewport as Viewport) ?? { x: 0, y: 0, zoom: 1 },
+          };
+          state.canvases = { 'proj_1': entry };
+          delete state.persistedNodes;
+          delete state.persistedEdges;
+          delete state.viewport;
+        }
+        return state as CanvasState;
+      },
       partialize: (state) => ({
-        persistedNodes: state.persistedNodes,
-        persistedEdges: state.persistedEdges,
-        viewport: state.viewport,
+        canvases: state.canvases,
       }),
     }
   )

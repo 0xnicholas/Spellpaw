@@ -7,42 +7,40 @@ describe('projectStore', () => {
   beforeEach(() => {
     useProjectStore.setState({
       projects: [...mockProjects],
-      currentProjectId: mockProjects[0]?.id ?? null,
-      treeData: null,
-      selectedNodeId: null,
-    });
-    // Set up a test tree
-    useProjectStore.setState({
-      treeData: {
-        id: 'root',
-        type: 'project',
-        title: 'Test Project',
-        status: 'draft',
-        children: [
-          {
-            id: 'act_1',
-            type: 'act',
-            title: 'Act 1',
-            status: 'draft',
-            children: [
-              {
-                id: 'scene_1',
-                type: 'scene',
-                title: 'Scene 1',
-                status: 'draft',
-                metadata: { createdAt: '', updatedAt: '' },
-              },
-              {
-                id: 'scene_2',
-                type: 'scene',
-                title: 'Scene 2',
-                status: 'in_progress',
-                metadata: { createdAt: '', updatedAt: '' },
-              },
-            ],
-          },
-        ],
+      trees: {
+        'proj_1': {
+          id: 'root',
+          type: 'project',
+          title: 'Test Project',
+          status: 'draft',
+          children: [
+            {
+              id: 'act_1',
+              type: 'act',
+              title: 'Act 1',
+              status: 'draft',
+              children: [
+                {
+                  id: 'scene_1',
+                  type: 'scene',
+                  title: 'Scene 1',
+                  status: 'draft',
+                  metadata: { createdAt: '', updatedAt: '' },
+                },
+                {
+                  id: 'scene_2',
+                  type: 'scene',
+                  title: 'Scene 2',
+                  status: 'in_progress',
+                  metadata: { createdAt: '', updatedAt: '' },
+                },
+              ],
+            },
+          ],
+        },
       },
+      currentProjectId: 'proj_1',
+      selectedNodeId: null,
     });
   });
 
@@ -65,7 +63,7 @@ describe('projectStore', () => {
   it('initializes with mock data', () => {
     const state = useProjectStore.getState();
     expect(state.projects.length).toBeGreaterThan(0);
-    expect(state.treeData).not.toBeNull();
+    expect(state.getCurrentTree()).not.toBeNull();
   });
 
   it('adds child node with auto metadata', () => {
@@ -76,7 +74,7 @@ describe('projectStore', () => {
       status: 'draft',
     };
     useProjectStore.getState().addTreeNode('act_1', newNode);
-    const tree = useProjectStore.getState().treeData;
+    const tree = useProjectStore.getState().getCurrentTree();
     const act1 = tree?.children?.[0];
     expect(act1?.children?.length).toBe(3);
     const added = act1?.children?.[2];
@@ -87,7 +85,7 @@ describe('projectStore', () => {
 
   it('moves node within siblings', () => {
     useProjectStore.getState().moveTreeNode('scene_2', 0);
-    const tree = useProjectStore.getState().treeData;
+    const tree = useProjectStore.getState().getCurrentTree();
     const firstScene = tree?.children?.[0]?.children?.[0];
     expect(firstScene?.id).toBe('scene_2');
   });
@@ -96,8 +94,8 @@ describe('projectStore', () => {
     useProjectStore.getState().updateTreeNode('scene_1', {
       metadata: { description: 'A scene', duration: 30 },
     });
-    const state = useProjectStore.getState();
-    const node = state.treeData?.children?.[0]?.children?.[0];
+    const tree = useProjectStore.getState().getCurrentTree();
+    const node = tree?.children?.[0]?.children?.[0];
     expect(node?.metadata?.description).toBe('A scene');
     expect(node?.metadata?.duration).toBe(30);
     expect(node?.metadata?.updatedAt).toBeDefined();
@@ -106,7 +104,32 @@ describe('projectStore', () => {
 
   it('deletes node with children', () => {
     useProjectStore.getState().deleteTreeNode('act_1');
-    const tree = useProjectStore.getState().treeData;
+    const tree = useProjectStore.getState().getCurrentTree();
     expect(tree?.children?.length).toBe(0);
+  });
+
+  it('creates a new project', () => {
+    const id = useProjectStore.getState().createProject('New', 'Desc', '#6366f1');
+    expect(id).toMatch(/^proj_/);
+    expect(useProjectStore.getState().currentProjectId).toBe(id);
+    expect(useProjectStore.getState().getCurrentTree()?.title).toBe('New');
+  });
+
+  it('deletes a project', () => {
+    useProjectStore.getState().createProject('Temp', '', '#6366f1');
+    const state = useProjectStore.getState();
+    const initialCount = state.projects.length;
+    useProjectStore.getState().deleteProject(state.currentProjectId!);
+    expect(useProjectStore.getState().projects.length).toBe(initialCount - 1);
+  });
+
+  it('isolates tree data between projects', () => {
+    const id1 = useProjectStore.getState().currentProjectId!;
+    useProjectStore.getState().createProject('Proj 2', '', '#8b5cf6');
+    const id2 = useProjectStore.getState().currentProjectId!;
+    useProjectStore.getState().setCurrentProject(id1);
+    expect(useProjectStore.getState().getCurrentTree()?.title).toBe('Test Project');
+    useProjectStore.getState().setCurrentProject(id2);
+    expect(useProjectStore.getState().getCurrentTree()?.title).toBe('Proj 2');
   });
 });

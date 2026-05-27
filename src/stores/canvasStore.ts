@@ -183,24 +183,6 @@ export const useCanvasStore = create<CanvasState>()(
           if (!existingNode) return state;
           const newNodeData = { ...existingNode.data, ...data };
 
-          // Sync to tree if linked and not originating from tree
-          if (newNodeData.linkedTreeNodeId) {
-            const dataAny = data as Record<string, unknown>;
-            if (!dataAny._source || dataAny._source !== 'tree') {
-              const projectStore = useProjectStore.getState();
-              const updates: Record<string, unknown> = {};
-              if (data.title !== undefined) updates.title = data.title;
-              if (data.status !== undefined) updates.status = data.status;
-              if (data.description !== undefined) updates.metadata = { description: data.description };
-              if (Object.keys(updates).length > 0) {
-                projectStore.updateTreeNode(newNodeData.linkedTreeNodeId, {
-                  ...updates,
-                  _source: 'canvas',
-                } as any);
-              }
-            }
-          }
-
           return {
             canvases: {
               ...state.canvases,

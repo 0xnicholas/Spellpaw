@@ -13,7 +13,7 @@ export function DetailPanel() {
   const selectedNodeId = useProjectStore((s) => s.selectedNodeId);
   const tree = useProjectStore((s) => s.getCurrentTree());
   const updateTreeNode = useProjectStore((s) => s.updateTreeNode);
-  const selectNode = useProjectStore((s) => s.selectNode);
+  const requestFocusCanvas = useDetailStore((s) => s.requestFocusCanvas);
   const getCurrentNodes = useCanvasStore((s) => s.getCurrentNodes);
   const addNode = useCanvasStore((s) => s.addNode);
   const setDraftFormData = useDetailStore((s) => s.setDraftFormData);
@@ -54,7 +54,7 @@ export function DetailPanel() {
         <button
           onClick={() => {
             if (hasLinkedCard) {
-              selectNode(node.id);
+              requestFocusCanvas(node.id);
             } else {
               addNode({
                 id: generateId('canvas_scene_'),

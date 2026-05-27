@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
@@ -12,15 +12,23 @@ interface SceneDetailFormProps {
 
 export function SceneDetailForm({ node, onChange }: SceneDetailFormProps) {
   const [local, setLocal] = useState(node);
+  const externalChangeRef = useRef(false);
   const debouncedLocal = useDebounce(local, 300);
 
-  useEffect(() => { setLocal(node); }, [node]);
+  useEffect(() => {
+    externalChangeRef.current = true;
+    setLocal(node);
+  }, [node]);
 
   useEffect(() => {
+    if (externalChangeRef.current) {
+      externalChangeRef.current = false;
+      return;
+    }
     if (debouncedLocal === node) return;
     onChange({
       title: debouncedLocal.title !== node.title ? debouncedLocal.title : undefined,
-      status: node.status,
+      status: debouncedLocal.status !== node.status ? debouncedLocal.status : undefined,
       metadata: {
         description: debouncedLocal.metadata?.description,
         duration: debouncedLocal.metadata?.duration,
@@ -34,10 +42,10 @@ export function SceneDetailForm({ node, onChange }: SceneDetailFormProps) {
   }, [debouncedLocal]);
 
   const handleMeta = (field: string, value: unknown) => {
-    setLocal((prev) => ({
-      ...prev,
-      metadata: { ...prev.metadata, createdAt: prev.metadata?.createdAt ?? '', updatedAt: prev.metadata?.updatedAt ?? '', [field]: value } as TreeNode['metadata'],
-    }));
+    setLocal((prev) => {
+      const meta = prev.metadata ?? { createdAt: '', updatedAt: '' };
+      return { ...prev, metadata: { ...meta, [field]: value } };
+    });
   };
 
   return (
@@ -48,6 +56,18 @@ export function SceneDetailForm({ node, onChange }: SceneDetailFormProps) {
           onChange={(e) => setLocal((p) => ({ ...p, title: e.target.value }))}
           className="h-7 text-xs"
         />
+      </FormField>
+      <FormField label="Status">
+        <select
+          value={local.status}
+          onChange={(e) => setLocal((p) => ({ ...p, status: e.target.value as TreeNode['status'] }))}
+          className="h-7 w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2 text-xs"
+        >
+          <option value="draft">Draft</option>
+          <option value="in_progress">In Progress</option>
+          <option value="review">Review</option>
+          <option value="done">Done</option>
+        </select>
       </FormField>
       <FormField label="Description">
         <Textarea

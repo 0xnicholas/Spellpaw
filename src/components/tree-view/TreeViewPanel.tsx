@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, FolderTree } from 'lucide-react';
 import { PanelHeader } from '@/components/ui/PanelHeader';
 import { Input } from '@/components/ui/Input';
@@ -42,6 +42,22 @@ export function TreeViewPanel() {
   const [query, setQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; childCount: number } | null>(null);
   const titleRefs = useRef<Map<string, EditableTitleRef>>(new Map());
+
+  // F2 / Cmd+R to rename selected node
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (
+        (e.key === 'F2' || (e.metaKey && e.key === 'r')) &&
+        selectedNodeId &&
+        document.activeElement === document.body
+      ) {
+        e.preventDefault();
+        titleRefs.current.get(selectedNodeId)?.startEdit();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [selectedNodeId]);
 
   const displayedTree = useMemo(() => {
     if (!treeData) return null;

@@ -3,7 +3,7 @@ import { useDetailStore } from './detailStore';
 
 describe('detailStore', () => {
   beforeEach(() => {
-    useDetailStore.setState({ activeTab: 'chat', draftFormData: null });
+    useDetailStore.setState({ activeTab: 'chat', draftFormData: null, focusCanvasLinkedId: null });
   });
 
   it('defaults to chat tab', () => {
@@ -24,5 +24,12 @@ describe('detailStore', () => {
     useDetailStore.getState().setDraftFormData({ title: 'Test' });
     useDetailStore.getState().setDraftFormData(null);
     expect(useDetailStore.getState().draftFormData).toBeNull();
+  });
+
+  it('requests and clears canvas focus', () => {
+    useDetailStore.getState().requestFocusCanvas('tree_123');
+    expect(useDetailStore.getState().focusCanvasLinkedId).toBe('tree_123');
+    useDetailStore.getState().clearFocusCanvas();
+    expect(useDetailStore.getState().focusCanvasLinkedId).toBeNull();
   });
 });

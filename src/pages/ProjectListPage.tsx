@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { NewProjectModal } from '@/components/modals/NewProjectModal';
 import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
 import { useProjectStore } from '@/stores/projectStore';
+import { useCanvasStore } from '@/stores/canvasStore';
 import { useAuthStore } from '@/stores/authStore';
 import { exportProjectToJSON, importProjectFromJSON } from '@/lib/exportImport';
 
@@ -31,10 +32,17 @@ export function ProjectListPage() {
 
   const handleExport = (projectId: string) => {
     const state = useProjectStore.getState();
+    const canvasState = useCanvasStore.getState();
     const project = state.projects.find((p) => p.id === projectId);
     const tree = state.trees[projectId];
     if (!project || !tree) return;
-    exportProjectToJSON(project, tree);
+    const canvasEntry = canvasState.canvases[projectId];
+    exportProjectToJSON(
+      project,
+      tree,
+      canvasEntry?.nodes,
+      canvasEntry?.edges,
+    );
   };
 
   const handleImport = async () => {
@@ -48,10 +56,20 @@ export function ProjectListPage() {
         const text = await file.text();
         const data = importProjectFromJSON(text);
         const projectId = createProject(data.title, data.description, '#6366f1');
-        const { setState } = useProjectStore;
-        setState((state) => ({
-          trees: { ...state.trees, [projectId]: data.tree },
-        }));
+        const currentTrees = useProjectStore.getState().trees;
+        useProjectStore.setState({ trees: { ...currentTrees, [projectId]: data.tree } });
+        if (data.canvas?.nodes?.length) {
+          useCanvasStore.setState((s) => ({
+            canvases: {
+              ...s.canvases,
+              [projectId]: {
+                nodes: data.canvas!.nodes,
+                edges: data.canvas?.edges ?? [],
+                viewport: { x: 0, y: 0, zoom: 1 },
+              },
+            },
+          }));
+        }
         navigate(`/project/${projectId}`);
       } catch (err) {
         alert('Invalid file format: ' + (err as Error).message);

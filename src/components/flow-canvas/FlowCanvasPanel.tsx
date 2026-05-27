@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
   Controls,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   type Node,
   type Edge,
   type Connection,
@@ -15,6 +16,7 @@ import { Plus } from 'lucide-react';
 
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useProjectStore } from '@/stores/projectStore';
+import { useDetailStore } from '@/stores/detailStore';
 import { SceneCardNode } from './nodes/SceneCardNode';
 import { AssetCardNode } from './nodes/AssetCardNode';
 import { NoteCardNode } from './nodes/NoteCardNode';
@@ -49,6 +51,9 @@ export function FlowCanvasPanel() {
   const selectNode = useProjectStore((s) => s.selectNode);
   const tree = useProjectStore((s) => s.getCurrentTree());
   const deleteTreeNode = useProjectStore((s) => s.deleteTreeNode);
+  const focusCanvasLinkedId = useDetailStore((s) => s.focusCanvasLinkedId);
+  const clearFocusCanvas = useDetailStore((s) => s.clearFocusCanvas);
+  const reactFlowInstance = useReactFlow();
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ nodeId: string; isLinked: boolean } | null>(null);
@@ -58,6 +63,20 @@ export function FlowCanvasPanel() {
 
   const [nodes, , onNodesChange] = useNodesState(persistedNodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(persistedEdges as Edge[]);
+
+  // Focus on canvas card when DetailPanel requests it
+  useEffect(() => {
+    if (!focusCanvasLinkedId) return;
+    const targetNode = nodes.find((n: Node) => n.data?.linkedTreeNodeId === focusCanvasLinkedId);
+    if (targetNode) {
+      setTimeout(() => {
+        reactFlowInstance.fitView({ nodes: [targetNode], duration: 300, maxZoom: 1.5 });
+        clearFocusCanvas();
+      }, 50);
+    } else {
+      clearFocusCanvas();
+    }
+  }, [focusCanvasLinkedId, nodes, reactFlowInstance, clearFocusCanvas]);
 
   const onConnect = useCallback(
     (connection: Connection) => {

@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
-import { Film, Bell, Command, ChevronRight, PanelLeft } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Film, Bell, Command, ChevronRight, PanelLeft, Pencil } from 'lucide-react';
 import { IconButton } from '@/components/ui/IconButton';
+import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
 import { useProjectStore } from '@/stores/projectStore';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -26,7 +27,9 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
   );
   const treeData = useProjectStore((s) => s.getCurrentTree());
   const selectedNodeId = useProjectStore((s) => s.selectedNodeId);
+  const updateProject = useProjectStore((s) => s.updateProject);
   const user = useAuthStore((s) => s.user);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const path = useMemo(() => {
     if (!treeData || !selectedNodeId) return [];
@@ -49,6 +52,13 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
         </div>
         <div className="h-4 w-px bg-[var(--color-border-default)]" />
         <span className="text-sm text-[var(--color-text-secondary)]">{project?.title ?? ''}</span>
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="flex h-5 w-5 items-center justify-center rounded-sm text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
+          title="Edit project"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
         {path.length > 0 && (
           <div className="flex items-center gap-1 text-xs text-[var(--color-text-tertiary)]">
             {path.map((segment, i) => (
@@ -67,6 +77,13 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
           {user?.name?.[0] ?? 'U'}
         </div>
       </div>
+
+      <ProjectSettingsModal
+        isOpen={settingsOpen}
+        project={project ?? null}
+        onClose={() => setSettingsOpen(false)}
+        onSave={(id, updates) => updateProject(id, updates)}
+      />
     </header>
   );
 }

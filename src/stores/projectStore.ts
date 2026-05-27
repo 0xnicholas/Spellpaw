@@ -132,6 +132,32 @@ export const useProjectStore = create<ProjectState>()(
               return false;
             }
             walk(tree);
+
+            // Bidirectional sync to canvas
+            const updatesAny = updates as Record<string, unknown>;
+            if (!updatesAny._source || updatesAny._source !== 'canvas') {
+              setTimeout(() => {
+                try {
+                  const { useCanvasStore } = require('./canvasStore');
+                  const cs = useCanvasStore.getState();
+                  const pid = state.currentProjectId;
+                  if (pid && cs.canvases[pid]) {
+                    const linked = cs.canvases[pid].nodes.find(
+                      (n: { data: { linkedTreeNodeId?: string } }) => n.data.linkedTreeNodeId === nodeId
+                    );
+                    if (linked) {
+                      const cu: Record<string, unknown> = {};
+                      if (updates.title !== undefined) cu.title = updates.title;
+                      if (updates.status !== undefined) cu.status = updates.status;
+                      if (updates.metadata?.description !== undefined) cu.description = updates.metadata.description;
+                      if (Object.keys(cu).length > 0) {
+                        cs.updateNodeData(linked.id, cu as unknown as Partial<{ title: string }>);
+                      }
+                    }
+                  }
+                } catch (_) { /* ignore */ }
+              }, 0);
+            }
           })
         ),
 
@@ -274,7 +300,7 @@ export const useProjectStore = create<ProjectState>()(
             }
           }
         }
-        return state as ProjectState;
+        return state as unknown as ProjectState;
       },
       partialize: (state) => ({
         projects: state.projects,

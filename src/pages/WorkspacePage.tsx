@@ -6,8 +6,9 @@ import { AssetManagerPanel } from '@/components/asset-manager/AssetManagerPanel'
 import { ChatPanel } from '@/components/chat-panel/ChatPanel';
 import { FlowCanvasPanel } from '@/components/flow-canvas/FlowCanvasPanel';
 import { useHotkeys } from '@/hooks/useHotkeys';
-import { useCanvasStore } from '@/stores/canvasStore';
 import { useProjectStore } from '@/stores/projectStore';
+import { useDetailStore } from '@/stores/detailStore';
+import { findNode } from '@/lib/treeUtils';
 
 
 function MobileGuard({ children }: { children: React.ReactNode }) {
@@ -39,9 +40,12 @@ function MobileGuard({ children }: { children: React.ReactNode }) {
 }
 
 export function WorkspacePage() {
-  const removeNode = useCanvasStore((s) => s.removeNode);
   const selectedNodeId = useProjectStore((s) => s.selectedNodeId);
   const selectNode = useProjectStore((s) => s.selectNode);
+  const getCurrentTree = useProjectStore((s) => s.getCurrentTree);
+  const deleteTreeNode = useProjectStore((s) => s.deleteTreeNode);
+  const activeTab = useDetailStore((s) => s.activeTab);
+  const setActiveTab = useDetailStore((s) => s.setActiveTab);
   const groupRef = useGroupRef();
 
   const toggleSidebar = () => {
@@ -61,11 +65,21 @@ export function WorkspacePage() {
     },
     Delete: () => {
       if (selectedNodeId) {
-        removeNode(selectedNodeId);
+        const tree = getCurrentTree();
+        if (tree) {
+          const node = findNode(tree, selectedNodeId);
+          if (node) {
+            deleteTreeNode(selectedNodeId);
+          }
+        }
       }
     },
     Escape: () => {
-      selectNode(null);
+      if (activeTab === 'details') {
+        setActiveTab('chat');
+      } else {
+        selectNode(null);
+      }
     },
   });
 

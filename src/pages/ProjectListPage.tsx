@@ -1,23 +1,67 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Film, Plus, Clock, LayoutGrid } from 'lucide-react';
+import { Film, Plus, Clock, LayoutGrid, Trash2, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { NewProjectModal } from '@/components/modals/NewProjectModal';
+import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
 import { useProjectStore } from '@/stores/projectStore';
 import { useAuthStore } from '@/stores/authStore';
+import { exportProjectToJSON, importProjectFromJSON } from '@/lib/exportImport';
 
 export function ProjectListPage() {
   const navigate = useNavigate();
   const projects = useProjectStore((s) => s.projects);
   const setCurrentProject = useProjectStore((s) => s.setCurrentProject);
+  const createProject = useProjectStore((s) => s.createProject);
+  const deleteProject = useProjectStore((s) => s.deleteProject);
   const user = useAuthStore((s) => s.user);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const handleOpen = (id: string) => {
     setCurrentProject(id);
     navigate(`/project/${id}`);
   };
 
+  const handleCreate = (title: string, description: string, coverColor: string) => {
+    const projectId = createProject(title, description, coverColor);
+    navigate(`/project/${projectId}`);
+  };
+
+  const handleExport = (projectId: string) => {
+    const state = useProjectStore.getState();
+    const project = state.projects.find((p) => p.id === projectId);
+    const tree = state.trees[projectId];
+    if (!project || !tree) return;
+    exportProjectToJSON(project, tree);
+  };
+
+  const handleImport = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = importProjectFromJSON(text);
+        const projectId = createProject(data.title, data.description, '#6366f1');
+        const { setState } = useProjectStore;
+        setState((state) => ({
+          trees: { ...state.trees, [projectId]: data.tree },
+        }));
+        navigate(`/project/${projectId}`);
+      } catch (err) {
+        alert('Invalid file format: ' + (err as Error).message);
+      }
+    };
+    input.click();
+  };
+
   return (
     <div className="flex h-full min-h-screen flex-col bg-[var(--color-bg-secondary)]">
-      {/* Header */}
       <header className="flex h-12 items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-6">
         <div className="flex items-center gap-2">
           <Film className="h-5 w-5 text-[var(--color-accent-500)]" />
@@ -31,51 +75,91 @@ export function ProjectListPage() {
         </div>
       </header>
 
-      {/* Content */}
       <main className="flex-1 p-8">
         <div className="mx-auto max-w-[960px]">
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text-primary)]">
               Projects
             </h1>
-            <Button size="sm">
-              <Plus className="mr-1 h-4 w-4" />
-              New Project
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleImport}>
+                <Upload className="mr-1 h-4 w-4" />
+                Import
+              </Button>
+              <Button size="sm" onClick={() => setIsModalOpen(true)}>
+                <Plus className="mr-1 h-4 w-4" />
+                New Project
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <button
-                key={project.id}
-                onClick={() => handleOpen(project.id)}
-                className="group relative flex flex-col rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] p-5 text-left transition-all hover:border-[var(--color-accent-500)] hover:shadow-sm"
-              >
-                <div
-                  className="mb-4 h-24 w-full rounded-[var(--radius-sm)]"
-                  style={{ backgroundColor: project.coverColor, opacity: 0.15 }}
-                />
-                <h3 className="mb-1 text-base font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-accent-500)]">
-                  {project.title}
-                </h3>
-                <p className="mb-3 text-xs text-[var(--color-text-tertiary)] line-clamp-2">
-                  {project.description}
-                </p>
-                <div className="mt-auto flex items-center gap-4 text-xs text-[var(--color-text-tertiary)]">
-                  <span className="flex items-center gap-1">
-                    <LayoutGrid className="h-3.5 w-3.5" />
-                    {project.sceneCount} scenes
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {Math.floor(project.duration / 60)}:{String(project.duration % 60).padStart(2, '0')}
-                  </span>
+              <div key={project.id} className="group relative">
+                <button
+                  onClick={() => handleOpen(project.id)}
+                  className="w-full flex flex-col rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] p-5 text-left transition-all hover:border-[var(--color-accent-500)] hover:shadow-sm"
+                >
+                  <div
+                    className="mb-4 h-24 w-full rounded-[var(--radius-sm)]"
+                    style={{ backgroundColor: project.coverColor, opacity: 0.15 }}
+                  />
+                  <h3 className="mb-1 text-base font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-accent-500)]">
+                    {project.title}
+                  </h3>
+                  <p className="mb-3 text-xs text-[var(--color-text-tertiary)] line-clamp-2">
+                    {project.description}
+                  </p>
+                  <div className="mt-auto flex items-center gap-4 text-xs text-[var(--color-text-tertiary)]">
+                    <span className="flex items-center gap-1">
+                      <LayoutGrid className="h-3.5 w-3.5" />
+                      {project.sceneCount} scenes
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      {Math.floor(project.duration / 60)}:{String(project.duration % 60).padStart(2, '0')}
+                    </span>
+                  </div>
+                </button>
+                {/* Quick actions on hover */}
+                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleExport(project.id); }}
+                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
+                    title="Export"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(project.id); }}
+                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-red-50 hover:text-red-500"
+                    title="Delete"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
       </main>
+
+      <NewProjectModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onCreate={handleCreate}
+      />
+
+      <DeleteConfirmDialog
+        isOpen={!!deleteTarget}
+        title="Delete Project"
+        description="This will permanently delete the project and all its data."
+        onConfirm={() => {
+          if (deleteTarget) deleteProject(deleteTarget);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

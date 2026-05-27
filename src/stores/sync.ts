@@ -121,11 +121,13 @@ useProjectStore.subscribe((state) => {
     const newTreeNode = findNodeById(tree, linkedId);
     const changes = collectLinkedFieldChanges(oldTreeNode, newTreeNode);
     if (changes) {
+      syncGuard = true;
       const cu: Record<string, unknown> = {};
       if (changes.title !== undefined) cu.title = changes.title;
       if (changes.status !== undefined) cu.status = changes.status;
       if (changes.description !== undefined) cu.description = changes.description;
       cs.updateNodeData(card.id, cu as any);
+      syncGuard = false;
     }
   }
 

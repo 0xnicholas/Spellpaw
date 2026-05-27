@@ -1,11 +1,10 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import {
   ReactFlow,
   Background,
   Controls,
   useNodesState,
   useEdgesState,
-  useReactFlow,
   type Node,
   type Edge,
   type Connection,
@@ -53,7 +52,7 @@ export function FlowCanvasPanel() {
   const deleteTreeNode = useProjectStore((s) => s.deleteTreeNode);
   const focusCanvasLinkedId = useDetailStore((s) => s.focusCanvasLinkedId);
   const clearFocusCanvas = useDetailStore((s) => s.clearFocusCanvas);
-  const reactFlowInstance = useReactFlow();
+  const reactFlowRef = useRef<any>(null);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ nodeId: string; isLinked: boolean } | null>(null);
@@ -70,13 +69,13 @@ export function FlowCanvasPanel() {
     const targetNode = nodes.find((n: Node) => n.data?.linkedTreeNodeId === focusCanvasLinkedId);
     if (targetNode) {
       setTimeout(() => {
-        reactFlowInstance.fitView({ nodes: [targetNode], duration: 300, maxZoom: 1.5 });
+        reactFlowRef.current?.fitView({ nodes: [targetNode], duration: 300, maxZoom: 1.5 });
         clearFocusCanvas();
       }, 50);
     } else {
       clearFocusCanvas();
     }
-  }, [focusCanvasLinkedId, nodes, reactFlowInstance, clearFocusCanvas]);
+  }, [focusCanvasLinkedId, nodes, clearFocusCanvas]);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -208,6 +207,7 @@ export function FlowCanvasPanel() {
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          onInit={(instance: any) => { reactFlowRef.current = instance; }}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChangeWrapper}
           onConnect={onConnect}

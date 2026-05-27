@@ -107,3 +107,17 @@ export interface User {
   email: string;
   avatar?: string;
 }
+
+// === Phase 2: Tool Router ===
+
+/** Pandaria HttpProxyTool 发来的请求参数 */
+export interface ToolParams {
+  action: string;
+  [key: string]: unknown;
+}
+
+/** toolRouter 每个 action 的函数签名 */
+export type ToolHandler = (params: ToolParams) => Promise<string>;
+
+/** toolRouter 映射表 */
+export type ToolRouter = Record<string, ToolHandler>;

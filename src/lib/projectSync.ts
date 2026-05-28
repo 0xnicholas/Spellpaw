@@ -2,9 +2,10 @@
  * Project sync service — push/pull projects between localStorage and server
  */
 import { useProjectStore } from '../stores/projectStore';
-import { authApi } from '../stores/authStore';
+import { authApi, useAuthStore } from '../stores/authStore';
+import { config } from '../config';
 
-const API_BASE = 'http://localhost:3001';
+const API_BASE = config.serverBase;
 
 interface ServerProject {
   id: string;
@@ -17,10 +18,11 @@ interface ServerProject {
 }
 
 /** Push all local projects to server */
-export async function pushAll(): Promise<{ synced: number; errors: number }> {
+export async function pushAll(): Promise<{ synced: number; errors: string[] }> {
   const store = useProjectStore.getState();
   const projects = store.projects;
-  let synced = 0, errors = 0;
+  let synced = 0;
+  const errors: string[] = [];
 
   for (const project of projects) {
     try {
@@ -28,26 +30,29 @@ export async function pushAll(): Promise<{ synced: number; errors: number }> {
       const canvases = (store as any).canvases?.[project.id];
       const data = JSON.stringify({ tree, canvases });
 
-      // Check if project exists on server
-      const existing = await fetch(`${API_BASE}/api/projects/${project.id}`, {
-        headers: { 'Authorization': `Bearer ${useProjectStore.getState().token || authApi.apiCall}` },
-      });
+      const token = useAuthStore().getState().token;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const existing = await fetch(`${API_BASE}/api/projects/${project.id}`, { headers });
 
       if (existing.ok) {
         await fetch(`${API_BASE}/api/projects/${project.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ title: project.title, description: project.description, coverColor: project.coverColor, data, version: 1 }),
         });
       } else {
         await fetch(`${API_BASE}/api/projects`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ title: project.title, description: project.description, coverColor: project.coverColor, data }),
         });
       }
       synced++;
-    } catch { errors++; }
+    } catch (err) {
+      errors.push(`${project.title}: ${(err as Error).message}`);
+    }
   }
 
   return { synced, errors };

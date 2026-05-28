@@ -129,7 +129,7 @@ export function ProjectListPage() {
             <div className="flex items-center gap-2">
               {user && (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => pushAll().then(r => alert(`Synced ${r.synced}, errors: ${r.errors}`))}>
+                  <Button variant="outline" size="sm" onClick={() => pushAll().then(r => alert(`Synced ${r.synced}${r.errors.length ? `, errors: ${r.errors.join('; ')}` : ''}`))}>
                     <Upload className="mr-1 h-4 w-4" />
                     Push
                   </Button>

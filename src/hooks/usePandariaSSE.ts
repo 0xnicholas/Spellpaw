@@ -7,6 +7,9 @@ import { useEffect, useRef } from 'react';
 import { useChatStore } from '../stores/chatStore';
 import { useProjectStore } from '../stores/projectStore';
 import { createSession, sendMessage, subscribeSSE, buildSystemPrompt } from '../lib/pandaria';
+import { config } from '../config';
+
+const TOOL_ENDPOINT = config.toolServerEndpoint;
 
 /** Tool configs: all pointing to the local Tool Server */
 const TOOL_CONFIGS = [
@@ -24,7 +27,7 @@ const TOOL_CONFIGS = [
       },
       required: ['parentId', 'type', 'title'],
     },
-    endpoint: 'http://localhost:5173/tool',
+    endpoint: TOOL_ENDPOINT,
   },
   {
     name: 'spellpaw_update_node',
@@ -37,7 +40,7 @@ const TOOL_CONFIGS = [
       },
       required: ['nodeId', 'changes'],
     },
-    endpoint: 'http://localhost:5173/tool',
+    endpoint: TOOL_ENDPOINT,
   },
   {
     name: 'spellpaw_delete_node',
@@ -49,13 +52,13 @@ const TOOL_CONFIGS = [
       },
       required: ['nodeId'],
     },
-    endpoint: 'http://localhost:5173/tool',
+    endpoint: TOOL_ENDPOINT,
   },
   {
     name: 'spellpaw_get_tree',
     description: 'Get the full project tree structure.',
     parameters: { type: 'object', properties: {} },
-    endpoint: 'http://localhost:5173/tool',
+    endpoint: TOOL_ENDPOINT,
   },
   {
     name: 'spellpaw_get_subtree',
@@ -65,7 +68,7 @@ const TOOL_CONFIGS = [
       properties: { nodeId: { type: 'string' } },
       required: ['nodeId'],
     },
-    endpoint: 'http://localhost:5173/tool',
+    endpoint: TOOL_ENDPOINT,
   },
 ];
 

@@ -1,10 +1,10 @@
 /**
  * Pandaria API client — token generation + HTTP helpers
  */
+import { config } from '@/config';
 
-// ---- Config (move to .env later) ----
-const PANDARIA_BASE = 'http://localhost:8080';
-const AUTH_SECRET = 'spellpaw-dev-key-32chars!!';
+const PANDARIA_BASE = config.pandariaBase;
+const AUTH_SECRET = config.pandariaAuthSecret;
 const TENANT_ID = 'test-tenant';
 
 // ---- Token generation ----

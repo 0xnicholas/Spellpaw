@@ -163,7 +163,7 @@ export const toolRouter: ToolRouter = {
 
       return `已为「${node.title}」生成参考图: ${imageUrl}`;
     } catch (err) {
-      return `分镜生成失败: ${(err as Error).message}`;
+      throw new Error(`分镜生成失败: ${(err as Error).message}`);
     }
   },
 };

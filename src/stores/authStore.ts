@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '@/types';
+import { config } from '@/config';
 
-const API_BASE = 'http://localhost:3001';
+const API_BASE = config.serverBase;
 
 interface AuthState {
   isAuthenticated: boolean;

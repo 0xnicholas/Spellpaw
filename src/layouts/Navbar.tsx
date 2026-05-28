@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Film, Bell, Command, ChevronRight, PanelLeft, Pencil } from 'lucide-react';
+import { Film, Bell, Command, ChevronRight, PanelLeft, Pencil, Download, Settings } from 'lucide-react';
 import { IconButton } from '@/components/ui/IconButton';
 import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
+import { SettingsModal } from '@/components/modals/SettingsModal';
 import { useProjectStore } from '@/stores/projectStore';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -30,6 +31,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
   const updateProject = useProjectStore((s) => s.updateProject);
   const user = useAuthStore((s) => s.user);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
 
   const handleExportPDF = () => {
     if (!project || !treeData) return;
@@ -85,6 +87,13 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
       <div className="flex items-center gap-1">
         <IconButton icon={<Command className="h-4 w-4" />} label="Command palette" size="sm" />
         <IconButton icon={<Bell className="h-4 w-4" />} label="Notifications" size="sm" />
+        <button
+          onClick={() => setGlobalSettingsOpen(true)}
+          className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-base)] text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
+          title="Settings"
+        >
+          <Settings className="h-3.5 w-3.5" />
+        </button>
         <div className="ml-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-accent-50)] text-xs font-medium text-[var(--color-accent-500)]">
           {user?.name?.[0] ?? 'U'}
         </div>
@@ -96,6 +105,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
         onClose={() => setSettingsOpen(false)}
         onSave={(id, updates) => updateProject(id, updates)}
       />
+      <SettingsModal isOpen={globalSettingsOpen} onClose={() => setGlobalSettingsOpen(false)} />
     </header>
   );
 }

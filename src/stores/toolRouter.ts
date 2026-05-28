@@ -96,6 +96,7 @@ export const toolRouter: ToolRouter = {
     store.moveTreeNode(nodeId, newIndex);
     return `已移动 ${nodeId}`;
   },
+
   apply_template: async (params) => {
     const templateId = params.templateId as string;
     try {
@@ -125,7 +126,6 @@ export const toolRouter: ToolRouter = {
         }
       }
 
-      // parentId 是树节点 ID；若未提供，用当前项目树根节点
       const rootId = store.getCurrentTree()?.id;
       const parentId = (params.parentId as string) || rootId;
       if (!parentId) throw new Error('无法确定父节点：当前无项目打开');
@@ -139,6 +139,30 @@ export const toolRouter: ToolRouter = {
 
   generate_storyboard: async (params) => {
     const nodeId = params.nodeId as string;
-    return `(分镜生成功能将在后续实现: nodeId=${nodeId})`;
+    const customPrompt = params.prompt as string | undefined;
+
+    const store = useProjectStore.getState();
+    const tree = store.getCurrentTree();
+    if (!tree) return '(无法生成：当前无项目)';
+
+    const node = findNode(tree, nodeId);
+    if (!node) return `(未找到节点 ${nodeId})`;
+
+    try {
+      const { generateImage, buildImagePrompt } = await import('../lib/imageGen');
+      const prompt = customPrompt || buildImagePrompt(node);
+      const imageUrl = await generateImage({ prompt, size: '1024x1792' });
+
+      const { useCanvasStore } = await import('./canvasStore');
+      const canvasNodes = useCanvasStore.getState().nodes;
+      const linkedCard = canvasNodes.find(n => n.data.linkedTreeNodeId === nodeId);
+      if (linkedCard) {
+        useCanvasStore.getState().updateNodeData(linkedCard.id, { thumbnail: imageUrl });
+      }
+
+      return `已为「${node.title}」生成参考图: ${imageUrl}`;
+    } catch (err) {
+      return `分镜生成失败: ${(err as Error).message}`;
+    }
   },
 };

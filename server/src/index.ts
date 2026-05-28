@@ -1,10 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
+import { config } from 'dotenv';
 import { authRoutes } from './routes/auth';
 import { projectRoutes } from './routes/projects';
 import { templateRoutes } from './routes/templates';
 import { galleryRoutes } from './routes/gallery';
+
+config(); // Load .env
 
 const prisma = new PrismaClient();
 const app = express();

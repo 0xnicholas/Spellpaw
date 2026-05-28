@@ -10,6 +10,7 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useAuthStore } from '@/stores/authStore';
 import { authApi } from '@/stores/authStore';
 import { exportProjectToJSON, importProjectFromJSON } from '@/lib/exportImport';
+import { pushAll, pullAll } from '@/lib/projectSync';
 
 export function ProjectListPage() {
   const navigate = useNavigate();
@@ -126,6 +127,18 @@ export function ProjectListPage() {
               Projects
             </h1>
             <div className="flex items-center gap-2">
+              {user && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => pushAll().then(r => alert(`Synced ${r.synced}, errors: ${r.errors}`))}>
+                    <Upload className="mr-1 h-4 w-4" />
+                    Push
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => pullAll().then(r => alert(`Imported ${r.imported} projects`))}>
+                    <Download className="mr-1 h-4 w-4" />
+                    Pull
+                  </Button>
+                </>
+              )}
               <Button variant="outline" size="sm" onClick={handleImport}>
                 <Upload className="mr-1 h-4 w-4" />
                 Import

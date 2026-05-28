@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { NarrativeTemplate } from '@/types';
+import { authApi } from '@/stores/authStore';
 
 const CATEGORY_LABELS: Record<string, string> = {
   suspense: '悬疑',
@@ -29,9 +30,11 @@ interface TemplateBrowserProps {
 
 export function TemplateBrowser({ onSelect }: TemplateBrowserProps) {
   const [templates, setTemplates] = useState<NarrativeTemplate[]>([]);
+  const [communityTemplates, setCommunityTemplates] = useState<NarrativeTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [category, setCategory] = useState<string | null>(null);
+  const [source, setSource] = useState<'builtin' | 'community'>('builtin');
 
   useEffect(() => {
     async function load() {
@@ -48,13 +51,37 @@ export function TemplateBrowser({ onSelect }: TemplateBrowserProps) {
       setLoading(false);
     }
     load();
+
+    // Load community templates from server
+    async function loadCommunity() {
+      try {
+        const res = await authApi.apiCall('/api/templates');
+        if (res.ok) {
+          const list = await res.json();
+          const details: NarrativeTemplate[] = [];
+          for (const item of list) {
+            try {
+              const detailRes = await authApi.apiCall(`/api/templates/${item.id}`);
+              if (detailRes.ok) {
+                const detail = await detailRes.json();
+                const parsed = JSON.parse(detail.data || '{}');
+                details.push({ ...parsed, id: detail.id, author: item.author?.name, downloads: item.downloads });
+              }
+            } catch { /* skip */ }
+          }
+          setCommunityTemplates(details);
+        }
+      } catch { /* server not available */ }
+    }
+    loadCommunity();
   }, []);
 
+  const displayTemplates = source === 'community' ? communityTemplates : templates;
   const filtered = category
-    ? templates.filter((t) => t.category === category)
-    : templates;
+    ? displayTemplates.filter((t) => t.category === category)
+    : displayTemplates;
 
-  const selectedTemplate = templates.find((t) => t.id === selected);
+  const selectedTemplate = displayTemplates.find((t) => t.id === selected);
 
   if (loading) {
     return <div className="p-4 text-xs text-[var(--color-text-tertiary)]">加载模板中…</div>;
@@ -62,6 +89,22 @@ export function TemplateBrowser({ onSelect }: TemplateBrowserProps) {
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Source tabs */}
+      <div className="flex gap-1 rounded-[var(--radius-sm)] bg-[var(--color-bg-tertiary)] p-0.5">
+        <button
+          onClick={() => { setSource('builtin'); setSelected(null); }}
+          className={`flex-1 rounded-[var(--radius-sm)] py-1 text-[11px] font-medium transition-colors ${
+            source === 'builtin' ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)]'
+          }`}>内置模板</button>
+        <button
+          onClick={() => { setSource('community'); setSelected(null); }}
+          className={`flex-1 rounded-[var(--radius-sm)] py-1 text-[11px] font-medium transition-colors ${
+            source === 'community' ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)]'
+          }`}>
+          社区模板{communityTemplates.length > 0 ? ` (${communityTemplates.length})` : ''}
+        </button>
+      </div>
+
       {/* Category filter */}
       <div className="flex gap-1.5 flex-wrap">
         <button

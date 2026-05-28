@@ -6,6 +6,7 @@ import { SettingsModal } from '@/components/modals/SettingsModal';
 import { useProjectStore } from '@/stores/projectStore';
 import { useAuthStore } from '@/stores/authStore';
 import { exportStoryboardPDF } from '@/lib/exportPDF';
+import { useTranslation } from 'react-i18next';
 
 function findNodePath(node: any, targetId: string, path: string[] = []): string[] | null {
   if (!node) return null;
@@ -33,6 +34,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
   const user = useAuthStore((s) => s.user);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
+  const { t, i18n } = useTranslation();
 
   const handleExportPDF = () => {
     if (!project || !treeData) return;
@@ -94,6 +96,13 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
           title="Settings"
         >
           <Settings className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => i18n.changeLanguage(i18n.language === 'zh-CN' ? 'en' : 'zh-CN')}
+          className="flex h-7 items-center rounded-[var(--radius-base)] px-1.5 text-[10px] font-medium text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
+          title="Switch language"
+        >
+          {i18n.language === 'zh-CN' ? 'EN' : '中'}
         </button>
         <div className="ml-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-accent-50)] text-xs font-medium text-[var(--color-accent-500)]">
           {user?.name?.[0] ?? 'U'}

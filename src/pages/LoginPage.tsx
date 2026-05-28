@@ -4,8 +4,10 @@ import { Film } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/stores/authStore';
+import { useTranslation } from 'react-i18next';
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
   const register = useAuthStore((s) => s.register);
@@ -46,7 +48,7 @@ export function LoginPage() {
           </span>
         </div>
         <p className="mb-6 text-center text-sm text-[var(--color-text-secondary)]">
-          {mode === 'login' ? 'Sign in to your account' : 'Create your account'}
+          {mode === 'login' ? t('auth.signIn') : t('auth.signUp')}
         </p>
 
         {error && (
@@ -58,7 +60,7 @@ export function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-3">
           {mode === 'register' && (
             <div>
-              <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">Name</label>
+              <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">{t('auth.name')}</label>
               <Input
                 placeholder="Your name"
                 value={name}
@@ -68,7 +70,7 @@ export function LoginPage() {
             </div>
           )}
           <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">Email</label>
+            <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">{t('auth.email')}</label>
             <Input
               type="email"
               placeholder="you@example.com"
@@ -78,7 +80,7 @@ export function LoginPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">Password</label>
+            <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">{t('auth.password')}</label>
             <Input
               type="password"
               placeholder="••••••••"
@@ -88,12 +90,12 @@ export function LoginPage() {
             />
           </div>
           <Button type="submit" className="w-full" loading={loading}>
-            {mode === 'login' ? 'Sign in' : 'Create account'}
+            {mode === 'login' ? t('auth.signIn') : t('auth.signUp')}
           </Button>
         </form>
 
         <p className="mt-4 text-center text-xs text-[var(--color-text-tertiary)]">
-          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+          {mode === 'login' ? t('auth.switchToRegister') : t('auth.switchToLogin')}
           <button onClick={switchMode} className="text-[var(--color-text-accent)] hover:underline">
             {mode === 'login' ? 'Sign up' : 'Sign in'}
           </button>

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Film, Plus, Clock, LayoutGrid, Trash2, Download, Upload } from 'lucide-react';
+import { Film, Plus, Clock, LayoutGrid, Trash2, Download, Upload, Globe, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { NewProjectModal } from '@/components/modals/NewProjectModal';
 import type { NarrativeTemplate } from '@/types';
@@ -8,6 +8,7 @@ import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
 import { useProjectStore } from '@/stores/projectStore';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useAuthStore } from '@/stores/authStore';
+import { authApi } from '@/stores/authStore';
 import { exportProjectToJSON, importProjectFromJSON } from '@/lib/exportImport';
 
 export function ProjectListPage() {
@@ -20,6 +21,8 @@ export function ProjectListPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryItems, setGalleryItems] = useState<any[]>([]);
 
   const handleOpen = (id: string) => {
     setCurrentProject(id);
@@ -38,6 +41,19 @@ export function ProjectListPage() {
       toolRouter.apply_template({ action: 'apply_template', templateId: template.id, parentId: undefined });
     });
     navigate(`/project/${projectId}`);
+  };
+
+  // Gallery
+  useEffect(() => {
+    authApi.apiCall('/api/gallery').then(res => res.json()).then(setGalleryItems).catch(() => {});
+  }, []);
+
+  const handlePublish = async (projectId: string) => {
+    try {
+      await authApi.apiCall('/api/gallery', { method: 'POST', body: JSON.stringify({ projectId }) });
+      const res = await authApi.apiCall('/api/gallery');
+      if (res.ok) setGalleryItems(await res.json());
+    } catch { /* server not available */ }
   };
 
   const handleExport = (projectId: string) => {
@@ -171,6 +187,34 @@ export function ProjectListPage() {
           </div>
         </div>
       </main>
+
+      {/* Gallery toggle */}
+      {galleryItems.length > 0 && (
+        <div className="border-t border-[var(--color-border-default)] px-6 py-3">
+          <button
+            onClick={() => setShowGallery(!showGallery)}
+            className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+          >
+            <Globe className="h-3.5 w-3.5" />
+            Community Gallery ({galleryItems.length})
+          </button>
+          {showGallery && (
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {galleryItems.map((item: any) => (
+                <div key={item.id} className="rounded-[var(--radius-base)] border border-[var(--color-border-default)] p-2.5">
+                  <div className="text-xs font-medium text-[var(--color-text-primary)] truncate">{item.project?.title}</div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-[var(--color-text-tertiary)]">
+                    <span>{item.user?.name}</span>
+                    <span className="flex items-center gap-0.5">
+                      <Heart className="h-3 w-3" /> {item.likes}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <NewProjectModal
         isOpen={isModalOpen}

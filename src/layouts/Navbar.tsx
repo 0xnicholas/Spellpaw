@@ -5,6 +5,7 @@ import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
 import { SettingsModal } from '@/components/modals/SettingsModal';
 import { useProjectStore } from '@/stores/projectStore';
 import { useAuthStore } from '@/stores/authStore';
+import { exportStoryboardPDF } from '@/lib/exportPDF';
 
 function findNodePath(node: any, targetId: string, path: string[] = []): string[] | null {
   if (!node) return null;

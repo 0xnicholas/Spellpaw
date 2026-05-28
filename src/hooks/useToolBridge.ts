@@ -35,7 +35,7 @@ function connect(wsRef: React.MutableRefObject<WebSocket | null>, retries = 0) {
         return;
       }
 
-      const resultText = await handler(params);
+      const resultText = await handler(params as { action: string;[key: string]: unknown });
       ws.send(JSON.stringify({
         callId,
         content: [{ type: 'text', text: resultText }],

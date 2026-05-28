@@ -75,7 +75,6 @@ export function usePandariaSSE() {
 
   const {
     startStreaming, appendDelta, startToolCall, endToolCall, endStreaming,
-    sendMessage: storeSend, isLoading,
   } = useChatStore();
 
   useEffect(() => {
@@ -100,7 +99,7 @@ export function usePandariaSSE() {
           initDone = true;
           try {
             const tree = useProjectStore.getState().getCurrentTree();
-            const treeText = tree ? treeToPromptText(tree) : '(空项目)';
+            const treeText = tree ? treeToPromptText(tree as { title: string; type: string; children?: Array<Record<string, unknown>> }) : '(空项目)';
             const projectTitle = useProjectStore.getState()
               .projects.find(p => p.id === useProjectStore.getState().currentProjectId)?.title ?? 'Untitled';
             const prompt = buildSystemPrompt(projectTitle, treeText);
@@ -159,12 +158,12 @@ export function usePandariaSSE() {
 }
 
 /** Convert project tree to indented text for system_prompt */
-function treeToPromptText(node: { title: string; type: string; children?: Array<{ title: string; type: string; children?: unknown[] }> }, depth = 0): string {
+function treeToPromptText(node: { title: string; type: string; children?: Array<Record<string, unknown>> }, depth = 0): string {
   const indent = '  '.repeat(depth);
   let text = `${indent}${node.type}「${node.title}」`;
   if (node.children) {
-    for (const child of node.children as Array<{ title: string; type: string; children?: unknown[] }>) {
-      text += '\n' + treeToPromptText(child, depth + 1);
+    for (const child of node.children) {
+      text += '\n' + treeToPromptText(child as { title: string; type: string; children?: Array<Record<string, unknown>> }, depth + 1);
     }
   }
   return text;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NarrativeTemplate } from '@/types';
+import type { NarrativeTemplate } from '@/types';
 
 const CATEGORY_LABELS: Record<string, string> = {
   suspense: '悬疑',

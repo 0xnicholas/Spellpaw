@@ -57,9 +57,9 @@ export const toolRouter: ToolRouter = {
         duration: (params.duration as number) ?? 0,
         description: params.description as string | undefined,
         location: params.location as string | undefined,
-        timeOfDay: params.timeOfDay as TreeNode['metadata']['timeOfDay'],
-        shotType: params.shotType as TreeNode['metadata']['shotType'],
-        cameraMovement: params.cameraMovement as TreeNode['metadata']['cameraMovement'],
+        timeOfDay: params.timeOfDay as 'morning' | 'day' | 'evening' | 'night' | undefined,
+        shotType: params.shotType as 'wide' | 'medium' | 'close-up' | 'insert' | 'pov' | undefined,
+        cameraMovement: params.cameraMovement as 'static' | 'pan' | 'tilt' | 'dolly' | 'handheld' | undefined,
         dialogue: params.dialogue as string | undefined,
         notes: params.notes as string | undefined,
         createdAt: new Date().toISOString(),
@@ -154,10 +154,11 @@ export const toolRouter: ToolRouter = {
       const imageUrl = await generateImage({ prompt, size: '1024x1792' });
 
       const { useCanvasStore } = await import('./canvasStore');
-      const canvasNodes = useCanvasStore.getState().nodes;
-      const linkedCard = canvasNodes.find(n => n.data.linkedTreeNodeId === nodeId);
+      const canvasState = useCanvasStore.getState();
+      const canvasNodes = canvasState.getCurrentNodes();
+      const linkedCard = canvasNodes.find((n: { data: { linkedTreeNodeId?: string } }) => n.data.linkedTreeNodeId === nodeId);
       if (linkedCard) {
-        useCanvasStore.getState().updateNodeData(linkedCard.id, { thumbnail: imageUrl });
+        canvasState.updateNodeData(linkedCard.id, { thumbnail: imageUrl });
       }
 
       return `已为「${node.title}」生成参考图: ${imageUrl}`;

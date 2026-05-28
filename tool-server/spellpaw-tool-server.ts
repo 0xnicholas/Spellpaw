@@ -73,7 +73,8 @@ export function spellpawToolServer(): Plugin {
 
         try {
           const body = await parseBody(req);
-          const { tool_call_id, params } = body;
+          const tool_call_id = body.tool_call_id as string;
+          const params = (body.params ?? {}) as Record<string, unknown>;
 
           const result = await new Promise<ToolResult>((resolve, reject) => {
             const timer = setTimeout(() => {

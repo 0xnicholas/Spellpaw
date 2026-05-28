@@ -1,7 +1,6 @@
 /**
  * Pandaria API client — token generation + HTTP helpers
  */
-import { NarrativeTemplate } from '@/types';
 
 // ---- Config (move to .env later) ----
 const PANDARIA_BASE = 'http://localhost:8080';

@@ -52,7 +52,7 @@ export async function generateImage(options: GenerateOptions): Promise<string> {
     style: options.style ?? 'vivid',
   });
 
-  const url = response.data[0]?.url;
+  const url = response.data?.[0]?.url;
   if (!url) throw new Error('No image URL in response');
   return url;
 }

@@ -30,7 +30,6 @@ const MOCK_TURN = [
 export function useMockSSE() {
   const {
     startStreaming, appendDelta, startToolCall, endToolCall, endStreaming,
-    sendMessage, isLoading,
   } = useChatStore();
 
   // Override sendMessage to use mock SSE

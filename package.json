@@ -20,6 +20,7 @@
     "@xyflow/react": "^12.10.2",
     "clsx": "^2.1.1",
     "immer": "^11.1.8",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

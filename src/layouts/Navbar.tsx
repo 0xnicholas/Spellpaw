@@ -31,6 +31,11 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
   const user = useAuthStore((s) => s.user);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  const handleExportPDF = () => {
+    if (!project || !treeData) return;
+    exportStoryboardPDF(project, treeData);
+  };
+
   const path = useMemo(() => {
     if (!treeData || !selectedNodeId) return [];
     return findNodePath(treeData, selectedNodeId) ?? [];
@@ -58,6 +63,13 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
           title="Edit project"
         >
           <Pencil className="h-3 w-3" />
+        </button>
+        <button
+          onClick={handleExportPDF}
+          className="flex h-5 w-5 items-center justify-center rounded-sm text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
+          title="Export storyboard PDF"
+        >
+          <Download className="h-3 w-3" />
         </button>
         {path.length > 0 && (
           <div className="flex items-center gap-1 text-xs text-[var(--color-text-tertiary)]">

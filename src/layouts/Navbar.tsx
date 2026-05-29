@@ -3,6 +3,7 @@ import { Film, Bell, Command, ChevronRight, PanelLeft, Pencil, Download, Setting
 import { IconButton } from '@/components/ui/IconButton';
 import { ProjectSettingsModal } from '@/components/modals/ProjectSettingsModal';
 import { SettingsModal } from '@/components/modals/SettingsModal';
+import { SyncStatusIndicator } from '@/components/sync/SyncStatusIndicator';
 import { useProjectStore } from '@/stores/projectStore';
 import { useAuthStore } from '@/stores/authStore';
 import { exportStoryboardPDF } from '@/lib/exportPDF';
@@ -89,6 +90,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
         )}
       </div>
       <div className="flex items-center gap-1">
+        <SyncStatusIndicator />
         <IconButton icon={<Command className="h-4 w-4" />} label="Command palette" size="sm" />
         <IconButton icon={<Bell className="h-4 w-4" />} label="Notifications" size="sm" />
         <button

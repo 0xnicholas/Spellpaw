@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { CanvasNode, CanvasEdge, AssetItem } from '@/types';
 import { mockCanvasNodes, mockCanvasEdges } from '@/data/mockCanvasData';
 import { generateId } from '@/lib/utils';
+import { createIDBStorage } from '@/lib/idbStorage';
 import { useProjectStore } from './projectStore';
 
 interface Viewport {
@@ -234,6 +235,7 @@ export const useCanvasStore = create<CanvasState>()(
     {
       name: 'spellpaw_canvas',
       version: 2,
+      storage: createIDBStorage<CanvasState>('canvasStore'),
       migrate: (persistedState: unknown, _version) => {
         const state = persistedState as Record<string, unknown>;
         // Handle old format: persistedNodes/persistedEdges/viewport at top level
@@ -252,7 +254,7 @@ export const useCanvasStore = create<CanvasState>()(
       },
       partialize: (state) => ({
         canvases: state.canvases,
-      }),
+      }) as unknown as CanvasState,
     }
   )
 );

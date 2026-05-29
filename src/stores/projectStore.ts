@@ -5,6 +5,7 @@ import type { TreeNode, Project } from '@/types';
 import { mockProjects } from '@/data/mockProjects';
 import { mockTreeData } from '@/data/mockTreeData';
 import { generateId } from '@/lib/utils';
+import { createIDBStorage } from '@/lib/idbStorage';
 
 interface ProjectState {
   projects: Project[];
@@ -64,6 +65,7 @@ export const useProjectStore = create<ProjectState>()(
           sceneCount: 0,
           duration: 0,
           coverColor,
+          version: 1,
         };
         const treeRoot: TreeNode = {
           id: generateId('tree_root_'),
@@ -237,6 +239,60 @@ export const useProjectStore = create<ProjectState>()(
 
       selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
 
+      updateNodes: (nodeIds: string[], updates: Partial<TreeNode>) =>
+        set(
+          produce((state: ProjectState) => {
+            const idSet = new Set(nodeIds);
+            for (const projectId of Object.keys(state.trees)) {
+              function walk(node: TreeNode): boolean {
+                if (idSet.has(node.id)) {
+                  if (updates.metadata && node.metadata) {
+                    Object.assign(node.metadata, updates.metadata);
+                  }
+                  Object.assign(node, { ...updates, metadata: node.metadata });
+                  if (node.metadata) node.metadata.updatedAt = new Date().toISOString();
+                }
+                if (node.children) {
+                  for (const child of node.children) {
+                    walk(child);
+                  }
+                }
+                return false;
+              }
+              walk(state.trees[projectId]);
+            }
+          })
+        ),
+
+      deleteNodes: (nodeIds: string[]) =>
+        set(
+          produce((state: ProjectState) => {
+            const idSet = new Set(nodeIds);
+            for (const projectId of Object.keys(state.trees)) {
+              function walk(n: TreeNode): boolean {
+                if (!n.children) return false;
+                const idx = n.children.findIndex((c) => idSet.has(c.id));
+                if (idx !== -1) {
+                  n.children.splice(idx, 1);
+                  return true;
+                }
+                for (const child of n.children) {
+                  if (walk(child)) return true;
+                }
+                return false;
+              }
+              // 可能需要多次调用以删除多个同级节点
+              let found = true;
+              while (found) {
+                found = walk(state.trees[projectId]);
+              }
+            }
+            if (state.selectedNodeId && idSet.has(state.selectedNodeId)) {
+              state.selectedNodeId = null;
+            }
+          })
+        ),
+
       getSelectedNodePath: () => {
         const { trees, currentProjectId, selectedNodeId } = get();
         const tree = currentProjectId ? trees[currentProjectId] : null;
@@ -247,6 +303,7 @@ export const useProjectStore = create<ProjectState>()(
     {
       name: 'spellpaw_project',
       version: 2,
+      storage: createIDBStorage<ProjectState>('projectStore'),
       migrate: (persistedState: unknown, version) => {
         const state = persistedState as Record<string, unknown>;
         if (version < 2) {
@@ -281,7 +338,7 @@ export const useProjectStore = create<ProjectState>()(
         trees: state.trees,
         currentProjectId: state.currentProjectId,
         selectedNodeId: state.selectedNodeId,
-      }),
+      }) as unknown as ProjectState,
     }
   )
 );

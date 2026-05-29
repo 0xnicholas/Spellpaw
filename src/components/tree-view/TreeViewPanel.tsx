@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { Search, FolderTree } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { Search, FolderTree, Trash2, CheckSquare } from 'lucide-react';
 import { PanelHeader } from '@/components/ui/PanelHeader';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -7,11 +7,23 @@ import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
 import { TreeNodeItem } from './TreeNode';
 import { useProjectStore } from '@/stores/projectStore';
 import { generateId } from '@/lib/utils';
+import { walkTree } from '@/lib/treeUtils';
 import type { TreeNode, TreeNode as TreeNodeType } from '@/types';
 import type { EditableTitleRef } from '@/components/ui/EditableTitle';
 
+/** Full-text search across title, description, dialogue, location, notes */
+function nodeMatches(node: TreeNode, query: string): boolean {
+  const q = query.toLowerCase();
+  if (node.title.toLowerCase().includes(q)) return true;
+  if (node.metadata?.description?.toLowerCase().includes(q)) return true;
+  if (node.metadata?.dialogue?.toLowerCase().includes(q)) return true;
+  if (node.metadata?.location?.toLowerCase().includes(q)) return true;
+  if (node.metadata?.notes?.toLowerCase().includes(q)) return true;
+  return false;
+}
+
 function filterTree(node: TreeNode, query: string): TreeNode | null {
-  const match = node.title.toLowerCase().includes(query.toLowerCase());
+  const match = nodeMatches(node, query);
   let filteredChildren: TreeNode[] | undefined;
   if (node.children) {
     filteredChildren = node.children
@@ -39,9 +51,20 @@ export function TreeViewPanel() {
   const addTreeNode = useProjectStore((s) => s.addTreeNode);
   const deleteTreeNode = useProjectStore((s) => s.deleteTreeNode);
   const updateTreeNode = useProjectStore((s) => s.updateTreeNode);
+  const updateNodes = useProjectStore((s) => s.updateNodes);
+  const deleteNodes = useProjectStore((s) => s.deleteNodes);
+  const currentProjectId = useProjectStore((s) => s.currentProjectId);
+
   const [query, setQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; childCount: number } | null>(null);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
   const titleRefs = useRef<Map<string, EditableTitleRef>>(new Map());
+
+  // Clear multi-selection when project changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentProjectId]);
 
   // F2 / Cmd+R to rename selected node
   useEffect(() => {
@@ -65,6 +88,47 @@ export function TreeViewPanel() {
     return filterTree(treeData, query);
   }, [treeData, query]);
 
+  const handleSelect = useCallback(
+    (id: string, event?: React.MouseEvent) => {
+      if (!treeData) return;
+
+      const isCmd = event?.metaKey || event?.ctrlKey;
+      const isShift = event?.shiftKey;
+
+      if (isShift && selectedNodeId) {
+        // Range selection
+        const allIds: string[] = [];
+        walkTree(treeData, (node) => allIds.push(node.id));
+        const startIdx = allIds.indexOf(selectedNodeId);
+        const endIdx = allIds.indexOf(id);
+        if (startIdx !== -1 && endIdx !== -1) {
+          const [from, to] = startIdx < endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+          const rangeIds = allIds.slice(from, to + 1);
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            rangeIds.forEach((iid) => next.add(iid));
+            return next;
+          });
+        }
+        selectNode(id);
+      } else if (isCmd) {
+        // Toggle selection
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          if (next.has(id)) next.delete(id);
+          else next.add(id);
+          return next;
+        });
+        selectNode(id);
+      } else {
+        // Single selection
+        setSelectedIds(new Set([id]));
+        selectNode(id);
+      }
+    },
+    [treeData, selectedNodeId, selectNode]
+  );
+
   const handleTitleChange = (id: string, title: string) => {
     updateTreeNode(id, { title });
   };
@@ -75,7 +139,7 @@ export function TreeViewPanel() {
 
   const handleAddChild = (parentId: string, parentType: TreeNodeType['type']) => {
     const type = childTypeMap[parentType];
-    if (type === 'shot') return; // shots can't have children
+    if (type === 'shot') return;
 
     const newNode: TreeNodeType = {
       id: generateId(`tree_${type}_`),
@@ -94,6 +158,19 @@ export function TreeViewPanel() {
     if (!deleteTarget) return;
     deleteTreeNode(deleteTarget.id);
     setDeleteTarget(null);
+  };
+
+  // Bulk actions
+  const hasSelection = selectedIds.size > 0;
+
+  const handleBulkStatusChange = (status: TreeNodeType['status']) => {
+    updateNodes(Array.from(selectedIds), { status });
+  };
+
+  const handleBulkDelete = () => {
+    deleteNodes(Array.from(selectedIds));
+    setSelectedIds(new Set());
+    setShowBulkDelete(false);
   };
 
   // eslint-disable-next-line react-hooks/refs
@@ -116,13 +193,53 @@ export function TreeViewPanel() {
           </div>
         }
       />
+
+      {/* Bulk action bar */}
+      {hasSelection && (
+        <div className="flex items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-3 py-1.5">
+          <span className="text-[11px] text-[var(--color-text-secondary)]">
+            {selectedIds.size} selected
+          </span>
+          <div className="flex items-center gap-1.5">
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) handleBulkStatusChange(e.target.value as TreeNodeType['status']);
+              }}
+              className="h-6 rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-1.5 text-[10px]"
+            >
+              <option value="">Set status…</option>
+              <option value="draft">Draft</option>
+              <option value="in_progress">In Progress</option>
+              <option value="review">Review</option>
+              <option value="done">Done</option>
+            </select>
+            <button
+              onClick={() => setShowBulkDelete(true)}
+              className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] border border-red-200 bg-red-50 px-1.5 text-[10px] text-red-600 hover:bg-red-100"
+            >
+              <Trash2 className="h-3 w-3" />
+              Delete
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="rounded p-0.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-primary)]"
+              title="Clear selection"
+            >
+              <CheckSquare className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-auto py-1">
         {displayedTree ? (
           <TreeNodeItem
             node={displayedTree}
             depth={0}
             selectedId={selectedNodeId}
-            onSelect={selectNode}
+            selectedIds={selectedIds}
+            onSelect={handleSelect}
             onToggle={toggleExpanded}
             onStatusChange={handleStatusChange}
             onTitleChange={handleTitleChange}
@@ -149,6 +266,14 @@ export function TreeViewPanel() {
         }
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <DeleteConfirmDialog
+        isOpen={showBulkDelete}
+        title="Bulk Delete"
+        description={`Delete ${selectedIds.size} selected nodes? This cannot be undone.`}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setShowBulkDelete(false)}
       />
     </div>
   );

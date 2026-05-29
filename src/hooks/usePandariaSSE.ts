@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react';
 import { useChatStore } from '../stores/chatStore';
 import { useProjectStore } from '../stores/projectStore';
 import { createSession, sendMessage, subscribeSSE, buildSystemPrompt } from '../lib/pandaria';
+import { findNode } from '../lib/treeUtils';
 import { config } from '../config';
 
 const TOOL_ENDPOINT = config.toolServerEndpoint;
@@ -113,6 +114,29 @@ export function usePandariaSSE() {
 
     useChatStore.setState({
       sendMessage: async (content: string) => {
+        // Build node context for the message
+        const projectStore = useProjectStore.getState();
+        const tree = projectStore.getCurrentTree();
+        const selectedNodeId = projectStore.selectedNodeId;
+        let enrichedContent = content;
+        let contextNodeId: string | undefined;
+        let contextNodeType: string | undefined;
+
+        if (selectedNodeId && tree) {
+          const node = findNode(tree, selectedNodeId);
+          if (node) {
+            contextNodeId = node.id;
+            contextNodeType = node.type;
+            const path = projectStore.getSelectedNodePath();
+            const metaParts: string[] = [];
+            if (node.metadata?.description) metaParts.push(`描述：${node.metadata.description}`);
+            if (node.metadata?.duration) metaParts.push(`时长：${node.metadata.duration}秒`);
+            if (node.metadata?.location) metaParts.push(`地点：${node.metadata.location}`);
+            const contextHeader = `[当前节点：${path.join(' > ')}${metaParts.length > 0 ? ' · ' + metaParts.join(' · ') : ''}]`;
+            enrichedContent = `${contextHeader}\n\n${content}`;
+          }
+        }
+
         // Add user message
         const userMsg = {
           id: crypto.randomUUID(),
@@ -120,6 +144,7 @@ export function usePandariaSSE() {
           content,
           type: 'text' as const,
           timestamp: new Date().toISOString(),
+          context: contextNodeId ? { nodeId: contextNodeId, nodeType: contextNodeType } : undefined,
         };
         useChatStore.setState((s) => ({ messages: [...s.messages, userMsg] }));
 
@@ -170,7 +195,7 @@ export function usePandariaSSE() {
         // Send message
         if (sessionRef.current) {
           try {
-            await sendMessage(sessionRef.current, content);
+            await sendMessage(sessionRef.current, enrichedContent);
           } catch (err) {
             appendDelta(`\n\n❌ ${(err as Error).message}`);
             endStreaming('error');

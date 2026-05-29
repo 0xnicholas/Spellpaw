@@ -98,6 +98,7 @@ export interface Project {
   sceneCount: number;
   duration: number;
   coverColor: string;
+  version?: number;
 }
 
 // User

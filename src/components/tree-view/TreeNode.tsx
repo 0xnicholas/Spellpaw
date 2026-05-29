@@ -9,7 +9,8 @@ interface TreeNodeProps {
   node: TreeNodeType;
   depth: number;
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  selectedIds?: Set<string>;
+  onSelect: (id: string, event?: React.MouseEvent) => void;
   onToggle: (id: string) => void;
   onStatusChange?: (id: string, status: TreeNodeType['status']) => void;
   onTitleChange?: (id: string, title: string) => void;
@@ -55,9 +56,10 @@ const childTypeMap: Record<string, TreeNodeType['type']> = {
 };
 
 export const TreeNodeItem = forwardRef<HTMLDivElement, TreeNodeProps>(
-  ({ node, depth, selectedId, onSelect, onToggle, onStatusChange, onTitleChange, onAddChild, onDelete, dragHandleProps, titleRefMap }, ref) => {
+  ({ node, depth, selectedId, selectedIds, onSelect, onToggle, onStatusChange, onTitleChange, onAddChild, onDelete, dragHandleProps, titleRefMap }, ref) => {
     const hasChildren = node.children && node.children.length > 0;
     const isSelected = selectedId === node.id;
+    const isMultiSelected = selectedIds?.has(node.id) ?? false;
     const titleRef = useRef<EditableTitleRef>(null);
 
     // Register title ref
@@ -68,11 +70,7 @@ export const TreeNodeItem = forwardRef<HTMLDivElement, TreeNodeProps>(
     const handleContextMenu = (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      onSelect(node.id);
-
-      // Show a custom context menu via a callback or use the ContextMenu component
-      // For now, we trigger actions via simple prompt-based buttons
-      // The actual ContextMenu integration happens at TreeViewPanel level
+      onSelect(node.id, e);
     };
 
     const canHaveChildren = node.type !== 'shot';
@@ -80,13 +78,14 @@ export const TreeNodeItem = forwardRef<HTMLDivElement, TreeNodeProps>(
     return (
       <div ref={ref}>
         <button
-          onClick={() => onSelect(node.id)}
+          onClick={(e) => onSelect(node.id, e)}
           onContextMenu={handleContextMenu}
           className={cn(
             'group flex w-full items-center gap-1.5 py-1 pr-2 text-left transition-colors',
-            isSelected
+            isSelected || isMultiSelected
               ? 'bg-[var(--color-accent-50)] text-[var(--color-accent-700)]'
-              : 'hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)]'
+              : 'hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)]',
+            isMultiSelected && !isSelected && 'ring-1 ring-inset ring-[var(--color-accent-200)]'
           )}
           style={{ paddingLeft: `${depth * 16 + 4}px` }}
         >
@@ -163,6 +162,7 @@ export const TreeNodeItem = forwardRef<HTMLDivElement, TreeNodeProps>(
                 node={child}
                 depth={depth + 1}
                 selectedId={selectedId}
+                selectedIds={selectedIds}
                 onSelect={onSelect}
                 onToggle={onToggle}
                 onStatusChange={onStatusChange}

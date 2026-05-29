@@ -9,6 +9,7 @@ export const mockProjects: Project[] = [
     sceneCount: 8,
     duration: 180,
     coverColor: '#6366f1',
+    version: 1,
   },
   {
     id: 'proj_2',
@@ -18,5 +19,6 @@ export const mockProjects: Project[] = [
     sceneCount: 5,
     duration: 120,
     coverColor: '#8b5cf6',
+    version: 1,
   },
 ];

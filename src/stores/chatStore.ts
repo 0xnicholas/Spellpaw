@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { ChatMessage } from '@/types';
 import { mockChatMessages } from '@/data/mockChatData';
 import { generateId } from '@/lib/utils';
+import { createIDBStorage } from '@/lib/idbStorage';
 
 interface InFlightToolCall {
   callId: string;
@@ -19,10 +20,14 @@ interface ChatState {
   streamingMessageId: string | null;
   toolCalls: InFlightToolCall[];         // in-flight tool calls
 
+  // Phase 3: node-scoped chat filtering
+  filterNodeId: string | null;
+
   sendMessage: (content: string) => void;
   setInputValue: (value: string) => void;
   appendMessage: (message: ChatMessage) => void;
   clearMessages: () => void;
+  setFilterNodeId: (nodeId: string | null) => void;
 
   // Phase 2: SSE actions
   startStreaming: (messageId: string) => void;
@@ -62,6 +67,7 @@ export const useChatStore = create<ChatState>()(
       streamingMessage: null,
       streamingMessageId: null,
       toolCalls: [],
+      filterNodeId: null,
 
       sendMessage: (content) => {
         const userMsg: ChatMessage = {
@@ -88,6 +94,7 @@ export const useChatStore = create<ChatState>()(
         set((state) => ({ messages: [...state.messages, message] })),
 
       clearMessages: () => set({ messages: [] }),
+      setFilterNodeId: (nodeId) => set({ filterNodeId: nodeId }),
 
       // Phase 2: SSE streaming actions
       startStreaming: (messageId) =>
@@ -131,7 +138,8 @@ export const useChatStore = create<ChatState>()(
     }),
     {
       name: 'spellpaw_chat',
-      partialize: (state) => ({ messages: state.messages }),
+      storage: createIDBStorage<ChatState>('chatStore'),
+      partialize: (state) => ({ messages: state.messages }) as unknown as ChatState,
     }
   )
 );

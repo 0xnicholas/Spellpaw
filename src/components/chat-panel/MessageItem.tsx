@@ -2,14 +2,15 @@ import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/utils';
-import type { ChatMessage } from '@/types';
+import type { ChatMessage, ChatAction } from '@/types';
 import Markdown from 'react-markdown';
 
 interface MessageItemProps {
   message: ChatMessage;
+  onActionClick?: (action: ChatAction) => void;
 }
 
-export function MessageItem({ message }: MessageItemProps) {
+export function MessageItem({ message, onActionClick }: MessageItemProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
 
@@ -86,6 +87,7 @@ export function MessageItem({ message }: MessageItemProps) {
               {message.actions.map((action) => (
                 <button
                   key={action.id}
+                  onClick={() => onActionClick?.(action)}
                   className="rounded-full border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3 py-1 text-xs font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)]"
                 >
                   {action.label}

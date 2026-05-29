@@ -6,11 +6,13 @@ import { AssetManagerPanel } from '@/components/asset-manager/AssetManagerPanel'
 import { ChatPanel } from '@/components/chat-panel/ChatPanel';
 import { FlowCanvasPanel } from '@/components/flow-canvas/FlowCanvasPanel';
 import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
+import { ConflictResolverModal } from '@/components/modals/ConflictResolverModal';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useToolBridge } from '@/hooks/useToolBridge';
 import { useProjectStore } from '@/stores/projectStore';
 import { useDetailStore } from '@/stores/detailStore';
 import { findNode } from '@/lib/treeUtils';
+import { subscribeSync, type SyncEngineState } from '@/lib/syncEngine';
 
 
 function MobileGuard({ children }: { children: React.ReactNode }) {
@@ -54,6 +56,11 @@ export function WorkspacePage() {
   const groupRef = useGroupRef();
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; childCount: number } | null>(null);
+  const [syncState, setSyncState] = useState<SyncEngineState | null>(null);
+
+  useEffect(() => {
+    return subscribeSync(setSyncState);
+  }, []);
 
   const toggleSidebar = () => {
     const layout = groupRef.current?.getLayout();
@@ -141,6 +148,10 @@ export function WorkspacePage() {
           }
         }}
         onCancel={() => setDeleteTarget(null)}
+      />
+      <ConflictResolverModal
+        conflicts={syncState?.conflicts ?? []}
+        onResolved={() => setSyncState((s) => (s ? { ...s, conflicts: [] } : s))}
       />
     </MobileGuard>
   );

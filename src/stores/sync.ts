@@ -9,6 +9,7 @@
  */
 import { useProjectStore } from './projectStore';
 import { useCanvasStore } from './canvasStore';
+import { diffScenes, computeScenePosition } from '@/lib/canvasLayout';
 import type { TreeNode } from '@/types';
 
 let syncGuard = false;
@@ -112,7 +113,7 @@ useProjectStore.subscribe((state) => {
   const cs = useCanvasStore.getState();
   const canvasNodes = cs.canvases[projectId]?.nodes ?? [];
 
-  // Check each linked canvas card: has its tree node changed?
+  // 1. Field-level sync: title / status / description
   for (const card of canvasNodes) {
     const linkedId = card.data.linkedTreeNodeId;
     if (!linkedId) continue;
@@ -127,6 +128,35 @@ useProjectStore.subscribe((state) => {
       if (changes.status !== undefined) cu.status = changes.status;
       if (changes.description !== undefined) cu.description = changes.description;
       cs.updateNodeData(card.id, cu as Record<string, unknown>);
+      syncGuard = false;
+    }
+  }
+
+  // 2. Node-level sync: detect added / removed scene nodes
+  const { added, removed } = diffScenes(prevTree, tree);
+
+  for (const scene of added) {
+    const pos = computeScenePosition(tree, scene.id);
+    syncGuard = true;
+    cs.addNode({
+      id: `canvas_scene_${scene.id}`,
+      type: 'sceneCard',
+      position: pos,
+      data: {
+        title: scene.title,
+        description: scene.metadata?.description ?? '',
+        status: scene.status,
+        linkedTreeNodeId: scene.id,
+      },
+    });
+    syncGuard = false;
+  }
+
+  for (const removedId of removed) {
+    const canvasNode = canvasNodes.find((n) => n.data.linkedTreeNodeId === removedId);
+    if (canvasNode) {
+      syncGuard = true;
+      cs.removeNode(canvasNode.id);
       syncGuard = false;
     }
   }

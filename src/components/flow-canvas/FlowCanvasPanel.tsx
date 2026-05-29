@@ -11,6 +11,7 @@ import {
   type XYPosition,
   type ReactFlowInstance,
   type EdgeChange,
+  type NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Plus } from 'lucide-react';
@@ -26,7 +27,7 @@ import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
 import { generateId } from '@/lib/utils';
 import { collectScenes } from '@/lib/treeUtils';
 
-const nodeTypes = {
+const nodeTypes: NodeTypes = {
   sceneCard: SceneCardNode,
   assetCard: AssetCardNode,
   noteCard: NoteCardNode,

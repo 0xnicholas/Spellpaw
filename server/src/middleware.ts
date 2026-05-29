@@ -4,7 +4,11 @@ import jwt from 'jsonwebtoken';
 const SECRET = process.env.JWT_SECRET!;
 
 export interface AuthenticatedRequest extends Request {
-  userId?: string;
+  userId: string;
+}
+
+export function getUserId(req: Request): string {
+  return (req as unknown as AuthenticatedRequest).userId;
 }
 
 export function auth(req: Request, res: Response, next: NextFunction) {

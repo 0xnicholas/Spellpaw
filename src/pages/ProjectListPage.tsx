@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Film, Plus, Clock, LayoutGrid, Trash2, Download, Upload, Globe, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { NewProjectModal } from '@/components/modals/NewProjectModal';
-import type { NarrativeTemplate } from '@/types';
+import type { NarrativeTemplate, GalleryItem } from '@/types';
 import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
 import { useProjectStore } from '@/stores/projectStore';
 import { useCanvasStore } from '@/stores/canvasStore';
@@ -11,13 +11,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { authApi } from '@/stores/authStore';
 import { exportProjectToJSON, importProjectFromJSON } from '@/lib/exportImport';
 import { pushAll, pullAll } from '@/lib/projectSync';
-
-interface GalleryItem {
-  id: string;
-  project?: { title: string };
-  user?: { name: string };
-  likes?: number;
-}
 
 export function ProjectListPage() {
   const navigate = useNavigate();

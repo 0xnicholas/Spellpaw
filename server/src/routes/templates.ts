@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { auth, type AuthenticatedRequest } from '../middleware';
+import { auth, getUserId } from '../middleware';
 
 export function templateRoutes(prisma: PrismaClient): Router {
   const router = Router();
@@ -22,7 +22,7 @@ export function templateRoutes(prisma: PrismaClient): Router {
   router.post('/', auth, async (req, res) => {
     const { name, description, category, data } = req.body;
     const template = await prisma.template.create({
-      data: { authorId: (req as AuthenticatedRequest).userId, name, description: description || '', category: category || 'custom', data },
+      data: { authorId: getUserId(req), name, description: description || '', category: category || 'custom', data },
     });
     res.status(201).json(template);
   });

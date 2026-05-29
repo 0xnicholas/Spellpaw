@@ -1,5 +1,8 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { Search, FolderTree, Trash2, CheckSquare } from 'lucide-react';
+import { Search, FolderTree, Trash2, CheckSquare, Image, Lock, X } from 'lucide-react';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
+import { toolRouter } from '@/stores/toolRouter';
 import { PanelHeader } from '@/components/ui/PanelHeader';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -60,6 +63,9 @@ export function TreeViewPanel() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; childCount: number } | null>(null);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
   const titleRefs = useRef<Map<string, EditableTitleRef>>(new Map());
+  const { toast, show, hide } = useToast();
+  const getLockedStyle = useProjectStore((s) => s.getLockedStyle);
+  const clearLockedStyle = useProjectStore((s) => s.clearLockedStyle);
 
   // Clear multi-selection when project changes
   useEffect(() => {
@@ -173,6 +179,57 @@ export function TreeViewPanel() {
     setShowBulkDelete(false);
   };
 
+  const handleBulkGenerate = useCallback(async () => {
+    const targets = Array.from(selectedIds)
+      .map((id) => {
+        const tree = treeData;
+        if (!tree) return null;
+        function find(n: TreeNode): TreeNode | null {
+          if (n.id === id) return n;
+          for (const c of n.children ?? []) {
+            const f = find(c);
+            if (f) return f;
+          }
+          return null;
+        }
+        return find(tree);
+      })
+      .filter((n): n is TreeNode => !!n && (n.type === 'scene' || n.type === 'shot'));
+
+    if (targets.length === 0) {
+      show('请选中至少一个场景或镜头', 'error');
+      return;
+    }
+
+    const total = targets.length;
+    const failed: string[] = [];
+    const locked = getLockedStyle();
+
+    for (let i = 0; i < targets.length; i++) {
+      const node = targets[i];
+      show(`🎨 正在生成 ${i + 1}/${total}: ${node.title}...`, 'info');
+      try {
+        await toolRouter.generate_storyboard({
+          action: 'generate_storyboard',
+          nodeId: node.id,
+          ...(locked.prompt ? { stylePrompt: locked.prompt } : {}),
+        });
+        if (i < targets.length - 1) await new Promise((r) => setTimeout(r, 500));
+      } catch (err) {
+        failed.push(node.title);
+        show(`❌ ${node.title} 失败: ${(err as Error).message}`, 'error');
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+
+    if (failed.length === 0) {
+      show(`✅ 全部 ${total} 张分镜生成完成`, 'success');
+    } else {
+      show(`⚠️ ${total - failed.length}/${total} 成功，${failed.length} 个失败`, 'error');
+    }
+    setSelectedIds(new Set());
+  }, [selectedIds, treeData, getLockedStyle, show, setSelectedIds]);
+
   // eslint-disable-next-line react-hooks/refs
   const titleRefMap = titleRefs.current;
 
@@ -215,6 +272,13 @@ export function TreeViewPanel() {
               <option value="done">Done</option>
             </select>
             <button
+              onClick={handleBulkGenerate}
+              className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-bg-accent)] px-1.5 text-[10px] font-medium text-[var(--color-text-inverse)] hover:opacity-90 transition-opacity"
+            >
+              <Image className="h-3 w-3" />
+              生成分镜
+            </button>
+            <button
               onClick={() => setShowBulkDelete(true)}
               className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] border border-red-200 bg-red-50 px-1.5 text-[10px] text-red-600 hover:bg-red-100"
             >
@@ -231,6 +295,27 @@ export function TreeViewPanel() {
           </div>
         </div>
       )}
+
+      {/* Style lock indicator */}
+      {(() => {
+        const locked = getLockedStyle();
+        if (!locked.prompt) return null;
+        return (
+          <div className="flex items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-accent-subtle)] px-3 py-1">
+            <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-accent-500)]">
+              <Lock className="h-3 w-3" />
+              <span>基于风格锁</span>
+            </div>
+            <button
+              onClick={() => { clearLockedStyle(); show('已清除风格锁', 'info'); }}
+              className="rounded p-0.5 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
+              title="清除风格锁"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        );
+      })()}
 
       <div className="flex-1 overflow-auto py-1">
         {displayedTree ? (
@@ -275,6 +360,14 @@ export function TreeViewPanel() {
         onConfirm={handleBulkDelete}
         onCancel={() => setShowBulkDelete(false)}
       />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={hide}
+        />
+      )}
     </div>
   );
 }

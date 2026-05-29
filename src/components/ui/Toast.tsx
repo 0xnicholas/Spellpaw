@@ -16,9 +16,14 @@ export function Toast({ message, type = 'info', duration = 3000, onClose }: Toas
   useEffect(() => {
     const timer = setTimeout(() => {
       setVisible(false);
-      setTimeout(() => onClose?.(), 200);
     }, duration);
-    return () => clearTimeout(timer);
+    const cleanupTimer = setTimeout(() => {
+      onClose?.();
+    }, duration + 200);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(cleanupTimer);
+    };
   }, [duration, onClose]);
 
   if (!visible) return null;

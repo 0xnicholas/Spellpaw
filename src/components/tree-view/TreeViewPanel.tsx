@@ -216,8 +216,14 @@ export function TreeViewPanel() {
         });
         if (i < targets.length - 1) await new Promise((r) => setTimeout(r, 500));
       } catch (err) {
+        const msg = (err as Error).message;
         failed.push(node.title);
-        show(`❌ ${node.title} 失败: ${(err as Error).message}`, 'error');
+        show(`❌ ${node.title} 失败: ${msg}`, 'error');
+        // Stop early on API key or configuration errors
+        if (msg.includes('API key') || msg.includes('not configured')) {
+          show('⚠️ 配置错误，已停止生成', 'error');
+          break;
+        }
         await new Promise((r) => setTimeout(r, 1000));
       }
     }

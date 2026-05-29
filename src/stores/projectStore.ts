@@ -25,6 +25,9 @@ interface ProjectState {
   toggleExpanded: (nodeId: string) => void;
   selectNode: (nodeId: string | null) => void;
   getSelectedNodePath: () => string[];
+  setLockedStyle: (prompt: string, nodeId: string) => void;
+  clearLockedStyle: () => void;
+  getLockedStyle: () => { prompt: string | null; nodeId: string | null };
 }
 
 function findNodePath(node: TreeNode | null, targetId: string, path: string[] = []): string[] | null {
@@ -298,6 +301,38 @@ export const useProjectStore = create<ProjectState>()(
         const tree = currentProjectId ? trees[currentProjectId] : null;
         if (!tree || !selectedNodeId) return [];
         return findNodePath(tree, selectedNodeId) ?? [];
+      },
+
+      setLockedStyle: (prompt, nodeId) =>
+        set(
+          produce((state: ProjectState) => {
+            const tree = state.trees[state.currentProjectId!];
+            if (!tree) return;
+            if (!tree.metadata) tree.metadata = { createdAt: '', updatedAt: '' };
+            tree.metadata.lockedStylePrompt = prompt;
+            tree.metadata.lockedStyleNodeId = nodeId;
+            tree.metadata.updatedAt = new Date().toISOString();
+          })
+        ),
+
+      clearLockedStyle: () =>
+        set(
+          produce((state: ProjectState) => {
+            const tree = state.trees[state.currentProjectId!];
+            if (!tree || !tree.metadata) return;
+            tree.metadata.lockedStylePrompt = null;
+            tree.metadata.lockedStyleNodeId = null;
+            tree.metadata.updatedAt = new Date().toISOString();
+          })
+        ),
+
+      getLockedStyle: () => {
+        const tree = get().getCurrentTree();
+        if (!tree?.metadata) return { prompt: null, nodeId: null };
+        return {
+          prompt: tree.metadata.lockedStylePrompt ?? null,
+          nodeId: tree.metadata.lockedStyleNodeId ?? null,
+        };
       },
     }),
     {

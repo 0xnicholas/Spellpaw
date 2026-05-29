@@ -132,4 +132,27 @@ describe('projectStore', () => {
     useProjectStore.getState().setCurrentProject(id2);
     expect(useProjectStore.getState().getCurrentTree()?.title).toBe('Proj 2');
   });
+
+  describe('locked style', () => {
+    it('setLockedStyle stores prompt on project root metadata', () => {
+      useProjectStore.getState().setLockedStyle('cinematic noir style', 'node_1');
+      const tree = useProjectStore.getState().getCurrentTree()!;
+      expect(tree.metadata?.lockedStylePrompt).toBe('cinematic noir style');
+      expect(tree.metadata?.lockedStyleNodeId).toBe('node_1');
+    });
+
+    it('clearLockedStyle removes the lock', () => {
+      useProjectStore.getState().setLockedStyle('some style', 'node_1');
+      useProjectStore.getState().clearLockedStyle();
+      const tree = useProjectStore.getState().getCurrentTree()!;
+      expect(tree.metadata?.lockedStylePrompt).toBeNull();
+      expect(tree.metadata?.lockedStyleNodeId).toBeNull();
+    });
+
+    it('getLockedStyle returns current lock', () => {
+      expect(useProjectStore.getState().getLockedStyle()).toEqual({ prompt: null, nodeId: null });
+      useProjectStore.getState().setLockedStyle('style', 'node_1');
+      expect(useProjectStore.getState().getLockedStyle()).toEqual({ prompt: 'style', nodeId: 'node_1' });
+    });
+  });
 });

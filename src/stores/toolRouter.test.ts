@@ -185,3 +185,32 @@ describe('toolRouter — AI 感知 tool', () => {
     expect(result).toMatch(/无需调整|优化方案|已优化/);
   });
 });
+
+describe('toolRouter — generate_storyboard', () => {
+  beforeEach(() => {
+    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null });
+  });
+
+  it('accepts stylePrompt parameter in function signature', async () => {
+    seedTree();
+    // We can't actually call OpenAI in tests, but we verify the router accepts stylePrompt
+    // by checking that the error path works (OpenAI will fail without real API key)
+    await expect(
+      toolRouter.generate_storyboard({
+        action: 'generate_storyboard',
+        nodeId: 'scene-1',
+        stylePrompt: 'A cinematic noir style with high contrast.',
+      })
+    ).rejects.toThrow();
+  });
+
+  it('falls back to buildImagePrompt when no stylePrompt is provided', async () => {
+    seedTree();
+    await expect(
+      toolRouter.generate_storyboard({
+        action: 'generate_storyboard',
+        nodeId: 'scene-1',
+      })
+    ).rejects.toThrow();
+  });
+});

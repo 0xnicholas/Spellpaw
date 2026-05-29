@@ -9,6 +9,8 @@ import {
   type Edge,
   type Connection,
   type XYPosition,
+  type ReactFlowInstance,
+  type EdgeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Plus } from 'lucide-react';
@@ -16,6 +18,7 @@ import { Plus } from 'lucide-react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { useDetailStore } from '@/stores/detailStore';
+import type { CanvasNode, CanvasEdge } from '@/types';
 import { SceneCardNode } from './nodes/SceneCardNode';
 import { AssetCardNode } from './nodes/AssetCardNode';
 import { NoteCardNode } from './nodes/NoteCardNode';
@@ -23,7 +26,7 @@ import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
 import { generateId } from '@/lib/utils';
 import { collectScenes } from '@/lib/treeUtils';
 
-const nodeTypes: any = {
+const nodeTypes = {
   sceneCard: SceneCardNode,
   assetCard: AssetCardNode,
   noteCard: NoteCardNode,
@@ -33,7 +36,7 @@ interface ContextMenuState {
   x: number;
   y: number;
   nodeId: string;
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export function FlowCanvasPanel() {
@@ -52,7 +55,7 @@ export function FlowCanvasPanel() {
   const deleteTreeNode = useProjectStore((s) => s.deleteTreeNode);
   const focusCanvasLinkedId = useDetailStore((s) => s.focusCanvasLinkedId);
   const clearFocusCanvas = useDetailStore((s) => s.clearFocusCanvas);
-  const reactFlowRef = useRef<any>(null);
+  const reactFlowRef = useRef<ReactFlowInstance | null>(null);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ nodeId: string; isLinked: boolean } | null>(null);
@@ -86,19 +89,19 @@ export function FlowCanvasPanel() {
         animated: true,
       };
       setEdges((eds) => [...eds, edge]);
-      addEdge(edge as any);
+      addEdge(edge as CanvasEdge);
     },
     [setEdges, addEdge]
   );
 
   const onNodeDragStop = useCallback(() => {
-    syncNodes(nodes as any);
+    syncNodes(nodes as CanvasNode[]);
   }, [nodes, syncNodes]);
 
   const onEdgesChangeWrapper = useCallback(
-    (changes: any) => {
+    (changes: EdgeChange[]) => {
       onEdgesChange(changes);
-      syncEdges(edges as any);
+      syncEdges(edges as CanvasEdge[]);
     },
     [onEdgesChange, edges, syncEdges]
   );
@@ -117,7 +120,7 @@ export function FlowCanvasPanel() {
         y: event.clientY - bounds.top,
       };
 
-      addNodeFromAsset({ id: assetId, name: 'Asset', type: 'other', size: 0, status: 'ready', createdAt: '' } as any, position);
+      addNodeFromAsset({ id: assetId, name: 'Asset', type: 'other', size: 0, status: 'ready', createdAt: '' }, position);
     },
     [addNodeFromAsset]
   );
@@ -207,7 +210,7 @@ export function FlowCanvasPanel() {
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
-          onInit={(instance: any) => { reactFlowRef.current = instance; }}
+          onInit={(instance: ReactFlowInstance) => { reactFlowRef.current = instance; }}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChangeWrapper}
           onConnect={onConnect}

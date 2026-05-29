@@ -93,7 +93,7 @@ describe('projectStore', () => {
   it('deep-merges metadata on update', () => {
     useProjectStore.getState().updateTreeNode('scene_1', {
       metadata: { description: 'A scene', duration: 30, createdAt: '', updatedAt: '' },
-    } as any);
+    });
     const tree = useProjectStore.getState().getCurrentTree();
     const node = tree?.children?.[0]?.children?.[0];
     expect(node?.metadata?.description).toBe('A scene');

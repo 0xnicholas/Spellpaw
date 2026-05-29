@@ -133,7 +133,7 @@ export const toolRouter: ToolRouter = {
 
       return `已套用模板「${template.name}」: 创建 ${nodeCount} 个节点`;
     } catch (err) {
-      throw new Error(`套用模板失败: ${(err as Error).message}`);
+      throw new Error(`套用模板失败: ${(err as Error).message}`, { cause: err });
     }
   },
 
@@ -163,7 +163,7 @@ export const toolRouter: ToolRouter = {
 
       return `已为「${node.title}」生成参考图: ${imageUrl}`;
     } catch (err) {
-      throw new Error(`分镜生成失败: ${(err as Error).message}`);
+      throw new Error(`分镜生成失败: ${(err as Error).message}`, { cause: err });
     }
   },
 };

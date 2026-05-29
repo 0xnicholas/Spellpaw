@@ -7,8 +7,9 @@ import { useProjectStore } from '@/stores/projectStore';
 import { useAuthStore } from '@/stores/authStore';
 import { exportStoryboardPDF } from '@/lib/exportPDF';
 import { useTranslation } from 'react-i18next';
+import type { TreeNode } from '@/types';
 
-function findNodePath(node: any, targetId: string, path: string[] = []): string[] | null {
+function findNodePath(node: TreeNode | null, targetId: string, path: string[] = []): string[] | null {
   if (!node) return null;
   if (node.id === targetId) return [...path, node.title];
   if (node.children) {
@@ -34,7 +35,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
   const user = useAuthStore((s) => s.user);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
 
   const handleExportPDF = () => {
     if (!project || !treeData) return;

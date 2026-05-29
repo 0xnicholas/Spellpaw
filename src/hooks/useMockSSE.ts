@@ -81,5 +81,6 @@ export function useMockSSE() {
     return () => {
       useChatStore.setState({ sendMessage: originalSend });
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }

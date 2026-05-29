@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { auth } from '../middleware';
+import { auth, type AuthenticatedRequest } from '../middleware';
 
 export function galleryRoutes(prisma: PrismaClient): Router {
   const router = Router();
@@ -19,7 +19,7 @@ export function galleryRoutes(prisma: PrismaClient): Router {
   router.post('/', auth, async (req, res) => {
     const { projectId } = req.body;
     await prisma.project.update({ where: { id: projectId }, data: { isPublic: true } });
-    const item = await prisma.galleryItem.create({ data: { userId: (req as any).userId, projectId } });
+    const item = await prisma.galleryItem.create({ data: { userId: (req as AuthenticatedRequest).userId, projectId } });
     res.status(201).json(item);
   });
 

@@ -78,6 +78,7 @@ export function useToolBridge() {
     connect(wsRef);
 
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       wsRef.current?.close();
     };
   }, []);

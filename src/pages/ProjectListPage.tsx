@@ -12,6 +12,13 @@ import { authApi } from '@/stores/authStore';
 import { exportProjectToJSON, importProjectFromJSON } from '@/lib/exportImport';
 import { pushAll, pullAll } from '@/lib/projectSync';
 
+interface GalleryItem {
+  id: string;
+  project?: { title: string };
+  user?: { name: string };
+  likes?: number;
+}
+
 export function ProjectListPage() {
   const navigate = useNavigate();
   const projects = useProjectStore((s) => s.projects);
@@ -23,7 +30,7 @@ export function ProjectListPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [showGallery, setShowGallery] = useState(false);
-  const [galleryItems, setGalleryItems] = useState<any[]>([]);
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
 
   const handleOpen = (id: string) => {
     setCurrentProject(id);
@@ -48,14 +55,6 @@ export function ProjectListPage() {
   useEffect(() => {
     authApi.apiCall('/api/gallery').then(res => res.json()).then(setGalleryItems).catch(() => {});
   }, []);
-
-  const handlePublish = async (projectId: string) => {
-    try {
-      await authApi.apiCall('/api/gallery', { method: 'POST', body: JSON.stringify({ projectId }) });
-      const res = await authApi.apiCall('/api/gallery');
-      if (res.ok) setGalleryItems(await res.json());
-    } catch { /* server not available */ }
-  };
 
   const handleExport = (projectId: string) => {
     const state = useProjectStore.getState();
@@ -213,7 +212,7 @@ export function ProjectListPage() {
           </button>
           {showGallery && (
             <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {galleryItems.map((item: any) => (
+              {galleryItems.map((item: GalleryItem) => (
                 <div key={item.id} className="rounded-[var(--radius-base)] border border-[var(--color-border-default)] p-2.5">
                   <div className="text-xs font-medium text-[var(--color-text-primary)] truncate">{item.project?.title}</div>
                   <div className="mt-1 flex items-center justify-between text-[10px] text-[var(--color-text-tertiary)]">

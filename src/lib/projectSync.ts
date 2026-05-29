@@ -2,6 +2,7 @@
  * Project sync service — push/pull projects between localStorage and server
  */
 import { useProjectStore } from '../stores/projectStore';
+import { useCanvasStore } from '../stores/canvasStore';
 import { authApi, useAuthStore } from '../stores/authStore';
 import { config } from '../config';
 
@@ -27,10 +28,10 @@ export async function pushAll(): Promise<{ synced: number; errors: string[] }> {
   for (const project of projects) {
     try {
       const tree = store.trees[project.id];
-      const canvases = (store as any).canvases?.[project.id];
+      const canvases = useCanvasStore.getState().canvases[project.id];
       const data = JSON.stringify({ tree, canvases });
 
-      const token = useAuthStore().getState().token;
+      const token = useAuthStore.getState().token;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -79,9 +80,14 @@ export async function pullAll(): Promise<{ imported: number }> {
           const projectId = store.createProject(sp.title, sp.description, sp.coverColor);
           if (parsed.tree) {
             // Store the tree data directly
-            store.setState((s: any) => ({
+            useProjectStore.setState((s) => ({
               trees: { ...s.trees, [projectId]: parsed.tree },
-              canvases: { ...(s.canvases || {}), [projectId]: parsed.canvases || { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } } },
+            }));
+            useCanvasStore.setState((s) => ({
+              canvases: {
+                ...s.canvases,
+                [projectId]: parsed.canvases || { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
+              },
             }));
           }
           imported++;

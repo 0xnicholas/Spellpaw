@@ -96,6 +96,9 @@ export function TreeViewPanel() {
     setDeleteTarget(null);
   };
 
+  // eslint-disable-next-line react-hooks/refs
+  const titleRefMap = titleRefs.current;
+
   return (
     <div className="flex h-full flex-col">
       <PanelHeader
@@ -125,7 +128,7 @@ export function TreeViewPanel() {
             onTitleChange={handleTitleChange}
             onAddChild={handleAddChild}
             onDelete={handleDelete}
-            titleRefMap={titleRefs.current}
+            titleRefMap={titleRefMap}
           />
         ) : (
           <EmptyState

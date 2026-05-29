@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { ColorPicker } from '@/components/ui/ColorPicker';
+import type { CanvasNodeData } from '@/types';
 
-export function NoteCardNode({ data, id, selected }: NodeProps<any>) {
+export function NoteCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeData>>) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(data.title);
   const [editDesc, setEditDesc] = useState(data.description ?? '');

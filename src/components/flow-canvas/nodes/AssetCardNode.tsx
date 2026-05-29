@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { File, Image, Music, Video, FileText } from 'lucide-react';
 import { useCanvasStore } from '@/stores/canvasStore';
-import type { AssetType } from '@/types';
+import type { AssetType, CanvasNodeData } from '@/types';
 
 const typeIcons: Record<string, typeof File> = {
   video: Video,
@@ -13,7 +13,7 @@ const typeIcons: Record<string, typeof File> = {
   other: File,
 };
 
-export function AssetCardNode({ data, id, selected }: NodeProps<any>) {
+export function AssetCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeData>>) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(data.title);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);

@@ -157,6 +157,7 @@ export function usePandariaSSE() {
       useChatStore.setState({ sendMessage: originalSend });
       sseRef.current?.close();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }
 

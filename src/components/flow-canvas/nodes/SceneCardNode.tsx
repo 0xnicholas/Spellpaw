@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { Badge } from '@/components/ui/Badge';
 import { useCanvasStore } from '@/stores/canvasStore';
+import type { CanvasNodeData } from '@/types';
 
 const statusMap: Record<string, { label: string; variant: 'default' | 'accent' | 'success' | 'warning' }> = {
   draft: { label: 'Draft', variant: 'default' },
@@ -10,7 +11,7 @@ const statusMap: Record<string, { label: string; variant: 'default' | 'accent' |
   done: { label: 'Done', variant: 'success' },
 };
 
-export function SceneCardNode({ data, id, selected }: NodeProps<any>) {
+export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeData>>) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(data.title);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);

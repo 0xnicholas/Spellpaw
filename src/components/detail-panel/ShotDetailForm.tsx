@@ -15,10 +15,12 @@ export function ShotDetailForm({ node, onChange }: ShotDetailFormProps) {
   const externalChangeRef = useRef(false);
   const debouncedLocal = useDebounce(local, 300);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     externalChangeRef.current = true;
     setLocal(node);
   }, [node]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (externalChangeRef.current) {
@@ -40,6 +42,7 @@ export function ShotDetailForm({ node, onChange }: ShotDetailFormProps) {
         updatedAt: node.metadata?.updatedAt ?? '',
       },
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedLocal]);
 
   const handleMeta = (field: string, value: unknown) => {

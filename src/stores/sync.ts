@@ -47,7 +47,7 @@ function findNodeById(root: TreeNode | null, id: string): TreeNode | null {
 
 // Track previous tree state for diffing
 let prevTree: TreeNode | null = null;
-let prevCanvasNodes: Map<string, { title: string; status: string; description?: string; linkedTreeNodeId?: string }> = new Map();
+const prevCanvasNodes: Map<string, { title: string; status: string; description?: string; linkedTreeNodeId?: string }> = new Map();
 
 // Canvas → Tree: when canvas card changes, push to linked tree node
 useCanvasStore.subscribe((state) => {
@@ -75,7 +75,7 @@ useCanvasStore.subscribe((state) => {
         metadata: node.data.description !== prev.description
           ? { description: node.data.description }
           : undefined,
-      } as any);
+      } as Partial<TreeNode>);
       syncGuard = false;
     }
   }
@@ -126,7 +126,7 @@ useProjectStore.subscribe((state) => {
       if (changes.title !== undefined) cu.title = changes.title;
       if (changes.status !== undefined) cu.status = changes.status;
       if (changes.description !== undefined) cu.description = changes.description;
-      cs.updateNodeData(card.id, cu as any);
+      cs.updateNodeData(card.id, cu as Record<string, unknown>);
       syncGuard = false;
     }
   }

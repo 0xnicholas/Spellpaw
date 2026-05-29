@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
-import { auth } from '../middleware';
+import { auth, type AuthenticatedRequest } from '../middleware';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -37,7 +37,7 @@ export function authRoutes(prisma: PrismaClient): Router {
   });
 
   router.get('/me', auth, async (req, res) => {
-    const user = await prisma.user.findUnique({ where: { id: (req as any).userId } });
+    const user = await prisma.user.findUnique({ where: { id: (req as AuthenticatedRequest).userId } });
     if (!user) { res.status(404).json({ error: 'Not found' }); return; }
     res.json({ id: user.id, email: user.email, name: user.name, avatar: user.avatar });
   });

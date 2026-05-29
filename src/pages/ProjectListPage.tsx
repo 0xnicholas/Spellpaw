@@ -35,13 +35,16 @@ export function ProjectListPage() {
     navigate(`/project/${projectId}`);
   };
 
-  const handleCreateFromTemplate = (template: NarrativeTemplate) => {
+  const handleCreateFromTemplate = async (template: NarrativeTemplate) => {
     const projectId = createProject(template.name, template.description, template.stylePresets.colorPalette[0]);
-    // Apply template structure via toolRouter
-    import('../stores/toolRouter').then(({ toolRouter }) => {
-      toolRouter.apply_template({ action: 'apply_template', templateId: template.id, parentId: undefined });
-    });
-    navigate(`/project/${projectId}`);
+    try {
+      const { toolRouter } = await import('../stores/toolRouter');
+      await toolRouter.apply_template({ action: 'apply_template', templateId: template.id, parentId: undefined });
+      setCurrentProject(projectId);
+      navigate(`/project/${projectId}`);
+    } catch (err) {
+      console.error('Template application failed:', err);
+    }
   };
 
   // Gallery

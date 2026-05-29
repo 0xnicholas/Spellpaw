@@ -5,6 +5,10 @@ import { spellpawToolServer } from './tool-server/spellpaw-tool-server'
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), spellpawToolServer()],
+  server: {
+    host: '0.0.0.0',
+    allowedHosts: ['127.0.0.1.nip.io'],
+  },
   resolve: {
     alias: {
       '@': '/src',

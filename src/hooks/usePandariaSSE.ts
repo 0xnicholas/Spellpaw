@@ -70,6 +70,32 @@ const TOOL_CONFIGS = [
     },
     endpoint: TOOL_ENDPOINT,
   },
+  {
+    name: 'spellpaw_apply_template',
+    description: 'Apply a narrative template to the current project. Creates acts, scenes, and shots from the template structure.',
+    parameters: {
+      type: 'object',
+      properties: {
+        templateId: { type: 'string' },
+        parentId: { type: 'string' },
+      },
+      required: ['templateId'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_generate_storyboard',
+    description: 'Generate a storyboard reference image for a scene or shot. Returns an image URL that is attached to the linked canvas card.',
+    parameters: {
+      type: 'object',
+      properties: {
+        nodeId: { type: 'string' },
+        prompt: { type: 'string' },
+      },
+      required: ['nodeId'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
 ];
 
 export function usePandariaSSE() {

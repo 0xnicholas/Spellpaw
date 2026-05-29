@@ -188,6 +188,7 @@ export const toolRouter: ToolRouter = {
   generate_storyboard: async (params) => {
     const nodeId = params.nodeId as string;
     const customPrompt = params.prompt as string | undefined;
+    const stylePrompt = params.stylePrompt as string | undefined;
 
     const store = useProjectStore.getState();
     const tree = store.getCurrentTree();
@@ -198,7 +199,18 @@ export const toolRouter: ToolRouter = {
 
     try {
       const { generateImage, buildImagePrompt } = await import('../lib/imageGen');
-      const prompt = customPrompt || buildImagePrompt(node);
+
+      let prompt: string;
+      if (stylePrompt) {
+        prompt = `${stylePrompt}\n\nScene: "${node.title}".`
+          + (node.metadata?.location ? ` Location: ${node.metadata.location}.` : '')
+          + (node.metadata?.timeOfDay ? ` Time: ${node.metadata.timeOfDay}.` : '')
+          + (node.metadata?.shotType ? ` Shot: ${node.metadata.shotType}.` : '')
+          + (node.metadata?.description ? ` ${node.metadata.description}` : '');
+      } else {
+        prompt = customPrompt || buildImagePrompt(node);
+      }
+
       const imageUrl = await generateImage({ prompt, size: '1024x1792' });
 
       const { useCanvasStore } = await import('./canvasStore');
@@ -206,7 +218,10 @@ export const toolRouter: ToolRouter = {
       const canvasNodes = canvasState.getCurrentNodes();
       const linkedCard = canvasNodes.find((n: { data: { linkedTreeNodeId?: string } }) => n.data.linkedTreeNodeId === nodeId);
       if (linkedCard) {
-        canvasState.updateNodeData(linkedCard.id, { thumbnail: imageUrl });
+        canvasState.updateNodeData(linkedCard.id, {
+          thumbnail: imageUrl,
+          generatedPrompt: prompt,
+        });
       }
 
       return `已为「${node.title}」生成参考图: ${imageUrl}`;

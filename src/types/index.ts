@@ -17,6 +17,8 @@ export interface TreeNode {
     notes?: string;
     createdAt: string;
     updatedAt: string;
+    lockedStylePrompt?: string | null;
+    lockedStyleNodeId?: string | null;
   };
 }
 
@@ -68,6 +70,7 @@ export interface CanvasNodeData extends Record<string, unknown> {
   description?: string;
   status?: 'draft' | 'in_progress' | 'review' | 'done';
   thumbnail?: string;
+  generatedPrompt?: string;
   tags?: string[];
   color?: string;
   linkedTreeNodeId?: string;

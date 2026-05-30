@@ -10,7 +10,7 @@ import { useProjectStore } from '../stores/projectStore';
 import { useCanvasStore } from '../stores/canvasStore';
 import { authApi, useAuthStore } from '../stores/authStore';
 import { config } from '../config';
-// Types used indirectly via parsed JSON
+import type { TreeNode } from '@/types';
 
 const API_BASE = config.serverBase;
 
@@ -283,5 +283,36 @@ export async function resolveConflictWithLocal(conflict: ConflictInfo): Promise<
   useProjectStore.getState().updateProject(conflict.projectId, {
     version: conflict.remoteVersion + 1,
   });
+  return pushProject(conflict.projectId);
+}
+
+/** Resolve a conflict by merging user-selected changes, then push. */
+export async function resolveConflictWithMerge(
+  conflict: ConflictInfo,
+  choices: Record<string, 'local' | 'remote'>
+): Promise<PushResult> {
+  const parsedRemote = JSON.parse(conflict.remoteProject.data || '{}');
+  const localTree = useProjectStore.getState().trees[conflict.projectId];
+  const remoteTree = parsedRemote.tree as TreeNode | undefined;
+
+  if (!localTree || !remoteTree) {
+    return { success: false, error: 'Missing tree data for merge' };
+  }
+
+  const { mergeTrees } = await import('./treeDiff');
+  const mergedTree = mergeTrees(localTree, remoteTree, choices);
+
+  // Update local store with merged tree
+  useProjectStore.setState((s) => ({
+    trees: { ...s.trees, [conflict.projectId]: mergedTree },
+    projects: s.projects.map((p) =>
+      p.id === conflict.projectId
+        ? { ...p, title: conflict.remoteProject.title, version: conflict.remoteVersion + 1, updatedAt: new Date().toISOString() }
+        : p
+    ),
+  }));
+
+  // Also merge canvas if canvas choices provided (simplified: keep local canvas for now)
+  // Push merged result
   return pushProject(conflict.projectId);
 }

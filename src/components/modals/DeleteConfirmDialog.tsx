@@ -11,7 +11,7 @@ interface DeleteConfirmDialogProps {
 }
 
 export function DeleteConfirmDialog({
-  isOpen, title, description, confirmLabel = 'Delete', onConfirm, onCancel
+  isOpen, title, description, confirmLabel = '删除', onConfirm, onCancel
 }: DeleteConfirmDialogProps) {
   if (!isOpen) return null;
   return (
@@ -23,7 +23,7 @@ export function DeleteConfirmDialog({
         </div>
         <p className="mb-6 text-xs text-[var(--color-text-secondary)]">{description}</p>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
+          <Button variant="ghost" size="sm" onClick={onCancel}>取消</Button>
           <Button variant="danger" size="sm" onClick={onConfirm}>{confirmLabel}</Button>
         </div>
       </div>

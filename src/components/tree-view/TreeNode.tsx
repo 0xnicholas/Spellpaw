@@ -23,15 +23,15 @@ interface TreeNodeProps {
 const statusColors: Record<string, string> = {
   draft: 'bg-[var(--color-base-gray-400)]',
   in_progress: 'bg-[var(--color-accent-500)]',
-  review: 'bg-amber-400',
-  done: 'bg-green-500',
+  review: 'bg-[var(--color-status-warning-text)]',
+  done: 'bg-[var(--color-status-success-text)]',
 };
 
 const statusLabels: Record<string, string> = {
-  draft: 'Draft',
-  in_progress: 'In Progress',
-  review: 'Review',
-  done: 'Done',
+  draft: '草稿',
+  in_progress: '进行中',
+  review: '审核中',
+  done: '已完成',
 };
 
 const nextStatus: Record<string, TreeNodeType['status']> = {
@@ -42,10 +42,10 @@ const nextStatus: Record<string, TreeNodeType['status']> = {
 };
 
 const typeLabels: Record<string, string> = {
-  project: 'Project',
-  act: 'Act',
-  scene: 'Scene',
-  shot: 'Shot',
+  project: '项目',
+  act: '幕',
+  scene: '场景',
+  shot: '镜头',
 };
 
 const childTypeMap: Record<string, TreeNodeType['type']> = {
@@ -135,7 +135,7 @@ export const TreeNodeItem = forwardRef<HTMLDivElement, TreeNodeProps>(
               <span
                 onClick={(e) => { e.stopPropagation(); onAddChild?.(node.id, node.type); }}
                 className="cursor-pointer rounded px-1 text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent-500)]"
-                title={`Add ${childTypeMap[node.type]}`}
+                title={`添加${childTypeMap[node.type] === 'act' ? '幕' : childTypeMap[node.type] === 'scene' ? '场景' : childTypeMap[node.type] === 'shot' ? '镜头' : childTypeMap[node.type]}`}
               >
                 +
               </span>
@@ -143,7 +143,7 @@ export const TreeNodeItem = forwardRef<HTMLDivElement, TreeNodeProps>(
             <span
               onClick={(e) => { e.stopPropagation(); onDelete?.(node.id, node.children?.length ?? 0); }}
               className="cursor-pointer rounded px-1 text-[10px] text-[var(--color-text-tertiary)] hover:text-red-500"
-              title="Delete"
+              title="删除"
             >
               ×
             </span>

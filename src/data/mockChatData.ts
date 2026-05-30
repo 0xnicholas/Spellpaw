@@ -4,26 +4,26 @@ export const mockChatMessages: ChatMessage[] = [
   {
     id: 'msg_1',
     role: 'agent',
-    content: 'Welcome to Spellpaw! I\'ve loaded the project structure for "Urban Serendipity". The project currently has 3 acts, 8 scenes, and 18 shots. How can I help you?',
+    content: '欢迎来到 Spellpaw！我已加载项目「都市奇缘」的结构。该项目目前有 3 幕、8 场景、18 镜头。有什么可以帮你的？',
     type: 'text',
     timestamp: '2026-05-19T09:00:00Z',
   },
   {
     id: 'msg_2',
     role: 'user',
-    content: 'Check if Act 1\'s structure makes sense',
+    content: '检查第一幕的结构是否合理',
     type: 'text',
     timestamp: '2026-05-19T09:01:00Z',
   },
   {
     id: 'msg_3',
     role: 'agent',
-    content: 'Here is the current structure of Act 1 "The Encounter":\n\n1. Cafe Encounter (3 shots) — ~45 seconds\n2. Street Encounter (2 shots) — ~30 seconds\n\n**Analysis:**\n- The opening establishing shot works well to quickly set the scene\n- Consider adding a "missed connection" interlude to raise tension\n- Act 1 total duration of 75 seconds fits the short-video pacing',
+    content: '这是第一幕「邂逅」的当前结构：\n\n1. 咖啡馆邂逅（3 镜头）— ~45 秒\n2. 街头邂逅（2 镜头）— ~30 秒\n\n**分析：**\n- 开场建立镜头很好地快速设定了场景\n- 建议增加「错过」插曲来提升张力\n- 第一幕总时长 75 秒，符合短视频节奏',
     type: 'text',
     timestamp: '2026-05-19T09:01:30Z',
     actions: [
-      { id: 'act_1', label: 'Add "Missed Connection" scene', type: 'insert_scene' },
-      { id: 'act_2', label: 'Optimize shot distribution', type: 'custom' },
+      { id: 'act_1', label: '添加「错过」场景', type: 'insert_scene' },
+      { id: 'act_2', label: '优化镜头分布', type: 'custom' },
     ],
   },
 ];

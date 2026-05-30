@@ -180,7 +180,7 @@ export function TemplateMarketPage() {
       </header>
 
       {importError && (
-        <div className="mx-6 mt-3 rounded-[var(--radius-sm)] bg-red-50 px-3 py-2 text-[11px] text-red-600">
+        <div className="mx-6 mt-3 rounded-[var(--radius-sm)] bg-[var(--color-status-danger-bg)] px-3 py-2 text-[11px] text-[var(--color-status-danger-text)]">
           导入失败: {importError}
         </div>
       )}

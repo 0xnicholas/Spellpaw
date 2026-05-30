@@ -26,7 +26,7 @@ export function MessageInput() {
     <div className="border-t border-[var(--color-border-default)] bg-[var(--color-bg-primary)] p-3">
       <div className="relative">
         <Textarea
-          placeholder="Type a message... (Cmd + Enter to send)"
+          placeholder="输入消息…（Cmd + Enter 发送）"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -36,7 +36,7 @@ export function MessageInput() {
         <div className="absolute bottom-2 right-2">
           <IconButton
             icon={<Send className="h-4 w-4" />}
-            label="Send"
+            label="发送"
             size="sm"
             onClick={handleSubmit}
             disabled={!value.trim() || isLoading}

@@ -68,7 +68,7 @@ export const EditableTitle = forwardRef<EditableTitleRef, EditableTitleProps>(
       <span
         onDoubleClick={() => { setDraft(value); setIsEditing(true); }}
         className={cn('cursor-text', className)}
-        title="Double-click to edit"
+        title="双击编辑"
       >
         {value}
       </span>

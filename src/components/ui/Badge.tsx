@@ -10,10 +10,10 @@ interface BadgeProps {
 export function Badge({ variant = 'default', children, className }: BadgeProps) {
   const variants = {
     default: 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]',
-    accent: 'bg-[var(--color-accent-50)] text-[var(--color-accent-700)]',
-    success: 'bg-green-50 text-green-700',
-    warning: 'bg-amber-50 text-amber-700',
-    danger: 'bg-red-50 text-red-700',
+    accent: 'bg-[var(--color-bg-accent-subtle)] text-[var(--color-accent-700)]',
+    success: 'bg-[var(--color-status-success-bg)] text-[var(--color-status-success-text)]',
+    warning: 'bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)]',
+    danger: 'bg-[var(--color-status-danger-bg)] text-[var(--color-status-danger-text)]',
   };
 
   return (

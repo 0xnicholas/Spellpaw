@@ -39,7 +39,7 @@ export function AssetCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
   return (
     <>
       <div
-        className={`w-[200px] rounded-[var(--radius-base)] border bg-[var(--color-bg-primary)] p-4 shadow-sm transition-shadow ${
+        className={`w-[200px] rounded-[var(--radius-base)] border bg-[var(--color-bg-secondary)] p-4 shadow-sm transition-shadow ${
           selected
             ? 'border-[var(--color-accent-500)] shadow-md'
             : 'border-[var(--color-border-default)]'
@@ -61,13 +61,13 @@ export function AssetCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
                   if (e.key === 'Enter') handleSave();
                   if (e.key === 'Escape') { setEditValue(data.title); setIsEditing(false); }
                 }}
-                className="w-full rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-primary)] px-1 py-0.5 text-sm font-medium outline-none"
+                className="w-full rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-secondary)] px-1 py-0.5 text-sm font-medium outline-none"
               />
             ) : (
               <p
                 className="truncate text-sm font-medium text-[var(--color-text-primary)] cursor-text"
                 onDoubleClick={() => { setEditValue(data.title); setIsEditing(true); }}
-                title="Double-click to edit"
+                title="双击编辑"
               >
                 {data.title}
               </p>

@@ -234,9 +234,9 @@ export const useCanvasStore = create<CanvasState>()(
     }),
     {
       name: 'spellpaw_canvas',
-      version: 2,
+      version: 3,
       storage: createIDBStorage<CanvasState>('canvasStore'),
-      migrate: (persistedState: unknown, _version) => {
+      migrate: (persistedState: unknown, version) => {
         const state = persistedState as Record<string, unknown>;
         // Handle old format: persistedNodes/persistedEdges/viewport at top level
         if (state.persistedNodes || state.persistedEdges || state.viewport) {
@@ -249,6 +249,34 @@ export const useCanvasStore = create<CanvasState>()(
           delete state.persistedNodes;
           delete state.persistedEdges;
           delete state.viewport;
+        }
+        if (version < 3) {
+          const titleMap: Record<string, string> = {
+            'Scene 1-1': '场景 1-1',
+            'Cafe Encounter': '咖啡厅邂逅',
+            'Scene 1-2': '场景 1-2',
+            'Street Encounter': '街头重逢',
+            'Note': '备注',
+            'Act 1 must be completed within 90 seconds': '第一幕需在90秒内完成',
+          };
+          const descMap: Record<string, string> = {
+            'Cafe Encounter': '咖啡厅邂逅',
+            'Street Encounter': '街头重逢',
+            'Act 1 must be completed within 90 seconds': '第一幕需在90秒内完成',
+          };
+          if (state.canvases) {
+            const canvases = state.canvases as Record<string, CanvasEntry>;
+            for (const key of Object.keys(canvases)) {
+              for (const node of canvases[key].nodes) {
+                if (node.data.title in titleMap) {
+                  node.data.title = titleMap[node.data.title];
+                }
+                if (node.data.description && node.data.description in descMap) {
+                  node.data.description = descMap[node.data.description];
+                }
+              }
+            }
+          }
         }
         return state as unknown as CanvasState;
       },

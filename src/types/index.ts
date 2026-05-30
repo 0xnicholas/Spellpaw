@@ -63,7 +63,7 @@ export interface ChatMessage {
 }
 
 // Canvas
-export type CanvasNodeType = 'sceneCard' | 'assetCard' | 'noteCard';
+export type CanvasNodeType = 'sceneCard' | 'assetCard';
 
 export interface CanvasNodeData extends Record<string, unknown> {
   title: string;
@@ -72,7 +72,6 @@ export interface CanvasNodeData extends Record<string, unknown> {
   thumbnail?: string;
   generatedPrompt?: string;
   tags?: string[];
-  color?: string;
   linkedTreeNodeId?: string;
 }
 

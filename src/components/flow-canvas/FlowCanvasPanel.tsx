@@ -14,7 +14,7 @@ import {
   type NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Plus, GitBranch } from 'lucide-react';
+import { GitBranch } from 'lucide-react';
 
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useProjectStore } from '@/stores/projectStore';
@@ -22,7 +22,6 @@ import { useDetailStore } from '@/stores/detailStore';
 import type { CanvasNode, CanvasEdge } from '@/types';
 import { SceneCardNode } from './nodes/SceneCardNode';
 import { AssetCardNode } from './nodes/AssetCardNode';
-import { NoteCardNode } from './nodes/NoteCardNode';
 import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
 import { generateId } from '@/lib/utils';
 import { collectScenes } from '@/lib/treeUtils';
@@ -31,7 +30,6 @@ import { layoutTreeToCanvas } from '@/lib/canvasLayout';
 const nodeTypes: NodeTypes = {
   sceneCard: SceneCardNode,
   assetCard: AssetCardNode,
-  noteCard: NoteCardNode,
 };
 
 interface ContextMenuState {
@@ -191,15 +189,6 @@ export function FlowCanvasPanel() {
     setDeleteConfirm(null);
   };
 
-  const addNoteCard = () => {
-    addNode({
-      id: generateId('canvas_note_'),
-      type: 'noteCard',
-      position: { x: 200, y: 150 },
-      data: { title: 'New Note', color: '#fef3c7' },
-    });
-  };
-
   const handleSyncFromTree = useCallback(() => {
     const currentTree = useProjectStore.getState().getCurrentTree();
     if (!currentTree) return;
@@ -242,10 +231,10 @@ export function FlowCanvasPanel() {
           <button
             onClick={handleSyncFromTree}
             className="flex items-center gap-1.5 rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text-secondary)] shadow-sm transition-colors hover:border-[var(--color-accent-500)] hover:text-[var(--color-accent-500)]"
-            title="Sync tree structure to canvas"
+            title="从树结构同步到画布"
           >
             <GitBranch className="h-3.5 w-3.5" />
-            Sync from Tree
+            从树同步
           </button>
         </div>
 
@@ -267,18 +256,9 @@ export function FlowCanvasPanel() {
           proOptions={{ hideAttribution: true }}
           className="bg-[var(--color-bg-secondary)]"
         >
-          <Background gap={20} size={1} color="var(--color-base-gray-200)" />
+          <Background gap={20} size={1} color="var(--color-border-subtle)" />
           <Controls className="!rounded-[var(--radius-base)] !border !border-[var(--color-border-default)] !shadow-sm" />
         </ReactFlow>
-
-        {/* Floating Add Note button */}
-        <button
-          onClick={addNoteCard}
-          className="absolute bottom-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent-500)] text-white shadow-md hover:bg-[var(--color-accent-600)]"
-          title="Add Note Card"
-        >
-          <Plus className="h-4 w-4" />
-        </button>
 
         {/* Custom Context Menu */}
         {contextMenu && (
@@ -289,23 +269,23 @@ export function FlowCanvasPanel() {
               style={{ left: contextMenu.x, top: contextMenu.y }}
             >
               <button onClick={() => handleContextAction('edit')} className="block w-full px-3 py-1.5 text-left text-xs hover:bg-[var(--color-bg-secondary)]">
-                Edit
+                编辑
               </button>
               <button onClick={() => handleContextAction('duplicate')} className="block w-full px-3 py-1.5 text-left text-xs hover:bg-[var(--color-bg-secondary)]">
-                Duplicate
+                复制
               </button>
               {contextMenu.data.linkedTreeNodeId ? (
                 <button onClick={() => handleContextAction('delete')} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-[var(--color-bg-secondary)]">
-                  Delete
+                  删除
                 </button>
               ) : (
                 <button onClick={() => handleContextAction('delete')} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-[var(--color-bg-secondary)]">
-                  Delete
+                  删除
                 </button>
               )}
-              {!contextMenu.data.linkedTreeNodeId && contextMenu.data.type !== 'noteCard' && unlinkedScenes.length > 0 && (
+              {!contextMenu.data.linkedTreeNodeId && unlinkedScenes.length > 0 && (
                 <div className="border-t border-[var(--color-border-default)] mt-1 pt-1">
-                  <span className="block px-3 py-1 text-[10px] text-[var(--color-text-tertiary)]">Sync to Tree</span>
+                  <span className="block px-3 py-1 text-[10px] text-[var(--color-text-tertiary)]">同步到树</span>
                   {unlinkedScenes.map((scene) => (
                     <button
                       key={scene.id}
@@ -327,8 +307,8 @@ export function FlowCanvasPanel() {
 
       <DeleteConfirmDialog
         isOpen={!!deleteConfirm}
-        title="Delete Canvas Card"
-        description={deleteConfirm?.isLinked ? "Also delete from project tree?" : "Are you sure you want to remove this card?"}
+        title="删除画布卡片"
+        description={deleteConfirm?.isLinked ? "同时从项目树中删除？" : "确认删除此卡片？"}
         onConfirm={confirmDelete}
         onCancel={() => setDeleteConfirm(null)}
       />

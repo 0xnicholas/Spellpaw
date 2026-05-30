@@ -8,10 +8,10 @@ import { useProjectStore } from '@/stores/projectStore';
 import type { CanvasNodeData } from '@/types';
 
 const statusMap: Record<string, { label: string; variant: 'default' | 'accent' | 'success' | 'warning' }> = {
-  draft: { label: 'Draft', variant: 'default' },
-  in_progress: { label: 'In Progress', variant: 'accent' },
-  review: { label: 'Review', variant: 'warning' },
-  done: { label: 'Done', variant: 'success' },
+  draft: { label: '草稿', variant: 'default' },
+  in_progress: { label: '进行中', variant: 'accent' },
+  review: { label: '审核中', variant: 'warning' },
+  done: { label: '已完成', variant: 'success' },
 };
 
 export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeData>>) {
@@ -50,7 +50,7 @@ export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
   return (
     <>
       <div
-        className={`w-[240px] rounded-[var(--radius-base)] border bg-[var(--color-bg-primary)] shadow-sm transition-shadow ${
+        className={`w-[240px] rounded-[var(--radius-base)] border bg-[var(--color-bg-secondary)] shadow-sm transition-shadow ${
           selected
             ? 'border-[var(--color-accent-500)] shadow-md'
             : 'border-[var(--color-border-default)]'
@@ -94,7 +94,7 @@ export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
                 onClick={(e) => { e.stopPropagation(); handleLockStyle(); }}
                 className="absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity"
               >
-                <span className="rounded-[var(--radius-sm)] bg-white/90 px-2.5 py-1 text-[11px] font-medium text-black">
+                <span className="rounded-[var(--radius-sm)] bg-[var(--color-bg-primary)]/90 px-2.5 py-1 text-[11px] font-medium text-[var(--color-text-primary)]">
                   {isLocked ? '🔒 已锁定' : '🔒 锁定风格'}
                 </span>
               </button>
@@ -122,13 +122,13 @@ export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
                   if (e.key === 'Enter') handleSave();
                   if (e.key === 'Escape') { setEditValue(data.title); setIsEditing(false); }
                 }}
-                className="flex-1 rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-primary)] px-1.5 py-0.5 text-sm font-medium outline-none"
+                className="flex-1 rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-secondary)] px-1.5 py-0.5 text-sm font-medium outline-none"
               />
             ) : (
               <h4
                 className="text-sm font-medium text-[var(--color-text-primary)] cursor-text"
                 onDoubleClick={() => { setEditValue(data.title); setIsEditing(true); }}
-                title="Double-click to edit"
+                title="双击编辑"
               >
                 {data.title}
               </h4>

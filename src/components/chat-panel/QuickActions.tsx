@@ -1,10 +1,10 @@
 import { PenLine, Clapperboard, Palette, Scissors } from 'lucide-react';
 
 const actions = [
-  { icon: PenLine, label: 'Generate next act' },
-  { icon: Clapperboard, label: 'Analyze script structure' },
-  { icon: Palette, label: 'Generate visual style' },
-  { icon: Scissors, label: 'Optimize pacing' },
+  { icon: PenLine, label: '生成下一幕' },
+  { icon: Clapperboard, label: '分析剧本结构' },
+  { icon: Palette, label: '生成视觉风格' },
+  { icon: Scissors, label: '优化节奏' },
 ];
 
 interface QuickActionsProps {

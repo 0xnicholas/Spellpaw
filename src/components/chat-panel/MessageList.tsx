@@ -40,7 +40,7 @@ export function MessageList({ onActionClick }: MessageListProps) {
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-3 py-1.5">
           <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-secondary)]">
             <Filter className="h-3 w-3" />
-            <span>Showing messages for</span>
+            <span>显示与</span>
             <span className="font-medium text-[var(--color-accent-500)]">「{filterNode.title}」</span>
           </div>
           <button
@@ -65,7 +65,7 @@ export function MessageList({ onActionClick }: MessageListProps) {
               <ReactMarkdown
                 components={{
                   p: ({ children }) => <p className="my-0">{children}</p>,
-                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                  strong: ({ children }) => <strong className="font-semibold text-[var(--color-text-primary)]">{children}</strong>,
                 }}
               >
                 {streamingMessage || '▊'}
@@ -88,7 +88,7 @@ export function MessageList({ onActionClick }: MessageListProps) {
       {/* Loading indicator (fallback when no streaming) */}
       {isLoading && streamingMessage === null && toolCalls.length === 0 && (
         <div className="px-3 py-2 text-[10px] text-[var(--color-text-tertiary)]">
-          🤖 Thinking...
+          🤖 思考中…
         </div>
       )}
 

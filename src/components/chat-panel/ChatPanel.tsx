@@ -49,7 +49,7 @@ export function ChatPanel() {
             addTreeNode(parentId, {
               id: generateId('tree_scene_'),
               type: 'scene',
-              title: action.label || 'New Scene',
+              title: action.label || '新场景',
               status: 'draft',
             });
           }
@@ -77,16 +77,16 @@ export function ChatPanel() {
   const showDetailsTab = !!selectedNodeId;
   const tabs = showDetailsTab
     ? [
-        { id: 'chat', label: 'Chat' },
-        { id: 'details', label: 'Details' },
+        { id: 'chat', label: '对话' },
+        { id: 'details', label: '详情' },
       ]
-    : [{ id: 'chat', label: 'Chat' }];
+    : [{ id: 'chat', label: '对话' }];
 
   return (
     <div className="flex h-full flex-col bg-[var(--color-bg-primary)]">
       <TabBar tabs={tabs} activeTab={activeTab} onChange={(id) => setActiveTab(id as 'chat' | 'details')} />
       <div className="flex-1 overflow-hidden">
-        <TabPanel isActive={activeTab === 'chat' || !showDetailsTab}>
+        <TabPanel isActive={activeTab === 'chat' || !showDetailsTab} className="flex flex-col overflow-hidden">
           <ContextBar onClick={() => selectedNodeId && setFilterNodeId(selectedNodeId)} />
           <QuickActions onAction={(label) => sendMessage(label)} />
           <MessageList onActionClick={handleActionClick} />

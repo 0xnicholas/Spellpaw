@@ -30,10 +30,10 @@ function MobileGuard({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen items-center justify-center bg-[var(--color-bg-secondary)] p-6 text-center">
         <div>
           <h1 className="mb-2 text-xl font-semibold text-[var(--color-text-primary)]">
-            Please use a desktop browser
+            请使用桌面浏览器
           </h1>
           <p className="text-sm text-[var(--color-text-secondary)]">
-            Spellpaw is a desktop productivity tool and does not currently support mobile devices.
+            Spellpaw 是桌面端创作工具，暂不支持移动设备。
           </p>
         </div>
       </div>
@@ -67,9 +67,9 @@ export function WorkspacePage() {
     if (!layout) return;
     const leftSize = layout.left ?? 0;
     if (leftSize > 5) {
-      groupRef.current?.setLayout({ left: 0, center: 28, right: 72 });
+      groupRef.current?.setLayout({ left: 0, center: 25, right: 75 });
     } else {
-      groupRef.current?.setLayout({ left: 18, center: 28, right: 54 });
+      groupRef.current?.setLayout({ left: 18, center: 25, right: 57 });
     }
   };
 
@@ -119,7 +119,7 @@ export function WorkspacePage() {
               </Group>
             </Panel>
             <Separator className="w-px bg-[var(--color-border-default)] hover:bg-[var(--color-accent-500)] transition-colors" />
-            <Panel id="center" defaultSize="28%" minSize="22%" maxSize="45%" style={{ minWidth: 320 }}>
+            <Panel id="center" defaultSize="25%" minSize="22%" maxSize="40%" style={{ minWidth: 280 }}>
               <div className="h-full overflow-hidden border-r border-[var(--color-border-default)]">
                 <ChatPanel />
               </div>
@@ -135,11 +135,11 @@ export function WorkspacePage() {
       </div>
       <DeleteConfirmDialog
         isOpen={!!deleteTarget}
-        title="Delete Node"
+        title="删除节点"
         description={
           deleteTarget && deleteTarget.childCount > 0
-            ? `This node has ${deleteTarget.childCount} children. Delete all?`
-            : 'Are you sure you want to delete this node?'
+            ? `该节点包含 ${deleteTarget.childCount} 个子节点，确认全部删除？`
+            : '确认删除该节点？'
         }
         onConfirm={() => {
           if (deleteTarget) {

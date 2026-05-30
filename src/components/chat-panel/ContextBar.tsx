@@ -16,10 +16,10 @@ export function ContextBar({ onClick }: ContextBarProps) {
     <button
       onClick={onClick}
       className="flex w-full items-center gap-1.5 border-b border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-3 py-1.5 text-left transition-colors hover:bg-[var(--color-bg-primary)]"
-      title="Click to filter messages for this node"
+      title="点击筛选该节点的消息"
     >
       <Target className="h-3 w-3 text-[var(--color-accent-500)]" />
-      <span className="text-[11px] text-[var(--color-text-tertiary)]">Discussing: </span>
+      <span className="text-[11px] text-[var(--color-text-tertiary)]">正在讨论：</span>
       <span className="text-[11px] font-medium text-[var(--color-accent-500)]">
         {path[path.length - 1]}
       </span>

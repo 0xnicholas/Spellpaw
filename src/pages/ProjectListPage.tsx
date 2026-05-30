@@ -99,7 +99,7 @@ export function ProjectListPage() {
         }
         navigate(`/project/${projectId}`);
       } catch (err) {
-        alert('Invalid file format: ' + (err as Error).message);
+        alert('文件格式无效：' + (err as Error).message);
       }
     };
     input.click();
@@ -125,7 +125,7 @@ export function ProjectListPage() {
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text-primary)]">
-                Projects
+                项目
               </h1>
               <button
                 onClick={() => navigate('/templates')}
@@ -138,23 +138,23 @@ export function ProjectListPage() {
             <div className="flex items-center gap-2">
               {user && (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => pushAll().then(r => alert(`Synced ${r.synced}${r.errors.length ? `, errors: ${r.errors.join('; ')}` : ''}`))}>
+                  <Button variant="outline" size="sm" onClick={() => pushAll().then(r => alert(`已同步 ${r.synced}${r.errors.length ? `，错误：${r.errors.join('；')}` : ''}`))}>
                     <Upload className="mr-1 h-4 w-4" />
-                    Push
+                    推送
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => pullAll().then(r => alert(`Imported ${r.imported} projects`))}>
+                  <Button variant="outline" size="sm" onClick={() => pullAll().then(r => alert(`已导入 ${r.imported} 个项目`))}>
                     <Download className="mr-1 h-4 w-4" />
-                    Pull
+                    拉取
                   </Button>
                 </>
               )}
               <Button variant="outline" size="sm" onClick={handleImport}>
                 <Upload className="mr-1 h-4 w-4" />
-                Import
+                导入
               </Button>
               <Button size="sm" onClick={() => setIsModalOpen(true)}>
                 <Plus className="mr-1 h-4 w-4" />
-                New Project
+                新建项目
               </Button>
             </div>
           </div>
@@ -179,7 +179,7 @@ export function ProjectListPage() {
                   <div className="mt-auto flex items-center gap-4 text-xs text-[var(--color-text-tertiary)]">
                     <span className="flex items-center gap-1">
                       <LayoutGrid className="h-3.5 w-3.5" />
-                      {project.sceneCount} scenes
+                      {project.sceneCount} 场景
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5" />
@@ -220,14 +220,14 @@ export function ProjectListPage() {
                   <button
                     onClick={(e) => { e.stopPropagation(); handleExport(project.id); }}
                     className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-                    title="Export JSON"
+                    title="导出 JSON"
                   >
                     <Download className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeleteTarget(project.id); }}
-                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-red-50 hover:text-red-500"
-                    title="Delete"
+                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-status-danger-bg)] hover:text-[var(--color-status-danger-text)]"
+                    title="删除"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -252,8 +252,8 @@ export function ProjectListPage() {
 
       <DeleteConfirmDialog
         isOpen={!!deleteTarget}
-        title="Delete Project"
-        description="This will permanently delete the project and all its data."
+        title="删除项目"
+        description="这将永久删除项目及其所有数据。"
         onConfirm={() => {
           if (deleteTarget) deleteProject(deleteTarget);
           setDeleteTarget(null);

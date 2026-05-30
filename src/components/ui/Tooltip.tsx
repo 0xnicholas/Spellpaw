@@ -9,7 +9,7 @@ export function Tooltip({ children, content }: { children: React.ReactNode; cont
         <TooltipPrimitive.Portal>
           <TooltipPrimitive.Content
             className={cn(
-              'z-50 rounded-[var(--radius-sm)] bg-[var(--color-base-gray-900)] px-2 py-1 text-xs text-white shadow-sm'
+              'z-50 rounded-[var(--radius-sm)] bg-[var(--color-base-gray-900)] px-2 py-1 text-xs text-white shadow-sm dark:bg-[var(--color-bg-secondary)] dark:text-[var(--color-text-primary)] dark:border dark:border-[var(--color-border-default)]'
             )}
             sideOffset={4}
           >

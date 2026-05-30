@@ -20,12 +20,12 @@ const typeIcons: Record<AssetType, typeof FileText> = {
 };
 
 const typeLabels: Record<AssetType, string> = {
-  video: 'Video',
-  image: 'Image',
-  audio: 'Audio',
-  script: 'Script',
-  subtitle: 'Subtitle',
-  other: 'Other',
+  video: '视频',
+  image: '图像',
+  audio: '音频',
+  script: '脚本',
+  subtitle: '字幕',
+  other: '其他',
 };
 
 export function AssetManagerPanel() {
@@ -42,20 +42,20 @@ export function AssetManagerPanel() {
   return (
     <div className="flex h-full flex-col">
       <PanelHeader
-        title="Assets"
+        title="资产"
         icon={<FolderOpen className="h-4 w-4" />}
         actions={
           <div className="flex items-center gap-1">
             <IconButton
               icon={<List className="h-3.5 w-3.5" />}
-              label="List view"
+              label="列表视图"
               size="sm"
               active={view === 'list'}
               onClick={() => setView('list')}
             />
             <IconButton
               icon={<Grip className="h-3.5 w-3.5" />}
-              label="Grid view"
+              label="网格视图"
               size="sm"
               active={view === 'grid'}
               onClick={() => setView('grid')}
@@ -74,7 +74,7 @@ export function AssetManagerPanel() {
               : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'
           }`}
         >
-          Materials
+          素材
         </button>
         <button
           onClick={() => setTab('outputs')}
@@ -84,14 +84,14 @@ export function AssetManagerPanel() {
               : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'
           }`}
         >
-          Outputs
+          输出
         </button>
       </div>
 
       {/* Search */}
       <div className="px-3 py-2">
         <Input
-          placeholder="Search files..."
+          placeholder="搜索文件…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="h-7 text-xs"
@@ -105,8 +105,8 @@ export function AssetManagerPanel() {
         {filtered.length === 0 ? (
           <EmptyState
             icon={<Search className="h-8 w-8" />}
-            title="No files"
-            description="Assets will appear here"
+            title="暂无文件"
+            description="资产将显示在这里"
           />
         ) : (
           <div className="py-1">

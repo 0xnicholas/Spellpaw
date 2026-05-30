@@ -4,14 +4,12 @@
  * Layout strategy:
  * - Each act gets a column, arranged horizontally
  * - Scenes within an act are stacked vertically
- * - Act labels are rendered as noteCards at the top of each column
- * - Existing non-scene cards (assets, notes) are preserved
+ * - Existing non-scene cards (assets) are preserved
  */
 import type { TreeNode, CanvasNode, CanvasEdge } from '@/types';
 
 const ACT_COLUMN_WIDTH = 420;
 const SCENE_ROW_HEIGHT = 220;
-const ACT_LABEL_HEIGHT = 60;
 const PADDING_X = 50;
 const PADDING_Y = 20;
 
@@ -40,24 +38,7 @@ export function computeScenePosition(root: TreeNode, sceneId: string): { x: numb
   const sceneIndex = act ? findSceneIndex(act, sceneId) : 0;
   return {
     x: actIndex * ACT_COLUMN_WIDTH + PADDING_X,
-    y: sceneIndex * SCENE_ROW_HEIGHT + ACT_LABEL_HEIGHT + PADDING_Y,
-  };
-}
-
-/** Build act label noteCard for a given act. */
-function buildActLabel(act: TreeNode, actIndex: number): CanvasNode {
-  return {
-    id: `canvas_act_${act.id}`,
-    type: 'noteCard',
-    position: {
-      x: actIndex * ACT_COLUMN_WIDTH + PADDING_X,
-      y: PADDING_Y,
-    },
-    data: {
-      title: act.title,
-      color: '#e0e7ff',
-      linkedTreeNodeId: act.id,
-    },
+    y: sceneIndex * SCENE_ROW_HEIGHT + PADDING_Y,
   };
 }
 
@@ -84,14 +65,11 @@ export function layoutTreeToCanvas(tree: TreeNode): LayoutResult {
   const acts = tree.children ?? [];
 
   acts.forEach((act, actIndex) => {
-    // Act label
-    nodes.push(buildActLabel(act, actIndex));
-
     const scenes = act.children ?? [];
     scenes.forEach((scene, sceneIndex) => {
       const pos = {
         x: actIndex * ACT_COLUMN_WIDTH + PADDING_X,
-        y: sceneIndex * SCENE_ROW_HEIGHT + ACT_LABEL_HEIGHT + PADDING_Y,
+        y: sceneIndex * SCENE_ROW_HEIGHT + PADDING_Y,
       };
       nodes.push(buildSceneCard(scene, pos));
 

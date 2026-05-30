@@ -54,7 +54,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
         <button
           onClick={onToggleSidebar}
           className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-base)] text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-          title="Toggle sidebar"
+          title="切换侧边栏"
         >
           <PanelLeft className="h-4 w-4" />
         </button>
@@ -67,14 +67,14 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
         <button
           onClick={() => setSettingsOpen(true)}
           className="flex h-5 w-5 items-center justify-center rounded-sm text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-          title="Edit project"
+          title="编辑项目"
         >
           <Pencil className="h-3 w-3" />
         </button>
         <button
           onClick={handleExportPDF}
           className="flex h-5 w-5 items-center justify-center rounded-sm text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-          title="Export storyboard PDF"
+          title="导出分镜 PDF"
         >
           <Download className="h-3 w-3" />
         </button>
@@ -91,19 +91,19 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
       </div>
       <div className="flex items-center gap-1">
         <SyncStatusIndicator />
-        <IconButton icon={<Command className="h-4 w-4" />} label="Command palette" size="sm" />
-        <IconButton icon={<Bell className="h-4 w-4" />} label="Notifications" size="sm" />
+        <IconButton icon={<Command className="h-4 w-4" />} label="命令面板" size="sm" />
+        <IconButton icon={<Bell className="h-4 w-4" />} label="通知" size="sm" />
         <button
           onClick={() => setGlobalSettingsOpen(true)}
           className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-base)] text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-          title="Settings"
+          title="设置"
         >
           <Settings className="h-3.5 w-3.5" />
         </button>
         <button
           onClick={() => i18n.changeLanguage(i18n.language === 'zh-CN' ? 'en' : 'zh-CN')}
           className="flex h-7 items-center rounded-[var(--radius-base)] px-1.5 text-[10px] font-medium text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-          title="Switch language"
+          title="切换语言"
         >
           {i18n.language === 'zh-CN' ? 'EN' : '中'}
         </button>

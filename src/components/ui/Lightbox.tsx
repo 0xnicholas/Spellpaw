@@ -40,7 +40,7 @@ export function Lightbox({ src, alt, isOpen, onClose }: LightboxProps) {
       <button
         onClick={onClose}
         className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/80 hover:bg-black/60 hover:text-white transition-colors"
-        title="Close (Esc)"
+        title="关闭（Esc）"
       >
         <X className="h-4 w-4" />
       </button>

@@ -1,4 +1,5 @@
 import { openDB } from 'idb';
+import { DB_NAME, DB_VERSION } from './idbStorage';
 
 const MIGRATION_KEY = 'spellpaw_idb_migration_v1';
 
@@ -53,8 +54,9 @@ const mappings: MigrationMapping[] = [
 export async function migrateToIDB(): Promise<void> {
   if (hasMigrated()) return;
 
-  // Ensure DB exists before writing
-  const db = await openDB('spellpaw-db', 1, {
+  // Ensure DB exists before writing. Use the same version as idbStorage
+  // so that the migration does not fail if the DB was already created.
+  const db = await openDB(DB_NAME, DB_VERSION, {
     upgrade(db) {
       const stores = ['projectStore', 'canvasStore', 'chatStore'];
       for (const store of stores) {

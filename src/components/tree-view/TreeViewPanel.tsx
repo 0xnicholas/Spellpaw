@@ -150,7 +150,7 @@ export function TreeViewPanel() {
     const newNode: TreeNodeType = {
       id: generateId(`tree_${type}_`),
       type,
-      title: `New ${type.charAt(0).toUpperCase() + type.slice(1)}`,
+      title: `新${type === 'act' ? '幕' : type === 'scene' ? '场景' : type === 'shot' ? '镜头' : type}`,
       status: 'draft',
     };
     addTreeNode(parentId, newNode);
@@ -242,13 +242,13 @@ export function TreeViewPanel() {
   return (
     <div className="flex h-full flex-col">
       <PanelHeader
-        title="Project Structure"
+        title="项目结构"
         icon={<FolderTree className="h-4 w-4" />}
         actions={
           <div className="w-28">
             <Input
               size={1}
-              placeholder="Search..."
+              placeholder="搜索…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="h-7 text-xs"
@@ -260,8 +260,8 @@ export function TreeViewPanel() {
       {/* Bulk action bar */}
       {hasSelection && (
         <div className="flex items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-3 py-1.5">
-          <span className="text-[11px] text-[var(--color-text-secondary)]">
-            {selectedIds.size} selected
+          <span className="shrink-0 whitespace-nowrap text-[11px] text-[var(--color-text-secondary)]">
+            {selectedIds.size} 已选中
           </span>
           <div className="flex items-center gap-1.5">
             <select
@@ -269,32 +269,32 @@ export function TreeViewPanel() {
               onChange={(e) => {
                 if (e.target.value) handleBulkStatusChange(e.target.value as TreeNodeType['status']);
               }}
-              className="h-6 rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-1.5 text-[10px]"
+              className="h-6 shrink-0 rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-1.5 text-[10px]"
             >
-              <option value="">Set status…</option>
-              <option value="draft">Draft</option>
-              <option value="in_progress">In Progress</option>
-              <option value="review">Review</option>
-              <option value="done">Done</option>
+              <option value="">设置状态…</option>
+              <option value="draft">草稿</option>
+              <option value="in_progress">进行中</option>
+              <option value="review">审核中</option>
+              <option value="done">已完成</option>
             </select>
             <button
               onClick={handleBulkGenerate}
-              className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-bg-accent)] px-1.5 text-[10px] font-medium text-[var(--color-text-inverse)] hover:opacity-90 transition-opacity"
+              className="flex h-6 shrink-0 items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-bg-accent)] px-1.5 text-[10px] font-medium text-[var(--color-text-inverse)] hover:opacity-90 transition-opacity whitespace-nowrap"
             >
               <Image className="h-3 w-3" />
               生成分镜
             </button>
             <button
               onClick={() => setShowBulkDelete(true)}
-              className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] border border-red-200 bg-red-50 px-1.5 text-[10px] text-red-600 hover:bg-red-100"
+              className="flex h-6 shrink-0 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--color-status-danger-bg)] bg-[var(--color-status-danger-bg)] px-1.5 text-[10px] text-[var(--color-status-danger-text)] hover:opacity-80 whitespace-nowrap"
             >
               <Trash2 className="h-3 w-3" />
-              Delete
+              删除
             </button>
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="rounded p-0.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-primary)]"
-              title="Clear selection"
+              className="shrink-0 rounded p-0.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-primary)]"
+              title="清除选择"
             >
               <CheckSquare className="h-3 w-3" />
             </button>
@@ -341,19 +341,19 @@ export function TreeViewPanel() {
         ) : (
           <EmptyState
             icon={<Search className="h-8 w-8" />}
-            title="No matching nodes"
-            description="Try other keywords"
+            title="未找到匹配的节点"
+            description="尝试其他关键词"
           />
         )}
       </div>
 
       <DeleteConfirmDialog
         isOpen={!!deleteTarget}
-        title="Delete Node"
+        title="删除节点"
         description={
           (deleteTarget?.childCount ?? 0) > 0
-            ? `This node has ${deleteTarget?.childCount} children. Delete all?`
-            : 'Are you sure you want to delete this node?'
+            ? `该节点包含 ${deleteTarget?.childCount} 个子节点，确认全部删除？`
+            : '确认删除该节点？'
         }
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
@@ -361,8 +361,8 @@ export function TreeViewPanel() {
 
       <DeleteConfirmDialog
         isOpen={showBulkDelete}
-        title="Bulk Delete"
-        description={`Delete ${selectedIds.size} selected nodes? This cannot be undone.`}
+        title="批量删除"
+        description={`删除 ${selectedIds.size} 个已选中的节点？此操作不可撤销。`}
         onConfirm={handleBulkDelete}
         onCancel={() => setShowBulkDelete(false)}
       />

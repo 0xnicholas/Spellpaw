@@ -6,9 +6,14 @@ import './stores/sync'
 import './i18n'
 import { migrateToIDB } from './lib/migrateToIDB'
 import { initSyncEngine } from './lib/syncEngine'
+import { getInitialTheme, applyThemeClass } from './stores/themeStore'
 import App from './App.tsx'
 
 async function bootstrap() {
+  // Apply theme before any rendering to prevent flash
+  const initialTheme = getInitialTheme()
+  applyThemeClass(initialTheme)
+
   await migrateToIDB()
   initSyncEngine()
 

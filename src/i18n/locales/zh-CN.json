@@ -1,7 +1,7 @@
 {
   "app": { "name": "Spellpaw", "tagline": "AI 辅助短剧 & 短视频制作工具" },
   "nav": { "projects": "项目", "settings": "设置", "exportPdf": "导出分镜 PDF", "logout": "退出登录" },
-  "auth": { "login": "登录", "register": "注册", "email": "邮箱", "password": "密码", "name": "名称", "signIn": "登录", "signUp": "注册", "switchToRegister": "没有账号？立即注册", "switchToLogin": "已有账号？去登录", "errors": { "invalidCredentials": "邮箱或密码错误", "emailExists": "该邮箱已注册", "network": "网络错误" } },
+  "auth": { "login": "登录", "register": "注册", "email": "邮箱", "password": "密码", "name": "名称", "signIn": "登录", "signUp": "注册", "switchToRegister": "没有账号？立即", "switchToLogin": "已有账号？去", "errors": { "invalidCredentials": "邮箱或密码错误", "emailExists": "该邮箱已注册", "network": "网络错误" } },
   "project": { "new": "新建项目", "blank": "空白项目", "fromTemplate": "从模板创建", "title": "标题", "description": "描述", "coverColor": "封面颜色", "create": "创建", "cancel": "取消", "delete": "删除", "export": "导出", "import": "导入", "scenes": "场景" },
   "template": { "builtin": "内置模板", "community": "社区模板", "myTemplates": "我的模板", "useTemplate": "使用此模板创建项目", "noTemplates": "暂无模板", "import": "导入模板文件", "exportAsTemplate": "导出为模板", "deleteTemplate": "删除模板", "noCustomTemplates": "暂无自定义模板，点击上方导入" },
   "gallery": { "title": "社区画廊", "publish": "发布到画廊" },

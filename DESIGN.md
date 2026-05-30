@@ -92,7 +92,42 @@ Border:
   color.semantic.border.accent  → color.accent.500
 ```
 
-### 2.5 对比度规范
+### 2.5 深色模式语义映射
+
+当 `html.dark` 生效时，语义层通过 CSS 变量覆盖自动切换：
+
+```
+Background:
+  color.semantic.bg.primary    → oklch(18% 0.015 250)
+  color.semantic.bg.secondary  → oklch(22% 0.015 250)
+  color.semantic.bg.tertiary   → oklch(28% 0.015 250)
+  color.semantic.bg.inverse    → oklch(95% 0.01 250)
+  color.semantic.bg.accent     → color.accent.500
+  color.semantic.bg.accent-subtle → oklch(25% 0.08 275)
+
+Text:
+  color.semantic.text.primary   → oklch(95% 0.01 250)
+  color.semantic.text.secondary → oklch(75% 0.015 250)
+  color.semantic.text.tertiary  → oklch(60% 0.015 250)
+  color.semantic.text.inverse   → oklch(18% 0.015 250)
+  color.semantic.text.accent    → color.accent.400
+
+Border:
+  color.semantic.border.default → oklch(30% 0.015 250)
+  color.semantic.border.subtle  → oklch(25% 0.015 250)
+  color.semantic.border.strong  → oklch(40% 0.015 250)
+  color.semantic.border.accent  → color.accent.400
+
+Status:
+  color.status.success-bg  → oklch(22% 0.08 145)
+  color.status.success-text → oklch(80% 0.1 145)
+  color.status.warning-bg  → oklch(22% 0.08 85)
+  color.status.warning-text → oklch(80% 0.1 85)
+  color.status.danger-bg   → oklch(22% 0.08 25)
+  color.status.danger-text  → oklch(80% 0.1 25)
+```
+
+### 2.6 对比度规范
 
 关键文字组合需满足 **WCAG 2.1 AA**（对比度 ≥ 4.5:1）：
 

@@ -29,7 +29,7 @@ export function LoginPage() {
     if (result.success) {
       navigate('/projects');
     } else {
-      setError(result.error || 'Something went wrong');
+      setError(result.error || '出了点问题');
     }
   };
 
@@ -52,7 +52,7 @@ export function LoginPage() {
         </p>
 
         {error && (
-          <div className="mb-4 rounded-[var(--radius-sm)] border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+          <div className="mb-4 rounded-[var(--radius-sm)] border border-[var(--color-status-danger-bg)] bg-[var(--color-status-danger-bg)] px-3 py-2 text-xs text-[var(--color-status-danger-text)]">
             {error}
           </div>
         )}
@@ -62,7 +62,7 @@ export function LoginPage() {
             <div>
               <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">{t('auth.name')}</label>
               <Input
-                placeholder="Your name"
+                placeholder="您的名称"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -97,7 +97,7 @@ export function LoginPage() {
         <p className="mt-4 text-center text-xs text-[var(--color-text-tertiary)]">
           {mode === 'login' ? t('auth.switchToRegister') : t('auth.switchToLogin')}
           <button onClick={switchMode} className="text-[var(--color-text-accent)] hover:underline">
-            {mode === 'login' ? 'Sign up' : 'Sign in'}
+            {mode === 'login' ? '注册' : '登录'}
           </button>
         </p>
       </div>

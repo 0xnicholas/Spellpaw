@@ -21,9 +21,9 @@ describe('canvasStore', () => {
   it('adds node', () => {
     const node = {
       id: 'test_1',
-      type: 'noteCard' as const,
+      type: 'sceneCard' as const,
       position: { x: 0, y: 0 },
-      data: { title: 'Test' },
+      data: { title: 'Test', status: 'draft' },
     };
     useCanvasStore.getState().addNode(node);
     expect(useCanvasStore.getState().getCurrentNodes()).toHaveLength(1);
@@ -33,9 +33,9 @@ describe('canvasStore', () => {
   it('removes node', () => {
     const node = {
       id: 'test_1',
-      type: 'noteCard' as const,
+      type: 'sceneCard' as const,
       position: { x: 0, y: 0 },
-      data: { title: 'Test' },
+      data: { title: 'Test', status: 'draft' },
     };
     useCanvasStore.getState().addNode(node);
     useCanvasStore.getState().removeNode('test_1');

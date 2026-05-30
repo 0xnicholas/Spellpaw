@@ -39,11 +39,11 @@ interface ChatState {
 
 function mockAgentReply(userContent: string): ChatMessage {
   const replies: Record<string, string> = {
-    'Generate next act': 'I\'ve drafted 2 new scenes for "Act 1: The Encounter":\n\n1. **Scene 1-3: Phone Mix-up** — The male lead dials the wrong number, sparking a chain of awkward yet sweet exchanges\n2. **Scene 1-4: Friend\'s Nudge** — A mutual friend secretly plays matchmaker, engineering a chance meeting\n\nWould you like me to expand one of these scenes into detailed storyboards?',
-    'Analyze script structure': 'Here is the current structure of Act 1 "The Encounter":\n\n1. Cafe Encounter (3 shots) — ~45 seconds\n2. Street Encounter (2 shots) — ~30 seconds\n\n**Analysis:**\n- The opening establishing shot works well to quickly set the scene\n- Consider adding a "missed connection" interlude to raise tension\n- Act 1 total duration of 75 seconds fits the short-video pacing',
+    '生成下一幕': '我为「第一幕：邂逅」草拟了 2 个新场景：\n\n1. **场景 1-3：电话乌龙** — 男主拨错号码，引发一连串尴尬又甜蜜的互动\n2. **场景 1-4：好友助攻** — 一位共同好友暗中牵线，促成一次偶遇\n\n需要我展开其中某个场景生成分镜吗？',
+    '分析剧本结构': '这是第一幕「邂逅」的当前结构：\n\n1. 咖啡馆邂逅（3 镜头）— ~45 秒\n2. 街头邂逅（2 镜头）— ~30 秒\n\n**分析：**\n- 开场建立镜头很好地快速设定了场景\n- 建议增加「错过」插曲来提升张力\n- 第一幕总时长 75 秒，符合短视频节奏',
   };
 
-  const content = replies[userContent] ?? 'Got it! Let me work on that for you. I\'m analyzing the project structure and generating the best approach...';
+  const content = replies[userContent] ?? '收到！我来为你处理。正在分析项目结构并制定最佳方案…';
 
   return {
     id: generateId('msg_'),
@@ -52,8 +52,8 @@ function mockAgentReply(userContent: string): ChatMessage {
     type: 'text',
     timestamp: new Date().toISOString(),
     actions: [
-      { id: generateId('act_'), label: 'Generate storyboard', type: 'generate_storyboard' },
-      { id: generateId('act_'), label: 'Write dialogue', type: 'modify_script' },
+      { id: generateId('act_'), label: '生成分镜', type: 'generate_storyboard' },
+      { id: generateId('act_'), label: '撰写对白', type: 'modify_script' },
     ],
   };
 }

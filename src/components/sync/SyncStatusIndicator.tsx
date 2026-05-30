@@ -23,27 +23,27 @@ export function SyncStatusIndicator() {
   switch (state.state) {
     case 'syncing':
       icon = <RefreshCw className={`${iconClass} animate-spin`} />;
-      label = 'Syncing…';
+      label = '同步中…';
       colorClass = 'text-[var(--color-accent-500)]';
       break;
     case 'pending':
       icon = <Cloud className={iconClass} />;
-      label = 'Pending';
+      label = '待同步';
       colorClass = 'text-[var(--color-text-tertiary)]';
       break;
     case 'conflict':
       icon = <AlertCircle className={iconClass} />;
-      label = `${state.conflicts.length} conflict${state.conflicts.length > 1 ? 's' : ''}`;
+      label = `${state.conflicts.length} 个冲突`;
       colorClass = 'text-amber-500';
       break;
     case 'offline':
       icon = <CloudOff className={iconClass} />;
-      label = 'Offline';
+      label = '离线';
       colorClass = 'text-red-400';
       break;
     default:
       icon = <Cloud className={iconClass} />;
-      label = 'Synced';
+      label = '已同步';
       colorClass = 'text-emerald-500';
   }
 

@@ -94,35 +94,35 @@ export function DetailPanel() {
   if (!node) {
     return (
       <div className="flex h-full items-center justify-center p-4 text-xs text-[var(--color-text-tertiary)]">
-        Select a node to edit
+        选择一个节点以编辑
       </div>
     );
   }
 
-  const typeLabel = node.type === 'scene' ? 'Scene' : node.type === 'shot' ? 'Shot' : node.type === 'act' ? 'Act' : 'Project';
+  const typeLabel = node.type === 'scene' ? '场景' : node.type === 'shot' ? '镜头' : node.type === 'act' ? '幕' : '项目';
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-3 py-2">
         <span className="text-xs font-medium text-[var(--color-text-primary)]">
-          {typeLabel} Details
+          {typeLabel}详情
         </span>
         {dirty && (
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-amber-500">Unsaved</span>
+            <span className="text-[10px] text-amber-500">未保存</span>
             <button
               onClick={handleSave}
               className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-accent-500)] px-2 text-[10px] font-medium text-white hover:bg-[var(--color-accent-600)]"
             >
               <Save className="h-3 w-3" />
-              Save
+              保存
             </button>
             <button
               onClick={handleDiscard}
               className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-2 text-[10px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-primary)]"
             >
               <RotateCcw className="h-3 w-3" />
-              Discard
+              放弃
             </button>
           </div>
         )}
@@ -166,7 +166,7 @@ export function DetailPanel() {
           }}
           className="m-3 rounded-[var(--radius-sm)] bg-[var(--color-accent-500)] px-3 py-2 text-xs font-medium text-white hover:bg-[var(--color-accent-600)]"
         >
-          {hasLinkedCard ? 'Focus on Canvas' : 'Add to Canvas'}
+          {hasLinkedCard ? '定位到画布' : '添加到画布'}
         </button>
       )}
     </div>

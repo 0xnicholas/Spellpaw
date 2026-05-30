@@ -50,26 +50,26 @@ export function ShotDetailForm({ node, onChange }: ShotDetailFormProps) {
 
   return (
     <div className="space-y-4 p-4">
-      <FormField label="Title">
+      <FormField label="标题">
         <Input
           value={local.title}
           onChange={(e) => setLocal((p) => ({ ...p, title: e.target.value }))}
           className="h-7 text-xs"
         />
       </FormField>
-      <FormField label="Status">
+      <FormField label="状态">
         <select
           value={local.status}
           onChange={(e) => setLocal((p) => ({ ...p, status: e.target.value as TreeNode['status'] }))}
           className="h-7 w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2 text-xs"
         >
-          <option value="draft">Draft</option>
-          <option value="in_progress">In Progress</option>
-          <option value="review">Review</option>
-          <option value="done">Done</option>
+          <option value="draft">草稿</option>
+          <option value="in_progress">进行中</option>
+          <option value="review">审核中</option>
+          <option value="done">已完成</option>
         </select>
       </FormField>
-      <FormField label="Description">
+      <FormField label="描述">
         <Textarea
           value={local.metadata?.description ?? ''}
           onChange={(e) => handleMeta('description', e.target.value)}
@@ -78,7 +78,7 @@ export function ShotDetailForm({ node, onChange }: ShotDetailFormProps) {
         />
       </FormField>
       <div className="grid grid-cols-2 gap-3">
-        <FormField label="Duration (sec)">
+        <FormField label="时长（秒）">
           <Input
             type="number"
             value={local.metadata?.duration ?? 0}
@@ -86,36 +86,36 @@ export function ShotDetailForm({ node, onChange }: ShotDetailFormProps) {
             className="h-7 text-xs"
           />
         </FormField>
-        <FormField label="Shot Type">
+        <FormField label="镜头类型">
           <select
             value={local.metadata?.shotType ?? ''}
             onChange={(e) => handleMeta('shotType', e.target.value)}
             className="h-7 w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2 text-xs"
           >
             <option value="">—</option>
-            <option value="wide">Wide</option>
-            <option value="medium">Medium</option>
-            <option value="close-up">Close-Up</option>
-            <option value="insert">Insert</option>
-            <option value="pov">POV</option>
+            <option value="wide">全景</option>
+            <option value="medium">中景</option>
+            <option value="close-up">特写</option>
+            <option value="insert">插入</option>
+            <option value="pov">主观视角</option>
           </select>
         </FormField>
       </div>
-      <FormField label="Camera Movement">
+      <FormField label="镜头运动">
         <select
           value={local.metadata?.cameraMovement ?? ''}
           onChange={(e) => handleMeta('cameraMovement', e.target.value)}
           className="h-7 w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2 text-xs"
         >
           <option value="">—</option>
-          <option value="static">Static</option>
-          <option value="pan">Pan</option>
-          <option value="tilt">Tilt</option>
-          <option value="dolly">Dolly</option>
-          <option value="handheld">Handheld</option>
+          <option value="static">固定</option>
+          <option value="pan">摇镜头</option>
+          <option value="tilt">俯仰</option>
+          <option value="dolly">推轨</option>
+          <option value="handheld">手持</option>
         </select>
       </FormField>
-      <FormField label="Dialogue">
+      <FormField label="对白">
         <Textarea
           value={local.metadata?.dialogue ?? ''}
           onChange={(e) => handleMeta('dialogue', e.target.value)}
@@ -123,7 +123,7 @@ export function ShotDetailForm({ node, onChange }: ShotDetailFormProps) {
           className="text-xs"
         />
       </FormField>
-      <FormField label="Notes">
+      <FormField label="备注">
         <Textarea
           value={local.metadata?.notes ?? ''}
           onChange={(e) => handleMeta('notes', e.target.value)}

@@ -50,26 +50,26 @@ export function SceneDetailForm({ node, onChange }: SceneDetailFormProps) {
 
   return (
     <div className="space-y-4 p-4">
-      <FormField label="Title">
+      <FormField label="标题">
         <Input
           value={local.title}
           onChange={(e) => setLocal((p) => ({ ...p, title: e.target.value }))}
           className="h-7 text-xs"
         />
       </FormField>
-      <FormField label="Status">
+      <FormField label="状态">
         <select
           value={local.status}
           onChange={(e) => setLocal((p) => ({ ...p, status: e.target.value as TreeNode['status'] }))}
           className="h-7 w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2 text-xs"
         >
-          <option value="draft">Draft</option>
-          <option value="in_progress">In Progress</option>
-          <option value="review">Review</option>
-          <option value="done">Done</option>
+          <option value="draft">草稿</option>
+          <option value="in_progress">进行中</option>
+          <option value="review">审核中</option>
+          <option value="done">已完成</option>
         </select>
       </FormField>
-      <FormField label="Description">
+      <FormField label="描述">
         <Textarea
           value={local.metadata?.description ?? ''}
           onChange={(e) => handleMeta('description', e.target.value)}
@@ -78,7 +78,7 @@ export function SceneDetailForm({ node, onChange }: SceneDetailFormProps) {
         />
       </FormField>
       <div className="grid grid-cols-2 gap-3">
-        <FormField label="Duration (sec)">
+        <FormField label="时长（秒）">
           <Input
             type="number"
             value={local.metadata?.duration ?? 0}
@@ -86,28 +86,28 @@ export function SceneDetailForm({ node, onChange }: SceneDetailFormProps) {
             className="h-7 text-xs"
           />
         </FormField>
-        <FormField label="Time of Day">
+        <FormField label="时间段">
           <select
             value={local.metadata?.timeOfDay ?? ''}
             onChange={(e) => handleMeta('timeOfDay', e.target.value)}
             className="h-7 w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2 text-xs"
           >
             <option value="">—</option>
-            <option value="morning">Morning</option>
-            <option value="day">Day</option>
-            <option value="evening">Evening</option>
-            <option value="night">Night</option>
+            <option value="morning">早晨</option>
+            <option value="day">白天</option>
+            <option value="evening">傍晚</option>
+            <option value="night">夜晚</option>
           </select>
         </FormField>
       </div>
-      <FormField label="Location">
+      <FormField label="地点">
         <Input
           value={local.metadata?.location ?? ''}
           onChange={(e) => handleMeta('location', e.target.value)}
           className="h-7 text-xs"
         />
       </FormField>
-      <FormField label="Notes">
+      <FormField label="备注">
         <Textarea
           value={local.metadata?.notes ?? ''}
           onChange={(e) => handleMeta('notes', e.target.value)}

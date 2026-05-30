@@ -8,6 +8,7 @@ import type { TreeNode } from '@/types';
 import { SceneDetailForm } from './SceneDetailForm';
 import { ShotDetailForm } from './ShotDetailForm';
 import { ProjectActDetailForm } from './ProjectActDetailForm';
+import { AnalysisReport } from './AnalysisReport';
 import { generateId } from '@/lib/utils';
 
 export function DetailPanel() {
@@ -136,6 +137,11 @@ export function DetailPanel() {
         )}
         {(node.type === 'project' || node.type === 'act') && (
           <ProjectActDetailForm key={formKey} node={node} onChange={handleDraftChange} />
+        )}
+        {node.type === 'project' && tree && (
+          <div className="px-4 pb-4">
+            <AnalysisReport tree={tree} />
+          </div>
         )}
       </div>
 

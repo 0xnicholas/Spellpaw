@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { analyzePacing, suggestCompletions } from '../lib/projectAnalysis';
+import { analyzePacing, suggestCompletions, generatePacingReport } from '../lib/projectAnalysis';
 import type { TreeNode } from '../types';
 
 function makeTree(overrides?: Partial<TreeNode>): TreeNode {
@@ -57,6 +57,53 @@ describe('analyzePacing', () => {
     const issues = analyzePacing(tree);
     expect(issues).toHaveLength(0);
   });
+
+  it('detects high variance with coefficient of variation', () => {
+    const tree: TreeNode = {
+      id: 'root', type: 'project', title: 'Test', status: 'draft',
+      metadata: { createdAt: '', updatedAt: '' },
+      children: [
+        {
+          id: 'a1', type: 'act', title: 'A1', status: 'draft',
+          children: [
+            { id: 's1', type: 'scene', title: 'S1', status: 'draft', metadata: { duration: 5, createdAt: '', updatedAt: '' } },
+            { id: 's2', type: 'scene', title: 'S2', status: 'draft', metadata: { duration: 50, createdAt: '', updatedAt: '' } },
+            { id: 's3', type: 'scene', title: 'S3', status: 'draft', metadata: { duration: 8, createdAt: '', updatedAt: '' } },
+          ],
+        },
+      ],
+    };
+    const issues = analyzePacing(tree);
+    expect(issues.some(i => i.type === 'unbalanced' && i.message.includes('波动大'))).toBe(true);
+  });
+
+  it('detects front-heavy structure', () => {
+    const tree: TreeNode = {
+      id: 'root', type: 'project', title: 'Test', status: 'draft',
+      metadata: { createdAt: '', updatedAt: '' },
+      children: [
+        { id: 'a1', type: 'act', title: 'A1', status: 'draft', children: [{ id: 's1', type: 'scene', title: 'S1', status: 'draft', metadata: { duration: 50, createdAt: '', updatedAt: '' } }] },
+        { id: 'a2', type: 'act', title: 'A2', status: 'draft', children: [{ id: 's2', type: 'scene', title: 'S2', status: 'draft', metadata: { duration: 10, createdAt: '', updatedAt: '' } }] },
+        { id: 'a3', type: 'act', title: 'A3', status: 'draft', children: [{ id: 's3', type: 'scene', title: 'S3', status: 'draft', metadata: { duration: 15, createdAt: '', updatedAt: '' } }] },
+      ],
+    };
+    const issues = analyzePacing(tree);
+    expect(issues.some(i => i.type === 'front_heavy')).toBe(true);
+  });
+
+  it('detects back-heavy structure', () => {
+    const tree: TreeNode = {
+      id: 'root', type: 'project', title: 'Test', status: 'draft',
+      metadata: { createdAt: '', updatedAt: '' },
+      children: [
+        { id: 'a1', type: 'act', title: 'A1', status: 'draft', children: [{ id: 's1', type: 'scene', title: 'S1', status: 'draft', metadata: { duration: 10, createdAt: '', updatedAt: '' } }] },
+        { id: 'a2', type: 'act', title: 'A2', status: 'draft', children: [{ id: 's2', type: 'scene', title: 'S2', status: 'draft', metadata: { duration: 10, createdAt: '', updatedAt: '' } }] },
+        { id: 'a3', type: 'act', title: 'A3', status: 'draft', children: [{ id: 's3', type: 'scene', title: 'S3', status: 'draft', metadata: { duration: 50, createdAt: '', updatedAt: '' } }] },
+      ],
+    };
+    const issues = analyzePacing(tree);
+    expect(issues.some(i => i.type === 'back_heavy')).toBe(true);
+  });
 });
 
 describe('suggestCompletions', () => {
@@ -76,5 +123,80 @@ describe('suggestCompletions', () => {
     const tree = makeTree();
     const suggestions = suggestCompletions(tree);
     expect(suggestions.some(s => s.message.includes('没有镜头'))).toBe(true);
+  });
+});
+
+describe('generatePacingReport', () => {
+  it('returns comprehensive report with metrics', () => {
+    const tree = makeTree();
+    const report = generatePacingReport(tree);
+
+    expect(report.totalDuration).toBe(95);
+    expect(report.sceneCount).toBe(3);
+    expect(report.actCount).toBe(2);
+    expect(report.avgSceneDuration).toBeCloseTo(31.7, 0);
+    expect(report.durationBars).toHaveLength(3);
+    expect(report.issues.length).toBeGreaterThan(0);
+    expect(report.suggestions.length).toBeGreaterThan(0);
+  });
+
+  it('marks overallStatus critical when multiple warnings', () => {
+    const tree: TreeNode = {
+      id: 'root', type: 'project', title: 'Test', status: 'draft',
+      metadata: { createdAt: '', updatedAt: '' },
+      children: [
+        {
+          id: 'a1', type: 'act', title: 'A1', status: 'draft',
+          children: [
+            { id: 's1', type: 'scene', title: 'S1', status: 'draft', metadata: { duration: 5, createdAt: '', updatedAt: '' } },
+            { id: 's2', type: 'scene', title: 'S2', status: 'draft', metadata: { duration: 60, createdAt: '', updatedAt: '' } },
+          ],
+        },
+        {
+          id: 'a2', type: 'act', title: 'A2', status: 'draft',
+          children: [
+            { id: 's3', type: 'scene', title: 'S3', status: 'draft', metadata: { duration: 5, createdAt: '', updatedAt: '' } },
+          ],
+        },
+      ],
+    };
+    const report = generatePacingReport(tree);
+    expect(report.overallStatus).toBe('critical');
+  });
+
+  it('marks overallStatus good for balanced tree', () => {
+    const tree: TreeNode = {
+      id: 'root', type: 'project', title: 'Balanced', status: 'draft',
+      metadata: { createdAt: '', updatedAt: '' },
+      children: [
+        {
+          id: 'a1', type: 'act', title: 'A1', status: 'draft',
+          children: [
+            { id: 's1', type: 'scene', title: 'S1', status: 'draft', metadata: { duration: 20, createdAt: '', updatedAt: '' } },
+            { id: 's2', type: 'scene', title: 'S2', status: 'draft', metadata: { duration: 22, createdAt: '', updatedAt: '' } },
+          ],
+        },
+        {
+          id: 'a2', type: 'act', title: 'A2', status: 'draft',
+          children: [
+            { id: 's3', type: 'scene', title: 'S3', status: 'draft', metadata: { duration: 18, createdAt: '', updatedAt: '' } },
+          ],
+        },
+      ],
+    };
+    const report = generatePacingReport(tree);
+    expect(report.overallStatus).toBe('good');
+    expect(report.issues).toHaveLength(0);
+  });
+
+  it('returns empty bars for tree without scenes', () => {
+    const tree: TreeNode = {
+      id: 'root', type: 'project', title: 'Empty', status: 'draft',
+      metadata: { createdAt: '', updatedAt: '' },
+      children: [],
+    };
+    const report = generatePacingReport(tree);
+    expect(report.durationBars).toHaveLength(0);
+    expect(report.totalDuration).toBe(0);
   });
 });

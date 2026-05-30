@@ -106,12 +106,13 @@ interface NarrativeTemplate {
 
 **功能清单：**
 
-- [ ] 模板浏览器：分类 + 预览 + 搜索
-- [ ] 一键从模板创建项目（填充完整树结构 + 元数据 + 风格参数）
-- [ ] 用户自定义模板保存（从现有项目导出为模板）
-- [ ] 模板分享（`.spellpaw-template.json` 格式）
-- [ ] 内置模板 ≥ 5 个（悬疑反转 / 甜宠短剧 / 励志逆袭 / 喜剧反转 / 短纪录片）
-- [ ] 模板市场（本地 JSON 导入，Phase 3 升级为云端市场）
+- [x] 模板浏览器：分类 + 预览 + 搜索（内置 / 社区 / 自定义三栏）
+- [x] 一键从模板创建项目（填充完整树结构 + 元数据 + 风格参数）
+- [x] 用户自定义模板保存（从现有项目导出为模板）
+- [x] 模板分享（`.spellpaw-template.json` 格式导入/导出）
+- [x] 内置模板 ≥ 5 个（悬疑反转 / 甜宠短剧 / 励志逆袭 / 喜剧反转 / 短纪录片）
+- [x] 模板市场（本地 JSON 管理，`/templates` 独立页面）
+- [ ] 云端模板市场（上传/下载/评价，Phase 3+）
 
 **用户流程：**
 
@@ -369,20 +370,20 @@ User: "确认"
 通过 `generate_storyboard` tool 实现——tool endpoint 内部转发到图像 API（DALL·E / Stability），结果 URL 存入资产库，画布卡片显示缩略图。
 
 **功能清单：**
-- [ ] 为选中的场景/镜头生成参考图（storyboard frame）
-- [ ] 画布卡片显示 AI 缩略图
-- [ ] 批量生成（"生成全部场景的参考图"）
-- [ ] 风格锁（选中一张图的 prompt，应用到其他场景）
+- [x] 为选中的场景/镜头生成参考图（storyboard frame）
+- [x] 画布卡片显示 AI 缩略图 + Lightbox 点击放大预览
+- [x] 批量生成（TreeViewPanel bulk bar 串行生成 + 进度 toast）
+- [x] 风格锁（选中一张图的 prompt，应用到其他场景）
 - [ ] 生成的图片存入资产库，可拖拽到画布
 
 #### 2.2.4 智能推荐与导出增强（≈ 1 周收尾）
 
-| 功能 | 说明 | 借鉴来源 |
-|------|------|---------|
-| 模板智能匹配 | 根据用户已编辑的项目结构，推荐匹配的叙事模板 | Higgsfield trending 算法思路 |
-| 结构补全建议 | 当用户只建了 2 幕时，Agent 建议「通常短剧需要 3 幕，是否补全？」 | Topview 模板补全 |
-| 节奏分析 | 分析各场景时长分布，标记节奏问题（"场景 1-2 占 40% 时长，建议拆分"） | 自研 |
-| 分镜 PDF 导出 | 导出为竖版分镜表 PDF（含 AI 参考图、镜头描述、时长） | 自研 |
+| 功能 | 说明 | 状态 | 借鉴来源 |
+|------|------|:---:|---------|
+| 模板智能匹配 | 根据用户已编辑的项目结构，推荐匹配的叙事模板 | ⬜ | Higgsfield trending 算法思路 |
+| 结构补全建议 | 当用户只建了 2 幕时，Agent 建议「通常短剧需要 3 幕，是否补全？」 | ⬜ | Topview 模板补全 |
+| 节奏分析 | 分析各场景时长分布，标记节奏问题（CV、前重后重、建议拆分） | ✅ | 自研 |
+| 分镜 PDF 导出 | 导出为竖版分镜表 PDF（含 AI 参考图、镜头描述、时长） | ⬜ | 自研 |
 
 ### 2.3 Phase 2 里程碑
 
@@ -826,7 +827,7 @@ interface ConflictResult {
 }
 ```
 
-**diff 对比 UI：**
+**diff 对比 UI（已落地）：**
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -842,11 +843,15 @@ interface ConflictResult {
 └─────────────────────────────────────────────────────┘
 ```
 
+> ✅ 已实现：`src/lib/treeDiff.ts`（`diffTrees` + `mergeTrees`）+ `src/components/modals/ConflictResolverModal.tsx`（逐节点选择 local/remote + 批量快捷键）+ `src/lib/projectSync.ts`（`resolveConflictWithMerge`）。
+
 **同步协议：** 每个节点有 `version` 字段。push 时比较本地 version 和云端 version：
 - 相同 → 直接覆盖
 - 云端更高 → 冲突，展示 diff
 
 #### 3.2.3 模板市场（借鉴 Higgsfield Community）
+
+> ✅ 本地版已落地：`/templates` 页面支持搜索、分类过滤、预览抽屉、自定义模板导入/导出/编辑/删除。云端版（上传/下载/评价/Trending）待 Phase 3 后端就绪后对接。
 
 ```
 用户发布模板：
@@ -891,17 +896,17 @@ interface ConflictResult {
 ```
 Week 1-2:   云端基础设施
             ├── 用户认证（Email + OAuth）
-            ├── 项目云存储 + IndexedDB 本地缓存层
+            ├── 项目云存储 + IndexedDB 本地缓存层        ✅ 已完成
             └── 数据迁移脚本（localStorage → IndexedDB + 云端）
 
 Week 3-4:   异步协作
             ├── push / pull 协议 + 节点级 version 管理
-            ├── 冲突检测 + diff 对比 UI
+            ├── 冲突检测 + diff 对比 UI                  ✅ 前端已就绪（treeDiff + ConflictResolverModal）
             └── 协作状态指示（队友在线 / 最后推送时间）
 
 Week 5:     模板市场
-            ├── 模板上传 / 下载 / 搜索 / 评价
-            └── Trending 算法 + 一键创建项目
+            ├── 模板上传 / 下载 / 搜索 / 评价            ✅ 本地版已完成（/templates 页面）
+            └── Trending 算法 + 一键创建项目             ⬜ 需云端后端
 
 Week 6:     画廊 + 版本管理 + 集成
             ├── 项目分镜集公开分享
@@ -1086,6 +1091,6 @@ Month 5            Month 6            Month 7            Month 8
 
 ---
 
-*文档版本：v1.0*  
-*制定日期：2026-05-27*  
-*下次审视：Phase 2 启动前*
+*文档版本：v1.1*  
+*更新日期：2026-05-30*  
+*下次审视：Phase 3 云端后端启动前*

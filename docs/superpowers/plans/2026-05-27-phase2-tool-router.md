@@ -1,3 +1,5 @@
+> 🗄️ **归档文档** — 本计划已执行完毕（2026-05-30）。实际实现与计划基本一致。后续开发请参考 `AGENTS.md` 和 `docs/ROADMAP.md`。
+
 # Phase 2 — Tool Router 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

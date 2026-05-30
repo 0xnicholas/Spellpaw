@@ -126,3 +126,40 @@ describe('toolRouter — 写入 tool', () => {
     expect(result).toMatch(/已移动/);
   });
 });
+
+describe('toolRouter — AI 感知 tool', () => {
+  beforeEach(() => {
+    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null });
+  });
+
+  it('analyze_structure 返回结构诊断文本', async () => {
+    seedTree();
+    const result = await toolRouter.analyze_structure({ action: 'analyze_structure' });
+    expect(result).toContain('结构诊断');
+    expect(result).toContain('1 幕');
+    expect(result).toContain('1 场景');
+    // Only 1 act, should suggest adding more acts
+    expect(result).toContain('幕');
+  });
+
+  it('analyze_structure 在空项目时给出添加幕的建议', async () => {
+    useProjectStore.getState().createProject('empty', '', '#000');
+    const result = await toolRouter.analyze_structure({ action: 'analyze_structure' });
+    expect(result).toContain('结构诊断');
+    expect(result).toContain('尚未添加幕');
+  });
+
+  it('get_pacing_report 返回节奏分析文本', async () => {
+    seedTree();
+    const result = await toolRouter.get_pacing_report({ action: 'get_pacing_report' });
+    expect(result).toContain('节奏分析');
+    expect(result).toContain('场景');
+  });
+
+  it('get_pacing_report 在空项目时返回基本统计', async () => {
+    useProjectStore.getState().createProject('empty2', '', '#000');
+    const result = await toolRouter.get_pacing_report({ action: 'get_pacing_report' });
+    expect(result).toContain('节奏分析');
+    expect(result).toContain('0 场景');
+  });
+});

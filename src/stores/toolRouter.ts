@@ -1,6 +1,7 @@
 import { useProjectStore } from './projectStore';
 import { useCustomTemplateStore } from './customTemplateStore';
 import type { ToolRouter, TreeNode, NarrativeTemplate, TemplateAct, TemplateScene } from '../types';
+import { analyzePacing, suggestCompletions, generatePacingReport } from '../lib/projectAnalysis';
 
 function nodeToLine(node: TreeNode, depth: number): string {
   const indent = '│   '.repeat(Math.max(0, depth - 1)) + (depth > 0 ? '├── ' : '');
@@ -212,5 +213,94 @@ export const toolRouter: ToolRouter = {
     } catch (err) {
       throw new Error(`分镜生成失败: ${(err as Error).message}`, { cause: err });
     }
+  },
+
+  analyze_structure: async (_params) => {
+    const store = useProjectStore.getState();
+    const tree = store.getCurrentTree();
+    if (!tree) return '(当前无项目)';
+
+    const project = store.projects.find((p) => p.id === store.currentProjectId);
+    const title = project?.title ?? tree.title;
+    const acts = tree.children ?? [];
+    const scenes = acts.flatMap((a) => a.children ?? []);
+    const totalDuration = acts.reduce(
+      (s, act) => s + (act.children ?? []).reduce((ss, sc) => ss + (sc.metadata?.duration ?? 0), 0),
+      0
+    );
+
+    const lines: string[] = [`📊 结构诊断：《${title}》`, ''];
+    lines.push(`概览: ${acts.length} 幕 / ${scenes.length} 场景 / 总时长 ${totalDuration}s`);
+    if (acts.length > 0) {
+      lines.push(`平均每幕: ${Math.round(totalDuration / acts.length)}s`);
+    }
+    lines.push('');
+
+    const suggestions = suggestCompletions(tree);
+    if (suggestions.length > 0) {
+      lines.push('💡 补全建议:');
+      for (const s of suggestions) {
+        lines.push(`  ${s.severity === 'warning' ? '⚠️' : '•'} ${s.message}`);
+      }
+      lines.push('');
+    }
+
+    const pacingIssues = analyzePacing(tree);
+    const warnings = pacingIssues.filter((i) => i.severity === 'warning');
+    if (warnings.length > 0) {
+      lines.push('⚠️ 节奏问题:');
+      for (const issue of warnings) {
+        lines.push(`  • ${issue.message}`);
+      }
+      lines.push('');
+    }
+
+    if (suggestions.length === 0 && warnings.length === 0) {
+      lines.push('✅ 结构健康，暂无问题。');
+    }
+
+    return lines.join('\n');
+  },
+
+  get_pacing_report: async (_params) => {
+    const store = useProjectStore.getState();
+    const tree = store.getCurrentTree();
+    if (!tree) return '(当前无项目)';
+
+    const project = store.projects.find((p) => p.id === store.currentProjectId);
+    const title = project?.title ?? tree.title;
+    const report = generatePacingReport(tree);
+
+    const lines: string[] = [`📊 节奏分析：《${title}》`, ''];
+    lines.push(`统计: ${report.sceneCount} 场景 · 总时长 ${report.totalDuration}s · 平均 ${Math.round(report.avgSceneDuration)}s`);
+    if (report.maxSceneDuration > 0) {
+      lines.push(`最长场景: ${report.maxSceneDuration}s · 最短: ${report.minSceneDuration}s`);
+    }
+    if (report.durationStdDev > 0) {
+      const cv = report.avgSceneDuration > 0 ? (report.durationStdDev / report.avgSceneDuration) : 0;
+      lines.push(`离散系数: ${(cv * 100).toFixed(0)}% · 状态: ${report.overallStatus === 'good' ? '良好' : report.overallStatus === 'warning' ? '一般' : '需优化'}`);
+    }
+    lines.push('');
+
+    if (report.issues.length > 0) {
+      lines.push('⚠️ 问题:');
+      for (const issue of report.issues) {
+        lines.push(`  ${issue.severity === 'warning' ? '⚠️' : '•'} ${issue.message}`);
+      }
+      lines.push('');
+    }
+
+    if (report.suggestions.length > 0) {
+      lines.push('💡 结构建议:');
+      for (const s of report.suggestions) {
+        lines.push(`  • ${s.message}`);
+      }
+    }
+
+    if (report.issues.length === 0 && report.suggestions.length === 0) {
+      lines.push('✅ 节奏良好，暂无问题。');
+    }
+
+    return lines.join('\n');
   },
 };

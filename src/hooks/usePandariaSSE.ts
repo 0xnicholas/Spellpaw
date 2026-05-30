@@ -97,6 +97,18 @@ const TOOL_CONFIGS = [
     },
     endpoint: TOOL_ENDPOINT,
   },
+  {
+    name: 'spellpaw_analyze_structure',
+    description: 'Analyze the project structure health: check act/scene counts, duration distribution, and suggest completions. Returns a diagnostic report.',
+    parameters: { type: 'object', properties: {} },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_get_pacing_report',
+    description: 'Get a detailed pacing report with duration statistics, coefficient of variation, and specific rhythm issues. Use when user asks about pacing or timing.',
+    parameters: { type: 'object', properties: {} },
+    endpoint: TOOL_ENDPOINT,
+  },
 ];
 
 export function usePandariaSSE() {

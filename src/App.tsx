@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from '@/pages/LoginPage';
 import { ProjectListPage } from '@/pages/ProjectListPage';
 import { WorkspacePage } from '@/pages/WorkspacePage';
+import { TemplateMarketPage } from '@/pages/TemplateMarketPage';
 import { useAuthStore } from '@/stores/authStore';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -26,6 +27,14 @@ function App() {
         element={
           <RequireAuth>
             <WorkspacePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/templates"
+        element={
+          <RequireAuth>
+            <TemplateMarketPage />
           </RequireAuth>
         }
       />

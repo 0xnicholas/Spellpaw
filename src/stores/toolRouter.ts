@@ -1,5 +1,6 @@
 import { useProjectStore } from './projectStore';
-import type { ToolRouter, TreeNode } from '../types';
+import { useCustomTemplateStore } from './customTemplateStore';
+import type { ToolRouter, TreeNode, NarrativeTemplate, TemplateAct, TemplateScene } from '../types';
 
 function nodeToLine(node: TreeNode, depth: number): string {
   const indent = '│   '.repeat(Math.max(0, depth - 1)) + (depth > 0 ? '├── ' : '');
@@ -99,13 +100,51 @@ export const toolRouter: ToolRouter = {
 
   apply_template: async (params) => {
     const templateId = params.templateId as string;
-    try {
-      const response = await fetch(`/templates/${templateId}.spellpaw-template.json`);
-      if (!response.ok) throw new Error(`Template ${templateId} not found`);
-      const template = await response.json();
+    let template: NarrativeTemplate | null = null;
 
+    // 1. 先查找自定义模板
+    const customTemplate = useCustomTemplateStore.getState().getTemplateById(templateId);
+    if (customTemplate) {
+      template = customTemplate;
+    } else {
+      // 2. 回退到内置模板
+      try {
+        const response = await fetch(`/templates/${templateId}.spellpaw-template.json`);
+        if (response.ok) {
+          template = await response.json();
+        }
+      } catch { /* ignore fetch error */ }
+    }
+
+    if (!template) {
+      throw new Error(`模板未找到: ${templateId}`);
+    }
+
+    try {
       const store = useProjectStore.getState();
       let nodeCount = 0;
+
+      function templateSceneToNode(scene: TemplateScene): Record<string, unknown> {
+        const metadata: Record<string, unknown> = {
+          description: scene.description,
+          ...(scene.metadata ?? {}),
+        };
+        if (scene.suggestedShotTypes?.length) {
+          metadata.shotType = scene.suggestedShotTypes[0];
+        }
+        if (scene.suggestedCameraMovement) {
+          metadata.cameraMovement = scene.suggestedCameraMovement;
+        }
+        const node: Record<string, unknown> = {
+          type: scene.children && scene.children.length > 0 ? 'scene' : 'shot',
+          title: scene.title,
+          metadata,
+        };
+        if (scene.children && scene.children.length > 0) {
+          node.children = scene.children.map((c) => templateSceneToNode(c));
+        }
+        return node;
+      }
 
       function createNodes(parentId: string, nodes: Array<Record<string, unknown>>) {
         for (const tn of nodes) {
@@ -129,7 +168,15 @@ export const toolRouter: ToolRouter = {
       const rootId = store.getCurrentTree()?.id;
       const parentId = (params.parentId as string) || rootId;
       if (!parentId) throw new Error('无法确定父节点：当前无项目打开');
-      createNodes(parentId, template.structure as Array<Record<string, unknown>>);
+
+      const acts = template.structure.acts as TemplateAct[];
+      const treeNodes = acts.map((act) => ({
+        type: 'act',
+        title: act.title,
+        metadata: { description: act.description },
+        children: act.scenes.map((scene) => templateSceneToNode(scene)),
+      }));
+      createNodes(parentId, treeNodes);
 
       return `已套用模板「${template.name}」: 创建 ${nodeCount} 个节点`;
     } catch (err) {

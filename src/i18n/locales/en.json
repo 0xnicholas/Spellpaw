@@ -3,7 +3,7 @@
   "nav": { "projects": "Projects", "settings": "Settings", "exportPdf": "Export storyboard PDF", "logout": "Sign out" },
   "auth": { "login": "Sign in", "register": "Create account", "email": "Email", "password": "Password", "name": "Name", "signIn": "Sign in", "signUp": "Sign up", "switchToRegister": "Don't have an account? Sign up", "switchToLogin": "Already have an account? Sign in", "errors": { "invalidCredentials": "Invalid credentials", "emailExists": "Email already registered", "network": "Network error" } },
   "project": { "new": "New Project", "blank": "Blank", "fromTemplate": "From Template", "title": "Title", "description": "Description", "coverColor": "Cover Color", "create": "Create", "cancel": "Cancel", "delete": "Delete", "export": "Export", "import": "Import", "scenes": "scenes" },
-  "template": { "builtin": "Built-in", "community": "Community", "useTemplate": "Use this template", "noTemplates": "No templates found" },
+  "template": { "builtin": "Built-in", "community": "Community", "myTemplates": "My Templates", "useTemplate": "Use this template", "noTemplates": "No templates found", "import": "Import template file", "exportAsTemplate": "Export as template", "deleteTemplate": "Delete template", "noCustomTemplates": "No custom templates yet, import one above" },
   "gallery": { "title": "Community Gallery", "publish": "Publish to Gallery" },
   "workspace": { "chat": "Chat", "details": "Details", "tree": "Project Tree", "assets": "Assets", "canvas": "Canvas" },
   "common": { "loading": "Loading...", "save": "Save", "confirm": "Confirm" }

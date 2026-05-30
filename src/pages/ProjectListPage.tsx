@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Film, Plus, Clock, LayoutGrid, Trash2, Download, Upload, Globe, Heart } from 'lucide-react';
+import { Film, Plus, Clock, LayoutGrid, Trash2, Download, Upload, Globe, Heart, FileCode, LayoutTemplate } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { NewProjectModal } from '@/components/modals/NewProjectModal';
 import type { NarrativeTemplate, GalleryItem } from '@/types';
@@ -10,6 +10,7 @@ import { useCanvasStore } from '@/stores/canvasStore';
 import { useAuthStore } from '@/stores/authStore';
 import { authApi } from '@/stores/authStore';
 import { exportProjectToJSON, importProjectFromJSON } from '@/lib/exportImport';
+import { treeToTemplate, downloadTemplateFile } from '@/lib/templateExportImport';
 import { pushAll, pullAll } from '@/lib/projectSync';
 
 export function ProjectListPage() {
@@ -67,6 +68,15 @@ export function ProjectListPage() {
     );
   };
 
+  const handleExportAsTemplate = (projectId: string) => {
+    const state = useProjectStore.getState();
+    const project = state.projects.find((p) => p.id === projectId);
+    const tree = state.trees[projectId];
+    if (!project || !tree) return;
+    const template = treeToTemplate(tree, project);
+    downloadTemplateFile(template);
+  };
+
   const handleImport = async () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -118,9 +128,18 @@ export function ProjectListPage() {
       <main className="flex-1 p-8">
         <div className="mx-auto max-w-[960px]">
           <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text-primary)]">
-              Projects
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text-primary)]">
+                Projects
+              </h1>
+              <button
+                onClick={() => navigate('/templates')}
+                className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent-500)] hover:text-[var(--color-accent-500)]"
+              >
+                <LayoutTemplate className="h-3.5 w-3.5" />
+                模板市场
+              </button>
+            </div>
             <div className="flex items-center gap-2">
               {user && (
                 <>
@@ -175,6 +194,13 @@ export function ProjectListPage() {
                 </button>
                 {/* Quick actions on hover */}
                 <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleExportAsTemplate(project.id); }}
+                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
+                    title="导出为模板"
+                  >
+                    <FileCode className="h-3.5 w-3.5" />
+                  </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleExport(project.id); }}
                     className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"

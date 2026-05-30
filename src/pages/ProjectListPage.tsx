@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Film, Plus, Clock, LayoutGrid, Trash2, Download, Upload, FileCode, LayoutTemplate } from 'lucide-react';
+import { Film, Plus, Clock, LayoutGrid, Trash2, Download, Upload, FileCode, LayoutTemplate, Printer, FileText, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { NewProjectModal } from '@/components/modals/NewProjectModal';
+import { SnapshotModal } from '@/components/modals/SnapshotModal';
 import type { NarrativeTemplate } from '@/types';
 import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
 import { useProjectStore } from '@/stores/projectStore';
@@ -11,6 +12,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { exportProjectToJSON, importProjectFromJSON } from '@/lib/exportImport';
 import { treeToTemplate, downloadTemplateFile } from '@/lib/templateExportImport';
 import { pushAll, pullAll } from '@/lib/projectSync';
+import { exportStoryboardPDF, exportDialogueScript } from '@/lib/exportPrint';
 
 export function ProjectListPage() {
   const navigate = useNavigate();
@@ -22,6 +24,7 @@ export function ProjectListPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [snapshotProjectId, setSnapshotProjectId] = useState<string | null>(null);
 
   const handleOpen = (id: string) => {
     setCurrentProject(id);
@@ -187,6 +190,27 @@ export function ProjectListPage() {
                 {/* Quick actions on hover */}
                 <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
+                    onClick={(e) => { e.stopPropagation(); setCurrentProject(project.id); setSnapshotProjectId(project.id); }}
+                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
+                    title="快照"
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); exportStoryboardPDF(project.id); }}
+                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
+                    title="打印分镜表"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); exportDialogueScript(project.id, 'txt'); }}
+                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
+                    title="导出对白脚本"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                  </button>
+                  <button
                     onClick={(e) => { e.stopPropagation(); handleExportAsTemplate(project.id); }}
                     className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
                     title="导出为模板"
@@ -196,7 +220,7 @@ export function ProjectListPage() {
                   <button
                     onClick={(e) => { e.stopPropagation(); handleExport(project.id); }}
                     className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-                    title="Export"
+                    title="Export JSON"
                   >
                     <Download className="h-3.5 w-3.5" />
                   </button>
@@ -219,6 +243,11 @@ export function ProjectListPage() {
         onClose={() => setIsModalOpen(false)}
         onCreate={handleCreate}
         onCreateFromTemplate={handleCreateFromTemplate}
+      />
+
+      <SnapshotModal
+        isOpen={!!snapshotProjectId}
+        onClose={() => setSnapshotProjectId(null)}
       />
 
       <DeleteConfirmDialog

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Upload, X } from 'lucide-react';
 import type { NarrativeTemplate } from '@/types';
-import { authApi } from '@/stores/authStore';
 import { useCustomTemplateStore } from '@/stores/customTemplateStore';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -33,11 +32,10 @@ interface TemplateBrowserProps {
 
 export function TemplateBrowser({ onSelect }: TemplateBrowserProps) {
   const [templates, setTemplates] = useState<NarrativeTemplate[]>([]);
-  const [communityTemplates, setCommunityTemplates] = useState<NarrativeTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [category, setCategory] = useState<string | null>(null);
-  const [source, setSource] = useState<'builtin' | 'community' | 'custom'>('builtin');
+  const [source, setSource] = useState<'builtin' | 'custom'>('builtin');
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,35 +58,9 @@ export function TemplateBrowser({ onSelect }: TemplateBrowserProps) {
       setLoading(false);
     }
     load();
-
-    // Load community templates from server
-    async function loadCommunity() {
-      try {
-        const res = await authApi.apiCall('/api/templates');
-        if (res.ok) {
-          const list = await res.json();
-          const details: NarrativeTemplate[] = [];
-          for (const item of list) {
-            try {
-              const detailRes = await authApi.apiCall(`/api/templates/${item.id}`);
-              if (detailRes.ok) {
-                const detail = await detailRes.json();
-                const parsed = JSON.parse(detail.data || '{}');
-                details.push({ ...parsed, id: detail.id, author: item.author?.name, downloads: item.downloads });
-              }
-            } catch { /* skip */ }
-          }
-          setCommunityTemplates(details);
-        }
-      } catch { /* server not available */ }
-    }
-    loadCommunity();
   }, []);
 
-  const displayTemplates =
-    source === 'community' ? communityTemplates :
-    source === 'custom' ? customTemplates :
-    templates;
+  const displayTemplates = source === 'custom' ? customTemplates : templates;
 
   const filtered = category
     ? displayTemplates.filter((t) => t.category === category)
@@ -125,13 +97,6 @@ export function TemplateBrowser({ onSelect }: TemplateBrowserProps) {
           className={`flex-1 rounded-[var(--radius-sm)] py-1 text-[11px] font-medium transition-colors ${
             source === 'builtin' ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)]'
           }`}>内置模板</button>
-        <button
-          onClick={() => { setSource('community'); setSelected(null); setImportError(null); }}
-          className={`flex-1 rounded-[var(--radius-sm)] py-1 text-[11px] font-medium transition-colors ${
-            source === 'community' ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)]'
-          }`}>
-          社区模板{communityTemplates.length > 0 ? ` (${communityTemplates.length})` : ''}
-        </button>
         <button
           onClick={() => { setSource('custom'); setSelected(null); setImportError(null); }}
           className={`flex-1 rounded-[var(--radius-sm)] py-1 text-[11px] font-medium transition-colors ${

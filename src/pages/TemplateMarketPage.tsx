@@ -17,7 +17,6 @@ import {
 import type { NarrativeTemplate } from '@/types';
 import { useCustomTemplateStore } from '@/stores/customTemplateStore';
 import { useProjectStore } from '@/stores/projectStore';
-import { authApi } from '@/stores/authStore';
 import { downloadTemplateFile } from '@/lib/templateExportImport';
 import { DeleteConfirmDialog } from '@/components/modals/DeleteConfirmDialog';
 
@@ -48,11 +47,10 @@ const BUILTIN_TEMPLATE_IDS = [
 export function TemplateMarketPage() {
   const navigate = useNavigate();
   const [builtinTemplates, setBuiltinTemplates] = useState<NarrativeTemplate[]>([]);
-  const [communityTemplates, setCommunityTemplates] = useState<NarrativeTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState<string | null>(null);
-  const [source, setSource] = useState<'all' | 'builtin' | 'community' | 'custom'>('all');
+  const [source, setSource] = useState<'all' | 'builtin' | 'custom'>('all');
   const [previewTemplate, setPreviewTemplate] = useState<NarrativeTemplate | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<NarrativeTemplate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -79,28 +77,6 @@ export function TemplateMarketPage() {
       setLoading(false);
     }
     load();
-
-    async function loadCommunity() {
-      try {
-        const res = await authApi.apiCall('/api/templates');
-        if (res.ok) {
-          const list = await res.json();
-          const details: NarrativeTemplate[] = [];
-          for (const item of list) {
-            try {
-              const detailRes = await authApi.apiCall(`/api/templates/${item.id}`);
-              if (detailRes.ok) {
-                const detail = await detailRes.json();
-                const parsed = JSON.parse(detail.data || '{}');
-                details.push({ ...parsed, id: detail.id, author: item.author?.name, downloads: item.downloads });
-              }
-            } catch { /* skip */ }
-          }
-          setCommunityTemplates(details);
-        }
-      } catch { /* server not available */ }
-    }
-    loadCommunity();
   }, []);
 
   const allTemplates = useMemo(() => {
@@ -108,14 +84,11 @@ export function TemplateMarketPage() {
     if (source === 'all' || source === 'builtin') {
       list.push(...builtinTemplates.map((t) => ({ ...t, source: 'builtin' })));
     }
-    if (source === 'all' || source === 'community') {
-      list.push(...communityTemplates.map((t) => ({ ...t, source: 'community' })));
-    }
     if (source === 'all' || source === 'custom') {
       list.push(...customTemplates.map((t) => ({ ...t, source: 'custom' })));
     }
     return list;
-  }, [builtinTemplates, communityTemplates, customTemplates, source]);
+  }, [builtinTemplates, customTemplates, source]);
 
   const filtered = useMemo(() => {
     let list = allTemplates;
@@ -195,7 +168,7 @@ export function TemplateMarketPage() {
             <ArrowLeft className="h-4 w-4" />
           </button>
           <Film className="h-5 w-5 text-[var(--color-accent-500)]" />
-          <span className="text-base font-semibold text-[var(--color-text-primary)]">模板市场</span>
+          <span className="text-base font-semibold text-[var(--color-text-primary)]">模板管理</span>
         </div>
         <div className="flex items-center gap-2">
           <label className="flex cursor-pointer items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-3 py-1.5 text-[11px] text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent-500)] hover:text-[var(--color-accent-500)]">
@@ -227,7 +200,7 @@ export function TemplateMarketPage() {
               />
             </div>
             <div className="flex gap-1 rounded-[var(--radius-sm)] bg-[var(--color-bg-tertiary)] p-0.5">
-              {(['all', 'builtin', 'community', 'custom'] as const).map((s) => (
+              {(['all', 'builtin', 'custom'] as const).map((s) => (
                 <button
                   key={s}
                   onClick={() => setSource(s)}
@@ -237,7 +210,7 @@ export function TemplateMarketPage() {
                       : 'text-[var(--color-text-tertiary)]'
                   }`}
                 >
-                  {s === 'all' ? '全部' : s === 'builtin' ? '内置' : s === 'community' ? '社区' : '我的'}
+                  {s === 'all' ? '全部' : s === 'builtin' ? '内置' : '我的'}
                 </button>
               ))}
             </div>
@@ -330,7 +303,7 @@ export function TemplateMarketPage() {
                 {/* Source badge */}
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-[10px] text-[var(--color-text-tertiary)]">
-                    {template.source === 'builtin' ? '内置' : template.source === 'community' ? `by ${template.author ?? '社区'}` : '我的模板'}
+                    {template.source === 'builtin' ? '内置' : '我的模板'}
                   </span>
                 </div>
 

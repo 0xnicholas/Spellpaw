@@ -4,8 +4,6 @@ import { PrismaClient } from '@prisma/client';
 import { config } from 'dotenv';
 import { authRoutes } from './routes/auth';
 import { projectRoutes } from './routes/projects';
-import { templateRoutes } from './routes/templates';
-import { galleryRoutes } from './routes/gallery';
 
 config(); // Load .env
 
@@ -26,8 +24,6 @@ app.use(express.json({ limit: '10mb' }));
 // Mount routes
 app.use('/api/auth', authRoutes(prisma));
 app.use('/api/projects', projectRoutes(prisma));
-app.use('/api/templates', templateRoutes(prisma));
-app.use('/api/gallery', galleryRoutes(prisma));
 
 async function main() {
   await prisma.$connect();

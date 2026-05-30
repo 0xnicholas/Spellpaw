@@ -109,14 +109,6 @@ export interface User {
   avatar?: string;
 }
 
-// Gallery
-export interface GalleryItem {
-  id: string;
-  project?: { title: string };
-  user?: { name: string };
-  likes?: number;
-}
-
 // === Phase 2: Tool Router ===
 
 /** Pandaria HttpProxyTool 发来的请求参数 */

@@ -12,8 +12,8 @@ import type { TreeNode } from '@/types';
 /* ------------------------------------------------------------------ */
 // Helpers
 
-function findThumbnail(nodeId: string): string | undefined {
-  const nodes = useCanvasStore.getState().getCurrentNodes();
+function findThumbnail(nodeId: string, projectId: string): string | undefined {
+  const nodes = useCanvasStore.getState().canvases[projectId]?.nodes ?? [];
   const card = nodes.find((n) => n.data.linkedTreeNodeId === nodeId);
   return card?.data.thumbnail;
 }
@@ -54,7 +54,7 @@ export function exportStoryboardPDF(projectId: string): void {
   for (const act of acts) {
     for (const scene of act.children ?? []) {
       const shots = scene.children ?? [];
-      const thumb = findThumbnail(scene.id);
+      const thumb = findThumbnail(scene.id, projectId);
 
       const shotRows = shots
         .map(
@@ -254,7 +254,7 @@ export function exportDialogueScript(projectId: string, format: 'txt' | 'csv' = 
           .join(',')
       ),
     ];
-    content = lines.join('\n');
+    content = '\uFEFF' + lines.join('\n');
     mime = 'text/csv;charset=utf-8';
     ext = 'csv';
   } else {

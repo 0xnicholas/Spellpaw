@@ -4,10 +4,9 @@
  * Snapshots stored in IndexedDB under 'snapshots' object store.
  */
 
-import { openDB } from 'idb';
+import { getSpellpawDB } from './idbStorage';
 import type { TreeNode, CanvasNode, CanvasEdge } from '@/types';
 
-const DB_NAME = 'spellpaw-db';
 const STORE = 'snapshots';
 
 interface SnapshotData {
@@ -26,29 +25,13 @@ export interface ProjectSnapshot {
   data: SnapshotData;
 }
 
-async function getDB() {
-  return openDB(DB_NAME, 2, {
-    upgrade(db, oldVersion) {
-      if (oldVersion < 2 && !db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: 'id' });
-      }
-      // Ensure legacy stores still exist
-      for (const name of ['projectStore', 'canvasStore', 'chatStore']) {
-        if (!db.objectStoreNames.contains(name)) {
-          db.createObjectStore(name);
-        }
-      }
-    },
-  });
-}
-
 /** Save a snapshot */
 export async function saveSnapshot(
   projectId: string,
   name: string,
   data: SnapshotData,
 ): Promise<ProjectSnapshot> {
-  const db = await getDB();
+  const db = await getSpellpawDB();
   const snapshot: ProjectSnapshot = {
     id: `${projectId}_${Date.now()}`,
     projectId,
@@ -62,7 +45,7 @@ export async function saveSnapshot(
 
 /** List all snapshots for a project */
 export async function listSnapshots(projectId: string): Promise<ProjectSnapshot[]> {
-  const db = await getDB();
+  const db = await getSpellpawDB();
   const all = await db.getAll(STORE);
   return all
     .filter((s: ProjectSnapshot) => s.projectId === projectId)
@@ -71,12 +54,12 @@ export async function listSnapshots(projectId: string): Promise<ProjectSnapshot[
 
 /** Delete a snapshot */
 export async function deleteSnapshot(snapshotId: string): Promise<void> {
-  const db = await getDB();
+  const db = await getSpellpawDB();
   await db.delete(STORE, snapshotId);
 }
 
 /** Load snapshot data (for rollback) */
 export async function loadSnapshot(snapshotId: string): Promise<ProjectSnapshot | null> {
-  const db = await getDB();
+  const db = await getSpellpawDB();
   return db.get(STORE, snapshotId) as Promise<ProjectSnapshot | null>;
 }

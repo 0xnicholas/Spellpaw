@@ -1,18 +1,19 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import type { PersistStorage, StorageValue } from 'zustand/middleware';
 
-const DB_NAME = 'spellpaw-db';
-const DB_VERSION = 1;
+export const DB_NAME = 'spellpaw-db';
+export const DB_VERSION = 2;
 
 const isTestEnv = import.meta.env?.MODE === 'test';
 
 let dbPromise: Promise<IDBPDatabase<unknown>> | null = null;
 
-async function getDB(): Promise<IDBPDatabase<unknown>> {
+/** Shared DB instance — used by both Zustand persist and snapshot service */
+export async function getSpellpawDB(): Promise<IDBPDatabase<unknown>> {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
       upgrade(db) {
-        const stores = ['projectStore', 'canvasStore', 'chatStore'];
+        const stores = ['projectStore', 'canvasStore', 'chatStore', 'snapshots'];
         for (const store of stores) {
           if (!db.objectStoreNames.contains(store)) {
             db.createObjectStore(store);
@@ -45,7 +46,7 @@ export function createIDBStorage<S>(storeName: string): PersistStorage<S> {
 
   return {
     getItem: async (name: string) => {
-      const db = await getDB();
+      const db = await getSpellpawDB();
       const value = await db.get(storeName, name);
       if (typeof value !== 'string') return null;
       try {
@@ -55,11 +56,11 @@ export function createIDBStorage<S>(storeName: string): PersistStorage<S> {
       }
     },
     setItem: async (name: string, value: StorageValue<S>) => {
-      const db = await getDB();
+      const db = await getSpellpawDB();
       await db.put(storeName, JSON.stringify(value), name);
     },
     removeItem: async (name: string) => {
-      const db = await getDB();
+      const db = await getSpellpawDB();
       await db.delete(storeName, name);
     },
   };

@@ -29,6 +29,21 @@ function findNode(root: TreeNode, nodeId: string): TreeNode | null {
   return null;
 }
 
+function recalcProjectDuration(tree: TreeNode): number {
+  return (tree.children ?? []).reduce(
+    (s, act) => s + (act.children ?? []).reduce((ss, sc) => ss + (sc.metadata?.duration ?? 0), 0),
+    0
+  );
+}
+
+interface PacingPlanItem {
+  nodeId: string;
+  title: string;
+  oldDuration: number;
+  newDuration: number;
+  reason: string;
+}
+
 export const toolRouter: ToolRouter = {
   get_tree: async (_params) => {
     const tree = useProjectStore.getState().getCurrentTree();
@@ -389,14 +404,7 @@ export const toolRouter: ToolRouter = {
     }
 
     // Build optimization plan
-    interface PlanItem {
-      nodeId: string;
-      title: string;
-      oldDuration: number;
-      newDuration: number;
-      reason: string;
-    }
-    const plan: PlanItem[] = [];
+    const plan: PacingPlanItem[] = [];
 
     // Strategy 1: Compress scenes that are >2x average down to 1.5x
     const targetMax = Math.round(report.avgSceneDuration * 1.5);
@@ -472,6 +480,14 @@ export const toolRouter: ToolRouter = {
           metadata: { ...(node.metadata ?? {}), duration: p.newDuration, updatedAt: new Date().toISOString() },
         });
       }
+    }
+
+    // Sync project duration (re-fetch tree since store updated it via Immer)
+    const freshTree = store.getCurrentTree();
+    const newDuration = freshTree ? recalcProjectDuration(freshTree) : 0;
+    const currentProjectId = store.currentProjectId;
+    if (currentProjectId) {
+      store.updateProject(currentProjectId, { duration: newDuration });
     }
 
     return `✅ 已优化 ${plan.length} 个场景时长，总时长变化 ${plan.reduce((s, p) => s + (p.newDuration - p.oldDuration), 0)}s`;

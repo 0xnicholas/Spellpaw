@@ -303,4 +303,162 @@ export const toolRouter: ToolRouter = {
 
     return lines.join('\n');
   },
+
+  match_template: async (_params) => {
+    const store = useProjectStore.getState();
+    const tree = store.getCurrentTree();
+    if (!tree) return '(当前无项目)';
+
+    const project = store.projects.find((p) => p.id === store.currentProjectId);
+    const title = project?.title ?? tree.title;
+    const description = project?.description ?? '';
+
+    // Collect all text signals
+    const texts = [title, description];
+    for (const act of tree.children ?? []) {
+      texts.push(act.title);
+      for (const scene of act.children ?? []) {
+        texts.push(scene.title);
+        if (scene.metadata?.description) texts.push(scene.metadata.description);
+      }
+    }
+    const corpus = texts.join(' ').toLowerCase();
+
+    const BUILTIN_TEMPLATES = [
+      { id: 'suspense-reversal', name: '悬疑反转', category: 'suspense', keywords: ['悬疑','密室','反转','侦探','凶杀','失踪','谜','真相','阴谋','惊悚','犯罪','追凶','暗','恐怖'] },
+      { id: 'sweet-romance', name: '甜宠短剧', category: 'romance', keywords: ['甜宠','恋爱','爱情','霸道','总裁','心动','初恋','约会','浪漫','甜蜜','表白','吻','宠','嫁','娶'] },
+      { id: 'comedy-twist', name: '喜剧反转', category: 'comedy', keywords: ['喜剧','搞笑','幽默','段子','笑','荒诞','讽刺','无厘头','欢乐','逗','趣'] },
+      { id: 'underdog-comeback', name: '励志逆袭', category: 'drama', keywords: ['励志','逆袭','奋斗','成长','追梦','突破','翻身','成功','努力','拼搏','创业','穷'] },
+      { id: 'mini-documentary', name: '短纪录片', category: 'documentary', keywords: ['纪录','纪实','访谈','真实','纪录片','人文','社会','探索','历史','见证'] },
+    ];
+
+    const scores = BUILTIN_TEMPLATES.map((t) => {
+      const hits = t.keywords.filter((k) => corpus.includes(k)).length;
+      return { ...t, score: hits / Math.max(1, t.keywords.length * 0.6), hits };
+    }).sort((a, b) => b.score - a.score);
+
+    const best = scores[0];
+    const lines: string[] = [`📋 模板匹配结果：《${title}》`, ''];
+
+    if (best.hits === 0) {
+      lines.push('暂无明确匹配。关键词信号不足，建议从以下类型选择：');
+      for (const s of scores) {
+        lines.push(`  • 「${s.name}」— ${s.keywords.slice(0, 5).join('、')}`);
+      }
+    } else {
+      lines.push(`最佳匹配: 「${best.name}」 相似度 ${Math.min(100, Math.round(best.score * 100))}%`);
+      lines.push(`命中关键词: ${best.keywords.filter((k) => corpus.includes(k)).join('、') || '—'}`);
+      lines.push('');
+      lines.push('其他候选:');
+      for (const s of scores.slice(1)) {
+        const pct = Math.min(100, Math.round(s.score * 100));
+        lines.push(`  • 「${s.name}」 ${pct}%${s.hits > 0 ? ' — ' + s.keywords.filter((k) => corpus.includes(k)).slice(0, 3).join('、') : ''}`);
+      }
+      lines.push('');
+      lines.push(`如需套用: apply_template({ templateId: "${best.id}" })`);
+    }
+
+    return lines.join('\n');
+  },
+
+  optimize_pacing: async (params) => {
+    const store = useProjectStore.getState();
+    const tree = store.getCurrentTree();
+    if (!tree) return '(当前无项目)';
+
+    const dryRun = (params.dryRun as boolean | undefined) !== false;
+    const report = generatePacingReport(tree);
+
+    if (report.sceneCount === 0) {
+      return '(项目中暂无场景，无法优化)';
+    }
+
+    // Build optimization plan
+    interface PlanItem {
+      nodeId: string;
+      title: string;
+      oldDuration: number;
+      newDuration: number;
+      reason: string;
+    }
+    const plan: PlanItem[] = [];
+
+    // Strategy 1: Compress scenes that are >2x average down to 1.5x
+    const targetMax = Math.round(report.avgSceneDuration * 1.5);
+    for (const issue of report.issues) {
+      if (issue.type === 'too_long') {
+        const node = findNode(tree, issue.nodeId);
+        if (node?.metadata?.duration && node.metadata.duration > targetMax && targetMax >= 5) {
+          plan.push({
+            nodeId: issue.nodeId,
+            title: issue.title,
+            oldDuration: node.metadata.duration,
+            newDuration: targetMax,
+            reason: `过长场景压缩到平均值1.5倍(${targetMax}s)`,
+          });
+        }
+      }
+    }
+
+    // Strategy 2: Balance act durations (front-heavy / back-heavy)
+    const acts = tree.children ?? [];
+    const actDurations = acts.map((act) => ({
+      id: act.id,
+      title: act.title,
+      duration: (act.children ?? []).reduce((s, sc) => s + (sc.metadata?.duration ?? 0), 0),
+      scenes: act.children ?? [],
+    }));
+    const totalActDur = actDurations.reduce((s, a) => s + a.duration, 0);
+    if (totalActDur > 0 && acts.length >= 2) {
+      const idealPerAct = totalActDur / acts.length;
+      for (const act of actDurations) {
+        if (act.duration > idealPerAct * 1.4 && act.scenes.length > 1) {
+          // Find longest scene in this act to compress
+          const longest = act.scenes.reduce((a, b) => ((a.metadata?.duration ?? 0) > (b.metadata?.duration ?? 0) ? a : b));
+          const oldDur = longest.metadata?.duration ?? 0;
+          const newDur = Math.max(10, Math.round(oldDur * 0.85));
+          if (newDur < oldDur && !plan.some((p) => p.nodeId === longest.id)) {
+            plan.push({
+              nodeId: longest.id,
+              title: longest.title,
+              oldDuration: oldDur,
+              newDuration: newDur,
+              reason: `${act.title}偏长，压缩最长场景`,
+            });
+          }
+        }
+      }
+    }
+
+    if (plan.length === 0) {
+      return '✅ 节奏无需调整。当前结构已较为均衡。';
+    }
+
+    if (dryRun) {
+      const lines: string[] = ['📋 节奏优化方案（预览）', ''];
+      let totalDelta = 0;
+      for (const p of plan) {
+        const delta = p.newDuration - p.oldDuration;
+        totalDelta += delta;
+        lines.push(`  ${p.title}: ${p.oldDuration}s → ${p.newDuration}s (${delta > 0 ? '+' : ''}${delta}s) — ${p.reason}`);
+      }
+      lines.push('');
+      lines.push(`预计总时长变化: ${totalDelta > 0 ? '+' : ''}${totalDelta}s`);
+      lines.push('');
+      lines.push('执行命令: optimize_pacing({ dryRun: false })');
+      return lines.join('\n');
+    }
+
+    // Execute
+    for (const p of plan) {
+      const node = findNode(tree, p.nodeId);
+      if (node) {
+        store.updateTreeNode(p.nodeId, {
+          metadata: { ...(node.metadata ?? {}), duration: p.newDuration, updatedAt: new Date().toISOString() },
+        });
+      }
+    }
+
+    return `✅ 已优化 ${plan.length} 个场景时长，总时长变化 ${plan.reduce((s, p) => s + (p.newDuration - p.oldDuration), 0)}s`;
+  },
 };

@@ -162,4 +162,26 @@ describe('toolRouter — AI 感知 tool', () => {
     expect(result).toContain('节奏分析');
     expect(result).toContain('0 场景');
   });
+
+  it('match_template 返回模板匹配结果', async () => {
+    seedTree();
+    const result = await toolRouter.match_template({ action: 'match_template' });
+    expect(result).toContain('模板匹配结果');
+    // seedTree title is 'test-proj' with no genre keywords, so it returns "暂无明确匹配"
+    expect(result).toContain('暂无明确匹配');
+  });
+
+  it('optimize_pacing 在空项目时返回提示', async () => {
+    useProjectStore.getState().createProject('empty3', '', '#000');
+    const result = await toolRouter.optimize_pacing({ action: 'optimize_pacing' });
+    expect(result).toContain('无法优化');
+  });
+
+  it('optimize_pacing dryRun 返回预览方案', async () => {
+    seedTree();
+    const result = await toolRouter.optimize_pacing({ action: 'optimize_pacing' });
+    // seedTree has 1 scene with 30s duration — single scene means no imbalance issues,
+    // so it should say "无需调整" or return a plan
+    expect(result).toMatch(/无需调整|优化方案|已优化/);
+  });
 });

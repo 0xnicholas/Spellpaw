@@ -109,6 +109,23 @@ const TOOL_CONFIGS = [
     parameters: { type: 'object', properties: {} },
     endpoint: TOOL_ENDPOINT,
   },
+  {
+    name: 'spellpaw_match_template',
+    description: 'Match the current project against built-in narrative templates based on title, description, and scene keywords. Returns the best match with similarity score.',
+    parameters: { type: 'object', properties: {} },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_optimize_pacing',
+    description: 'Auto-adjust scene durations based on pacing analysis. dryRun=true (default) returns a preview plan; dryRun=false executes the changes.',
+    parameters: {
+      type: 'object',
+      properties: {
+        dryRun: { type: 'boolean', description: 'If true, returns preview only. If false, executes changes.' },
+      },
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
 ];
 
 export function usePandariaSSE() {

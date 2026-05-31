@@ -12,12 +12,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': '/src',
+      '@shared': '/src/shared',
+      '@drama': '/src/apps/drama',
     },
   },
   // @ts-expect-error Vitest config keys are not in Vite's UserConfig type
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./src/shared/test/setup.ts'],
   },
 })

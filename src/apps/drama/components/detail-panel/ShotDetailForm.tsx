@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { FormField } from '@/shared/components/ui/FormField';
 import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
-import type { TreeNode } from '@/apps/drama/types';
+import type { TreeNode } from '@drama/types';
 
 interface ShotDetailFormProps {
   node: TreeNode;

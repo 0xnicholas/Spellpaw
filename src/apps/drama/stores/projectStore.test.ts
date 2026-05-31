@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useProjectStore } from './projectStore';
-import { mockProjects } from '@/apps/drama/data/mockProjects';
-import type { TreeNode } from '@/apps/drama/types';
+import { mockProjects } from '@drama/data/mockProjects';
+import type { TreeNode } from '@drama/types';
 
 describe('projectStore', () => {
   beforeEach(() => {

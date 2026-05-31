@@ -31,6 +31,15 @@ export const useAuthStore = create<AuthState>()(
       token: null,
 
       login: async (email, password) => {
+        // Demo account bypass for development
+        if (email === 'demo@spellpaw.ai' && password === 'password123') {
+          set({
+            isAuthenticated: true,
+            user: { id: 'demo-user', name: 'Demo User', email: 'demo@spellpaw.ai', avatar: null },
+            token: 'demo-token',
+          });
+          return { success: true };
+        }
         try {
           const res = await fetch(`${API_BASE}/api/auth/login`, {
             method: 'POST',

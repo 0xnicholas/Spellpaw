@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Save, RotateCcw } from 'lucide-react';
-import { findNode } from '@/apps/drama/lib/treeUtils';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
-import { useCanvasStore } from '@/apps/drama/stores/canvasStore';
-import { useDetailStore } from '@/apps/drama/stores/detailStore';
-import type { TreeNode } from '@/apps/drama/types';
+import { findNode } from '@drama/lib/treeUtils';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { useCanvasStore } from '@drama/stores/canvasStore';
+import { useDetailStore } from '@drama/stores/detailStore';
+import type { TreeNode } from '@drama/types';
 import { SceneDetailForm } from './SceneDetailForm';
 import { ShotDetailForm } from './ShotDetailForm';
 import { ProjectActDetailForm } from './ProjectActDetailForm';

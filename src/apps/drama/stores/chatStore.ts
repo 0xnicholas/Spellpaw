@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ChatMessage } from '@/apps/drama/types';
-import { mockChatMessages } from '@/apps/drama/data/mockChatData';
+import type { ChatMessage } from '@drama/types';
+import { mockChatMessages } from '@drama/data/mockChatData';
 import { generateId } from '@/shared/lib/utils';
 import { createIDBStorage } from '@/shared/lib/idbStorage';
 

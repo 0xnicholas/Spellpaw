@@ -218,3 +218,17 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   background: var(--color-accent-500);
   border: 1.5px solid var(--color-bg-primary);
 }
+
+/* Aurora background animations */
+@keyframes aurora-1 {
+  0%, 100% { transform: translate(-30%, -20%) rotate(0deg); }
+  50% { transform: translate(-20%, -10%) rotate(5deg); }
+}
+@keyframes aurora-2 {
+  0%, 100% { transform: translate(20%, -30%) rotate(0deg); }
+  50% { transform: translate(10%, -20%) rotate(-3deg); }
+}
+@keyframes aurora-3 {
+  0%, 100% { transform: translate(-10%, 20%) rotate(0deg); }
+  50% { transform: translate(0%, 10%) rotate(4deg); }
+}

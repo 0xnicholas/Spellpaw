@@ -1,11 +1,11 @@
 /**
- * useToolBridge — WebSocket client for Spellpaw Tool Server
+ * useToolBridge — WebSocket client for SpellPaw Tool Server
  *
  * Connects to /tool-ws, listens for tool_call messages from the Vite plugin,
  * executes them via toolRouter, and sends results back.
  */
 import { useEffect, useRef, useCallback } from 'react';
-import { toolRouter } from '../stores/toolRouter';
+import { toolRouter } from '@drama/stores/toolRouter';
 
 interface ToolCallMessage {
   type: 'tool_call';

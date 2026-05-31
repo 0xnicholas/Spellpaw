@@ -1,5 +1,5 @@
-import { walkTree } from '@/apps/drama/lib/treeUtils';
-import type { TreeNode } from '@/apps/drama/types';
+import { walkTree } from '@drama/lib/treeUtils';
+import type { TreeNode } from '@drama/types';
 
 interface ProjectSummaryProps {
   node: TreeNode;

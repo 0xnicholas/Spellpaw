@@ -1,4 +1,4 @@
-import type { TreeNode } from '@/apps/drama/types';
+import type { TreeNode } from '@drama/types';
 
 export const mockTreeData: TreeNode = {
   id: 'tree_root',

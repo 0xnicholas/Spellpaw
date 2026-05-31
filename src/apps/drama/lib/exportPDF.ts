@@ -2,7 +2,7 @@
  * Storyboard PDF export — 分镜表 PDF 导出
  */
 import { jsPDF } from 'jspdf';
-import type { TreeNode, Project } from '@/apps/drama/types';
+import type { TreeNode, Project } from '@drama/types';
 
 export function exportStoryboardPDF(project: Project, tree: TreeNode): void {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -78,7 +78,7 @@ export function exportStoryboardPDF(project: Project, tree: TreeNode): void {
   // ---- Footer ----
   doc.setFontSize(7);
   doc.setTextColor(180);
-  doc.text(`Exported from Spellpaw · ${new Date().toLocaleDateString('zh-CN')}`, margin, doc.internal.pageSize.getHeight() - 10);
+  doc.text(`Exported from SpellPaw · ${new Date().toLocaleDateString('zh-CN')}`, margin, doc.internal.pageSize.getHeight() - 10);
 
   doc.save(`${project.title}_storyboard.pdf`);
 }

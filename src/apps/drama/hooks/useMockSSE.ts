@@ -4,7 +4,7 @@
  * Pandaria 就绪后，替换为真实的 usePandariaSSE hook。
  */
 import { useEffect } from 'react';
-import { useChatStore } from '../stores/chatStore';
+import { useChatStore } from '@drama/stores/chatStore';
 import { generateId } from '@/shared/lib/utils';
 
 // 模拟一轮完整的 Agent 回复（含 tool call）

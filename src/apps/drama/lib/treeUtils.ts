@@ -1,4 +1,4 @@
-import type { TreeNode } from '@/apps/drama/types';
+import type { TreeNode } from '@drama/types';
 
 export function findNode(root: TreeNode | null, id: string): TreeNode | null {
   if (!root) return null;

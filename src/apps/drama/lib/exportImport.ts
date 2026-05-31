@@ -1,4 +1,4 @@
-import type { TreeNode, Project, CanvasNode, CanvasEdge } from '@/apps/drama/types';
+import type { TreeNode, Project, CanvasNode, CanvasEdge } from '@drama/types';
 
 const SCHEMA_VERSION = 1;
 

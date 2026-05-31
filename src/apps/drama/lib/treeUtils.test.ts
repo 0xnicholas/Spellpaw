@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { findNode, findParent, getSiblings, collectScenes } from './treeUtils';
-import type { TreeNode } from '@/apps/drama/types';
+import type { TreeNode } from '@drama/types';
 
 const tree: TreeNode = {
   id: 'root',

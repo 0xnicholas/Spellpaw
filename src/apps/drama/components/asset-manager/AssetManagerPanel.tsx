@@ -7,8 +7,8 @@ import { Badge } from '@/shared/components/ui/Badge';
 import { EmptyState } from '@/shared/components/ui/EmptyState';
 import { Divider } from '@/shared/components/ui/Divider';
 import { formatBytes } from '@/shared/lib/utils';
-import { mockAssets } from '@/apps/drama/data/mockAssets';
-import type { AssetItem, AssetTab, AssetType } from '@/apps/drama/types';
+import { mockAssets } from '@drama/data/mockAssets';
+import type { AssetItem, AssetTab, AssetType } from '@drama/types';
 
 const typeIcons: Record<AssetType, typeof FileText> = {
   video: Video,

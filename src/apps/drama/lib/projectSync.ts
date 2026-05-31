@@ -6,11 +6,11 @@
  * - Granular push/pull (single project or all)
  * - Structured conflict results for UI resolution
  */
-import { useProjectStore } from '../stores/projectStore';
-import { useCanvasStore } from '../stores/canvasStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { useCanvasStore } from '@drama/stores/canvasStore';
 import { authApi, useAuthStore } from '@/shared/stores/authStore';
 import { config } from '@/shared/config';
-import type { TreeNode } from '@/apps/drama/types';
+import type { TreeNode } from '@drama/types';
 
 const API_BASE = config.serverBase;
 

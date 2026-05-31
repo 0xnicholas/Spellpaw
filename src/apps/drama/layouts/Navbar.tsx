@@ -1,15 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Film, Bell, Command, ChevronRight, PanelLeft, Pencil, Download, Settings } from 'lucide-react';
+import { Bell, Command, ChevronRight, PanelLeft, Pencil, Download, Settings } from 'lucide-react';
 import { IconButton } from '@/shared/components/ui/IconButton';
-import { ProjectSettingsModal } from '@/apps/drama/components/modals/ProjectSettingsModal';
-import { SettingsModal } from '@/apps/drama/components/modals/SettingsModal';
-import { SyncStatusIndicator } from '@/apps/drama/components/sync/SyncStatusIndicator';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
+import { ProjectSettingsModal } from '@drama/components/modals/ProjectSettingsModal';
+import { SettingsModal } from '@drama/components/modals/SettingsModal';
+import { SyncStatusIndicator } from '@drama/components/sync/SyncStatusIndicator';
+import { useProjectStore } from '@drama/stores/projectStore';
 import { useAuthStore } from '@/shared/stores/authStore';
-import { exportStoryboardPDF } from '@/apps/drama/lib/exportPDF';
+import { exportStoryboardPDF } from '@drama/lib/exportPDF';
 import { useTranslation } from 'react-i18next';
-import type { TreeNode } from '@/apps/drama/types';
+import type { TreeNode } from '@drama/types';
 
 function findNodePath(node: TreeNode | null, targetId: string, path: string[] = []): string[] | null {
   if (!node) return null;
@@ -60,8 +60,13 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
           <PanelLeft className="h-4 w-4" />
         </button>
         <Link to="/" className="flex items-center gap-2">
-          <Film className="h-5 w-5 text-[var(--color-accent-500)]" />
-          <span className="text-base font-semibold text-[var(--color-text-primary)]">Spellpaw</span>
+          <img src="/favicon.svg" alt="SpellPaw" className="h-5 w-5" />
+          <span
+            className="text-[15px] font-bold tracking-[-0.01em] text-[var(--color-text-primary)]"
+            style={{ fontFamily: '"Sora", Inter, sans-serif' }}
+          >
+            SpellPaw
+          </span>
         </Link>
         <div className="h-4 w-px bg-[var(--color-border-default)]" />
         <span className="text-sm text-[var(--color-text-secondary)]">{project?.title ?? ''}</span>

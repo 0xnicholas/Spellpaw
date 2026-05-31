@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
-import type { Project } from '@/apps/drama/types';
+import type { Project } from '@drama/types';
 
 interface ProjectSettingsModalProps {
   isOpen: boolean;

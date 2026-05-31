@@ -6,7 +6,7 @@ import { Footer } from '@/apps/portal/components/Footer';
 
 export function PortalPage() {
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)]">
+    <div className="h-screen overflow-y-auto bg-[var(--color-bg-primary)]">
       <Navbar />
       <HeroSection />
       <AppCardsSection />

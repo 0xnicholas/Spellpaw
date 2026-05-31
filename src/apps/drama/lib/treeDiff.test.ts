@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { diffTrees, diffCanvasNodes, formatDiffValue, diffDisplayLabel, type NodeDiff } from './treeDiff';
-import type { TreeNode, CanvasNode } from '@/apps/drama/types';
+import type { TreeNode, CanvasNode } from '@drama/types';
 
 function makeTree(overrides?: Partial<TreeNode>): TreeNode {
   return {

@@ -3,9 +3,9 @@ import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { ImageOff, Lock } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Lightbox } from '@/shared/components/ui/Lightbox';
-import { useCanvasStore } from '@/apps/drama/stores/canvasStore';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
-import type { CanvasNodeData } from '@/apps/drama/types';
+import { useCanvasStore } from '@drama/stores/canvasStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import type { CanvasNodeData } from '@drama/types';
 
 const statusMap: Record<string, { label: string; variant: 'default' | 'accent' | 'success' | 'warning' }> = {
   draft: { label: '草稿', variant: 'default' },

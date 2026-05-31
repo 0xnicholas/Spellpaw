@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CanvasNode, CanvasEdge, AssetItem } from '@/apps/drama/types';
-import { mockCanvasNodes, mockCanvasEdges } from '@/apps/drama/data/mockCanvasData';
+import type { CanvasNode, CanvasEdge, AssetItem } from '@drama/types';
+import { mockCanvasNodes, mockCanvasEdges } from '@drama/data/mockCanvasData';
 import { generateId } from '@/shared/lib/utils';
 import { createIDBStorage } from '@/shared/lib/idbStorage';
 import { useProjectStore } from './projectStore';

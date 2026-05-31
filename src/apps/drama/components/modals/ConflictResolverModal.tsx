@@ -1,17 +1,17 @@
 import { useState, useMemo } from 'react';
 import { AlertTriangle, Check, ChevronDown, ChevronUp, GitMerge } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
-import type { ConflictInfo } from '@/apps/drama/lib/projectSync';
-import { resolveConflictWithRemote, resolveConflictWithLocal, resolveConflictWithMerge } from '@/apps/drama/lib/projectSync';
-import { dismissConflicts } from '@/apps/drama/lib/syncEngine';
+import { useProjectStore } from '@drama/stores/projectStore';
+import type { ConflictInfo } from '@drama/lib/projectSync';
+import { resolveConflictWithRemote, resolveConflictWithLocal, resolveConflictWithMerge } from '@drama/lib/projectSync';
+import { dismissConflicts } from '@drama/lib/syncEngine';
 import {
   diffTrees,
   diffTypeConfig,
   diffDisplayLabel,
   formatDiffValue,
-} from '@/apps/drama/lib/treeDiff';
-import type { TreeNode } from '@/apps/drama/types';
+} from '@drama/lib/treeDiff';
+import type { TreeNode } from '@drama/types';
 
 interface ConflictResolverModalProps {
   conflicts: ConflictInfo[];

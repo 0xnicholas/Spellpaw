@@ -1,7 +1,7 @@
 /**
  * Project analysis utilities — 结构补全建议 + 节奏分析 + 时长分布预警
  */
-import type { TreeNode } from '@/apps/drama/types';
+import type { TreeNode } from '@drama/types';
 
 export interface PacingIssue {
   nodeId: string;

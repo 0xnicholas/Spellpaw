@@ -5,9 +5,9 @@
  * Zero dependencies.
  */
 
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
-import { useCanvasStore } from '@/apps/drama/stores/canvasStore';
-import type { TreeNode } from '@/apps/drama/types';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { useCanvasStore } from '@drama/stores/canvasStore';
+import type { TreeNode } from '@drama/types';
 
 /* ------------------------------------------------------------------ */
 // Helpers

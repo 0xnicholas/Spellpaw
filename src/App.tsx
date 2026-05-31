@@ -1,10 +1,14 @@
+import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { PortalPage } from '@/apps/portal/pages/PortalPage';
-import { LoginPage } from '@/apps/drama/pages/LoginPage';
-import { ProjectListPage } from '@/apps/drama/pages/ProjectListPage';
-import { WorkspacePage } from '@/apps/drama/pages/WorkspacePage';
-import { TemplateMarketPage } from '@/apps/drama/pages/TemplateMarketPage';
+import { LoginPage } from '@drama/pages/LoginPage';
+import { ProjectListPage } from '@drama/pages/ProjectListPage';
+import { WorkspacePage } from '@drama/pages/WorkspacePage';
+import { TemplateMarketPage } from '@drama/pages/TemplateMarketPage';
 import { useAuthStore } from '@/shared/stores/authStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { mockProjects } from '@drama/data/mockProjects';
+import { mockTreeData } from '@drama/data/mockTreeData';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -12,6 +16,34 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  useEffect(() => {
+    let unsub: (() => void) | null = null;
+
+    const seedIfEmpty = () => {
+      const state = useProjectStore.getState();
+      const ids = state.projects.map((p) => p.id);
+      const hasDuplicates = new Set(ids).size !== ids.length;
+      const hasProjects = state.projects.length > 0;
+      const hasTrees = Object.keys(state.trees).length > 0;
+      if (!hasProjects || !hasTrees || hasDuplicates) {
+        // Unsubscribe first to avoid infinite loop from setState
+        unsub?.();
+        useProjectStore.setState({
+          projects: mockProjects,
+          trees: { 'proj_1': mockTreeData },
+          currentProjectId: mockProjects[0]?.id ?? null,
+          selectedNodeId: null,
+        });
+      }
+    };
+
+    // Check immediately (before rehydration) and also subscribe to catch
+    // the rehydration update that may clear mock data from IndexedDB.
+    seedIfEmpty();
+    unsub = useProjectStore.subscribe(seedIfEmpty);
+    return () => unsub?.();
+  }, []);
+
   return (
     <Routes>
       <Route path="/" element={<PortalPage />} />

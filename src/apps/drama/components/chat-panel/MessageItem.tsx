@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { formatDate } from '@/shared/lib/utils';
-import type { ChatMessage, ChatAction } from '@/apps/drama/types';
+import type { ChatMessage, ChatAction } from '@drama/types';
 import Markdown from 'react-markdown';
 
 interface MessageItemProps {

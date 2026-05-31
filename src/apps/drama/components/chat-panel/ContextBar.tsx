@@ -1,5 +1,5 @@
 import { Target, Filter } from 'lucide-react';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
+import { useProjectStore } from '@drama/stores/projectStore';
 
 interface ContextBarProps {
   onClick?: () => void;

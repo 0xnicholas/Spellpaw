@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Send } from 'lucide-react';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { IconButton } from '@/shared/components/ui/IconButton';
-import { useChatStore } from '@/apps/drama/stores/chatStore';
+import { useChatStore } from '@drama/stores/chatStore';
 
 export function MessageInput() {
   const [value, setValue] = useState('');

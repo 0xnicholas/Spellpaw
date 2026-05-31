@@ -1,11 +1,11 @@
 import { useRef, useEffect } from 'react';
 import { Filter, X } from 'lucide-react';
 import { MessageItem } from './MessageItem';
-import { useChatStore } from '@/apps/drama/stores/chatStore';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
-import { findNode } from '@/apps/drama/lib/treeUtils';
+import { useChatStore } from '@drama/stores/chatStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { findNode } from '@drama/lib/treeUtils';
 import ReactMarkdown from 'react-markdown';
-import type { ChatAction } from '@/apps/drama/types';
+import type { ChatAction } from '@drama/types';
 
 interface MessageListProps {
   onActionClick?: (action: ChatAction) => void;

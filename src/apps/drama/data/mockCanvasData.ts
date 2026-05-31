@@ -1,4 +1,4 @@
-import type { CanvasNode, CanvasEdge } from '@/apps/drama/types';
+import type { CanvasNode, CanvasEdge } from '@drama/types';
 
 export const mockCanvasNodes: CanvasNode[] = [
   {

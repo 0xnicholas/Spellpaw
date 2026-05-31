@@ -6,7 +6,7 @@
  * - Scenes within an act are stacked vertically
  * - Existing non-scene cards (assets) are preserved
  */
-import type { TreeNode, CanvasNode, CanvasEdge } from '@/apps/drama/types';
+import type { TreeNode, CanvasNode, CanvasEdge } from '@drama/types';
 
 const ACT_COLUMN_WIDTH = 420;
 const SCENE_ROW_HEIGHT = 220;

@@ -14,11 +14,11 @@ import {
   ArrowLeft,
   Plus,
 } from 'lucide-react';
-import type { NarrativeTemplate } from '@/apps/drama/types';
-import { useCustomTemplateStore } from '@/apps/drama/stores/customTemplateStore';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
-import { downloadTemplateFile } from '@/apps/drama/lib/templateExportImport';
-import { DeleteConfirmDialog } from '@/apps/drama/components/modals/DeleteConfirmDialog';
+import type { NarrativeTemplate } from '@drama/types';
+import { useCustomTemplateStore } from '@drama/stores/customTemplateStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { downloadTemplateFile } from '@drama/lib/templateExportImport';
+import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
 
 const CATEGORY_LABELS: Record<string, string> = {
   suspense: '悬疑',

@@ -1,19 +1,19 @@
 import { useCallback } from 'react';
 import { TabBar } from '@/shared/components/ui/TabBar';
 import { TabPanel } from '@/shared/components/ui/TabPanel';
-import { DetailPanel } from '@/apps/drama/components/detail-panel/DetailPanel';
+import { DetailPanel } from '@drama/components/detail-panel/DetailPanel';
 import { ContextBar } from './ContextBar';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { QuickActions } from './QuickActions';
-import { useChatStore } from '@/apps/drama/stores/chatStore';
-import { useDetailStore } from '@/apps/drama/stores/detailStore';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
-import { usePandariaSSE } from '@/apps/drama/hooks/usePandariaSSE';
-import { findNode, findParent } from '@/apps/drama/lib/treeUtils';
+import { useChatStore } from '@drama/stores/chatStore';
+import { useDetailStore } from '@drama/stores/detailStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { usePandariaSSE } from '@drama/hooks/usePandariaSSE';
+import { findNode, findParent } from '@drama/lib/treeUtils';
 import { generateId } from '@/shared/lib/utils';
-import { toolRouter } from '@/apps/drama/stores/toolRouter';
-import type { ChatAction } from '@/apps/drama/types';
+import { toolRouter } from '@drama/stores/toolRouter';
+import type { ChatAction } from '@drama/types';
 
 export function ChatPanel() {
   const sendMessage = useChatStore((s) => s.sendMessage);

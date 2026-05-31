@@ -4,10 +4,10 @@
  * 替换 useMockSSE。需要 Pandaria 本地运行 + LLM API key 配置。
  */
 import { useEffect, useRef } from 'react';
-import { useChatStore } from '../stores/chatStore';
-import { useProjectStore } from '../stores/projectStore';
-import { createSession, sendMessage, subscribeSSE, buildSystemPrompt } from '../lib/pandaria';
-import { findNode } from '../lib/treeUtils';
+import { useChatStore } from '@drama/stores/chatStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { createSession, sendMessage, subscribeSSE, buildSystemPrompt } from '@drama/lib/pandaria';
+import { findNode } from '@drama/lib/treeUtils';
 import { config } from '@/shared/config';
 
 const TOOL_ENDPOINT = config.toolServerEndpoint;

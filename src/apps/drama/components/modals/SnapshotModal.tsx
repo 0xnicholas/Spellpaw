@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, Camera, RotateCcw, GitCompare, Trash2 } from 'lucide-react';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
-import { useCanvasStore } from '@/apps/drama/stores/canvasStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { useCanvasStore } from '@drama/stores/canvasStore';
 import {
   saveSnapshot,
   listSnapshots,
   deleteSnapshot,
   type ProjectSnapshot,
-} from '@/apps/drama/lib/projectSnapshot';
-import { diffTrees, type NodeDiff } from '@/apps/drama/lib/treeDiff';
+} from '@drama/lib/projectSnapshot';
+import { diffTrees, type NodeDiff } from '@drama/lib/treeDiff';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 
 interface SnapshotModalProps {

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { NarrativeTemplate } from '@/apps/drama/types';
-import { validateTemplate } from '@/apps/drama/lib/templateExportImport';
+import type { NarrativeTemplate } from '@drama/types';
+import { validateTemplate } from '@drama/lib/templateExportImport';
 
 interface CustomTemplateState {
   templates: NarrativeTemplate[];

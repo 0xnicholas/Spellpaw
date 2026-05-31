@@ -2,16 +2,16 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Search, FolderTree, Trash2, CheckSquare, Image, Lock, X } from 'lucide-react';
 import { Toast } from '@/shared/components/ui/Toast';
 import { useToast } from '@/shared/components/ui/useToast';
-import { toolRouter } from '@/apps/drama/stores/toolRouter';
+import { toolRouter } from '@drama/stores/toolRouter';
 import { PanelHeader } from '@/shared/components/ui/PanelHeader';
 import { Input } from '@/shared/components/ui/Input';
 import { EmptyState } from '@/shared/components/ui/EmptyState';
-import { DeleteConfirmDialog } from '@/apps/drama/components/modals/DeleteConfirmDialog';
+import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
 import { TreeNodeItem } from './TreeNode';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
+import { useProjectStore } from '@drama/stores/projectStore';
 import { generateId } from '@/shared/lib/utils';
-import { walkTree } from '@/apps/drama/lib/treeUtils';
-import type { TreeNode, TreeNode as TreeNodeType } from '@/apps/drama/types';
+import { walkTree } from '@drama/lib/treeUtils';
+import type { TreeNode, TreeNode as TreeNodeType } from '@drama/types';
 import type { EditableTitleRef } from '@/shared/components/ui/EditableTitle';
 
 /** Full-text search across title, description, dialogue, location, notes */

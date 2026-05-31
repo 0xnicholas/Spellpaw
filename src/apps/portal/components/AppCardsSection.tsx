@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const apps = [
   {
     id: 'drama',
-    name: 'Drama Studio',
+    name: '短剧工作室',
     description: '短剧/短视频创作的 AI 辅助工作台。树状叙事结构、无限画布、AI 助手，让创作从灵感到成片一气呵成。',
     icon: Film,
     href: '/projects',

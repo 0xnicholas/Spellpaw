@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { treeToTemplate, validateTemplate, downloadTemplateFile } from './templateExportImport';
-import type { TreeNode, Project } from '@/apps/drama/types';
+import type { TreeNode, Project } from '@drama/types';
 
 function makeTree(): TreeNode {
   return {

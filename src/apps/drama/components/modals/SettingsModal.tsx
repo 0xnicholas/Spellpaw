@@ -1,24 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
-import { getSettings, setApiKey } from '@/apps/drama/lib/imageGen';
-import { useThemeStore, type Theme } from '@/shared/stores/themeStore';
+import { getSettings, setApiKey } from '@drama/lib/imageGen';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const themeOptions: { value: Theme; label: string }[] = [
-  { value: 'dark', label: '深色' },
-  { value: 'light', label: '浅色' },
-  { value: 'system', label: '跟随系统' },
-];
-
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [apiKey, setApiKeyState] = useState('');
-  const theme = useThemeStore((s) => s.theme);
-  const setTheme = useThemeStore((s) => s.setTheme);
 
   useEffect(() => {
     if (isOpen) {
@@ -39,27 +30,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <h3 className="mb-3 text-sm font-semibold text-[var(--color-text-primary)]">设置</h3>
 
         <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-[11px] font-medium text-[var(--color-text-secondary)]">
-              主题
-            </label>
-            <div className="flex gap-1 rounded-[var(--radius-sm)] bg-[var(--color-bg-tertiary)] p-0.5">
-              {themeOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setTheme(opt.value)}
-                  className={`flex-1 rounded-[var(--radius-sm)] py-1 text-[11px] font-medium transition-colors ${
-                    theme === opt.value
-                      ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
-                      : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div>
             <label className="mb-1 block text-[11px] font-medium text-[var(--color-text-secondary)]">
               OpenAI API Key

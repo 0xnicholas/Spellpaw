@@ -1,18 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Film, Plus, Clock, LayoutGrid, Trash2, Download, Upload, FileCode, LayoutTemplate, Printer, FileText, Camera } from 'lucide-react';
+import { Plus, Clock, LayoutGrid, Trash2, Download, Upload, FileCode, LayoutTemplate, Printer, FileText, Camera } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
-import { NewProjectModal } from '@/apps/drama/components/modals/NewProjectModal';
-import { SnapshotModal } from '@/apps/drama/components/modals/SnapshotModal';
-import type { NarrativeTemplate } from '@/apps/drama/types';
-import { DeleteConfirmDialog } from '@/apps/drama/components/modals/DeleteConfirmDialog';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
-import { useCanvasStore } from '@/apps/drama/stores/canvasStore';
+import { NewProjectModal } from '@drama/components/modals/NewProjectModal';
+import { SnapshotModal } from '@drama/components/modals/SnapshotModal';
+import type { NarrativeTemplate } from '@drama/types';
+import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useAuthStore } from '@/shared/stores/authStore';
-import { exportProjectToJSON, importProjectFromJSON } from '@/apps/drama/lib/exportImport';
-import { treeToTemplate, downloadTemplateFile } from '@/apps/drama/lib/templateExportImport';
-import { pushAll, pullAll } from '@/apps/drama/lib/projectSync';
-import { exportStoryboardPDF, exportDialogueScript } from '@/apps/drama/lib/exportPrint';
+import { exportProjectToJSON, importProjectFromJSON } from '@drama/lib/exportImport';
+import { treeToTemplate, downloadTemplateFile } from '@drama/lib/templateExportImport';
+import { pushAll, pullAll } from '@drama/lib/projectSync';
+import { exportStoryboardPDF, exportDialogueScript } from '@drama/lib/exportPrint';
+import { mockProjects } from '@drama/data/mockProjects';
+import { mockTreeData } from '@drama/data/mockTreeData';
 
 export function ProjectListPage() {
   const navigate = useNavigate();
@@ -21,6 +23,18 @@ export function ProjectListPage() {
   const createProject = useProjectStore((s) => s.createProject);
   const deleteProject = useProjectStore((s) => s.deleteProject);
   const user = useAuthStore((s) => s.user);
+
+  // Ensure mock data is present if store was cleared by IndexedDB rehydration
+  useEffect(() => {
+    if (projects.length === 0) {
+      useProjectStore.setState({
+        projects: mockProjects,
+        trees: { 'proj_1': mockTreeData },
+        currentProjectId: mockProjects[0]?.id ?? null,
+        selectedNodeId: null,
+      });
+    }
+  }, [projects]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -109,8 +123,13 @@ export function ProjectListPage() {
     <div className="flex h-full min-h-screen flex-col bg-[var(--color-bg-secondary)]">
       <header className="flex h-12 items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-6">
         <div className="flex items-center gap-2">
-          <Film className="h-5 w-5 text-[var(--color-accent-500)]" />
-          <span className="text-base font-semibold text-[var(--color-text-primary)]">Spellpaw</span>
+          <img src="/favicon.svg" alt="SpellPaw" className="h-5 w-5" />
+          <span
+            className="text-[15px] font-bold tracking-[-0.01em] text-[var(--color-text-primary)]"
+            style={{ fontFamily: '"Sora", Inter, sans-serif' }}
+          >
+            SpellPaw
+          </span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-[var(--color-text-tertiary)]">{user?.name}</span>

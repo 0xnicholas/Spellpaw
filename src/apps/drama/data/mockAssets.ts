@@ -1,4 +1,4 @@
-import type { AssetItem } from '@/apps/drama/types';
+import type { AssetItem } from '@drama/types';
 
 export const mockAssets: AssetItem[] = [
   {

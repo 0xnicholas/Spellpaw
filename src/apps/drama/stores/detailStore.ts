@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { TreeNode } from '@/apps/drama/types';
+import type { TreeNode } from '@drama/types';
 
 interface DetailState {
   activeTab: 'chat' | 'details';

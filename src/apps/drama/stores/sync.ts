@@ -9,8 +9,8 @@
  */
 import { useProjectStore } from './projectStore';
 import { useCanvasStore } from './canvasStore';
-import { diffScenes, computeScenePosition } from '@/apps/drama/lib/canvasLayout';
-import type { TreeNode } from '@/apps/drama/types';
+import { diffScenes, computeScenePosition } from '@drama/lib/canvasLayout';
+import type { TreeNode } from '@drama/types';
 
 let syncGuard = false;
 let lastProcessedTime = 0;

@@ -1,4 +1,4 @@
-import type { TreeNode, Project, NarrativeTemplate, TemplateAct, TemplateScene } from '@/apps/drama/types';
+import type { TreeNode, Project, NarrativeTemplate, TemplateAct, TemplateScene } from '@drama/types';
 
 const TEMPLATE_SCHEMA_VERSION = 1;
 

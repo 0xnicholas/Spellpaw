@@ -1,7 +1,7 @@
 import { useProjectStore } from './projectStore';
 import { useCustomTemplateStore } from './customTemplateStore';
-import type { ToolRouter, TreeNode, NarrativeTemplate, TemplateAct, TemplateScene } from '../types';
-import { analyzePacing, suggestCompletions, generatePacingReport } from '../lib/projectAnalysis';
+import type { ToolRouter, TreeNode, NarrativeTemplate, TemplateAct, TemplateScene } from '@drama/types';
+import { analyzePacing, suggestCompletions, generatePacingReport } from '@drama/lib/projectAnalysis';
 
 function nodeToLine(node: TreeNode, depth: number): string {
   const indent = '│   '.repeat(Math.max(0, depth - 1)) + (depth > 0 ? '├── ' : '');

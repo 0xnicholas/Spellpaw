@@ -164,7 +164,7 @@ export function buildSystemPrompt(
   const guidance = genreGuidance(genre);
 
   return [
-    `你是 Spellpaw 的 AI 创作助手，帮助用户创作短剧/短视频。`,
+    `你是 SpellPaw 的 AI 创作助手，帮助用户创作短剧/短视频。`,
     ``,
     `## 当前项目`,
     `- 名称：《${projectTitle}》`,

@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { produce } from 'immer';
-import type { TreeNode, Project } from '@/apps/drama/types';
-import { mockProjects } from '@/apps/drama/data/mockProjects';
-import { mockTreeData } from '@/apps/drama/data/mockTreeData';
+import type { TreeNode, Project } from '@drama/types';
+import { mockProjects } from '@drama/data/mockProjects';
+import { mockTreeData } from '@drama/data/mockTreeData';
 import { generateId } from '@/shared/lib/utils';
 import { createIDBStorage } from '@/shared/lib/idbStorage';
 

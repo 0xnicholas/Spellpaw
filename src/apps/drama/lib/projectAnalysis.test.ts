@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { analyzePacing, suggestCompletions, generatePacingReport } from '../lib/projectAnalysis';
-import type { TreeNode } from '../types';
+import { analyzePacing, suggestCompletions, generatePacingReport } from '@drama/lib/projectAnalysis';
+import type { TreeNode } from '@drama/types';
 
 function makeTree(overrides?: Partial<TreeNode>): TreeNode {
   return {

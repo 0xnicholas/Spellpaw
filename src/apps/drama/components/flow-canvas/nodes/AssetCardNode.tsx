@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { File, Image, Music, Video, FileText, ImageOff } from 'lucide-react';
 import { Lightbox } from '@/shared/components/ui/Lightbox';
-import { useCanvasStore } from '@/apps/drama/stores/canvasStore';
-import type { AssetType, CanvasNodeData } from '@/apps/drama/types';
+import { useCanvasStore } from '@drama/stores/canvasStore';
+import type { AssetType, CanvasNodeData } from '@drama/types';
 
 const typeIcons: Record<string, typeof File> = {
   video: Video,

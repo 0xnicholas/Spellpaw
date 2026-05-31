@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Upload, X } from 'lucide-react';
-import type { NarrativeTemplate } from '@/apps/drama/types';
-import { useCustomTemplateStore } from '@/apps/drama/stores/customTemplateStore';
+import type { NarrativeTemplate } from '@drama/types';
+import { useCustomTemplateStore } from '@drama/stores/customTemplateStore';
 
 const CATEGORY_LABELS: Record<string, string> = {
   suspense: '悬疑',

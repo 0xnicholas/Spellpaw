@@ -1,10 +1,10 @@
-import type { ChatMessage } from '@/apps/drama/types';
+import type { ChatMessage } from '@drama/types';
 
 export const mockChatMessages: ChatMessage[] = [
   {
     id: 'msg_1',
     role: 'agent',
-    content: '欢迎来到 Spellpaw！我已加载项目「都市奇缘」的结构。该项目目前有 3 幕、8 场景、18 镜头。有什么可以帮你的？',
+    content: '欢迎来到 SpellPaw！我已加载项目「都市奇缘」的结构。该项目目前有 3 幕、8 场景、18 镜头。有什么可以帮你的？',
     type: 'text',
     timestamp: '2026-05-19T09:00:00Z',
   },

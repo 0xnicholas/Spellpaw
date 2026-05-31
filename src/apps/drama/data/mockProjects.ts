@@ -1,4 +1,4 @@
-import type { Project } from '@/apps/drama/types';
+import type { Project } from '@drama/types';
 
 export const mockProjects: Project[] = [
   {

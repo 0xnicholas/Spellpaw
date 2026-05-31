@@ -16,16 +16,16 @@ import {
 import '@xyflow/react/dist/style.css';
 import { GitBranch } from 'lucide-react';
 
-import { useCanvasStore } from '@/apps/drama/stores/canvasStore';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
-import { useDetailStore } from '@/apps/drama/stores/detailStore';
-import type { CanvasNode, CanvasEdge } from '@/apps/drama/types';
+import { useCanvasStore } from '@drama/stores/canvasStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { useDetailStore } from '@drama/stores/detailStore';
+import type { CanvasNode, CanvasEdge } from '@drama/types';
 import { SceneCardNode } from './nodes/SceneCardNode';
 import { AssetCardNode } from './nodes/AssetCardNode';
-import { DeleteConfirmDialog } from '@/apps/drama/components/modals/DeleteConfirmDialog';
+import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
 import { generateId } from '@/shared/lib/utils';
-import { collectScenes } from '@/apps/drama/lib/treeUtils';
-import { layoutTreeToCanvas } from '@/apps/drama/lib/canvasLayout';
+import { collectScenes } from '@drama/lib/treeUtils';
+import { layoutTreeToCanvas } from '@drama/lib/canvasLayout';
 
 const nodeTypes: NodeTypes = {
   sceneCard: SceneCardNode,

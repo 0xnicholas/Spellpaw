@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { AlertTriangle, Info, ChevronDown, ChevronUp, BarChart3, Clock, Layers, Activity } from 'lucide-react';
-import { generatePacingReport, type PacingReport } from '@/apps/drama/lib/projectAnalysis';
-import type { TreeNode } from '@/apps/drama/types';
+import { generatePacingReport, type PacingReport } from '@drama/lib/projectAnalysis';
+import type { TreeNode } from '@drama/types';
 
 interface AnalysisReportProps {
   tree: TreeNode;

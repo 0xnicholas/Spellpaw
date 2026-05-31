@@ -5,7 +5,7 @@
  */
 
 import { getSpellpawDB } from '@/shared/lib/idbStorage';
-import type { TreeNode, CanvasNode, CanvasEdge } from '@/apps/drama/types';
+import type { TreeNode, CanvasNode, CanvasEdge } from '@drama/types';
 
 const STORE = 'snapshots';
 

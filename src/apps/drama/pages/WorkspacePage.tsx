@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Panel, Group, Separator, useGroupRef } from 'react-resizable-panels';
-import { Navbar } from '@/apps/drama/layouts/Navbar';
-import { TreeViewPanel } from '@/apps/drama/components/tree-view/TreeViewPanel';
-import { AssetManagerPanel } from '@/apps/drama/components/asset-manager/AssetManagerPanel';
-import { ChatPanel } from '@/apps/drama/components/chat-panel/ChatPanel';
-import { FlowCanvasPanel } from '@/apps/drama/components/flow-canvas/FlowCanvasPanel';
-import { DeleteConfirmDialog } from '@/apps/drama/components/modals/DeleteConfirmDialog';
-import { ConflictResolverModal } from '@/apps/drama/components/modals/ConflictResolverModal';
+import { Navbar } from '@drama/layouts/Navbar';
+import { TreeViewPanel } from '@drama/components/tree-view/TreeViewPanel';
+import { AssetManagerPanel } from '@drama/components/asset-manager/AssetManagerPanel';
+import { ChatPanel } from '@drama/components/chat-panel/ChatPanel';
+import { FlowCanvasPanel } from '@drama/components/flow-canvas/FlowCanvasPanel';
+import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
+import { ConflictResolverModal } from '@drama/components/modals/ConflictResolverModal';
 import { useHotkeys } from '@/shared/hooks/useHotkeys';
-import { useToolBridge } from '@/apps/drama/hooks/useToolBridge';
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
-import { useDetailStore } from '@/apps/drama/stores/detailStore';
-import { findNode } from '@/apps/drama/lib/treeUtils';
-import { subscribeSync, type SyncEngineState } from '@/apps/drama/lib/syncEngine';
+import { useToolBridge } from '@drama/hooks/useToolBridge';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { useDetailStore } from '@drama/stores/detailStore';
+import { findNode } from '@drama/lib/treeUtils';
+import { subscribeSync, type SyncEngineState } from '@drama/lib/syncEngine';
 
 
 function MobileGuard({ children }: { children: React.ReactNode }) {
@@ -33,7 +33,7 @@ function MobileGuard({ children }: { children: React.ReactNode }) {
             请使用桌面浏览器
           </h1>
           <p className="text-sm text-[var(--color-text-secondary)]">
-            Spellpaw 是桌面端创作工具，暂不支持移动设备。
+            SpellPaw 是桌面端创作工具，暂不支持移动设备。
           </p>
         </div>
       </div>

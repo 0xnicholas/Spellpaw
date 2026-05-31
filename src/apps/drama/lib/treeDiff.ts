@@ -1,4 +1,4 @@
-import type { TreeNode, CanvasNode } from '@/apps/drama/types';
+import type { TreeNode, CanvasNode } from '@drama/types';
 import { findNode, findParent } from './treeUtils';
 
 export type DiffType = 'added' | 'removed' | 'modified';

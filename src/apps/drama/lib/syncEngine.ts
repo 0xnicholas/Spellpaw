@@ -2,8 +2,8 @@
  * Sync Engine — automatic push/pull with debounce, offline queue,
  * and conflict-aware state tracking.
  */
-import { useProjectStore } from '@/apps/drama/stores/projectStore';
-import { useCanvasStore } from '@/apps/drama/stores/canvasStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { pushAll, pullAll, type ConflictInfo, type PushAllResult } from './projectSync';
 

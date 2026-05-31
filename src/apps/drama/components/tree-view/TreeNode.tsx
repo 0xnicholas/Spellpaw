@@ -3,7 +3,7 @@ import { ChevronRight, ChevronDown, GripVertical } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { EditableTitle, type EditableTitleRef } from '@/shared/components/ui/EditableTitle';
 import { Tooltip } from '@/shared/components/ui/Tooltip';
-import type { TreeNode as TreeNodeType } from '@/apps/drama/types';
+import type { TreeNode as TreeNodeType } from '@drama/types';
 
 interface TreeNodeProps {
   node: TreeNodeType;

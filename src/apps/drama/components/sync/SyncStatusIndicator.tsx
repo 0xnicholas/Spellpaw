@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
-import { subscribeSync, getSyncState, type SyncEngineState } from '@/apps/drama/lib/syncEngine';
+import { subscribeSync, getSyncState, type SyncEngineState } from '@drama/lib/syncEngine';
 
 export function SyncStatusIndicator() {
   const [state, setState] = useState<SyncEngineState>(getSyncState);

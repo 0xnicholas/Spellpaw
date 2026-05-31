@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { ColorPicker } from '@/shared/components/ui/ColorPicker';
-import { TemplateBrowser } from '@/apps/drama/components/template-browser/TemplateBrowser';
-import type { NarrativeTemplate } from '@/apps/drama/types';
+import { TemplateBrowser } from '@drama/components/template-browser/TemplateBrowser';
+import type { NarrativeTemplate } from '@drama/types';
 
 const PRESET_COVER_COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',

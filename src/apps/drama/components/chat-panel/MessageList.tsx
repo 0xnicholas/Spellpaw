@@ -5,17 +5,34 @@ import { useChatStore } from '@drama/stores/chatStore';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { findNode } from '@drama/lib/treeUtils';
 import ReactMarkdown from 'react-markdown';
-import type { ChatAction } from '@drama/types';
+import type { ChatMessage, ChatAction } from '@drama/types';
+
+interface InFlightToolCall { callId: string; name: string; }
 
 interface MessageListProps {
   onActionClick?: (action: ChatAction) => void;
+  messages?: ChatMessage[];
+  streamingMessage?: string | null;
+  isLoading?: boolean;
+  toolCalls?: InFlightToolCall[];
 }
 
-export function MessageList({ onActionClick }: MessageListProps) {
-  const messages = useChatStore((s) => s.messages);
-  const streamingMessage = useChatStore((s) => s.streamingMessage);
-  const isLoading = useChatStore((s) => s.isLoading);
-  const toolCalls = useChatStore((s) => s.toolCalls);
+export function MessageList({
+  onActionClick,
+  messages: externalMessages,
+  streamingMessage: externalStreaming,
+  isLoading: externalLoading,
+  toolCalls: externalToolCalls,
+}: MessageListProps) {
+  const storeMessages = useChatStore((s) => s.messages);
+  const storeStreaming = useChatStore((s) => s.streamingMessage);
+  const storeLoading = useChatStore((s) => s.isLoading);
+  const storeToolCalls = useChatStore((s) => s.toolCalls);
+
+  const messages = externalMessages ?? storeMessages;
+  const streamingMessage = externalStreaming !== undefined ? externalStreaming : storeStreaming;
+  const isLoading = externalLoading ?? storeLoading;
+  const toolCalls = externalToolCalls ?? storeToolCalls;
   const filterNodeId = useChatStore((s) => s.filterNodeId);
   const setFilterNodeId = useChatStore((s) => s.setFilterNodeId);
   const bottomRef = useRef<HTMLDivElement>(null);

@@ -44,7 +44,7 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
   return (
     <>
       <div
-        className={`w-[240px] rounded-[var(--radius-base)] border bg-[var(--color-bg-secondary)] shadow-sm transition-shadow ${
+        className={`w-[240px] rounded-[var(--radius-base)] border bg-[var(--color-bg-primary)] shadow-sm transition-shadow ${
           selected ? 'border-[var(--color-accent-500)] shadow-md' : 'border-[var(--color-border-default)]'
         }`}
       >

@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Panel, Group, Separator, useGroupRef } from 'react-resizable-panels';
 import { Navbar } from '@drama/layouts/Navbar';
-import { TreeViewPanel } from '@drama/components/tree-view/TreeViewPanel';
-import { AssetManagerPanel } from '@drama/components/asset-manager/AssetManagerPanel';
-import { ChatPanel } from '@drama/components/chat-panel/ChatPanel';
+import { TaskListPanel } from '@drama/components/task-list/TaskListPanel';
+import { TaskChatPanel } from '@drama/components/task-chat/TaskChatPanel';
 import { FlowCanvasPanel } from '@drama/components/flow-canvas/FlowCanvasPanel';
 import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
 import { ConflictResolverModal } from '@drama/components/modals/ConflictResolverModal';
 import { useHotkeys } from '@/shared/hooks/useHotkeys';
 import { useToolBridge } from '@drama/hooks/useToolBridge';
 import { useProjectStore } from '@drama/stores/projectStore';
-import { useDetailStore } from '@drama/stores/detailStore';
-import { findNode } from '@drama/lib/treeUtils';
+import { useTaskSSE } from '@drama/hooks/useTaskSSE';
 import { subscribeSync, type SyncEngineState } from '@drama/lib/syncEngine';
 
 
@@ -46,13 +44,10 @@ function MobileGuard({ children }: { children: React.ReactNode }) {
 export function WorkspacePage() {
   // Phase 2: connect to Tool Server WebSocket for Pandaria tool calls
   useToolBridge();
+  useTaskSSE();
 
-  const selectedNodeId = useProjectStore((s) => s.selectedNodeId);
   const selectNode = useProjectStore((s) => s.selectNode);
-  const getCurrentTree = useProjectStore((s) => s.getCurrentTree);
   const deleteTreeNode = useProjectStore((s) => s.deleteTreeNode);
-  const activeTab = useDetailStore((s) => s.activeTab);
-  const setActiveTab = useDetailStore((s) => s.setActiveTab);
   const groupRef = useGroupRef();
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; childCount: number } | null>(null);
@@ -65,32 +60,18 @@ export function WorkspacePage() {
   const toggleSidebar = () => {
     const layout = groupRef.current?.getLayout();
     if (!layout) return;
-    const leftSize = layout.left ?? 0;
+    const leftSize = (layout as Record<string, number>).left ?? 0;
     if (leftSize > 5) {
-      groupRef.current?.setLayout({ left: 0, center: 25, right: 75 });
+      groupRef.current?.setLayout({ left: 0, center: 30, right: 70 });
     } else {
-      groupRef.current?.setLayout({ left: 18, center: 25, right: 57 });
+      groupRef.current?.setLayout({ left: 18, center: 30, right: 52 });
     }
   };
 
   useHotkeys({
-    'Cmd+Enter': () => {},
-    Delete: () => {
-      if (selectedNodeId && !deleteTarget) {
-        const tree = getCurrentTree();
-        if (tree) {
-          const node = findNode(tree, selectedNodeId);
-          if (node) {
-            setDeleteTarget({ id: selectedNodeId, childCount: node.children?.length ?? 0 });
-          }
-        }
-      }
-    },
     Escape: () => {
       if (deleteTarget) {
         setDeleteTarget(null);
-      } else if (activeTab === 'details') {
-        setActiveTab('chat');
       } else {
         selectNode(null);
       }
@@ -104,24 +85,14 @@ export function WorkspacePage() {
         <div className="flex-1 overflow-hidden">
           <Group orientation="horizontal" className="h-full" groupRef={groupRef}>
             <Panel id="left" defaultSize="18%" minSize="18%" maxSize="28%" collapsible collapsedSize="0%" style={{ minWidth: 240 }}>
-              <Group orientation="vertical" style={{ height: '100%' }}>
-                <Panel defaultSize="55%" minSize="20%" style={{ minHeight: 120 }}>
-                  <div className="h-full overflow-hidden border-r border-[var(--color-border-default)]">
-                    <TreeViewPanel />
-                  </div>
-                </Panel>
-                <Separator className="h-px bg-[var(--color-border-default)] hover:bg-[var(--color-accent-500)] transition-colors" />
-                <Panel defaultSize="45%" minSize="20%" style={{ minHeight: 120 }}>
-                  <div className="h-full overflow-hidden border-r border-[var(--color-border-default)]">
-                    <AssetManagerPanel />
-                  </div>
-                </Panel>
-              </Group>
+              <div className="h-full overflow-hidden border-r border-[var(--color-border-default)]">
+                <TaskListPanel />
+              </div>
             </Panel>
             <Separator className="w-px bg-[var(--color-border-default)] hover:bg-[var(--color-accent-500)] transition-colors" />
-            <Panel id="center" defaultSize="25%" minSize="22%" maxSize="40%" style={{ minWidth: 280 }}>
+            <Panel id="center" defaultSize="30%" minSize="22%" maxSize="40%" style={{ minWidth: 280 }}>
               <div className="h-full overflow-hidden border-r border-[var(--color-border-default)]">
-                <ChatPanel />
+                <TaskChatPanel />
               </div>
             </Panel>
             <Separator className="w-px bg-[var(--color-border-default)] hover:bg-[var(--color-accent-500)] transition-colors" />

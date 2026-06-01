@@ -4,22 +4,19 @@ import { Badge } from '@/shared/components/ui/Badge';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import type { CanvasNodeData } from '@drama/types';
 
-const statusMap: Record<string, { label: string; variant: 'default' | 'accent' | 'success' | 'warning' }> = {
-  draft: { label: '草稿', variant: 'default' },
-  in_progress: { label: '进行中', variant: 'accent' },
-  review: { label: '审核中', variant: 'warning' },
-  done: { label: '已完成', variant: 'success' },
+const typeMap: Record<string, { label: string; variant: 'default' | 'accent' | 'success' | 'warning' }> = {
+  analysis: { label: '分析', variant: 'accent' },
+  suggestion: { label: '建议', variant: 'warning' },
+  generation: { label: '生成', variant: 'success' },
 };
 
 export function OutputCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeData>>) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(data.title);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
-  const status = data.status ? statusMap[data.status as string] : null;
-  const dialogue = data.dialogue as string | undefined;
-  const location = data.location as string | undefined;
-  const duration = data.duration as number | undefined;
-  const timeOfDay = data.timeOfDay as string | undefined;
+  const outputType = (data.outputType as string) || 'analysis';
+  const summary = data.summary as string | undefined;
+  const typeInfo = typeMap[outputType] ?? { label: '产出', variant: 'default' as const };
 
   const handleSave = () => {
     if (editValue.trim() && editValue.trim() !== data.title) {
@@ -54,23 +51,15 @@ export function OutputCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
               {data.title}
             </h4>
           )}
-          {status && <Badge variant={status.variant}>{status.label}</Badge>}
+          {typeInfo && <Badge variant={typeInfo.variant}>{typeInfo.label}</Badge>}
         </div>
 
-        {data.description && (
-          <p className="text-xs text-[var(--color-text-tertiary)] line-clamp-3 mb-2">{data.description}</p>
-        )}
-
-        {dialogue && (
-          <div className="mb-2 rounded-[var(--radius-sm)] bg-[var(--color-bg-tertiary)] px-2 py-1.5">
-            <p className="text-[11px] text-[var(--color-text-secondary)] italic leading-relaxed line-clamp-2">💬 {dialogue}</p>
-          </div>
+        {summary && (
+          <p className="text-xs text-[var(--color-text-tertiary)] line-clamp-3 mb-2">{summary}</p>
         )}
 
         <div className="flex items-center gap-2 text-[10px] text-[var(--color-text-tertiary)] border-t border-[var(--color-border-default)] pt-2">
-          {duration != null && <span>⏱ {duration}s</span>}
-          {location && <span>📍 {location}</span>}
-          {timeOfDay && <span>🌅 {timeOfDay}</span>}
+          <span>📦 Agent 产出</span>
         </div>
       </div>
 

@@ -211,13 +211,22 @@ WorkspacePage
 
 ```
 用户在空状态输入框发送消息
-  → taskStore.createTask()         // 状态: in_progress
+  → taskStore.createTask()         // 状态: in_progress, title 初始为空
+  → taskStore.setActiveTask(newId) // 内部实现：创建后自动设为活跃任务
   → taskStore.sendMessage(taskId, content)
-  → POST /api/v1/sessions          // 创建 Pandaria session
+  → POST /api/v1/sessions          // 创建 Pandaria session，注入项目上下文 system_prompt
   → 保存 sessionId 到 task
   → POST /api/v1/sessions/{id}/messages
   → 订阅 SSE（该 session 的事件流）
+  → 首个 turn_end 后，Agent 返回摘要，通过 updateTaskTitle 设置标题
 ```
+
+**system_prompt 管理**：每个任务 session 在创建时注入与当前 ChatPanel 相同格式的 system_prompt
+（项目摘要 + 结构大纲）。项目结构变化时不 PATCH 任务 session（任务数量多，且 turn 前自动
+PATCH 开销大）。Agent 可通过 `get_subtree` tool 获取最新项目结构。
+
+**注意**：`createTask()` 内部同时设置 `activeTaskId`，`sendMessage` 从 store 读取
+当前值而非闭包引用，避免 React batching 导致的竞态问题。
 
 ### 7.2 SSE 事件处理
 
@@ -261,10 +270,25 @@ Agent 通过 toolRouter 调用本地 store。与现有机制完全一致——Ag
 
 function useTaskSSE() {
   const activeTaskId = useTaskStore(s => s.activeTaskId);
-  // 订阅当前活跃 task 的 SSE
-  // 根据 activeTaskId 变化自动切换连接
+  const tasks = useTaskStore(s => s.tasks);
+  const activeTask = tasks.find(t => t.id === activeTaskId);
+
+  // 当 activeTaskId 变化时：
+  //   1. 关闭旧 SSE 连接
+  //   2. 如果 activeTask 有 sessionId，恢复该 session 的 SSE 订阅
+  //   3. 如果没有 sessionId（新任务未发消息），等待用户输入
+
+  // SSE 事件 → taskStore dispatch 映射：
+  //   text_delta → appendDelta(activeTaskId, delta)
+  //   tool_call_started → startToolCall(activeTaskId, callId, name)
+  //   tool_call_done → endToolCall(activeTaskId, callId)
+  //   turn_end → endStreaming(activeTaskId) + markPendingReview(activeTaskId)
+  //   错误事件 → toast 提示，不改变任务状态
 }
 ```
+
+- SSE 连接断开时自动重连（最多 3 次，间隔 2s）
+- 开发环境使用 `useMockSSE` 的 task 版本（mock 数据注入到 taskStore 而非 chatStore）
 
 ---
 

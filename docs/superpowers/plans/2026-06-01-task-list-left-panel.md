@@ -4,9 +4,16 @@
 
 **Goal:** 将 WorkspacePage 左栏从「项目结构树 + 资产管理」替换为「Agent 对话任务列表」，每个任务 = 独立 Agent 对话线程。
 
-**Architecture:** 新增 `taskStore`（Zustand + Immer + IDB 持久化）管理多任务状态。重构 `MessageList`/`MessageInput` 为 source-agnostic（接受 props 而非直接读 store）。新增 `TaskListPanel`（左栏）、`TaskChatPanel`（中栏）、`useTaskSSE` hook。原有 ChatPanel/DetailPanel/TreeViewPanel/AssetManagerPanel 代码保留。
+**Architecture:** 新增 `taskStore`（Zustand + Immer + IDB）管理多任务，`useTaskSSE` hook 管理 per-task Pandaria session 和 SSE（模仿 usePandariaSSE 模式：覆盖 sendMessage → 创建 session → 订阅 SSE → 路由事件到 taskStore）。重构 `MessageList`/`MessageInput` 接受 props。原有代码全部保留。
 
-**Tech Stack:** React 19, TypeScript 6.0, Zustand 5 + Immer, IndexedDB (idbStorage), Tailwind CSS 4
+**Tech Stack:** React 19, TypeScript 6.0, Zustand 5 + Immer, IndexedDB (idbStorage), Tailwind CSS 4 + OKLCH
+
+**References:**
+- Spec: `docs/superpowers/specs/2026-06-01-task-list-left-panel-design.md`
+- Pandaria API: `src/apps/drama/lib/pandaria.ts` (exports: `createSession`, `sendMessage`, `subscribeSSE`, `buildSystemPrompt`)
+- SSE pattern: `src/apps/drama/hooks/usePandariaSSE.ts`
+- IDB: `src/shared/lib/idbStorage.ts`
+- Tool configs: copy from `usePandariaSSE.ts` TOOL_CONFIGS
 
 ---
 
@@ -15,27 +22,64 @@
 | File | Responsibility |
 |------|---------------|
 | `src/apps/drama/types/index.ts` | 添加 AgentTask 类型 |
-| `src/apps/drama/stores/taskStore.ts` | 多任务状态管理（CRUD + 消息 + SSE streaming） |
+| `src/apps/drama/stores/taskStore.ts` | 多任务状态管理（CRUD + 消息 + SSE streaming 状态） |
 | `src/apps/drama/stores/taskStore.test.ts` | taskStore 单元测试 |
-| `src/apps/drama/components/chat-panel/MessageList.tsx` | 重构：接受 `messages` prop |
-| `src/apps/drama/components/chat-panel/MessageInput.tsx` | 重构：接受 `onSend` prop |
+| `src/apps/drama/components/chat-panel/MessageList.tsx` | 重构：接受 `messages`, `streamingMessage?`, `isLoading?`, `toolCalls?` props |
+| `src/apps/drama/components/chat-panel/MessageInput.tsx` | 重构：接受 `onSend?`, `disabled?` props |
 | `src/apps/drama/components/task-list/TaskCard.tsx` | 单个任务卡片 |
 | `src/apps/drama/components/task-list/TaskListPanel.tsx` | 左栏任务列表面板 |
 | `src/apps/drama/components/task-chat/TaskChatHeader.tsx` | 中栏任务对话标题栏 |
-| `src/apps/drama/components/task-chat/TaskChatPanel.tsx` | 中栏任务对话面板 |
-| `src/apps/drama/hooks/useTaskSSE.ts` | Per-task SSE 连接管理 |
-| `src/apps/drama/pages/WorkspacePage.tsx` | 左栏+中栏替换，解引用旧面板 |
+| `src/apps/drama/components/task-chat/TaskChatPanel.tsx` | 中栏任务对话面板（调用 useTaskSSE） |
+| `src/apps/drama/hooks/useTaskSSE.ts` | Per-task Pandaria session + SSE 管理 |
+| `src/shared/lib/idbStorage.ts` | IDB migration: 添加 taskStore object store |
+| `src/apps/drama/pages/WorkspacePage.tsx` | 左栏+中栏替换 |
 
 ---
 
-### Task 1: Add AgentTask type
+### Task 1: IDB migration — add 'taskStore' object store
+
+**Files:**
+- Modify: `src/shared/lib/idbStorage.ts`
+
+- [ ] **Step 1: Bump DB_VERSION and add store**
+
+Change:
+```typescript
+export const DB_VERSION = 2;
+```
+
+To:
+```typescript
+export const DB_VERSION = 3;
+```
+
+Change the stores array in the upgrade callback:
+```typescript
+const stores = ['projectStore', 'canvasStore', 'chatStore', 'snapshots', 'taskStore'];
+```
+
+- [ ] **Step 2: Verify compiles**
+
+Run: `npx tsc --noEmit --project tsconfig.app.json 2>&1 | head -5`
+Expected: No new errors
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/shared/lib/idbStorage.ts
+git commit -m "chore: bump IDB version to 3, add taskStore object store"
+```
+
+---
+
+### Task 2: Add AgentTask type
 
 **Files:**
 - Modify: `src/apps/drama/types/index.ts`
 
 - [ ] **Step 1: Add AgentTask interface**
 
-Add after the existing type exports:
+Add after existing type exports:
 
 ```typescript
 // === Task ===
@@ -45,17 +89,16 @@ export interface AgentTask {
   title: string;
   status: 'in_progress' | 'pending_review' | 'completed';
   messages: ChatMessage[];
+  projectId: string | null;         // 所属项目（用于跨项目过滤）
   createdAt: string;
   updatedAt: string;
-  sessionId?: string;
-  affectedNodeIds?: string[];
-  generatedAssetIds?: string[];
+  sessionId?: string;               // Pandaria session ID
 }
 ```
 
-- [ ] **Step 2: Verify TypeScript compiles**
+- [ ] **Step 2: Verify compiles**
 
-Run: `npx tsc --noEmit --project tsconfig.app.json 2>&1 | head -20`
+Run: `npx tsc --noEmit --project tsconfig.app.json 2>&1 | head -5`
 Expected: No new errors
 
 - [ ] **Step 3: Commit**
@@ -67,13 +110,13 @@ git commit -m "feat: add AgentTask type"
 
 ---
 
-### Task 2: Build taskStore
+### Task 3: Build taskStore
 
 **Files:**
 - Create: `src/apps/drama/stores/taskStore.ts`
 - Create: `src/apps/drama/stores/taskStore.test.ts`
 
-#### Implementation
+- [ ] **Step 1: Create taskStore.ts**
 
 ```typescript
 // src/apps/drama/stores/taskStore.ts
@@ -99,11 +142,11 @@ interface TaskState {
   toolCalls: InFlightToolCall[];
 
   // CRUD
-  createTask: () => string;
+  createTask: (projectId: string) => string;
   deleteTask: (id: string) => void;
   setActiveTask: (id: string | null) => void;
   updateTaskTitle: (id: string, title: string) => void;
-  resetForProject: (projectId: string) => void;
+  setTaskSessionId: (taskId: string, sessionId: string) => void;
 
   // Messages
   sendMessage: (taskId: string, content: string) => void;
@@ -120,6 +163,9 @@ interface TaskState {
   markPendingReview: (taskId: string) => void;
   markCompleted: (taskId: string) => void;
   markInProgress: (taskId: string) => void;
+
+  // Project isolation
+  getTasksForProject: (projectId: string) => AgentTask[];
 }
 
 export const useTaskStore = create<TaskState>()(
@@ -132,7 +178,7 @@ export const useTaskStore = create<TaskState>()(
       streamingMessageId: null,
       toolCalls: [],
 
-      createTask: () => {
+      createTask: (projectId) => {
         const id = generateId('task_');
         const now = new Date().toISOString();
         const task: AgentTask = {
@@ -140,6 +186,7 @@ export const useTaskStore = create<TaskState>()(
           title: '',
           status: 'in_progress',
           messages: [],
+          projectId,
           createdAt: now,
           updatedAt: now,
         };
@@ -169,8 +216,11 @@ export const useTaskStore = create<TaskState>()(
           }
         })),
 
-      resetForProject: (_projectId) =>
-        set({ tasks: [], activeTaskId: null }),
+      setTaskSessionId: (taskId, sessionId) =>
+        set(produce((s: TaskState) => {
+          const task = s.tasks.find((t) => t.id === taskId);
+          if (task) task.sessionId = sessionId;
+        })),
 
       sendMessage: (taskId, content) => {
         const msg: ChatMessage = {
@@ -208,7 +258,7 @@ export const useTaskStore = create<TaskState>()(
           }
         })),
 
-      endStreaming: (_stopReason) => {
+      endStreaming: (stopReason) => {
         const state = get();
         if (state.streamingMessageId && state.streamingTaskId) {
           const finalMsg: ChatMessage = {
@@ -223,10 +273,10 @@ export const useTaskStore = create<TaskState>()(
             if (task) {
               task.messages.push(finalMsg);
               task.updatedAt = new Date().toISOString();
-            }
-            // Auto transition to pending_review
-            if (task && task.status === 'in_progress') {
-              task.status = 'pending_review';
+              // Only transition to pending_review on clean completion (not error)
+              if (task.status === 'in_progress' && stopReason !== 'error') {
+                task.status = 'pending_review';
+              }
             }
             s.streamingTaskId = null;
             s.streamingMessageId = null;
@@ -251,39 +301,37 @@ export const useTaskStore = create<TaskState>()(
       markPendingReview: (taskId) =>
         set(produce((s: TaskState) => {
           const task = s.tasks.find((t) => t.id === taskId);
-          if (task) {
-            task.status = 'pending_review';
-            task.updatedAt = new Date().toISOString();
-          }
+          if (task) { task.status = 'pending_review'; task.updatedAt = new Date().toISOString(); }
         })),
 
       markCompleted: (taskId) =>
         set(produce((s: TaskState) => {
           const task = s.tasks.find((t) => t.id === taskId);
-          if (task) {
-            task.status = 'completed';
-            task.updatedAt = new Date().toISOString();
-          }
+          if (task) { task.status = 'completed'; task.updatedAt = new Date().toISOString(); }
         })),
 
       markInProgress: (taskId) =>
         set(produce((s: TaskState) => {
           const task = s.tasks.find((t) => t.id === taskId);
-          if (task) {
-            task.status = 'in_progress';
-            task.updatedAt = new Date().toISOString();
-          }
+          if (task) { task.status = 'in_progress'; task.updatedAt = new Date().toISOString(); }
         })),
+
+      getTasksForProject: (projectId) => {
+        return get().tasks.filter((t) => t.projectId === projectId);
+      },
     }),
     {
       name: 'spellpaw_tasks',
       storage: createIDBStorage<TaskState>('taskStore'),
+      partialize: (state) => ({
+        tasks: state.tasks,
+      }) as TaskState,
     }
   )
 );
 ```
 
-- [ ] **Step 1: Write failing test file**
+- [ ] **Step 2: Write test file**
 
 Create `src/apps/drama/stores/taskStore.test.ts`:
 
@@ -293,59 +341,54 @@ import { useTaskStore } from './taskStore';
 
 describe('taskStore', () => {
   beforeEach(() => {
-    useTaskStore.setState({ tasks: [], activeTaskId: null });
+    useTaskStore.setState({
+      tasks: [], activeTaskId: null, streamingTaskId: null,
+      streamingMessage: null, streamingMessageId: null, toolCalls: [],
+    });
   });
 
   describe('createTask', () => {
-    it('should create a task with in_progress status', () => {
-      const id = useTaskStore.getState().createTask();
+    it('should create a task with in_progress status and projectId', () => {
+      const id = useTaskStore.getState().createTask('proj-1');
       const { tasks, activeTaskId } = useTaskStore.getState();
-
       expect(tasks).toHaveLength(1);
       expect(tasks[0].id).toBe(id);
       expect(tasks[0].status).toBe('in_progress');
+      expect(tasks[0].projectId).toBe('proj-1');
       expect(tasks[0].title).toBe('');
       expect(tasks[0].messages).toEqual([]);
+      expect(activeTaskId).toBe(id);
     });
 
-    it('should set activeTaskId to the new task', () => {
-      const id = useTaskStore.getState().createTask();
-      expect(useTaskStore.getState().activeTaskId).toBe(id);
-    });
-
-    it('should prepend new tasks', () => {
-      useTaskStore.getState().createTask();
-      useTaskStore.getState().createTask();
+    it('should prepend new tasks (newest first)', () => {
+      const id1 = useTaskStore.getState().createTask('p1');
+      const id2 = useTaskStore.getState().createTask('p1');
       const { tasks } = useTaskStore.getState();
       expect(tasks).toHaveLength(2);
-      // Most recent first
+      expect(tasks[0].id).toBe(id2);
+      expect(tasks[1].id).toBe(id1);
     });
   });
 
   describe('deleteTask', () => {
-    it('should remove the task', () => {
-      const id = useTaskStore.getState().createTask();
+    it('should remove task and clear activeTaskId if active', () => {
+      const id = useTaskStore.getState().createTask('p1');
       useTaskStore.getState().deleteTask(id);
       expect(useTaskStore.getState().tasks).toHaveLength(0);
-    });
-
-    it('should clear activeTaskId if deleting active task', () => {
-      const id = useTaskStore.getState().createTask();
-      useTaskStore.getState().deleteTask(id);
       expect(useTaskStore.getState().activeTaskId).toBeNull();
     });
 
-    it('should keep activeTaskId if deleting non-active task', () => {
-      const id1 = useTaskStore.getState().createTask();
-      const id2 = useTaskStore.getState().createTask();
+    it('should keep activeTaskId when deleting non-active task', () => {
+      useTaskStore.getState().createTask('p1');
+      const id2 = useTaskStore.getState().createTask('p1');
       useTaskStore.getState().deleteTask(id2);
-      expect(useTaskStore.getState().activeTaskId).toBe(id1);
+      expect(useTaskStore.getState().activeTaskId).not.toBe(id2);
     });
   });
 
   describe('sendMessage', () => {
-    it('should append a user message to the task', () => {
-      const id = useTaskStore.getState().createTask();
+    it('should append user message to task', () => {
+      const id = useTaskStore.getState().createTask('p1');
       useTaskStore.getState().sendMessage(id, 'hello');
       const task = useTaskStore.getState().tasks.find((t) => t.id === id);
       expect(task?.messages).toHaveLength(1);
@@ -355,101 +398,101 @@ describe('taskStore', () => {
   });
 
   describe('streaming', () => {
-    it('should build streaming message with deltas', () => {
-      useTaskStore.getState().startStreaming('task-1', 'msg-1');
-      useTaskStore.getState().appendDelta('Hello');
-      useTaskStore.getState().appendDelta(' World');
-      expect(useTaskStore.getState().streamingMessage).toBe('Hello World');
+    it('should build streaming message from deltas', () => {
+      useTaskStore.getState().startStreaming('t1', 'm1');
+      useTaskStore.getState().appendDelta('Hi');
+      useTaskStore.getState().appendDelta(' there');
+      expect(useTaskStore.getState().streamingMessage).toBe('Hi there');
     });
 
-    it('should finalize streaming as agent message', () => {
-      const id = useTaskStore.getState().createTask();
-      useTaskStore.getState().startStreaming(id, 'msg-agent');
+    it('should finalize stream as agent message and transition to pending_review', () => {
+      const id = useTaskStore.getState().createTask('p1');
+      useTaskStore.getState().startStreaming(id, 'm1');
       useTaskStore.getState().appendDelta('Done');
-      useTaskStore.getState().endStreaming();
+      useTaskStore.getState().endStreaming('stop');
       const task = useTaskStore.getState().tasks.find((t) => t.id === id);
       expect(task?.messages).toHaveLength(1);
       expect(task?.messages[0].role).toBe('agent');
-      expect(task?.messages[0].content).toBe('Done');
-    });
-
-    it('should transition to pending_review on endStreaming', () => {
-      const id = useTaskStore.getState().createTask();
-      useTaskStore.getState().startStreaming(id, 'msg-1');
-      useTaskStore.getState().appendDelta('x');
-      useTaskStore.getState().endStreaming();
-      const task = useTaskStore.getState().tasks.find((t) => t.id === id);
       expect(task?.status).toBe('pending_review');
     });
-  });
 
-  describe('status transitions', () => {
-    it('markCompleted should set status to completed', () => {
-      const id = useTaskStore.getState().createTask();
-      useTaskStore.getState().markCompleted(id);
-      const task = useTaskStore.getState().tasks.find((t) => t.id === id);
-      expect(task?.status).toBe('completed');
-    });
-
-    it('markInProgress should set status to in_progress', () => {
-      const id = useTaskStore.getState().createTask();
-      useTaskStore.getState().markPendingReview(id);
-      useTaskStore.getState().markInProgress(id);
+    it('should NOT transition to pending_review on error stop', () => {
+      const id = useTaskStore.getState().createTask('p1');
+      useTaskStore.getState().startStreaming(id, 'm1');
+      useTaskStore.getState().appendDelta('oops');
+      useTaskStore.getState().endStreaming('error');
       const task = useTaskStore.getState().tasks.find((t) => t.id === id);
       expect(task?.status).toBe('in_progress');
     });
   });
 
-  describe('setActiveTask', () => {
-    it('should change activeTaskId', () => {
-      useTaskStore.getState().setActiveTask('abc');
-      expect(useTaskStore.getState().activeTaskId).toBe('abc');
+  describe('status transitions', () => {
+    it('markCompleted', () => {
+      const id = useTaskStore.getState().createTask('p1');
+      useTaskStore.getState().markCompleted(id);
+      expect(useTaskStore.getState().tasks.find((t) => t.id === id)?.status).toBe('completed');
     });
 
-    it('should allow null', () => {
-      useTaskStore.getState().createTask();
-      useTaskStore.getState().setActiveTask(null);
-      expect(useTaskStore.getState().activeTaskId).toBeNull();
+    it('markInProgress after pending_review', () => {
+      const id = useTaskStore.getState().createTask('p1');
+      useTaskStore.getState().markPendingReview(id);
+      useTaskStore.getState().markInProgress(id);
+      expect(useTaskStore.getState().tasks.find((t) => t.id === id)?.status).toBe('in_progress');
+    });
+  });
+
+  describe('project isolation', () => {
+    it('getTasksForProject should filter by projectId', () => {
+      useTaskStore.getState().createTask('proj-A');
+      useTaskStore.getState().createTask('proj-A');
+      useTaskStore.getState().createTask('proj-B');
+      expect(useTaskStore.getState().getTasksForProject('proj-A')).toHaveLength(2);
+      expect(useTaskStore.getState().getTasksForProject('proj-B')).toHaveLength(1);
+    });
+  });
+
+  describe('setTaskSessionId', () => {
+    it('should set sessionId on task', () => {
+      const id = useTaskStore.getState().createTask('p1');
+      useTaskStore.getState().setTaskSessionId(id, 'sess-123');
+      const task = useTaskStore.getState().tasks.find((t) => t.id === id);
+      expect(task?.sessionId).toBe('sess-123');
     });
   });
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [ ] **Step 3: Run tests to verify they fail**
 
 Run: `npx vitest run src/apps/drama/stores/taskStore.test.ts`
-Expected: FAIL (file doesn't exist yet)
+Expected: FAIL (file doesn't exist)
 
-- [ ] **Step 3: Create taskStore.ts with the full implementation above**
+- [ ] **Step 4: Create taskStore.ts**
 
-- [ ] **Step 4: Run tests to verify they pass**
+Write the file with the implementation from Step 1.
+
+- [ ] **Step 5: Run tests to verify they pass**
 
 Run: `npx vitest run src/apps/drama/stores/taskStore.test.ts`
-Expected: All 12 tests PASS
+Expected: All 11 tests PASS
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add src/apps/drama/stores/taskStore.ts src/apps/drama/stores/taskStore.test.ts
-git commit -m "feat: add taskStore with CRUD, messaging, and SSE streaming"
+git commit -m "feat: add taskStore with CRUD, streaming, and project isolation"
 ```
 
 ---
 
-### Task 3: Refactor MessageList to accept props
+### Task 4: Refactor MessageList to accept props
 
 **Files:**
 - Modify: `src/apps/drama/components/chat-panel/MessageList.tsx`
 
-- [ ] **Step 1: Add messages prop alongside existing store reads**
+- [ ] **Step 1: Add optional props for task-mode use**
 
-The component needs to work in two modes:
-- **ChatPanel mode** (backward compat): reads from `chatStore` when no props given
-- **TaskChatPanel mode**: receives `messages` as prop
-
-Edit `src/apps/drama/components/chat-panel/MessageList.tsx`:
-
-Change the interface and component to:
+The component currently reads everything from `chatStore`. Add optional props that override store reads:
 
 ```typescript
 import { useRef, useEffect } from 'react';
@@ -461,14 +504,14 @@ import { findNode } from '@drama/lib/treeUtils';
 import ReactMarkdown from 'react-markdown';
 import type { ChatMessage, ChatAction } from '@drama/types';
 
+interface InFlightToolCall { callId: string; name: string; }
+
 interface MessageListProps {
   onActionClick?: (action: ChatAction) => void;
-  /** External messages (for TaskChatPanel). If omitted, reads from chatStore. */
   messages?: ChatMessage[];
-  /** External streaming message */
   streamingMessage?: string | null;
-  /** External loading state */
   isLoading?: boolean;
+  toolCalls?: InFlightToolCall[];
 }
 
 export function MessageList({
@@ -476,27 +519,25 @@ export function MessageList({
   messages: externalMessages,
   streamingMessage: externalStreaming,
   isLoading: externalLoading,
+  toolCalls: externalToolCalls,
 }: MessageListProps) {
   const storeMessages = useChatStore((s) => s.messages);
   const storeStreaming = useChatStore((s) => s.streamingMessage);
   const storeLoading = useChatStore((s) => s.isLoading);
-  const toolCalls = useChatStore((s) => s.toolCalls);
+  const storeToolCalls = useChatStore((s) => s.toolCalls);
   const filterNodeId = useChatStore((s) => s.filterNodeId);
   const setFilterNodeId = useChatStore((s) => s.setFilterNodeId);
 
   const messages = externalMessages ?? storeMessages;
   const streamingMessage = externalStreaming !== undefined ? externalStreaming : storeStreaming;
   const isLoading = externalLoading ?? storeLoading;
+  const toolCalls = externalToolCalls ?? storeToolCalls;
 
   const bottomRef = useRef<HTMLDivElement>(null);
-
   const tree = useProjectStore((s) => s.getCurrentTree());
   const filterNode = filterNodeId && tree ? findNode(tree, filterNodeId) : null;
-
   const filteredMessages = filterNodeId
-    ? messages.filter(
-        (m) => m.context?.nodeId === filterNodeId || m.role === 'agent'
-      )
+    ? messages.filter((m) => m.context?.nodeId === filterNodeId || m.role === 'agent')
     : messages;
 
   useEffect(() => {
@@ -505,7 +546,6 @@ export function MessageList({
 
   return (
     <div className="flex-1 overflow-y-auto">
-      {/* Filter bar — only shown when filterNodeId is set (chatStore mode) */}
       {filterNode && (
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-3 py-1.5">
           <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-secondary)]">
@@ -513,10 +553,8 @@ export function MessageList({
             <span>显示与</span>
             <span className="font-medium text-[var(--color-accent-500)]">「{filterNode.title}」</span>
           </div>
-          <button
-            onClick={() => setFilterNodeId(null)}
-            className="rounded p-0.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-primary)] hover:text-[var(--color-text-primary)]"
-          >
+          <button onClick={() => setFilterNodeId(null)}
+            className="rounded p-0.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-primary)] hover:text-[var(--color-text-primary)]">
             <X className="h-3 w-3" />
           </button>
         </div>
@@ -526,7 +564,6 @@ export function MessageList({
         <MessageItem key={msg.id} message={msg} onActionClick={onActionClick} />
       ))}
 
-      {/* Streaming message */}
       {streamingMessage !== null && (
         <div className="px-3 py-2">
           <div className="flex items-start gap-2">
@@ -545,7 +582,6 @@ export function MessageList({
         </div>
       )}
 
-      {/* Tool call indicators */}
       {toolCalls.map((tc) => (
         <div key={tc.callId} className="px-3 py-1">
           <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-text-tertiary)]">
@@ -555,11 +591,8 @@ export function MessageList({
         </div>
       ))}
 
-      {/* Loading indicator */}
       {isLoading && streamingMessage === null && toolCalls.length === 0 && (
-        <div className="px-3 py-2 text-[10px] text-[var(--color-text-tertiary)]">
-          🤖 思考中…
-        </div>
+        <div className="px-3 py-2 text-[10px] text-[var(--color-text-tertiary)]">🤖 思考中…</div>
       )}
 
       <div ref={bottomRef} />
@@ -568,26 +601,26 @@ export function MessageList({
 }
 ```
 
-- [ ] **Step 2: Verify existing ChatPanel still compiles and works**
+- [ ] **Step 2: Verify existing ChatPanel still compiles**
 
-Run: `npx tsc --noEmit --project tsconfig.app.json 2>&1 | grep -i "MessageList" || echo "No MessageList errors"`
+Run: `npx tsc --noEmit --project tsconfig.app.json 2>&1 | grep -i "MessageList" || echo "No errors"`
 Expected: No errors
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add src/apps/drama/components/chat-panel/MessageList.tsx
-git commit -m "refactor: MessageList accepts optional messages/streamingMessage/isLoading props"
+git commit -m "refactor: MessageList accepts messages/streamingMessage/isLoading/toolCalls props"
 ```
 
 ---
 
-### Task 4: Refactor MessageInput to accept onSend prop
+### Task 5: Refactor MessageInput to accept onSend prop
 
 **Files:**
 - Modify: `src/apps/drama/components/chat-panel/MessageInput.tsx`
 
-- [ ] **Step 1: Add onSend prop**
+- [ ] **Step 1: Add onSend and disabled props**
 
 ```typescript
 import { useState } from 'react';
@@ -605,7 +638,6 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
   const [value, setValue] = useState('');
   const storeSendMessage = useChatStore((s) => s.sendMessage);
   const storeLoading = useChatStore((s) => s.isLoading);
-
   const isLoading = disabled ?? storeLoading;
 
   const handleSubmit = () => {
@@ -651,21 +683,21 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
 }
 ```
 
-- [ ] **Step 2: Verify existing ChatPanel still works**
+- [ ] **Step 2: Verify compiles**
 
-Run: `npx tsc --noEmit --project tsconfig.app.json 2>&1 | grep -i "MessageInput" || echo "No MessageInput errors"`
+Run: `npx tsc --noEmit --project tsconfig.app.json 2>&1 | grep "MessageInput" || echo "No errors"`
 Expected: No errors
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add src/apps/drama/components/chat-panel/MessageInput.tsx
-git commit -m "refactor: MessageInput accepts optional onSend/disabled props"
+git commit -m "refactor: MessageInput accepts onSend/disabled props"
 ```
 
 ---
 
-### Task 5: Build TaskCard component
+### Task 6: Build TaskCard component
 
 **Files:**
 - Create: `src/apps/drama/components/task-list/TaskCard.tsx`
@@ -684,14 +716,14 @@ interface TaskCardProps {
   onClick: () => void;
 }
 
-const statusConfig = {
-  in_progress: { icon: '🔄', label: '进行中', lineColor: 'var(--color-bg-accent)' },
-  pending_review: { icon: '👁', label: '待审查', lineColor: '#8b5cf6' },
-  completed: { icon: '✅', label: '已完成', lineColor: 'var(--color-status-success-text)' },
-} as const;
+const statusIcons: Record<AgentTask['status'], string> = {
+  in_progress: '🔄',
+  pending_review: '👁',
+  completed: '✅',
+};
 
 export function TaskCard({ task, isActive, onClick }: TaskCardProps) {
-  const config = statusConfig[task.status];
+  const icon = statusIcons[task.status];
   const messageCount = task.messages.length;
 
   const timeAgo = useMemo(() => {
@@ -703,6 +735,10 @@ export function TaskCard({ task, isActive, onClick }: TaskCardProps) {
     if (hours < 24) return `${hours} 小时前`;
     return `${Math.floor(hours / 24)} 天前`;
   }, [task.updatedAt]);
+
+  const leftBorderColor = task.status === 'pending_review' && !isActive
+    ? 'var(--color-accent-500)'
+    : isActive ? 'var(--color-bg-accent)' : 'transparent';
 
   return (
     <button
@@ -716,15 +752,10 @@ export function TaskCard({ task, isActive, onClick }: TaskCardProps) {
         }
         ${task.status === 'completed' ? 'opacity-50' : ''}
       `}
-      style={task.status === 'pending_review' && !isActive
-        ? { borderLeft: `3px solid ${config.lineColor}` }
-        : isActive
-          ? { borderLeft: '3px solid var(--color-bg-accent)' }
-          : { borderLeft: '3px solid transparent' }
-      }
+      style={{ borderLeft: `3px solid ${leftBorderColor}` }}
     >
       <div className="flex items-start gap-2">
-        <span className="text-sm leading-none mt-0.5 flex-shrink-0">{config.icon}</span>
+        <span className="text-sm leading-none mt-0.5 flex-shrink-0">{icon}</span>
         <div className="min-w-0 flex-1">
           <div className="font-medium text-[13px] text-[var(--color-text-primary)] truncate">
             {task.title || '新任务'}
@@ -755,7 +786,7 @@ git commit -m "feat: add TaskCard component"
 
 ---
 
-### Task 6: Build TaskListPanel component
+### Task 7: Build TaskListPanel component
 
 **Files:**
 - Create: `src/apps/drama/components/task-list/TaskListPanel.tsx`
@@ -770,83 +801,71 @@ import { ListTodo } from 'lucide-react';
 import { PanelHeader } from '@/shared/components/ui/PanelHeader';
 import { TaskCard } from './TaskCard';
 import { useTaskStore } from '@drama/stores/taskStore';
+import { useProjectStore } from '@drama/stores/projectStore';
 
 export function TaskListPanel() {
   const tasks = useTaskStore((s) => s.tasks);
   const activeTaskId = useTaskStore((s) => s.activeTaskId);
   const setActiveTask = useTaskStore((s) => s.setActiveTask);
+  const currentProjectId = useProjectStore((s) => s.currentProjectId);
 
   const [showCompleted, setShowCompleted] = useState(false);
 
-  const inProgress = tasks.filter((t) => t.status === 'in_progress');
-  const pendingReview = tasks.filter((t) => t.status === 'pending_review');
-  const completed = tasks.filter((t) => t.status === 'completed');
+  // Filter tasks by current project
+  const projectTasks = tasks.filter((t) => t.projectId === currentProjectId);
+  const inProgress = projectTasks.filter((t) => t.status === 'in_progress');
+  const pendingReview = projectTasks.filter((t) => t.status === 'pending_review');
+  const completed = projectTasks.filter((t) => t.status === 'completed');
 
   return (
     <div className="flex h-full flex-col bg-[var(--color-bg-primary)]">
-      <PanelHeader
-        title="任务"
-        icon={<ListTodo className="h-4 w-4" />}
-      />
+      <PanelHeader title="任务" icon={<ListTodo className="h-4 w-4" />} />
 
       <div className="flex-1 overflow-y-auto">
-        {/* In Progress */}
         {inProgress.length > 0 && (
           <div>
             <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">
               🔄 进行中 ({inProgress.length})
             </div>
             {inProgress.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
+              <TaskCard key={task.id} task={task}
                 isActive={task.id === activeTaskId}
-                onClick={() => setActiveTask(task.id)}
-              />
+                onClick={() => setActiveTask(task.id)} />
             ))}
           </div>
         )}
 
-        {/* Pending Review */}
         {pendingReview.length > 0 && (
           <div>
             <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">
               👁 待审查 ({pendingReview.length})
             </div>
             {pendingReview.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
+              <TaskCard key={task.id} task={task}
                 isActive={task.id === activeTaskId}
-                onClick={() => setActiveTask(task.id)}
-              />
+                onClick={() => setActiveTask(task.id)} />
             ))}
           </div>
         )}
 
-        {/* Completed (collapsible) */}
         {completed.length > 0 && (
           <div>
             <button
               onClick={() => setShowCompleted(!showCompleted)}
               className="w-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] transition-colors flex items-center gap-1"
             >
-              <span className="transform transition-transform" style={{ transform: showCompleted ? 'rotate(90deg)' : 'rotate(0deg)' }}>▸</span>
+              <span className="inline-block transition-transform" style={{ transform: showCompleted ? 'rotate(90deg)' : 'rotate(0deg)' }}>▸</span>
               ✅ 已完成 ({completed.length})
             </button>
             {showCompleted && completed.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
+              <TaskCard key={task.id} task={task}
                 isActive={task.id === activeTaskId}
-                onClick={() => setActiveTask(task.id)}
-              />
+                onClick={() => setActiveTask(task.id)} />
             ))}
           </div>
         )}
 
-        {/* Empty state */}
-        {tasks.length === 0 && (
+        {projectTasks.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
             <ListTodo className="h-8 w-8 text-[var(--color-text-tertiary)] mb-2" />
             <p className="text-xs text-[var(--color-text-tertiary)]">暂无任务</p>
@@ -868,17 +887,17 @@ Expected: No errors
 
 ```bash
 git add src/apps/drama/components/task-list/TaskListPanel.tsx
-git commit -m "feat: add TaskListPanel component"
+git commit -m "feat: add TaskListPanel component with project filtering"
 ```
 
 ---
 
-### Task 7: Build TaskChatHeader component
+### Task 8: Build TaskChatHeader component
 
 **Files:**
 - Create: `src/apps/drama/components/task-chat/TaskChatHeader.tsx`
 
-- [ ] **Step 1: Create TaskChatHeader**
+- [ ] **Step 1: Create TaskChatHeader** (using CSS custom properties only)
 
 ```typescript
 // src/apps/drama/components/task-chat/TaskChatHeader.tsx
@@ -893,23 +912,15 @@ interface TaskChatHeaderProps {
   onContinueEdit: () => void;
 }
 
-const statusBadge: Record<AgentTask['status'], { label: string; className: string }> = {
-  in_progress: {
-    label: '进行中',
-    className: 'bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)]',
-  },
-  pending_review: {
-    label: '待审查',
-    className: 'bg-purple-100 text-purple-700',
-  },
-  completed: {
-    label: '已完成',
-    className: 'bg-[var(--color-status-success-bg)] text-[var(--color-status-success-text)]',
-  },
-};
-
 export function TaskChatHeader({ task, onDelete, onMarkCompleted, onContinueEdit }: TaskChatHeaderProps) {
-  const badge = statusBadge[task.status];
+  const badgeStyle = task.status === 'pending_review'
+    ? { background: 'var(--color-bg-accent-subtle)', color: 'var(--color-accent-500)' }
+    : task.status === 'completed'
+      ? { background: 'var(--color-status-success-bg)', color: 'var(--color-status-success-text)' }
+      : { background: 'var(--color-status-warning-bg)', color: 'var(--color-status-warning-text)' };
+
+  const badgeLabel = task.status === 'pending_review' ? '待审查'
+    : task.status === 'completed' ? '已完成' : '进行中';
 
   return (
     <div className="flex items-center gap-2 border-b border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-3 py-2">
@@ -917,23 +928,27 @@ export function TaskChatHeader({ task, onDelete, onMarkCompleted, onContinueEdit
         {task.title || '新任务'}
       </span>
 
-      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${badge.className}`}>
-        {badge.label}
+      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0"
+        style={badgeStyle}>
+        {badgeLabel}
       </span>
 
-      {/* Action buttons based on status */}
       <div className="flex items-center gap-1 flex-shrink-0">
         {task.status === 'pending_review' && (
           <>
             <button
               onClick={onMarkCompleted}
-              className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+              className="text-[10px] px-1.5 py-0.5 rounded font-medium
+                bg-[var(--color-status-success-bg)] text-[var(--color-status-success-text)]
+                hover:opacity-80 transition-opacity"
             >
               ✓ 完成
             </button>
             <button
               onClick={onContinueEdit}
-              className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border-default)] transition-colors"
+              className="text-[10px] px-1.5 py-0.5 rounded font-medium
+                bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]
+                hover:bg-[var(--color-border-default)] transition-colors"
             >
               继续修改
             </button>
@@ -942,14 +957,18 @@ export function TaskChatHeader({ task, onDelete, onMarkCompleted, onContinueEdit
         {task.status === 'completed' && (
           <button
             onClick={onContinueEdit}
-            className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border-default)] transition-colors"
+            className="text-[10px] px-1.5 py-0.5 rounded font-medium
+              bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]
+              hover:bg-[var(--color-border-default)] transition-colors"
           >
             继续对话
           </button>
         )}
         <button
           onClick={onDelete}
-          className="p-0.5 rounded text-[var(--color-text-tertiary)] hover:bg-[var(--color-status-danger-bg)] hover:text-[var(--color-status-danger-text)] transition-colors ml-1"
+          className="p-0.5 rounded text-[var(--color-text-tertiary)]
+            hover:bg-[var(--color-status-danger-bg)] hover:text-[var(--color-status-danger-text)]
+            transition-colors ml-1"
           title="删除任务"
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -974,7 +993,291 @@ git commit -m "feat: add TaskChatHeader component"
 
 ---
 
-### Task 8: Build TaskChatPanel component
+### Task 9: Build useTaskSSE hook
+
+**Files:**
+- Create: `src/apps/drama/hooks/useTaskSSE.ts`
+
+- [ ] **Step 1: Study usePandariaSSE.ts pattern**
+
+The hook overrides `chatStore.sendMessage` in a useEffect. On first call it creates a Pandaria session, subscribes SSE, and routes events (text_delta, tool_call_started, tool_call_done, turn_end, error) to chatStore. We replicate this pattern for taskStore.
+
+- [ ] **Step 2: Create useTaskSSE.ts**
+
+```typescript
+// src/apps/drama/hooks/useTaskSSE.ts
+
+import { useEffect, useRef } from 'react';
+import { useTaskStore } from '@drama/stores/taskStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { createSession, sendMessage, subscribeSSE, buildSystemPrompt } from '@drama/lib/pandaria';
+import { findNode } from '@drama/lib/treeUtils';
+import { config } from '@/shared/config';
+
+const TOOL_ENDPOINT = config.toolServerEndpoint;
+
+// Reuse the same tool configs as usePandariaSSE
+const TOOL_CONFIGS = [
+  {
+    name: 'spellpaw_add_node',
+    description: 'Add a node (act/scene/shot) to the project tree.',
+    parameters: {
+      type: 'object',
+      properties: {
+        parentId: { type: 'string' },
+        type: { type: 'string', enum: ['act', 'scene', 'shot'] },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        duration: { type: 'number' },
+      },
+      required: ['parentId', 'type', 'title'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_update_node',
+    description: "Update a node's title or metadata.",
+    parameters: {
+      type: 'object',
+      properties: { nodeId: { type: 'string' }, changes: { type: 'object' } },
+      required: ['nodeId', 'changes'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_delete_node',
+    description: 'Delete a node. CAREFUL: irreversible. Ask user first.',
+    parameters: {
+      type: 'object',
+      properties: { nodeId: { type: 'string' } },
+      required: ['nodeId'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_get_tree',
+    description: 'Get the full project tree structure.',
+    parameters: { type: 'object', properties: {} },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_get_subtree',
+    description: 'Get a subtree starting from a specific node.',
+    parameters: {
+      type: 'object',
+      properties: { nodeId: { type: 'string' } },
+      required: ['nodeId'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_apply_template',
+    description: 'Apply a narrative template to the current project.',
+    parameters: {
+      type: 'object',
+      properties: { templateId: { type: 'string' }, parentId: { type: 'string' } },
+      required: ['templateId'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_generate_storyboard',
+    description: 'Generate a storyboard reference image for a scene or shot.',
+    parameters: {
+      type: 'object',
+      properties: { nodeId: { type: 'string' }, prompt: { type: 'string' } },
+      required: ['nodeId'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_analyze_structure',
+    description: 'Analyze project structure health.',
+    parameters: { type: 'object', properties: {} },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_get_pacing_report',
+    description: 'Get detailed pacing report with duration statistics.',
+    parameters: { type: 'object', properties: {} },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_match_template',
+    description: 'Match project against built-in narrative templates.',
+    parameters: { type: 'object', properties: {} },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_optimize_pacing',
+    description: 'Auto-adjust scene durations based on pacing analysis.',
+    parameters: {
+      type: 'object',
+      properties: { dryRun: { type: 'boolean' } },
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+];
+
+/**
+ * Manages per-task Pandaria sessions and SSE.
+ * Overrides taskStore.sendMessage to create sessions on first use,
+ * send messages to Pandaria, and route SSE events to taskStore.
+ *
+ * Follows the same pattern as usePandariaSSE.
+ */
+export function useTaskSSE() {
+  const overrideRef = useRef<((content: string) => void) | null>(null);
+
+  const {
+    startStreaming, appendDelta, startToolCall, endToolCall, endStreaming,
+    sendMessage: storeSendMessage, setTaskSessionId, updateTaskTitle,
+  } = useTaskStore();
+
+  useEffect(() => {
+    const taskSessions = new Map<string, string>(); // taskId → sessionId
+    const taskSSE = new Map<string, { close: () => void }>(); // taskId → SSE closer
+    let initError = false;
+
+    // Override sendMessage to intercept and route to Pandaria
+    const originalSend = useTaskStore.getState().sendMessage;
+    overrideRef.current = useTaskStore.getState().sendMessage;
+
+    useTaskStore.setState({
+      sendMessage: async (taskId: string, content: string) => {
+        // 1. Append user message locally
+        storeSendMessage(taskId, content);
+
+        try {
+          // 2. Create Pandaria session if first message for this task
+          if (!taskSessions.has(taskId)) {
+            const projectStore = useProjectStore.getState();
+            const tree = projectStore.getCurrentTree();
+            const currentProjectId = projectStore.currentProjectId;
+            const projectTitle = projectStore.projects.find(
+              (p) => p.id === currentProjectId
+            )?.title ?? 'Untitled';
+
+            const treeText = tree ? treeToPromptText(tree, 0) : '(空项目)';
+            const systemPrompt = buildSystemPrompt(projectTitle, treeText);
+            const session = await createSession(projectTitle, systemPrompt, TOOL_CONFIGS);
+
+            taskSessions.set(taskId, session.id);
+            setTaskSessionId(taskId, session.id);
+
+            // 3. Subscribe to SSE
+            const sse = subscribeSSE(session.id, (event) => {
+              const currentState = useTaskStore.getState();
+              // Ignore events if streaming task doesn't match
+              if (currentState.streamingTaskId !== taskId && event.type !== 'error') return;
+
+              switch (event.type) {
+                case 'message_start':
+                  startStreaming(taskId, crypto.randomUUID());
+                  break;
+                case 'text_delta':
+                  appendDelta(event.delta as string);
+                  break;
+                case 'tool_call_started':
+                  startToolCall(event.call_id as string, event.name as string);
+                  break;
+                case 'tool_call_done':
+                  endToolCall(event.call_id as string);
+                  break;
+                case 'turn_end': {
+                  const stopReason = event.stop_reason as string;
+                  endStreaming(stopReason);
+                  // Auto-generate title from first turn
+                  const task = useTaskStore.getState().tasks.find((t) => t.id === taskId);
+                  if (task && !task.title && task.messages.length > 1) {
+                    const agentMsg = [...task.messages].reverse().find((m) => m.role === 'agent');
+                    if (agentMsg?.content) {
+                      updateTaskTitle(taskId, agentMsg.content.slice(0, 30));
+                    }
+                  }
+                  break;
+                }
+                case 'error':
+                  appendDelta(`\n\n❌ ${event.message}`);
+                  endStreaming('error');
+                  break;
+              }
+            });
+            taskSSE.set(taskId, sse);
+          }
+
+          // 4. Send message to Pandaria
+          const sessionId = taskSessions.get(taskId);
+          if (sessionId) {
+            const projectStore = useProjectStore.getState();
+            const tree = projectStore.getCurrentTree();
+            const selectedNodeId = projectStore.selectedNodeId;
+            let enrichedContent = content;
+
+            if (selectedNodeId && tree) {
+              const node = findNode(tree, selectedNodeId);
+              if (node) {
+                const path = projectStore.getSelectedNodePath();
+                enrichedContent = `[当前节点：${path.join(' > ')}]\n\n${content}`;
+              }
+            }
+
+            await sendMessage(sessionId, enrichedContent);
+          }
+        } catch (err) {
+          initError = true;
+          appendDelta(`\n\n❌ 连接失败: ${(err as Error).message}`);
+          endStreaming('error');
+        }
+      },
+    });
+
+    return () => {
+      // Restore original sendMessage
+      useTaskStore.setState({ sendMessage: originalSend });
+      // Close all SSE connections
+      for (const sse of taskSSE.values()) {
+        sse.close();
+      }
+    };
+    // Run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
+
+function treeToPromptText(
+  node: { title: string; type: string; children?: Array<Record<string, unknown>> },
+  depth: number
+): string {
+  const indent = '  '.repeat(depth);
+  let text = `${indent}${node.type}「${node.title}」`;
+  if (node.children) {
+    for (const child of node.children) {
+      text += '\n' + treeToPromptText(
+        child as { title: string; type: string; children?: Array<Record<string, unknown>> },
+        depth + 1
+      );
+    }
+  }
+  return text;
+}
+```
+
+- [ ] **Step 2: Verify compiles**
+
+Run: `npx tsc --noEmit --project tsconfig.app.json 2>&1 | head -20`
+Expected: May have warnings about unused `initError` (remove if so). No type errors.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/apps/drama/hooks/useTaskSSE.ts
+git commit -m "feat: add useTaskSSE hook for per-task Pandaria SSE management"
+```
+
+---
+
+### Task 10: Build TaskChatPanel component
 
 **Files:**
 - Create: `src/apps/drama/components/task-chat/TaskChatPanel.tsx`
@@ -990,18 +1293,20 @@ import { MessageList } from '@drama/components/chat-panel/MessageList';
 import { MessageInput } from '@drama/components/chat-panel/MessageInput';
 import { TaskChatHeader } from './TaskChatHeader';
 import { useTaskStore } from '@drama/stores/taskStore';
-import type { ChatAction } from '@drama/types';
+import { useProjectStore } from '@drama/stores/projectStore';
 
 export function TaskChatPanel() {
   const tasks = useTaskStore((s) => s.tasks);
   const activeTaskId = useTaskStore((s) => s.activeTaskId);
   const streamingMessage = useTaskStore((s) => s.streamingMessage);
   const streamingTaskId = useTaskStore((s) => s.streamingTaskId);
+  const toolCalls = useTaskStore((s) => s.toolCalls);
   const createTask = useTaskStore((s) => s.createTask);
   const sendMessage = useTaskStore((s) => s.sendMessage);
   const deleteTask = useTaskStore((s) => s.deleteTask);
   const markCompleted = useTaskStore((s) => s.markCompleted);
   const markInProgress = useTaskStore((s) => s.markInProgress);
+  const currentProjectId = useProjectStore((s) => s.currentProjectId);
 
   const activeTask = tasks.find((t) => t.id === activeTaskId) ?? null;
   const isStreaming = streamingTaskId === activeTaskId && streamingMessage !== null;
@@ -1009,13 +1314,14 @@ export function TaskChatPanel() {
   const handleSend = useCallback((content: string) => {
     if (activeTaskId) {
       sendMessage(activeTaskId, content);
-    } else {
-      const newId = createTask();
+    } else if (currentProjectId) {
+      const newId = createTask(currentProjectId);
+      // sendMessage is now intercepted by useTaskSSE which calls Pandaria
       sendMessage(newId, content);
     }
-  }, [activeTaskId, sendMessage, createTask]);
+  }, [activeTaskId, sendMessage, createTask, currentProjectId]);
 
-  // Empty state: no active task
+  // Empty state: no active task selected
   if (!activeTask) {
     return (
       <div className="flex h-full flex-col bg-[var(--color-bg-primary)]">
@@ -1033,7 +1339,7 @@ export function TaskChatPanel() {
     );
   }
 
-  // Active task chat
+  // Active task chat view
   return (
     <div className="flex h-full flex-col bg-[var(--color-bg-primary)]">
       <TaskChatHeader
@@ -1046,6 +1352,7 @@ export function TaskChatPanel() {
         messages={activeTask.messages}
         streamingMessage={isStreaming ? streamingMessage : null}
         isLoading={isStreaming}
+        toolCalls={isStreaming ? toolCalls : []}
       />
       <MessageInput onSend={handleSend} disabled={isStreaming} />
     </div>
@@ -1062,148 +1369,53 @@ Expected: No errors
 
 ```bash
 git add src/apps/drama/components/task-chat/TaskChatPanel.tsx
-git commit -m "feat: add TaskChatPanel component"
+git commit -m "feat: add TaskChatPanel component with empty state and task chat view"
 ```
 
 ---
 
-### Task 9: Build useTaskSSE hook
-
-**Files:**
-- Create: `src/apps/drama/hooks/useTaskSSE.ts`
-
-- [ ] **Step 1: Create useTaskSSE hook**
-
-```typescript
-// src/apps/drama/hooks/useTaskSSE.ts
-
-import { useEffect, useRef } from 'react';
-import { useTaskStore } from '@drama/stores/taskStore';
-import { createPandariaSession, postMessage, subscribeSSE, type SSECallbacks } from '@drama/lib/pandaria';
-import { useProjectStore } from '@drama/stores/projectStore';
-import { buildSystemPrompt } from '@drama/lib/pandaria';
-
-/**
- * Manages per-task Pandaria SSE connections.
- * Wires SSE events into taskStore for the active task.
- */
-export function useTaskSSE() {
-  const activeTaskId = useTaskStore((s) => s.activeTaskId);
-  const tasks = useTaskStore((s) => s.tasks);
-  const tree = useProjectStore((s) => s.getCurrentTree());
-
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const currentTaskIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    const activeTask = tasks.find((t) => t.id === activeTaskId);
-
-    // Close existing connection if task changed
-    if (currentTaskIdRef.current !== activeTaskId) {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      currentTaskIdRef.current = activeTaskId;
-    }
-
-    // No active task or no session — nothing to subscribe
-    if (!activeTask?.sessionId) return;
-
-    // Already connected to this task
-    if (eventSourceRef.current) return;
-
-    // SSE callbacks wired to taskStore
-    const callbacks: SSECallbacks = {
-      onTextDelta: (delta) => {
-        useTaskStore.getState().appendDelta(delta);
-      },
-      onToolCallStarted: (callId, name) => {
-        useTaskStore.getState().startToolCall(callId, name);
-      },
-      onToolCallDone: (callId) => {
-        useTaskStore.getState().endToolCall(callId);
-      },
-      onTurnEnd: () => {
-        useTaskStore.getState().endStreaming();
-      },
-      onError: (error) => {
-        console.error('[useTaskSSE] SSE error:', error);
-        useTaskStore.getState().endStreaming();
-      },
-    };
-
-    const es = subscribeSSE(activeTask.sessionId, callbacks);
-    eventSourceRef.current = es;
-
-    return () => {
-      es.close();
-      eventSourceRef.current = null;
-    };
-  }, [activeTaskId, tasks]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-    };
-  }, []);
-}
-```
-
-- [ ] **Step 2: Verify compiles**
-
-Run: `npx tsc --noEmit --project tsconfig.app.json 2>&1 | grep "useTaskSSE" || echo "No errors"`
-Expected: No errors (may have import errors if pandaria.ts doesn't have these exports — that's OK, will wire up in next task. Just check for syntax errors.)
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add src/apps/drama/hooks/useTaskSSE.ts
-git commit -m "feat: add useTaskSSE hook for per-task SSE management"
-```
-
----
-
-### Task 10: Update WorkspacePage
+### Task 11: Update WorkspacePage
 
 **Files:**
 - Modify: `src/apps/drama/pages/WorkspacePage.tsx`
 
-- [ ] **Step 1: Replace left and center panels**
+- [ ] **Step 1: Replace imports and panels**
 
-Edit `src/apps/drama/pages/WorkspacePage.tsx` to:
+Edit `src/apps/drama/pages/WorkspacePage.tsx`:
 
-- Remove imports: `TreeViewPanel`, `AssetManagerPanel`, `ChatPanel`, `useToolBridge`, `DetailPanel` imports (keep others)
-- Add imports: `TaskListPanel`, `TaskChatPanel`, `useTaskSSE`
-- Replace the left panel Group (with TreeViewPanel + AssetManagerPanel) with just `TaskListPanel`
-- Replace the center panel ChatPanel with `TaskChatPanel`
-- Remove the center panel's right border (it previously shared with right panel)
-- Keep everything else: Navbar, FlowCanvasPanel, DeleteConfirmDialog, ConflictResolverModal, hotkeys
-
-Actual code changes to WorkspacePage.tsx:
-
+**Remove these imports:**
 ```typescript
-// Replace these imports:
 import { TreeViewPanel } from '@drama/components/tree-view/TreeViewPanel';
 import { AssetManagerPanel } from '@drama/components/asset-manager/AssetManagerPanel';
 import { ChatPanel } from '@drama/components/chat-panel/ChatPanel';
 import { useToolBridge } from '@drama/hooks/useToolBridge';
+import { useDetailStore } from '@drama/stores/detailStore';
+```
 
-// With:
+**Add these imports:**
+```typescript
 import { TaskListPanel } from '@drama/components/task-list/TaskListPanel';
 import { TaskChatPanel } from '@drama/components/task-chat/TaskChatPanel';
 import { useTaskSSE } from '@drama/hooks/useTaskSSE';
-import { useTaskStore } from '@drama/stores/taskStore';
 ```
 
-Replace `useToolBridge();` with `useTaskSSE();`
+**Replace:**
+```typescript
+useToolBridge();
+```
+With:
+```typescript
+useToolBridge();  // Keep: still needed for tool calls from ANY source (tasks or chat)
+useTaskSSE();     // Add: manage per-task Pandaria SSE
+```
 
-Remove the `const activeTab = useDetailStore(...)` and `const setActiveTab = useDetailStore(...)` lines (DetailPanel removed).
+**Remove:**
+```typescript
+const activeTab = useDetailStore((s) => s.activeTab);
+const setActiveTab = useDetailStore((s) => s.setActiveTab);
+```
 
-Replace the entire left Panel block (the Group with vertical split for TreeViewPanel + AssetManagerPanel) with:
+**Replace the entire left Panel block** (the Group with vertical split) with:
 
 ```tsx
 <Panel id="left" defaultSize="18%" minSize="18%" maxSize="28%" collapsible collapsedSize="0%" style={{ minWidth: 240 }}>
@@ -1213,7 +1425,7 @@ Replace the entire left Panel block (the Group with vertical split for TreeViewP
 </Panel>
 ```
 
-Replace the center Panel block (ChatPanel with TabBar) with:
+**Replace the center Panel block** (ChatPanel with TabBar) with:
 
 ```tsx
 <Panel id="center" defaultSize="30%" minSize="22%" maxSize="40%" style={{ minWidth: 280 }}>
@@ -1223,28 +1435,44 @@ Replace the center Panel block (ChatPanel with TabBar) with:
 </Panel>
 ```
 
-The `toggleSidebar` function now just hides/shows the left task list panel (simplified).
+**Fix toggleSidebar ratios** for new layout:
+```typescript
+const toggleSidebar = () => {
+  const layout = groupRef.current?.getLayout();
+  if (!layout) return;
+  const leftSize = (layout as Record<string, number>).left ?? 0;
+  if (leftSize > 5) {
+    groupRef.current?.setLayout({ left: 0, center: 30, right: 70 });
+  } else {
+    groupRef.current?.setLayout({ left: 18, center: 30, right: 52 });
+  }
+};
+```
 
-Remove `selectedNodeId`-dependent hotkeys that no longer apply:
-- Remove the `Delete` hotkey handler (node deletion via tree view)
-- Remove the `Escape` handler's `activeTab` condition
+**Remove hotkey handlers that reference removed features:**
+- Remove the `Delete` hotkey handler (tree node deletion)
+- Simplify `Escape` handler — remove `activeTab` condition:
+```typescript
+Escape: () => {
+  if (deleteTarget) {
+    setDeleteTarget(null);
+  } else {
+    selectNode(null);
+  }
+},
+```
+
+**Remove the `Cmd+Enter` no-op:**
+```typescript
+'Cmd+Enter': () => {},
+```
 
 - [ ] **Step 2: Verify compiles**
 
-Run: `npx tsc --noEmit --project tsconfig.app.json 2>&1 | head -40`
-Expected: No new errors (may have pre-existing warnings)
+Run: `npx tsc --noEmit --project tsconfig.app.json 2>&1 | head -30`
+Expected: No new type errors (may have pre-existing warnings)
 
-- [ ] **Step 3: Run existing tests to check for regressions**
-
-Run: `npx vitest run 2>&1 | tail -20`
-Expected: All previously passing tests continue to pass (except WorkspacePage-related tests if any)
-
-- [ ] **Step 4: Manual verification — start dev server**
-
-Run: `npm run dev` and open `http://localhost:5173`
-Expected: Left panel shows "暂无任务" empty state. Center panel shows "新对话" empty state. Input box works. Right panel shows canvas.
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add src/apps/drama/pages/WorkspacePage.tsx
@@ -1253,31 +1481,47 @@ git commit -m "feat: replace left/center panels with TaskListPanel and TaskChatP
 
 ---
 
-### Task 11: Integration verification & cleanup
+### Task 12: Integration verification
 
-**Files:**
-- No new files. Run full test suite and check for issues.
+**Files:** None (verification only)
 
 - [ ] **Step 1: Run full test suite**
 
-Run: `npm test`
-Expected: All tests pass (or identify specific tests that need updating)
+```bash
+npm test 2>&1 | tail -20
+```
+Expected: All previously-passing tests continue to pass
 
-- [ ] **Step 2: Run lint**
+- [ ] **Step 2: Fix any test failures**
 
-Run: `npm run lint`
-Expected: No new lint errors
+Update WorkspacePage-related tests that reference old panel layout.
 
-- [ ] **Step 3: Remove unused imports from WorkspacePage**
+- [ ] **Step 3: Run lint**
 
-Ensure all unused imports are removed from WorkspacePage.tsx (e.g., `useToolBridge`, `useDetailStore`, `ChatPanel`, `TreeViewPanel`, `AssetManagerPanel` imports).
+```bash
+npm run lint 2>&1 | tail -10
+```
+Expected: No new lint errors introduced
 
-Run: `npx tsc --noEmit --project tsconfig.app.json 2>&1 | grep "unused\|not used" || echo "No unused warnings"`
-Expected: Clean
+- [ ] **Step 4: Remove unused imports from WorkspacePage**
 
-- [ ] **Step 4: Final commit**
+```bash
+npx tsc --noEmit --project tsconfig.app.json 2>&1 | grep -i "unused\|is declared but"
+```
+Expected: Clean (or only pre-existing warnings)
+
+- [ ] **Step 5: Manual smoke test**
+
+Start dev server, navigate to project workspace, verify:
+1. Left panel shows "暂无任务" empty state
+2. Center panel shows "新对话" empty state with input
+3. Input box visible and accepts text
+4. Right panel shows canvas
+5. No console errors
+
+- [ ] **Step 6: Final commit**
 
 ```bash
 git add -A
-git commit -m "chore: cleanup workspace page imports and verify full test suite"
+git commit -m "chore: integration verification, cleanup unused imports"
 ```

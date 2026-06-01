@@ -44,9 +44,10 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
   return (
     <>
       <div
-        className={`w-[240px] rounded-[var(--radius-base)] border bg-[var(--color-bg-secondary)] shadow-sm transition-shadow ${
-          selected ? 'border-[var(--color-accent-500)] shadow-md' : 'border-[var(--color-border-default)]'
-        }`}
+      className={`w-[240px] rounded-[var(--radius-base)] border shadow-sm transition-shadow ${
+        selected ? 'border-[var(--color-accent-500)] shadow-md' : 'border-[var(--color-border-default)]'
+      }`}
+      style={{ background: 'var(--color-bg-primary)' }}
       >
         <Handle type="target" position={Position.Left} className="!bg-[var(--color-accent-500)]" />
 

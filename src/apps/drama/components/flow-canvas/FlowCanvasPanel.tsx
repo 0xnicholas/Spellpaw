@@ -115,6 +115,7 @@ export function FlowCanvasPanel() {
           onNodeContextMenu={onNodeContextMenu}
           onPaneClick={closeContextMenu}
           fitView
+          style={{ background: 'var(--color-base-gray-200)' }}
           proOptions={{ hideAttribution: true }}
           className="bg-[var(--color-base-gray-200)]"
         >

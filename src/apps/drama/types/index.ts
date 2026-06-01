@@ -62,6 +62,19 @@ export interface ChatMessage {
   actions?: ChatAction[];
 }
 
+// Task
+
+export interface AgentTask {
+  id: string;
+  title: string;
+  status: 'in_progress' | 'pending_review' | 'completed';
+  messages: ChatMessage[];
+  projectId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  sessionId?: string;
+}
+
 // Canvas
 export type CanvasNodeType = 'sceneCard' | 'assetCard';
 

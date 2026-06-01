@@ -1007,7 +1007,7 @@ The hook overrides `chatStore.sendMessage` in a useEffect. On first call it crea
 ```typescript
 // src/apps/drama/hooks/useTaskSSE.ts
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useTaskStore } from '@drama/stores/taskStore';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { createSession, sendMessage, subscribeSSE, buildSystemPrompt } from '@drama/lib/pandaria';
@@ -1127,8 +1127,6 @@ const TOOL_CONFIGS = [
  * Follows the same pattern as usePandariaSSE.
  */
 export function useTaskSSE() {
-  const overrideRef = useRef<((content: string) => void) | null>(null);
-
   const {
     startStreaming, appendDelta, startToolCall, endToolCall, endStreaming,
     sendMessage: storeSendMessage, setTaskSessionId, updateTaskTitle,
@@ -1137,11 +1135,9 @@ export function useTaskSSE() {
   useEffect(() => {
     const taskSessions = new Map<string, string>(); // taskId → sessionId
     const taskSSE = new Map<string, { close: () => void }>(); // taskId → SSE closer
-    let initError = false;
 
     // Override sendMessage to intercept and route to Pandaria
     const originalSend = useTaskStore.getState().sendMessage;
-    overrideRef.current = useTaskStore.getState().sendMessage;
 
     useTaskStore.setState({
       sendMessage: async (taskId: string, content: string) => {
@@ -1225,14 +1221,26 @@ export function useTaskSSE() {
             await sendMessage(sessionId, enrichedContent);
           }
         } catch (err) {
-          initError = true;
           appendDelta(`\n\n❌ 连接失败: ${(err as Error).message}`);
           endStreaming('error');
         }
       },
     });
 
+    // Close non-active SSE connections on task switch
+    const unsub = useTaskStore.subscribe((state, prevState) => {
+      if (state.activeTaskId !== prevState.activeTaskId) {
+        for (const [tid, sse] of taskSSE) {
+          if (tid !== state.activeTaskId) {
+            sse.close();
+            taskSSE.delete(tid);
+          }
+        }
+      }
+    });
+
     return () => {
+      unsub();
       // Restore original sendMessage
       useTaskStore.setState({ sendMessage: originalSend });
       // Close all SSE connections
@@ -1525,3 +1533,16 @@ Start dev server, navigate to project workspace, verify:
 git add -A
 git commit -m "chore: integration verification, cleanup unused imports"
 ```
+
+---
+
+## Known Limitations (Deferred)
+
+These are spec requirements intentionally deferred for follow-up:
+
+| Item | Reason |
+|------|--------|
+| SSE 自动重连（spec §8.3） | 需要修改 `pandaria.ts` 的 `subscribeSSE`，现有 `usePandariaSSE` 也没有重连。Phase 1 可用手动重试（重新发消息） |
+| Mock SSE for tasks（spec §8.3） | `useMockSSE.ts` 仅支持 chatStore。Task mock 可在后续添加；开发时可本地运行 Pandaria |
+| 组件集成测试 | 当前计划仅覆盖 taskStore 单元测试。TaskCard/TaskListPanel/TaskChatPanel 渲染测试可在稳定后补充 |
+| DetailPanel 移除（spec §11） | 代码保留，WorkspacePage 中不再渲染。节点元数据编辑和节奏分析通过 Agent 对话完成 |

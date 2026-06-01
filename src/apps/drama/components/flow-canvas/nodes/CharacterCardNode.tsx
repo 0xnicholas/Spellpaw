@@ -25,7 +25,7 @@ export function CharacterCardNode({ data, id, selected }: NodeProps<Node<CanvasN
 
   return (
     <div
-      className={`w-[220px] rounded-[var(--radius-base)] border bg-[var(--color-bg-primary)] shadow-sm transition-shadow ${
+      className={`w-[220px] rounded-[var(--radius-base)] border bg-[var(--color-bg-secondary)] shadow-sm transition-shadow ${
         selected ? 'border-[var(--color-accent-500)] shadow-md' : 'border-[var(--color-border-default)]'
       }`}
     >

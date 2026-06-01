@@ -4,14 +4,25 @@ import { Textarea } from '@/shared/components/ui/Textarea';
 import { IconButton } from '@/shared/components/ui/IconButton';
 import { useChatStore } from '@drama/stores/chatStore';
 
-export function MessageInput() {
+interface MessageInputProps {
+  onSend?: (content: string) => void;
+  disabled?: boolean;
+}
+
+export function MessageInput({ onSend, disabled }: MessageInputProps) {
   const [value, setValue] = useState('');
-  const sendMessage = useChatStore((s) => s.sendMessage);
-  const isLoading = useChatStore((s) => s.isLoading);
+  const storeSendMessage = useChatStore((s) => s.sendMessage);
+  const storeLoading = useChatStore((s) => s.isLoading);
+
+  const isLoading = disabled ?? storeLoading;
 
   const handleSubmit = () => {
     if (!value.trim() || isLoading) return;
-    sendMessage(value.trim());
+    if (onSend) {
+      onSend(value.trim());
+    } else {
+      storeSendMessage(value.trim());
+    }
     setValue('');
   };
 

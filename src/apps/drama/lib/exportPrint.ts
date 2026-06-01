@@ -14,7 +14,7 @@ import type { TreeNode } from '@drama/types';
 
 function findThumbnail(nodeId: string, projectId: string): string | undefined {
   const nodes = useCanvasStore.getState().canvases[projectId]?.nodes ?? [];
-  const card = nodes.find((n) => n.data.linkedTreeNodeId === nodeId);
+  const card = nodes.find((n) => n.type === 'art' && n.data.linkedTreeNodeId === nodeId);
   return card?.data.thumbnail;
 }
 

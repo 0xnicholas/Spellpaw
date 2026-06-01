@@ -1,0 +1,97 @@
+<h2>四种卡片类型：剧本 · 美术 · 产出 · 人物角色</h2>
+<p class="subtitle">新增人物角色卡片 — 同样需要确认：谁创建？什么字段？</p>
+
+<div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px;">
+  <!-- 剧本 -->
+  <div style="border: 2px solid #dbeafe; border-radius: 8px; overflow: hidden; width: 200px;">
+    <div style="background: #dbeafe; padding: 4px 8px; font-size: 10px; font-weight: 600; color: #1e40af;">📝 剧本</div>
+    <div style="padding: 10px;">
+      <div style="font-weight: 600; font-size: 12px;">场景 1-1 · 咖啡馆</div>
+      <div style="font-size: 10px; color: #555; margin-top: 4px; line-height: 1.3;">男主推开门，铃铛响起。她坐在靠窗的位置…</div>
+    </div>
+  </div>
+
+  <!-- 美术 -->
+  <div style="border: 2px solid #fde68a; border-radius: 8px; overflow: hidden; width: 200px;">
+    <div style="background: #fef9c3; padding: 4px 8px; font-size: 10px; font-weight: 600; color: #92400e;">🎨 美术</div>
+    <div style="height: 80px; background: linear-gradient(135deg, #fef3c7, #fde68a); display: flex; align-items: center; justify-content: center; font-size: 24px;">🖼</div>
+    <div style="padding: 8px;">
+      <div style="font-weight: 600; font-size: 12px;">场景 1-1 分镜</div>
+      <div style="font-size: 9px; color: #888;">提示词: 咖啡馆, 阳光...</div>
+    </div>
+  </div>
+
+  <!-- 产出 -->
+  <div style="border: 2px solid #ddd6fe; border-radius: 8px; overflow: hidden; width: 200px;">
+    <div style="background: #ede9fe; padding: 4px 8px; font-size: 10px; font-weight: 600; color: #5b21b6;">📦 产出</div>
+    <div style="padding: 10px;">
+      <div style="font-weight: 600; font-size: 12px;">📊 节奏分析</div>
+      <div style="font-size: 10px; color: #555; margin-top: 4px;">3 个建议 · Agent 生成</div>
+    </div>
+  </div>
+
+  <!-- 人物角色 🆕 -->
+  <div style="border: 2px solid #d1fae5; border-radius: 8px; overflow: hidden; width: 200px;">
+    <div style="background: #d1fae5; padding: 4px 8px; font-size: 10px; font-weight: 600; color: #065f46;">👤 人物角色</div>
+    <div style="padding: 10px; display: flex; gap: 8px;">
+      <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #a7f3d0, #6ee7b7); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">👤</div>
+      <div>
+        <div style="font-weight: 600; font-size: 12px;">林小夏</div>
+        <div style="font-size: 10px; color: #888;">女主 · 25岁 · 咖啡师</div>
+        <div style="font-size: 9px; color: #555; margin-top: 2px;">性格：温柔坚韧，内心敏感</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>人物角色卡片可能的字段</h3>
+  <table style="width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 8px;">
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 4px 8px; font-weight: 600;">name</td><td style="padding: 4px 8px;">角色名</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 4px 8px; font-weight: 600;">role</td><td style="padding: 4px 8px;">身份（男主/女主/配角）</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 4px 8px; font-weight: 600;">age</td><td style="padding: 4px 8px;">年龄</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 4px 8px; font-weight: 600;">occupation</td><td style="padding: 4px 8px;">职业</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 4px 8px; font-weight: 600;">personality</td><td style="padding: 4px 8px;">性格描述</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 4px 8px; font-weight: 600;">appearance</td><td style="padding: 4px 8px;">外貌描述</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 4px 8px; font-weight: 600;">avatar / portrait</td><td style="padding: 4px 8px;">头像/立绘（可选）</td>
+    </tr>
+    <tr>
+      <td style="padding: 4px 8px; font-weight: 600;">notes</td><td style="padding: 4px 8px;">备注</td>
+    </tr>
+  </table>
+</div>
+
+<div class="section">
+  <h3>回到之前的问题</h3>
+  <p style="font-size: 14px;">用户能否<strong>手动</strong>在画布上创建这些卡片（包括人物角色），还是全部由 Agent 创建？</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>全部由 Agent 创建</h3>
+      <p>画布是 Agent 的纯输出展示。用户可以拖拽排列，但不手动创建</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Agent + 用户都可创建</h3>
+      <p>画布有工具栏/右键菜单，用户可以手动添加四种类型的空白卡片</p>
+    </div>
+  </div>
+</div>

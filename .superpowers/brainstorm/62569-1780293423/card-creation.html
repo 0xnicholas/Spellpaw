@@ -1,0 +1,63 @@
+<h2>卡片与项目树的关系 & 创建方式</h2>
+<p class="subtitle">卡片从哪来？和树节点是什么关系？</p>
+
+<div class="section">
+  <h3>当前机制回顾</h3>
+  <p style="font-size: 13px;">现有 <code>sceneCard</code> 有 <code>linkedTreeNodeId</code>，与树节点双向同步。添加场景到树 → 自动创建画布卡片。删除树节点 → 卡片同步删除。</p>
+</div>
+
+<div class="section">
+  <h3>新机制：三种卡片与树的关系？</h3>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>全部独立于树</h3>
+      <p>三种卡片都是画布上的<strong>自由卡片</strong>，不绑定树节点。用户拖入画布、Agent 创建、用户手动创建。树和画布完全解耦</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>剧本卡片 ↔ 树节点双向同步</h3>
+      <p><strong>剧本卡片</strong>保持与树节点的双向同步（现有的 linkedTreeNodeId 机制）。<strong>美术卡片</strong>和<strong>产出卡片</strong>是独立的自由卡片，不绑定树</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>三种都绑定树，但有不同关联方式</h3>
+      <p>剧本 ↔ 场景/镜头节点，美术 ↔ 引用树节点（只读关联），产出 ↔ 不绑定特定节点（全局产出）</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>卡片怎么产生？</h3>
+</div>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="d" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>从画布工具栏拖入</h3>
+      <p>画布顶部有卡片类型选择器，用户拖拽创建空白卡片</p>
+    </div>
+  </div>
+  <div class="option" data-choice="e" onclick="toggleSelect(this)">
+    <div class="letter">E</div>
+    <div class="content">
+      <h3>Agent 在任务中创建</h3>
+      <p>Agent 调用 tool 自动创建卡片（生成分镜 → 美术卡片，分析完成 → 产出卡片）</p>
+    </div>
+  </div>
+  <div class="option" data-choice="f" onclick="toggleSelect(this)">
+    <div class="letter">F</div>
+    <div class="content">
+      <h3>从树节点自动生成</h3>
+      <p>添加场景/镜头到树 → 自动创建对应的剧本卡片到画布（保持现有双向同步）</p>
+    </div>
+  </div>
+</div>

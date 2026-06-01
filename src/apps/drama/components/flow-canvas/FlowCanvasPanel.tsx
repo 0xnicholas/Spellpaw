@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -8,7 +8,6 @@ import {
   type Node,
   type Edge,
   type Connection,
-  type XYPosition,
   type ReactFlowInstance,
   type EdgeChange,
   type NodeTypes,
@@ -16,18 +15,15 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { useCanvasStore } from '@drama/stores/canvasStore';
-import { useProjectStore } from '@drama/stores/projectStore';
-import { useDetailStore } from '@drama/stores/detailStore';
 import type { CanvasNode, CanvasEdge } from '@drama/types';
-import { SceneCardNode } from './nodes/SceneCardNode';
-import { AssetCardNode } from './nodes/AssetCardNode';
-import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
+import { ScriptCardNode, ArtCardNode, OutputCardNode, CharacterCardNode } from './nodes';
 import { generateId } from '@/shared/lib/utils';
-import { collectScenes } from '@drama/lib/treeUtils';
 
 const nodeTypes: NodeTypes = {
-  sceneCard: SceneCardNode,
-  assetCard: AssetCardNode,
+  script: ScriptCardNode,
+  art: ArtCardNode,
+  output: OutputCardNode,
+  character: CharacterCardNode,
 };
 
 interface ContextMenuState {
@@ -43,39 +39,17 @@ export function FlowCanvasPanel() {
   const syncNodes = useCanvasStore((s) => s.syncNodes);
   const syncEdges = useCanvasStore((s) => s.syncEdges);
   const addEdge = useCanvasStore((s) => s.addEdge);
-  const addNodeFromAsset = useCanvasStore((s) => s.addNodeFromAsset);
   const duplicateNode = useCanvasStore((s) => s.duplicateNode);
   const removeNode = useCanvasStore((s) => s.removeNode);
-  const updateNodeData = useCanvasStore((s) => s.updateNodeData);
-  const selectNode = useProjectStore((s) => s.selectNode);
-  const tree = useProjectStore((s) => s.getCurrentTree());
-  const deleteTreeNode = useProjectStore((s) => s.deleteTreeNode);
-  const focusCanvasLinkedId = useDetailStore((s) => s.focusCanvasLinkedId);
-  const clearFocusCanvas = useDetailStore((s) => s.clearFocusCanvas);
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ nodeId: string; isLinked: boolean } | null>(null);
 
   const persistedNodes = getCurrentNodes();
   const persistedEdges = getCurrentEdges();
 
   const [nodes, , onNodesChange] = useNodesState(persistedNodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(persistedEdges as Edge[]);
-
-  // Focus on canvas card when DetailPanel requests it
-  useEffect(() => {
-    if (!focusCanvasLinkedId) return;
-    const targetNode = nodes.find((n: Node) => n.data?.linkedTreeNodeId === focusCanvasLinkedId);
-    if (targetNode) {
-      setTimeout(() => {
-        reactFlowRef.current?.fitView({ nodes: [targetNode], duration: 300, maxZoom: 1.5 });
-        clearFocusCanvas();
-      }, 50);
-    } else {
-      clearFocusCanvas();
-    }
-  }, [focusCanvasLinkedId, nodes, clearFocusCanvas]);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -103,40 +77,6 @@ export function FlowCanvasPanel() {
     [onEdgesChange, edges, syncEdges]
   );
 
-  const onDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-      const assetId = event.dataTransfer.getData('assetId');
-      if (!assetId) return;
-
-      const bounds = (event.target as HTMLElement).closest('.react-flow')?.getBoundingClientRect();
-      if (!bounds) return;
-
-      const position: XYPosition = {
-        x: event.clientX - bounds.left,
-        y: event.clientY - bounds.top,
-      };
-
-      addNodeFromAsset({ id: assetId, name: 'Asset', type: 'other', size: 0, status: 'ready', createdAt: '' }, position);
-    },
-    [addNodeFromAsset]
-  );
-
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
-  }, []);
-
-  const onNodeDoubleClick = useCallback(
-    (_: React.MouseEvent, node: Node) => {
-      const linkedId = node.data?.linkedTreeNodeId as string | undefined;
-      if (linkedId) {
-        selectNode(linkedId);
-      }
-    },
-    [selectNode]
-  );
-
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
@@ -149,53 +89,20 @@ export function FlowCanvasPanel() {
 
   const handleContextAction = (action: string) => {
     if (!contextMenu) return;
-
     switch (action) {
-      case 'edit':
-        // Double-click simulation is handled in node components
-        break;
       case 'duplicate':
         duplicateNode(contextMenu.nodeId);
         break;
-      case 'delete': {
-        const isLinked = !!contextMenu.data.linkedTreeNodeId;
-        if (isLinked) {
-          setDeleteConfirm({ nodeId: contextMenu.nodeId, isLinked: true });
-        } else {
-          removeNode(contextMenu.nodeId);
-        }
+      case 'delete':
+        removeNode(contextMenu.nodeId);
         break;
-      }
-      case 'sync': {
-        // Sync to Tree: show unlinked scenes submenu (handled differently)
-        break;
-      }
     }
     closeContextMenu();
   };
 
-  const confirmDelete = () => {
-    if (!deleteConfirm) return;
-    if (deleteConfirm.isLinked) {
-      const node = persistedNodes.find((n) => n.id === deleteConfirm.nodeId);
-      if (node?.data.linkedTreeNodeId) {
-        deleteTreeNode(node.data.linkedTreeNodeId);
-      }
-    }
-    removeNode(deleteConfirm.nodeId);
-    setDeleteConfirm(null);
-  };
-
-  // Collect unlinked scenes for sync-to-tree submenu
-  const allScenes = tree ? collectScenes(tree) : [];
-  const linkedIds = new Set(persistedNodes.map((n) => n.data.linkedTreeNodeId).filter(Boolean));
-  const unlinkedScenes = allScenes.filter((s) => !linkedIds.has(s.id));
-
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 relative overflow-hidden">
-        {/* Toolbar */}
-
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -205,9 +112,6 @@ export function FlowCanvasPanel() {
           onEdgesChange={onEdgesChangeWrapper}
           onConnect={onConnect}
           onNodeDragStop={onNodeDragStop}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          onNodeDoubleClick={onNodeDoubleClick}
           onNodeContextMenu={onNodeContextMenu}
           onPaneClick={closeContextMenu}
           fitView
@@ -218,58 +122,24 @@ export function FlowCanvasPanel() {
           <Controls className="!rounded-[var(--radius-base)] !border !border-[var(--color-border-default)] !shadow-sm" />
         </ReactFlow>
 
-        {/* Custom Context Menu */}
+        {/* Context Menu */}
         {contextMenu && (
           <>
             <div className="fixed inset-0 z-40" onClick={closeContextMenu} />
             <div
-              className="fixed z-50 min-w-[160px] rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] py-1 shadow-lg"
+              className="fixed z-50 min-w-[140px] rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] py-1 shadow-lg"
               style={{ left: contextMenu.x, top: contextMenu.y }}
             >
-              <button onClick={() => handleContextAction('edit')} className="block w-full px-3 py-1.5 text-left text-xs hover:bg-[var(--color-bg-secondary)]">
-                编辑
-              </button>
               <button onClick={() => handleContextAction('duplicate')} className="block w-full px-3 py-1.5 text-left text-xs hover:bg-[var(--color-bg-secondary)]">
                 复制
               </button>
-              {contextMenu.data.linkedTreeNodeId ? (
-                <button onClick={() => handleContextAction('delete')} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-[var(--color-bg-secondary)]">
-                  删除
-                </button>
-              ) : (
-                <button onClick={() => handleContextAction('delete')} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-[var(--color-bg-secondary)]">
-                  删除
-                </button>
-              )}
-              {!contextMenu.data.linkedTreeNodeId && unlinkedScenes.length > 0 && (
-                <div className="border-t border-[var(--color-border-default)] mt-1 pt-1">
-                  <span className="block px-3 py-1 text-[10px] text-[var(--color-text-tertiary)]">同步到树</span>
-                  {unlinkedScenes.map((scene) => (
-                    <button
-                      key={scene.id}
-                      onClick={() => {
-                        updateNodeData(contextMenu.nodeId, { linkedTreeNodeId: scene.id, title: scene.title, status: scene.status, description: scene.metadata?.description });
-                        closeContextMenu();
-                      }}
-                      className="block w-full px-5 py-1 text-left text-xs hover:bg-[var(--color-bg-secondary)]"
-                    >
-                      {scene.title}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <button onClick={() => handleContextAction('delete')} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-[var(--color-bg-secondary)]">
+                删除
+              </button>
             </div>
           </>
         )}
       </div>
-
-      <DeleteConfirmDialog
-        isOpen={!!deleteConfirm}
-        title="删除画布卡片"
-        description={deleteConfirm?.isLinked ? "同时从项目树中删除？" : "确认删除此卡片？"}
-        onConfirm={confirmDelete}
-        onCancel={() => setDeleteConfirm(null)}
-      />
     </div>
   );
 }

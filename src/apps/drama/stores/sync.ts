@@ -59,6 +59,9 @@ useCanvasStore.subscribe((state) => {
 
   const nodes = state.canvases[projectId]?.nodes ?? [];
 
+  // Phase 3: tree/canvas decoupled — sync disabled
+  if (true) return;
+
   for (const node of nodes) {
     const prev = prevCanvasNodes.get(node.id);
     if (!prev) continue;
@@ -112,6 +115,9 @@ useProjectStore.subscribe((state) => {
 
   const cs = useCanvasStore.getState();
   const canvasNodes = cs.canvases[projectId]?.nodes ?? [];
+
+  // Phase 3: tree/canvas decoupled — sync disabled
+  if (true) return;
 
   // 1. Field-level sync: title / status / description
   for (const card of canvasNodes) {

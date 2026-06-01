@@ -1,0 +1,60 @@
+<h2>画布卡片重新设计：剧本 · 美术 · 产出</h2>
+<p class="subtitle">当前 2 种卡片 → 新 3 种卡片，每种不同字段和视觉表达</p>
+
+<div class="section">
+  <h3>当前画布卡片</h3>
+  <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+    <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; width: 200px;">
+      <div style="background: #f0fdf4; padding: 4px 8px; font-size: 10px; font-weight: 600;">sceneCard</div>
+      <div style="background: #ddd; height: 100px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #888;">缩略图 9:16</div>
+      <div style="padding: 8px;">
+        <div style="font-weight: 600; font-size: 12px;">场景 1-1</div>
+        <div style="font-size: 10px; color: #888;">描述文字…</div>
+        <span style="font-size: 9px; background: #dbeafe; padding: 1px 6px; border-radius: 8px;">进行中</span>
+      </div>
+    </div>
+    <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; width: 200px;">
+      <div style="background: #fef3c7; padding: 4px 8px; font-size: 10px; font-weight: 600;">assetCard</div>
+      <div style="padding: 8px; display: flex; gap: 8px; align-items: center;">
+        <div style="width: 32px; height: 32px; background: #f3f4f6; border-radius: 4px; display: flex; align-items: center; justify-content: center;">🎬</div>
+        <div>
+          <div style="font-weight: 600; font-size: 12px;">素材名称</div>
+          <div style="font-size: 9px; color: #888;">video</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>你想要的三种卡片</h3>
+  <p>请帮我明确：这三种类型代表什么？</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>按创作阶段分</h3>
+      <p><strong>剧本</strong> = 写作阶段（大纲、对白、场景描述）<br>
+      <strong>美术</strong> = 视觉阶段（分镜图、风格参考、角色设计）<br>
+      <strong>产出</strong> = 最终成品（视频片段、字幕文件、导出）</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>按内容性质分</h3>
+      <p><strong>剧本</strong> = 纯文字内容（场景描述、对白、笔记）<br>
+      <strong>美术</strong> = 视觉资源（分镜图、参考图、风格板）<br>
+      <strong>产出</strong> = Agent 生成的结果（分析报告、建议列表、生成的场景）</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>其他理解</h3>
+      <p>请在聊天中说明你对这三种类型的理解</p>
+    </div>
+  </div>
+</div>

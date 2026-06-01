@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CanvasNode, CanvasEdge, AssetItem } from '@drama/types';
+import type { CanvasNode, CanvasEdge } from '@drama/types';
 import { mockCanvasNodes, mockCanvasEdges } from '@drama/data/mockCanvasData';
 import { generateId } from '@/shared/lib/utils';
 import { createIDBStorage } from '@/shared/lib/idbStorage';
@@ -30,7 +30,6 @@ interface CanvasState {
   syncViewport: (viewport: Viewport) => void;
 
   addNode: (node: CanvasNode) => void;
-  addNodeFromAsset: (asset: AssetItem, position: { x: number; y: number }) => void;
   removeNode: (id: string) => void;
   duplicateNode: (id: string) => void;
   updateNodeData: (id: string, data: Partial<CanvasNode['data']>) => void;
@@ -127,20 +126,6 @@ export const useCanvasStore = create<CanvasState>()(
             },
           };
         }),
-
-      addNodeFromAsset: (asset, position) => {
-        const node: CanvasNode = {
-          id: generateId('canvas_asset_'),
-          type: 'assetCard',
-          position,
-          data: {
-            title: asset.name,
-            description: asset.type,
-            thumbnail: asset.thumbnail,
-          },
-        };
-        get().addNode(node);
-      },
 
       removeNode: (id) =>
         set((state) => {

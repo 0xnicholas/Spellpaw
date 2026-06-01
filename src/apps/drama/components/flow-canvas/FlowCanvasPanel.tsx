@@ -115,9 +115,7 @@ export function FlowCanvasPanel() {
           onNodeContextMenu={onNodeContextMenu}
           onPaneClick={closeContextMenu}
           fitView
-          style={{ background: 'var(--color-base-gray-200)' }}
-          proOptions={{ hideAttribution: true }}
-          className="bg-[var(--color-base-gray-200)]"
+          className="bg-[var(--color-bg-secondary)]"
         >
           <Background gap={20} size={1} color="var(--color-border-subtle)" />
           <Controls className="!rounded-[var(--radius-base)] !border !border-[var(--color-border-default)] !shadow-sm" />

@@ -245,3 +245,4 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   0%, 100% { transform: translate(-10%, 20%) rotate(0deg); }
   50% { transform: translate(0%, 10%) rotate(4deg); }
 }
+

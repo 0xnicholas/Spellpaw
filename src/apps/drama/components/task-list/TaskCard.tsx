@@ -1,6 +1,5 @@
 // src/apps/drama/components/task-list/TaskCard.tsx
 
-import { useMemo } from 'react';
 import type { AgentTask } from '@drama/types';
 
 interface TaskCardProps {
@@ -15,19 +14,20 @@ const statusIcons: Record<AgentTask['status'], string> = {
   completed: '✅',
 };
 
+function getTimeAgo(updatedAt: string): string {
+  const diff = Date.now() - new Date(updatedAt).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes} 分钟前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  return `${Math.floor(hours / 24)} 天前`;
+}
+
 export function TaskCard({ task, isActive, onClick }: TaskCardProps) {
   const icon = statusIcons[task.status];
   const messageCount = task.messages.length;
-
-  const timeAgo = useMemo(() => {
-    const diff = Date.now() - new Date(task.updatedAt).getTime();
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return '刚刚';
-    if (minutes < 60) return `${minutes} 分钟前`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} 小时前`;
-    return `${Math.floor(hours / 24)} 天前`;
-  }, [task.updatedAt]);
+  const timeAgo = getTimeAgo(task.updatedAt);
 
   const leftBorderColor = task.status === 'pending_review' && !isActive
     ? 'var(--color-accent-500)'

@@ -2,7 +2,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 import type { PersistStorage, StorageValue } from 'zustand/middleware';
 
 export const DB_NAME = 'spellpaw-db';
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 
 const isTestEnv = import.meta.env?.MODE === 'test';
 
@@ -13,7 +13,7 @@ export async function getSpellpawDB(): Promise<IDBPDatabase<unknown>> {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
       upgrade(db) {
-        const stores = ['projectStore', 'canvasStore', 'chatStore', 'snapshots'];
+        const stores = ['projectStore', 'canvasStore', 'chatStore', 'snapshots', 'taskStore'];
         for (const store of stores) {
           if (!db.objectStoreNames.contains(store)) {
             db.createObjectStore(store);

@@ -76,7 +76,7 @@ export interface AgentTask {
 }
 
 // Canvas
-export type CanvasNodeType = 'sceneCard' | 'assetCard';
+export type CanvasNodeType = 'script' | 'art' | 'output' | 'character';
 
 export interface CanvasNodeData extends Record<string, unknown> {
   title: string;

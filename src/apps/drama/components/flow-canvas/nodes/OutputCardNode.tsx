@@ -29,8 +29,8 @@ export function OutputCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
     >
       <Handle type="target" position={Position.Left} className="!bg-[var(--color-accent-500)]" />
 
-      <div className="rounded-t-[var(--radius-base)] bg-[var(--color-bg-accent-subtle)] px-3 py-1.5 border-b border-[var(--color-border-default)]">
-        <span className="text-[10px] font-semibold text-[var(--color-accent-500)] uppercase tracking-wider">📦 产出 · {typeLabel}</span>
+      <div className="rounded-t-[var(--radius-base)] bg-[var(--color-accent-100)] px-3 py-1.5 border-b border-[var(--color-border-default)]">
+        <span className="text-[10px] font-semibold text-[var(--color-accent-700)] uppercase tracking-wider">📦 产出 · {typeLabel}</span>
       </div>
 
       <div className="p-3">

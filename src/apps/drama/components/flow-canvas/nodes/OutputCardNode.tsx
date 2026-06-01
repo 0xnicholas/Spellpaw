@@ -24,12 +24,12 @@ export function OutputCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
   return (
     <div
       style={{
-        position: 'relative',
         width: 240,
-        borderRadius: 0,
-        border: 'none',
-        background: 'transparent',
-        boxShadow: 'none',
+        borderRadius: 'var(--radius-base)',
+        border: selected ? '1.5px solid var(--color-accent-500)' : '1px solid var(--color-border-default)',
+        background: 'var(--color-bg-secondary)',
+        boxShadow: selected ? '0 4px 12px rgba(0,0,0,0.1)' : '0 1px 2px rgba(0,0,0,0.05)',
+        overflow: 'hidden',
       }}
     >
       <Handle type="target" position={Position.Left} style={{ background: 'var(--color-accent-500)' }} />

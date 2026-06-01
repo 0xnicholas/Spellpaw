@@ -64,7 +64,7 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
               <div className="flex h-full w-full items-center justify-center bg-[var(--color-bg-tertiary)]">
                 <div className="text-center">
                   <ImageOff className="mx-auto h-5 w-5 text-[var(--color-text-tertiary)]" />
-                  <span className="mt-1 block text-[10px] text-[var(--color-text-tertiary)]">加载失败</span>
+                  <span className="mt-1 block text-[9px] text-[var(--color-text-tertiary)]">加载失败</span>
                 </div>
               </div>
             ) : (
@@ -107,13 +107,13 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
           )}
 
           {prompt && (
-            <p className="mt-1 text-xs text-[var(--color-text-tertiary)] line-clamp-2">{prompt}</p>
+            <p className="mt-1 text-[10px] text-[var(--color-text-tertiary)] line-clamp-2">{prompt}</p>
           )}
 
           {tags && tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {tags.map((tag) => (
-                <span key={tag} className="text-[10px] bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] px-1.5 py-0.5 rounded-full">
+                <span key={tag} className="text-[8px] bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] px-1.5 py-0.5 rounded-full">
                   {tag}
                 </span>
               ))}

@@ -56,20 +56,20 @@ export function CharacterCardNode({ data, id, selected }: NodeProps<Node<CanvasN
               </h4>
             )}
 
-            <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[11px] text-[var(--color-text-tertiary)]">
+            <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[10px] text-[var(--color-text-tertiary)]">
               {role && <span>{role}</span>}
               {age != null && <span>{age}岁</span>}
               {occupation && <span>· {occupation}</span>}
             </div>
 
             {personality && (
-              <p className="mt-1.5 text-[11px] text-[var(--color-text-secondary)] leading-relaxed line-clamp-2">
+              <p className="mt-1.5 text-[10px] text-[var(--color-text-secondary)] leading-relaxed line-clamp-2">
                 {personality}
               </p>
             )}
 
             {appearance && (
-              <p className="mt-1 text-[11px] text-[var(--color-text-tertiary)] leading-relaxed line-clamp-2">
+              <p className="mt-1 text-[10px] text-[var(--color-text-tertiary)] leading-relaxed line-clamp-2">
                 {appearance}
               </p>
             )}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { NodeProps, Node } from '@xyflow/react';
+import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import type { CanvasNodeData } from '@drama/types';
 
@@ -23,56 +23,40 @@ export function OutputCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
 
   return (
     <div
-      style={{
-        width: 240,
-        borderRadius: 'var(--radius-base)',
-        border: selected ? '1.5px solid var(--color-accent-500)' : '1px solid var(--color-border-default)',
-        background: 'var(--color-bg-secondary)',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-      }}
+      className={`w-[240px] rounded-[var(--radius-base)] border bg-[var(--color-bg-secondary)] shadow-sm ${
+        selected ? 'border-[var(--color-accent-500)]' : 'border-[var(--color-border-default)]'
+      }`}
     >
-      {/* Handles hidden for debug */}
+      <Handle type="target" position={Position.Left} className="!bg-[var(--color-accent-500)]" />
 
-      <div
-        style={{
-          borderTopLeftRadius: 'var(--radius-base)',
-          borderTopRightRadius: 'var(--radius-base)',
-          background: 'var(--color-accent-100)',
-          padding: '6px 12px',
-          borderBottom: '1px solid var(--color-border-default)',
-        }}
-      >
-        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-accent-700)', textTransform: 'uppercase' }}>📦 产出 · {typeLabel}</span>
+      <div className="rounded-t-[var(--radius-base)] bg-[var(--color-accent-100)] px-3 py-1.5 border-b border-[var(--color-border-default)]">
+        <span className="text-[10px] font-semibold text-[var(--color-accent-700)] uppercase tracking-wider">📦 产出 · {typeLabel}</span>
       </div>
 
-      <div style={{ padding: 12 }}>
+      <div className="p-3">
         {isEditing ? (
           <input autoFocus value={editValue}
             onChange={(e) => setEditValue(e.target.value)} onBlur={handleSave}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setEditValue(data.title); setIsEditing(false); } }}
-            style={{
-              width: '100%', border: '1px solid var(--color-accent-500)',
-              background: 'var(--color-bg-secondary)', padding: '2px 6px',
-              fontSize: 14, fontWeight: 500, outline: 'none', borderRadius: 'var(--radius-sm)',
-            }}
+            className="w-full rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-secondary)] px-1.5 py-0.5 text-sm font-medium outline-none"
           />
         ) : (
-          <h4 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)', margin: 0, cursor: 'text' }}
+          <h4 className="text-sm font-medium text-[var(--color-text-primary)] cursor-text"
             onDoubleClick={() => { setEditValue(data.title); setIsEditing(true); }}>
             {data.title}
           </h4>
         )}
 
         {sourceTaskId && (
-          <p style={{ fontSize: 9, color: 'var(--color-text-tertiary)', marginTop: 4 }}>来源: Agent 任务</p>
+          <p className="text-[9px] text-[var(--color-text-tertiary)] mt-1">来源: Agent 任务</p>
         )}
 
         {summary && (
-          <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', lineHeight: 1.5, marginTop: 8 }}>{summary}</p>
+          <p className="mt-2 text-[11px] text-[var(--color-text-secondary)] leading-relaxed line-clamp-4">{summary}</p>
         )}
       </div>
 
-      {/* Handle hidden for debug */}
+      <Handle type="source" position={Position.Right} className="!bg-[var(--color-accent-500)]" />
     </div>
   );
 }

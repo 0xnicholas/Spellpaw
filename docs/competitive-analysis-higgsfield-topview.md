@@ -1,9 +1,11 @@
 # Spellpaw 竞品分析报告
 
 > 分析对象：Higgsfield AI · Topview AI  
-> 日期：2026-05-27  
+> 日期：2026-05-27（更新 2026-05-31）  
 > 作者：Spellpaw Team  
-> 范围：产品功能对比 + 技术层面分析 + 可借鉴策略
+> 范围：产品功能对比 + 技术层面分析 + 可借鉴策略  
+>  
+> **⚠️ 2026-05-31 重大更新：** Topview 已从单一 Agent 产品扩展为多产品矩阵平台。新增 AI Canvas、Drama Studio、Board、Topview Skill、OpenAPI 等。详见 §1.2 更新和 `docs/topview-analysis-report.md`。
 
 ---
 
@@ -44,27 +46,35 @@
 | 维度 | 信息 |
 |------|------|
 | 官网 | https://www.topview.ai |
-| 定位 | AI Agent 驱动的视频内容创作平台 |
-| Slogan | "Tell Your Agent to Create Any Video" |
-| 核心用户 | 电商卖家、品牌方、营销团队、内容创作者 |
+| 定位 | **全栈 AI 视频生产平台** — API 聚合 + Agent 对话 + 多产品矩阵 |
+| Slogan | "Tell Your Agent to Create Any Video"（Video Agent）|
+| 核心用户 | 电商卖家、品牌方、营销团队、内容创作者 → **已扩展至短剧/编剧创作者** |
+| 阶段 | 已上线 + 快速迭代（V2） |
 
-**核心能力：**
+**产品矩阵（2026-05-31 更新）：**
 
-| 能力 | 说明 |
-|------|------|
-| AI Agent 对话式创作 | 用户通过自然语言指令让 Agent 生成视频 |
-| UGC 风格视频生成 | 模拟真人用户生成内容（开箱、评测、分享）风格 |
-| AI Avatar 视频 | 虚拟数字人出镜视频 |
-| 产品广告视频 | 电商产品自动生成营销视频 |
-| 视频克隆 | 基于已有素材生成变体 |
-| 多语言支持 | 一次 prompt，多语言版本（已支持中/英/日/韩/法/德/西/葡/俄等） |
-| 频道模板系统 | 按行业/场景分类的频道模板，一键套用 |
+| 产品 | 类型 | 说明 |
+|------|------|------|
+| Video Agent V2 | Agent 对话 | 自然语言规划+生成视频，支持 @mention 素材引用，分步确认工作流 |
+| **AI Canvas 🆕** | 创作画布 | "Vibe create, let ideas flow naturally" — 可视化创意编排 |
+| **Drama Studio 🆕** | 剧本/分镜 | "Your AI Writer-Director" — AI 编剧+导演，场景级分镜+6语言 |
+| **Board 🆕** | 多模型工作台 | "Best AI models all in one board" — 聚合多 AI 模型的创作面板 |
+| Storyboard to Video | 分镜转视频 | GPT-Image-2 生成分镜图 → Seedance2 合成视频 |
+| AI Avatar / Product Avatar | 数字人 | 30+ 语言数字人播报 + 产品数字人手持展示 |
+| URL-to-Video | 自动化 | 产品 URL → 自动提取信息 → 生成广告视频 |
+| Product Anyshoot | 场景合成 | 产品图嵌入任意场景/虚拟试穿 |
+| 30+ AI 工具 | 工具集 | 涵盖 AI 视频/图像/音频/换脸/修复/Upscale 等 |
+| **Topview Skill 🆕** | Agent 集成 | GitHub 可安装的 AI assistant skill，供外部 Agent 调用 |
+| **Topview API 🆕** | 开发者平台 | REST API 统一封装 12+ 视频/图像模型（Veo, Sora, Seedance, Wan, Kling, Higgsfield, Flux 等）+ 自有 API |
+| 频道模板系统 | 模板 | 按行业/场景分类的频道模板（POV, Reaction, Storytelling, Lifestyle 等 30+ 类型） |
 
-**关键特征：**
-- **高度垂直化**：聚焦 UGC 营销视频和电商广告场景
-- **Agent 交互模式**：自然语言驱动，而非传统参数面板
-- **多语言自动输出**：核心壁垒之一，prompt 级别多语言
-- **频道模板**：降低创作门槛的另一种方式——模板化而非 prompt 化
+**关键特征（更新）：**
+- **平台化转型**：从单一垂直工具 → 多产品矩阵平台，覆盖 Agent/Canvas/Drama/API 四大入口
+- **API 聚合战略**：不自己跑模型，而是统一封装 12+ 第三方模型 + 4 个自有 API，单 credit 系统
+- **Drama Studio 直攻叙事创作**："One-Person AI Drama Studio" 定位明确进入短剧/编剧市场
+- **Skill 生态**：通过 GitHub 可安装的 skill，让外部 AI agent（如 ClawHub/OpenClaw）直接调用 Topview 能力
+- **多语言壁垒**：20 种语言 UI + 6 语言内容生成（EN/FR/DE/JA/KO/PT）
+- **计费灵活**：Free tier → Pay-as-you-go ($0.04/sec 起) → Enterprise（含白标）
 
 ---
 
@@ -94,7 +104,7 @@
 
 ```
 Higgsfield:  模型层平台 → 「AI 图像/视频的生成引擎」
-Topview:     应用层平台 → 「AI 驱动的营销视频工厂」
+Topview:     全栈应用平台 → 「API 聚合 + Agent + Canvas + Drama 四入口 AI 视频平台」
 Spellpaw:    创作层工具 → 「叙事驱动的 AI 辅助制作工作台」
 ```
 
@@ -102,13 +112,13 @@ Spellpaw:    创作层工具 → 「叙事驱动的 AI 辅助制作工作台」
 
 | 层级 | Higgsfield | Topview | Spellpaw |
 |------|-----------|---------|----------|
-| AI 模型自有 | ✅ Soul/Cinema 系列 | ❓ 未明确 | ❌（Phase 2 计划） |
-| 内容结构管理 | Canvas（可视化） | 频道模板（预设式） | 树状结构（叙事层级） |
-| AI 协作模式 | Community prompt 分享 | Agent 对话式 | Agent 对话 + 操作执行 |
-| 创作自由度 | 高（自定义 prompt） | 中（模板约束） | 高（自由编辑 + AI 辅助） |
-| 输出物类型 | 图像、视频 | UGC 视频、广告 | 短剧/短视频项目结构 |
+| AI 模型自有 | ✅ Soul/Cinema 系列 | ❌（API 聚合 12+ 模型） | ❌（Phase 2 计划） |
+| 内容结构管理 | Canvas（可视化） | **Drama Studio（场景分镜）+ AI Canvas（创意编排）+ Board（多模型工作台）** | 树状结构（叙事层级） |
+| AI 协作模式 | Community prompt 分享 | Agent 对话 + API + Skill 生态 | Agent 对话 + 操作执行 |
+| 创作自由度 | 高（自定义 prompt） | 中→高（模板 + 自由生成 + Canvas 编排） | 高（自由编辑 + AI 辅助） |
+| 输出物类型 | 图像、视频 | **视频成片、数字人播报、分镜脚本、广告素材** | 短剧/短视频项目结构 |
 
-**关键洞察：** Spellpaw 与二者并非完全重叠。Higgsfield 偏底层模型，Topview 偏营销应用，Spellpaw 偏叙事创作——存在差异化空间，但需警惕二者向中间层渗透。
+**关键洞察（2026-05-31 更新）：** Topview 已从「营销视频工厂」转型为「全栈 AI 视频平台」，通过 Drama Studio 直接进入叙事创作领域。Spellpaw 与 Topview 的竞争从「非重叠」变为「在短剧/剧本维度直接竞争」。Higgsfield 仍偏底层模型。
 
 ---
 
@@ -116,24 +126,25 @@ Spellpaw:    创作层工具 → 「叙事驱动的 AI 辅助制作工作台」
 
 | 阶段 | Higgsfield | Topview | Spellpaw |
 |------|-----------|---------|----------|
-| **构思** | prompt 输入 + 预设选择 | Agent 对话 + 频道模板 | 项目结构搭建（幕/场景/镜头） |
-| **编剧/策划** | — | —（模板内隐式） | ✅ 树状叙事结构 + 元数据编辑 |
-| **生成/制作** | 文生图/文生视频模型 | AI Agent 自动生成视频 | 画布卡片编辑 + 素材引用 |
-| **编辑/调整** | prompt 迭代 + Canvas 可视化 | Agent 对话迭代 | 内联编辑 + Detail Panel + 画布双向同步 |
-| **版本管理** | — | —（单次生成） | 多项目 + JSON 导入导出 |
+| **构思** | prompt 输入 + 预设选择 | Agent 对话 + 频道模板 + **Drama Studio 剧本生成** | 项目结构搭建（幕/场景/镜头） |
+| **编剧/策划** | — | ✅ **Drama Studio 场景分镜 + 6 语言脚本** | ✅ 树状叙事结构 + 元数据编辑 |
+| **生成/制作** | 文生图/文生视频模型 | Agent/Cavnas/Board **多入口生成视频成片** | 画布卡片编辑 + 素材引用 |
+| **编辑/调整** | prompt 迭代 + Canvas 可视化 | Agent 对话迭代 + **Canvas 可视化编排** | 内联编辑 + Detail Panel + 画布双向同步 |
+| **版本管理** | — | —（云端单次生成） | 多项目 + JSON 导入导出 |
 | **协作** | Collab（付费?） | — | 本地独立（Phase 3 云端） |
-| **分发** | 社区画廊 | 多语言直接输出 | —（后续规划） |
+| **分发** | 社区画廊 | **多语言直接输出 + API 程序化分发** | —（后续规划） |
 
-**Spellpaw 优势：**
-- **叙事结构先行的创作理念**——树状结构本身就是内容骨架，不是事后编辑
-- **双向同步机制**——树状结构 ↔ 画布卡片 ↔ Agent 对话三者联动
-- **细粒度编辑**——镜头级别元数据（镜头类型、机位运动、对白）
+**Spellpaw 优势（更新）：**
+- **叙事结构先行的创作理念**——4 级树状结构（项目→幕→场景→镜头），Topview Drama Studio 目前仅到场景级
+- **双向同步机制**——树状结构 ↔ 画布卡片 ↔ Agent 对话三者联动，Topview 无此机制
+- **细粒度编辑**——镜头级别元数据（镜头类型、机位运动、对白），Topview 为 AI 生成不可编辑
+- **本地数据主权**——离线可用 + JSON 导入导出，影视制作刚需
 
-**Spellpaw 劣势：**
-- **无自有 AI 生成能力**（Phase 1）——目前是编辑工具，不是生成工具
-- **无模板和预设**——创作起点高，新用户上手门槛高
-- **无多语言**——目前仅面向中文市场
-- **无输出渲染**——项目结构无法直接导出为视频
+**Spellpaw 劣势（更新）：**
+- **无 AI 视频生成能力**——Drama Studio 生成脚本后可直接出片，Spellpaw 仅到分镜描述
+- **无多语言**——Topview 已支持 20 语言 UI + 6 语言内容，Spellpaw 仅中文
+- **模板数量不足**——Topview 有 30+ 频道模板，Spellpaw 仅 5 个内置叙事模板
+- **无 API/SDK**——Topview 通过 REST API + Skill 建立开发生态
 
 ---
 
@@ -143,15 +154,16 @@ Spellpaw:    创作层工具 → 「叙事驱动的 AI 辅助制作工作台」
 
 | 维度 | Higgsfield | Topview | Spellpaw |
 |------|-----------|---------|----------|
-| 内容模型 | 扁平 prompt → 图像/视频 | 模板 → 视频 | 树状层级 → 项目结构 |
-| 结构层级 | Canvas 节点（无叙事层级） | 频道/模板（2层） | 项目→幕→场景→镜头（4层） |
-| 元数据丰富度 | prompt 文本 + 模型参数 | 模板参数 | 标题/描述/状态/时长/场景位置/时间/镜头类型/机位/对白/备注 |
+| 内容模型 | 扁平 prompt → 图像/视频 | **Drama Studio: 场景分镜脚本 / Canvas: 可视化编排 / 模板: 预设结构** | 树状层级 → 项目结构 |
+| 结构层级 | Canvas 节点（无叙事层级） | **场景级（Drama Studio 生成 Scene 1/2/3 含镜头方向）+ 频道/模板（2层）** | 项目→幕→场景→镜头（4层） |
+| 元数据丰富度 | prompt 文本 + 模型参数 | AI 自动生成的场景描述/镜头方向/SFX/灯光/表演指导 | 标题/描述/状态/时长/场景位置/时间/镜头类型/机位/对白/备注 |
 | 节点状态管理 | — | — | draft → in_progress → review → done |
 | 拖拽排序 | Canvas 自由拖拽 | — | ✅ 同级节点 DnD |
 | 批量操作 | — | — | 项目级导入导出（JSON） |
-| 结构可视化 | Canvas 画布（无层级） | 频道列表 | 树状视图 + 画布双视角 |
+| 结构可视化 | Canvas 画布（无层级） | **Canvas + Board（可视化但无叙事层级）** | 树状视图 + 画布双视角 |
+| 结构可编辑性 | — | **AI 生成内容不可细粒度编辑** | ✅ 每个节点可独立编辑元数据 |
 
-**结论：** Spellpaw 在「内容结构管理」上有明确的先发优势，这是叙事型创作（短剧/短片）的核心需求。Higgsfield 和 Topview 均忽略了这个维度。
+**结论（更新）：** Topview Drama Studio 现在提供场景级结构（Scene 1/2/3 + 时间轴 + 镜头方向），但缺少 Spellpaw 的**幕（Act）层级**和**节点级可编辑元数据**。Spellpaw 在内容结构的**可编辑性**和**层级深度**上仍有优势，但 Drama Studio 的「AI 自动生成 + 直接出片」对非专业用户更有吸引力。
 
 ---
 
@@ -159,13 +171,14 @@ Spellpaw:    创作层工具 → 「叙事驱动的 AI 辅助制作工作台」
 
 | 维度 | Higgsfield | Topview | Spellpaw |
 |------|-----------|---------|----------|
-| 交互模式 | 社区 prompt 分享 + 手动调用 | Agent 对话式指令 | Agent 对话 + 结构操作执行 |
-| AI 能力范围 | 生成图像/视频 | 生成视频 | Phase 1：mock 对话 + 预设建议卡片 |
-| 上下文感知 | prompt 独立 | 单次会话 | 选中节点自动更新 Agent 上下文 |
-| 建议/推荐 | Community trending | 频道模板推荐 | 快捷操作预设（"生成下一幕"等） |
-| MCP 协议支持 | ✅ Higgsfield MCP | ❓ 未知 | ❌ |
+| 交互模式 | 社区 prompt 分享 + 手动调用 | Agent 对话 + **Canvas 可视化编排 + Board 多模型工作台 + API 程序化调用** | Agent 对话 + 结构操作执行 |
+| AI 能力范围 | 生成图像/视频 | 生成视频/数字人/分镜/广告素材（12+ 模型） | Phase 2：Pandaria Agent SSE + Tool Server |
+| 上下文感知 | prompt 独立 | 单次会话 + @mention 素材引用 | 选中节点自动更新 Agent 上下文 |
+| 建议/推荐 | Community trending | 频道模板推荐 + Ad Library | 快捷操作预设（"生成下一幕"等）+
+| Agent 协议/生态 | ✅ Higgsfield MCP | ✅ **Topview Skill（GitHub 可安装）** | ❌ |
+| API/可编程性 | MCP 协议 | ✅ **REST API（12+ 模型统一端点）** | ❌ |
 
-**关键发现：** Topview 的 "Tell Your Agent" 模式与 Spellpaw 的 Agent 对话理念高度一致。Topview 已实现 Agent 生成视频，Spellpaw 目前仅为 mock。这是 Spellpaw 必须追赶的方向。
+**关键发现（更新）：** Topview 已建立多层次 AI 协作生态：C 端（Agent 对话）、专业端（Canvas/Board）、开发者端（REST API + Skill）。Spellpaw 在「节点上下文注入」上更精细，但 Topview 的 AI 生态覆盖面远超 Spellpaw。
 
 ---
 
@@ -176,13 +189,15 @@ Spellpaw:    创作层工具 → 「叙事驱动的 AI 辅助制作工作台」
 | 电商产品视频 | ❌ | ✅ 核心场景 | ❌ |
 | UGC 营销视频 | ❌ | ✅ 核心场景 | ❌ |
 | 品牌广告 | ❌ | ✅ | ❌ |
-| 短剧叙事创作 | ❌ | ❌ | ✅ 核心场景 |
-| 影视分镜策划 | ❌ | ❌ | ✅ |
+| **短剧叙事创作** | ❌ | ✅ **Drama Studio 新进入** | ✅ 核心场景 |
+| **影视分镜策划** | ❌ | ✅ **Drama Studio + Storyboard** | ✅ |
 | AI 艺术创作 | ✅ 核心场景 | ❌ | ❌ |
 | 短视频内容创作 | ✅ | ✅ | ✅ |
 | 社区灵感发现 | ✅ 社区画廊 | ❌ | ❌ |
+| **多模型 API 聚合** | ❌ | ✅ **OpenAPI** | ❌ |
+| **数字人播报/直播** | ❌ | ✅ **Video Avatar + AI Live Stream** | ❌ |
 
-**结论：** 三者目标场景几乎互补。Higgsfield 偏「艺术表达」，Topview 偏「电商营销」，Spellpaw 偏「叙事创作」——短期不存在直接竞争，但 12-18 个月后可能出现交叉。
+**结论（更新）：** 三者场景不再互补。Topview 通过 Drama Studio 进入了短剧叙事和影视分镜策划领域，与 Spellpaw 形成直接竞争。竞争窗口从「12-18 个月」缩短到「现在」。**Spellpaw 必须加速差异化。**
 
 ---
 
@@ -192,17 +207,18 @@ Spellpaw:    创作层工具 → 「叙事驱动的 AI 辅助制作工作台」
 
 | 维度 | Higgsfield | Topview | Spellpaw |
 |------|-----------|---------|----------|
-| 自有模型 | ✅ Soul / Soul 2.0 / Soul Cinema | ❓ 未公开 | ❌ |
-| 模型类型 | 文生图（imagegen_2_0） + 视频生成 | 视频生成（推测调用第三方） | — |
-| 模型特色 | 社区 prompt 优化、4K 输出、文字渲染精准 | UGC 风格专项优化、多语言 prompt | — |
-| 图像分辨率 | 最高 3840×2160（4K） | 未公开 | — |
-| 视频时长 | 未公开 | 短视频（推测 15-90s） | — |
-| MCP 协议 | ✅ 支持外部 agent 调用 | ❓ 未知 | ❌ |
+| 自有模型 | ✅ Soul / Soul 2.0 / Soul Cinema | ❌ 不自研，聚合 12+ 模型 | ❌ |
+| 接入模型 | — | Veo 3.2 · Sora 2 · Seedance 2.0 · Wan 2.7 · Kling 2 · Higgsfield · Vidu Q3 · Happy Horse 1（视频8个）+ Flux · Nano Banana · GPT Image 2 · Ideogram（图像4个） | — |
+| 自有 API | — | Video Avatar · Product Avatar · URL-to-Video · Product Anyshoot（4个） | — |
+| 模型特色 | 社区 prompt 优化、4K 输出、文字渲染精准 | **API 聚合 + 统一 credit 系统 + 模型间切换无需改代码** | — |
+| 图像分辨率 | 最高 3840×2160（4K） | 480p / 720p / 1080p（视频），最高 2K（图像） | — |
+| 视频时长 | 未公开 | 5-30s（取决于模型） | — |
+| MCP / Skill 协议 | ✅ Higgsfield MCP | ✅ **Topview Skill（GitHub）+ REST API** | ❌ |
 
-**技术判断：**
-- Higgsfield 的模型壁垒最高，Soul 系列是自研模型，且形成了社区数据飞轮（prompt → 生成 → 社区反馈 → 模型优化）
-- Topview 的模型来源不透明，但 UGC 风格专项优化 + 多语言是明显的技术壁垒
-- Spellpaw 在 AI 能力上处于早期，Phase 2 才引入真实 AI
+**技术判断（更新）：**
+- Topview 采取了聪明的「API 聚合」策略——不自研模型，而是统一封装市场主流模型
+- "Add new SOTA models within days of release"——承诺在新模型发布几天内接入，成为 AI 视频模型的「分发层」
+- Spellpaw 不需要自研模型，但应借鉴此策略：考虑通过 API 为用户提供可选的视频生成能力
 
 ---
 
@@ -210,25 +226,27 @@ Spellpaw:    创作层工具 → 「叙事驱动的 AI 辅助制作工作台」
 
 | 维度 | Higgsfield | Topview | Spellpaw |
 |------|-----------|---------|----------|
-| 框架 | Next.js（SSR） | Next.js（SSR，Vercel 部署） | React 19 + Vite（SPA） |
+| 框架 | Next.js（SSR） | Next.js（App Router，SSR，Vercel 部署） | React 19 + Vite（SPA） |
 | 语言 | TypeScript | TypeScript | TypeScript 6.0 |
-| 样式方案 | 未识别 | Tailwind CSS | Tailwind CSS 4 + OKLCH |
-| 状态管理 | 未识别 | 未识别 | Zustand 5 |
-| 画布/可视化 | Canvas 自定义实现 | — | @xyflow/react（React Flow） |
+| 样式方案 | 未识别 | Tailwind CSS（暗色主题） | Tailwind CSS 4 + OKLCH |
+| 状态管理 | 未识别 | React Server Components（推测） | Zustand 5 |
+| 画布/可视化 | Canvas 自定义实现 | **AI Canvas 自定义实现** | @xyflow/react（React Flow） |
 | 构建工具 | Next.js 内置 | Next.js 内置 | Vite 8 |
-| 部署 | CloudFront CDN | Vercel | 本地应用（Electron 后续规划） |
-| 拖拽 | 未识别 | — | @dnd-kit/core + sortable |
+| 部署 | CloudFront CDN | Vercel + CloudFront CDN | 本地应用（Electron 后续规划） |
+| 拖拽 | 未识别 | **AI Canvas 支持** | @dnd-kit/core + sortable |
 | 测试 | 未识别 | 未识别 | Vitest + Testing Library + Playwright |
+| 国际化 | — | **20 种语言**（en, pt-br, es, fr, pt, it, ja, th, pl, ko, de, ru, da, ar, nb, nl, id, tw, zh, tr） | 中文为主 |
 
-**架构差异：**
+**架构差异（更新）：**
 
 | | Higgsfield / Topview | Spellpaw |
 |---|---|---|
 | 架构模式 | SSR（Next.js App Router） | CSR（Vite SPA） |
-| 数据来源 | 服务端 API + 数据库 | localStorage（本地） |
+| 数据来源 | 服务端 API + 数据库 | IndexedDB（本地优先） |
 | 离线能力 | 依赖网络 | ✅ 完全离线 |
 | 首屏性能 | SSR 优化 | SPA 加载 |
-| 扩展方向 | 天然支持云端 | 需迁至 IndexedDB / 后端 |
+| 国际化 | ✅ 20 语言（Topview） | ❌ 仅中文 |
+| AI 模型调用 | 服务端直连 | 通过 Pandaria 代理 |
 
 ---
 
@@ -369,7 +387,7 @@ Spellpaw MCP Server
 
 #### 4.2.1 频道模板 → 剧本类型模板
 
-**Topview 的做法：** 按行业/场景预置「频道」模板（美妆测评频道、3C 开箱频道、服装展示频道），每个频道包含固定的视频结构和风格参数。
+**Topview 的做法：** 按行业/场景预置「频道」模板（美妆测评频道、3C 开箱频道、服装展示频道），每个频道包含固定的视频结构和风格参数。已扩展至 30+ 类型（POV & Roleplay, Reaction, Storytelling, Lifestyle 等）。
 
 **对 Spellpaw 的启发（更深层整合）：**
 
@@ -469,6 +487,34 @@ Agent: ✅ 已添加场景 3-3：余味镜头
 
 这对 Spellpaw 的启发是：未来如果 Spellpaw 支持 AI 分镜画面生成，应该一次性输出多语言版本的分镜描述和对白，而非一个语言一个语言地重新生成。
 
+#### 4.2.4 🆕 API 聚合策略 → Spellpaw 的 AI 能力路径
+
+**Topview 的做法：** 不自己训练模型，而是通过 REST API 统一封装 Veo、Sora、Seedance 等 12+ 第三方模型 + 4 个自有 API。单 credit 系统，"Add new SOTA models within days of release"。
+
+**对 Spellpaw 的启发：**
+- Spellpaw 不应该试图自研 AI 视频模型——成本极高且护城河有限
+- 应借鉴 Topview 模式：作为 AI 能力的「编排层」，通过 API 聚合为用户提供可选的视频/图像生成后端
+- Spellpaw 的价值在「叙事结构编排 + 创作流程管理」，生成能力可以通过接入 Topview/Higgsfield API 补充
+- **甚至可以考虑让 Spellpaw 生成的项目结构直接通过 Topview API 输出成片**——形成互补生态而非零和竞争
+
+#### 4.2.5 🆕 Topview Skill 生态 → Spellpaw MCP 方向
+
+**Topview 的做法：** 通过 GitHub 仓库 `topviewai/skill.git` 提供可安装的 AI assistant skill，外部 agent 可直接调用 Topview 的视频生成/编辑/数字人能力。
+
+**对 Spellpaw 的启发：**
+- Topview Skill 验证了「AI agent 调用创作工具」的市场需求
+- Spellpaw 的 MCP 方向（§4.1.2）应加速：让外部 agent 能读取/编辑 Spellpaw 项目结构
+- Spellpaw + Topview Skill 可以形成互补工作流：Spellpaw 负责叙事编排，Topview 负责视频生成
+
+#### 4.2.6 🆕 Drama Studio → 紧迫性警示
+
+**Topview 的做法：** 直接以 "One-Person AI Drama Studio" / "Your AI Writer-Director" 进入短剧创作市场。生成场景级分镜脚本（Scene 1/2/3 + 镜头方向 + SFX + 灯光 + 表演指导），支持 6 语言输出。
+
+**对 Spellpaw 的警示：**
+- Topview 已经看到了短剧/剧本创作的市场需求——Spellpaw 的先见之明被验证，但也意味着竞争对手已入场
+- Drama Studio 的优势是「AI 生成 + 出片」，但劣势是「不可细粒度编辑」——Spellpaw 必须强化「可编辑性」作为核心差异点
+- **时间窗口：** Spelling 有 6-12 个月窗口建立品牌认知和用户习惯，之后 Topview 可能补齐编辑能力
+
 ---
 
 ### 4.3 综合对比：可借鉴项优先级
@@ -481,6 +527,9 @@ Agent: ✅ 已添加场景 3-3：余味镜头
 | Topview | 频道模板 → 剧本类型 + 分发场景绑定 | Phase 2 | 🔴 高 | 🟡 中 |
 | Topview | Agent 分步确认交互模式 | Phase 2 | 🔴 高 | 🟡 中 |
 | Topview | 多语言 prompt 级别输出 | Phase 2.5 | 🟡 中 | 🔴 高 |
+| **Topview 🆕** | **API 聚合策略 → Spellpaw 作为 AI 编排层** | Phase 2.5 | 🔴 高 | 🟡 中 |
+| **Topview 🆕** | **Skill 生态 → Spellpaw MCP 加速** | Phase 3 | 🟡 中 | 🔴 高 |
+| **Topview 🆕** | **Drama Studio 警示 → 加速差异化建设** | Phase 2 | 🔴 高 | — |
 
 **Phase 2 必须做的两件事（来自竞品启发）：**
 1. **叙事模板系统**（吸收 Higgsfield Presets + Topview 频道的优点）
@@ -502,11 +551,13 @@ Agent: ✅ 已添加场景 3-3：余味镜头
 
 | 风险 | 严重度 | 建议 |
 |------|:---:|------|
-| 无 AI 生成能力 | 🔴 高 | Phase 2 优先接入文生图/文生视频 API；考虑集成 Higgsfield MCP |
+| 无 AI 生成能力 | 🔴 高 | Phase 2 优先接入文生图/文生视频 API；考虑集成 Topview/Higgsfield API |
+| **Drama Studio 直接竞争 🆕** | 🔴 高 | 加速叙事模板上线 + 强化 4 级层级编辑能力 + 保持本地离线优势 |
 | 无模板/预设 | 🟡 中 | 添加「叙事模板」+「剧本类型模板」双重模板系统 |
-| 无多语言 | 🟡 中 | 前期聚焦中文市场，后期参考 Topview 多语言方案 |
+| 无多语言 | 🟡→🔴 升 | Topview 已支持 20 UI + 6 内容语言，Spellpaw 差距拉大 |
+| 无 API/SDK | 🟡 中（新） | Phase 3 考虑开放 API + MCP 集成 |
 | 无社区/分发 | 🟢 低 | Phase 3 考虑项目分享 + 模板市场 |
-| localStorage 限制 | 🟡 中 | Phase 3 迁至 IndexedDB |
+| IndexedDB 容量限制 | 🟡 中 | Phase 3 迁至 IndexedDB |
 | 无后端 | 🟡 中 | Phase 3 引入后端，先做可选同步 |
 
 ### 5.3 长期竞争判断
@@ -515,18 +566,21 @@ Agent: ✅ 已添加场景 3-3：余味镜头
             短期内（6-12个月）
     ┌──────────────────────────────────────┐
     │  Higgsfield: 模型层，不会直接竞争     │
-    │  Topview: 营销视频层，不直接竞争      │
-    │  Spellpaw: 叙事创作层，差异化空间大    │
+    │  Topview: Drama Studio 已直接竞争 🚨  │
+    │  Spellpaw: 必须加速差异化 + AI 补齐   │
     └──────────────────────────────────────┘
 
             中期内（12-24个月）
     ┌──────────────────────────────────────┐
     │  Higgsfield Canvas 可能向应用层扩展   │
-    │  Topview 可能增加叙事题材模板         │
+    │  Topview Drama Studio 可能补齐编辑能力│
     │  → Spellpaw 必须在 AI 能力上补齐      │
-    │  → 同时强化「叙事结构管理」作为护城河  │
+    │  → 同时强化「叙事结构可编辑性」为护城河│
+    │  → 探索与 Topview API 的互补生态     │
     └──────────────────────────────────────┘
 ```
+
+**新判断（2026-05-31）：** 竞争窗口已从「12-18 个月」缩短至「现在」。Topview 的 Drama Studio 直接进入短剧创作市场。但 Spellpaw 的差异化方向仍然正确——「叙事结构管理 + 可编辑性 + 本地离线」是 Topview 短期内难以复制的组合。关键在于执行速度。
 
 ---
 
@@ -534,17 +588,24 @@ Agent: ✅ 已添加场景 3-3：余味镜头
 
 | | Higgsfield AI | Topview AI | Spellpaw |
 |---|---|---|---|
-| **一句话定位** | AI 视频/图像生成的基础设施 | AI Agent 驱动的营销视频工厂 | 叙事驱动的 AI 辅助短剧制作工具 |
-| **最擅长** | AI 模型品质 + 社区生态 | UGC 视频 + 多语言 + Agent 交互 | 内容结构管理 + 本地离线 + 创作自由度 |
-| **最大短板** | 应用层工具较弱 | 叙事创作场景覆盖不足 | 无 AI 生成能力（Phase 1） |
-| **对 Spellpaw 威胁度** | 🟡 中（未来可能向下渗透） | 🟡 中（未来可能扩展题材） | — |
-| **核心可借鉴** | Presets / MCP / 社区画廊 | 频道模板 / Agent 对话 / 多语言 | — |
+| **一句话定位** | AI 视频/图像生成的基础设施 | **全栈 AI 视频平台（API + Agent + Canvas + Drama）** | 叙事驱动的 AI 辅助短剧制作工具 |
+| **最擅长** | AI 模型品质 + 社区生态 | **API 聚合 + 视频生成 + 多语言 + 多产品矩阵** | 内容结构管理 + 本地离线 + 创作自由度 |
+| **最大短板** | 应用层工具较弱 | **叙事结构管理为 AI 生成不可编辑** | 无 AI 生成能力（Phase 1-2） |
+| **对 Spellpaw 威胁度** | 🟡 中（未来可能向下渗透） | 🔴 **高 — Drama Studio 直接竞争** | — |
+| **核心可借鉴** | Presets / MCP / 社区画廊 | **频道模板 / Agent 对话 / 多语言 / API 聚合 / Skill 生态 / Drama Studio 警示** | — |
 
-**核心结论：** Spellpaw 选择「叙事结构管理」作为切入点是正确的，两个竞品均未覆盖这一维度的需求。短期竞争压力不大，但必须在 12 个月内补齐 AI 生成能力，否则将面临被应用层平台侵蚀的风险。
+**核心结论（更新）：** Spellpaw 选择「叙事结构管理」作为切入点在 2026-05-27 时是正确的（两个竞品均未覆盖）。但到 2026-05-31，Topview 通过 Drama Studio 已进入该领域。Spellpaw 必须在 6-12 个月内：
+1. **补齐 AI 生成能力**（通过 API 聚合策略，不自研模型）
+2. **强化叙事结构可编辑性**（作为 vs Drama Studio 的核心差异点）
+3. **加速模板系统 + Agent 分步协作模式**
+4. **保持本地离线 + 数据主权优势**
+5. **考虑英文最小可用版**（降低 Topview 的先发国际化优势）
 
-**Spellpaw 的护城河不是 AI 模型，而是「叙事结构 + AI 协作」的创作范式。**
+**Spellpaw 的护城河不是 AI 模型，而是「叙事结构 + AI 协作 + 可编辑性 + 本地离线」的创作范式。** Topview 可以生成剧本，但 Spellpaw 可以让创作者真正「编辑」剧本。
 
 ---
 
-*文档版本：v1.0*  
-*下次更新：Phase 2 启动前，或竞品重大更新时*
+*文档版本：v1.1（原 v1.0 2026-05-27）*  
+*更新记录：2026-05-31 — Topview 产品矩阵全面更新，新增 Canvas/Drama Studio/Board/Skill/API 分析*  
+*下次更新：Product Hunt / 社交媒体出现 Topview 重大更新时，或注册测试完成后*  
+*关联文档：`docs/topview-analysis-report.md`（Topview 专项深度分析）*

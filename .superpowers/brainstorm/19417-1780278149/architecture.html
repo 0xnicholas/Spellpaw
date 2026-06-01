@@ -1,0 +1,76 @@
+<h2>设计总结 & 架构方案</h2>
+<p class="subtitle">确认理解无误，然后选择技术路线</p>
+
+<div class="section">
+  <h3>✅ 已确认的设计决策</h3>
+  <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 6px 8px; font-weight: 600; width: 140px;">左栏</td>
+      <td style="padding: 6px 8px;">任务列表（进行中 / 待审查），完全替换原有项目树和资产面板</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 6px 8px; font-weight: 600;">中栏</td>
+      <td style="padding: 6px 8px;">当前选中任务的独立 Agent 对话（单任务视图）</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 6px 8px; font-weight: 600;">右栏</td>
+      <td style="padding: 6px 8px;">画布（不变）</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 6px 8px; font-weight: 600;">任务创建</td>
+      <td style="padding: 6px 8px;">中栏空状态输入框，用户发消息即创建任务</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 6px 8px; font-weight: 600;">Agent 行为</td>
+      <td style="padding: 6px 8px;">直接执行 tool → 完成后任务自动变为「待审查」</td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 8px; font-weight: 600;">任务标题</td>
+      <td style="padding: 6px 8px;">Agent 根据对话内容自动生成</td>
+    </tr>
+  </table>
+</div>
+
+<div class="section">
+  <h3>技术架构：3 个方案</h3>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>全新 TaskStore + 内嵌消息</h3>
+      <p>新建 <code>taskStore</code>，每个 task 包含自己的 messages[]。中栏直接渲染当前 task 的消息。聊天 SSE 逻辑从 taskStore 驱动</p>
+      <div class="pros-cons" style="margin-top: 8px;">
+        <div class="pros"><h4>优点</h4><ul><li>干净分离，不影响现有 chatStore</li><li>每个 task 是独立单元</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>SSE 连接管理变复杂（每个 task 一个 session?）</li><li>需要新建较多代码</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>改造 chatStore 为多线程</h3>
+      <p>将现有 chatStore 扩展为支持多 thread。threadId 对应 taskId。中栏按 activeThreadId 切换显示</p>
+      <div class="pros-cons" style="margin-top: 8px;">
+        <div class="pros"><h4>优点</h4><ul><li>复用现有聊天 UI 组件</li><li>SSE 逻辑可以复用</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>chatStore 改造成本高</li><li>旧单线程逻辑需要迁移</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>轻量 TaskStore + 独立 AgentSession</h3>
+      <p>taskStore 只管任务元数据（id, title, status, sessionId）。中栏直接对接 Pandaria session API，每个任务 = 一个 Pandaria session。消息和 SSE 都由 session 驱动</p>
+      <div class="pros-cons" style="margin-top: 8px;">
+        <div class="pros"><h4>优点</h4><ul><li>消息存储交给 Pandaria，前端只管展示</li><li>架构最干净，任务 = session</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>依赖 Pandaria 的消息持久化（需要确认是否支持）</li><li>离线不可用</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top: 12px; font-size: 13px; color: var(--color-text-secondary);">
+  推荐 <strong>A</strong>（本地优先，不依赖 Pandaria 消息持久化）。可以后续平滑迁移到 C。
+</p>

@@ -1,0 +1,97 @@
+<h2>组件结构 & 布局</h2>
+<p class="subtitle">三层面板的新组件树</p>
+
+<div class="section">
+  <h3>组件树</h3>
+  <pre style="background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; font-size: 13px; overflow-x: auto; line-height: 1.6;">
+<span style="color: #94a3b8;">WorkspacePage</span>
+├── <span style="color: #38bdf8;">左栏</span> <span style="color: #94a3b8;">(Panel 18%)</span>
+│   └── <span style="color: #c084fc;">TaskListPanel</span>       <span style="color: #94a3b8;">🆕 替换 TreeViewPanel + AssetManagerPanel</span>
+│       ├── PanelHeader <span style="color: #94a3b8;">("任务")</span>
+│       ├── TaskSection <span style="color: #94a3b8;">("🔄 进行中")</span>
+│       │   └── TaskCard × N
+│       ├── TaskSection <span style="color: #94a3b8;">("👁 待审查")</span>
+│       │   └── TaskCard × N
+│       └── TaskSection <span style="color: #94a3b8;">("✅ 已完成")</span>
+│           └── TaskCard × N  <span style="color: #94a3b8;">(折叠/可展开)</span>
+│
+├── <span style="color: #38bdf8;">中栏</span> <span style="color: #94a3b8;">(Panel 30%)</span>
+│   └── <span style="color: #c084fc;">TaskChatPanel</span>       <span style="color: #94a3b8;">🔄 重构自 ChatPanel</span>
+│       ├── TaskChatHeader    <span style="color: #94a3b8;">(任务标题 + 状态标签 + 删除)</span>
+│       ├── MessageList       <span style="color: #94a3b8;">(复用现有组件)</span>
+│       ├── MessageInput      <span style="color: #94a3b8;">(复用现有组件)</span>
+│       └── EmptyState        <span style="color: #94a3b8;">(无选中任务时: "✨ 新对话" 输入框)</span>
+│
+└── <span style="color: #38bdf8;">右栏</span> <span style="color: #94a3b8;">(Panel 52%)</span>
+    └── FlowCanvasPanel       <span style="color: #94a3b8;">(不变)</span>
+  </pre>
+</div>
+
+<div class="section">
+  <h3>中栏两种状态</h3>
+  <div style="display: flex; gap: 16px; margin-top: 12px;">
+    <div style="flex: 1; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+      <div style="background: #f9fafb; padding: 8px 12px; font-weight: 600; font-size: 12px; border-bottom: 1px solid #e5e7eb;">
+        空状态（无选中任务）
+      </div>
+      <div style="padding: 40px 20px; text-align: center;">
+        <div style="font-size: 20px; margin-bottom: 4px;">✨</div>
+        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">新对话</div>
+        <div style="font-size: 12px; color: #888; margin-bottom: 16px;">描述你想做的事</div>
+        <div class="mock-input" style="width: 80%; margin: 0 auto; font-size: 12px;">输入你的需求…</div>
+      </div>
+    </div>
+    <div style="flex: 1; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+      <div style="background: #f9fafb; padding: 8px 12px; font-weight: 600; font-size: 12px; border-bottom: 1px solid #e5e7eb;">
+        任务对话中
+      </div>
+      <div style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 13px; font-weight: 600;">生成第二幕分镜</span>
+        <span style="font-size: 10px; background: #fef9c3; padding: 1px 8px; border-radius: 8px;">进行中</span>
+        <span style="margin-left: auto; color: #ef4444; font-size: 11px; cursor: pointer;">🗑</span>
+      </div>
+      <div style="padding: 8px 12px; font-size: 12px; min-height: 120px;">
+        <div style="background: #eff6ff; padding: 6px 8px; border-radius: 6px; margin-bottom: 6px;">
+          <strong>你</strong>: 帮我为第二幕生成分镜
+        </div>
+        <div style="background: #f9fafb; padding: 6px 8px; border-radius: 6px;">
+          <strong>Agent</strong>: 好的，正在处理…
+        </div>
+      </div>
+      <div style="border-top: 1px solid #e5e7eb; padding: 8px 12px;">
+        <div class="mock-input" style="font-size: 12px;">继续对话…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>TaskCard 设计</h3>
+  <div style="display: flex; gap: 8px; flex-direction: column; margin-top: 8px; max-width: 280px;">
+    <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 12px; background: white;">
+      <div style="display: flex; align-items: flex-start; gap: 8px;">
+        <span style="font-size: 16px;">🔄</span>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 600; font-size: 13px;">生成第二幕分镜</div>
+          <div style="font-size: 11px; color: #888; margin-top: 2px;">3 条消息 · 2 分钟前</div>
+          <div style="font-size: 10px; color: #f59e0b; margin-top: 2px;">Agent 正在处理…</div>
+        </div>
+      </div>
+    </div>
+    <div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 12px; background: white; border-left: 3px solid #8b5cf6;">
+      <div style="display: flex; align-items: flex-start; gap: 8px;">
+        <span style="font-size: 16px;">👁</span>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 600; font-size: 13px;">第一幕节奏分析</div>
+          <div style="font-size: 11px; color: #888; margin-top: 2px;">3 个建议 · 5 分钟前</div>
+          <div style="display: flex; gap: 6px; margin-top: 4px;">
+            <span style="font-size: 10px; background: #dcfce7; color: #16a34a; padding: 1px 6px; border-radius: 4px;">✓ 批准</span>
+            <span style="font-size: 10px; background: #fee2e2; color: #dc2626; padding: 1px 6px; border-radius: 4px;">✗ 拒绝</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top: 16px; color: var(--color-text-secondary); font-size: 13px;">组件结构和卡片设计可以吗？</p>

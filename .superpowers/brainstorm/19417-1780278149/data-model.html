@@ -1,0 +1,75 @@
+<h2>数据模型：AgentTask + TaskStore</h2>
+<p class="subtitle">任务的数据结构和 store API</p>
+
+<div class="section">
+  <h3>AgentTask 类型</h3>
+  <pre style="background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; font-size: 13px; overflow-x: auto; line-height: 1.6;">
+<span style="color: #94a3b8;">// src/apps/drama/types/index.ts</span>
+
+<span style="color: #c084fc;">interface</span> <span style="color: #38bdf8;">AgentTask</span> {
+  id: <span style="color: #fbbf24;">string</span>;
+  title: <span style="color: #fbbf24;">string</span>;            <span style="color: #94a3b8;">// Agent 根据首条消息自动生成</span>
+  status: <span style="color: #38bdf8;">'in_progress'</span> | <span style="color: #38bdf8;">'pending_review'</span> | <span style="color: #38bdf8;">'completed'</span>;
+  messages: <span style="color: #38bdf8;">ChatMessage</span>[];  <span style="color: #94a3b8;">// 复用现有 ChatMessage 类型</span>
+  createdAt: <span style="color: #fbbf24;">string</span>;
+  updatedAt: <span style="color: #fbbf24;">string</span>;
+  sessionId?: <span style="color: #fbbf24;">string</span>;       <span style="color: #94a3b8;">// Pandaria session（首次发消息后创建）</span>
+  <span style="color: #94a3b8;">// 产出物引用（可选，待审查时关联）</span>
+  affectedNodeIds?: <span style="color: #fbbf24;">string</span>[];   <span style="color: #94a3b8;">// 受影响的树节点</span>
+  generatedAssetIds?: <span style="color: #fbbf24;">string</span>[]; <span style="color: #94a3b8;">// 生成的资产（分镜图等）</span>
+}
+  </pre>
+</div>
+
+<div class="section">
+  <h3>TaskStore API</h3>
+  <pre style="background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; font-size: 13px; overflow-x: auto; line-height: 1.6;">
+<span style="color: #94a3b8;">// src/apps/drama/stores/taskStore.ts</span>
+
+<span style="color: #c084fc;">interface</span> <span style="color: #38bdf8;">TaskState</span> {
+  tasks: <span style="color: #38bdf8;">AgentTask</span>[];
+  activeTaskId: <span style="color: #fbbf24;">string</span> | <span style="color: #c084fc;">null</span>;
+  isLoading: <span style="color: #fbbf24;">boolean</span>;
+
+  <span style="color: #94a3b8;">// 任务 CRUD</span>
+  createTask: () => <span style="color: #fbbf24;">string</span>;                        <span style="color: #94a3b8;">// 返回新 taskId</span>
+  deleteTask: (id: <span style="color: #fbbf24;">string</span>) => <span style="color: #c084fc;">void</span>;
+  setActiveTask: (id: <span style="color: #fbbf24;">string</span> | <span style="color: #c084fc;">null</span>) => <span style="color: #c084fc;">void</span>;
+  updateTaskTitle: (id: <span style="color: #fbbf24;">string</span>, title: <span style="color: #fbbf24;">string</span>) => <span style="color: #c084fc;">void</span>;
+
+  <span style="color: #94a3b8;">// 消息操作（对标当前 chatStore）</span>
+  sendMessage: (taskId: <span style="color: #fbbf24;">string</span>, content: <span style="color: #fbbf24;">string</span>) => <span style="color: #c084fc;">void</span>;
+  appendMessage: (taskId: <span style="color: #fbbf24;">string</span>, msg: <span style="color: #38bdf8;">ChatMessage</span>) => <span style="color: #c084fc;">void</span>;
+
+  <span style="color: #94a3b8;">// SSE streaming（per-task）</span>
+  startStreaming: (taskId: <span style="color: #fbbf24;">string</span>, msgId: <span style="color: #fbbf24;">string</span>) => <span style="color: #c084fc;">void</span>;
+  appendDelta: (taskId: <span style="color: #fbbf24;">string</span>, delta: <span style="color: #fbbf24;">string</span>) => <span style="color: #c084fc;">void</span>;
+  endStreaming: (taskId: <span style="color: #fbbf24;">string</span>, stopReason?: <span style="color: #fbbf24;">string</span>) => <span style="color: #c084fc;">void</span>;
+
+  <span style="color: #94a3b8;">// 状态流转</span>
+  markPendingReview: (taskId: <span style="color: #fbbf24;">string</span>) => <span style="color: #c084fc;">void</span>;
+  markCompleted: (taskId: <span style="color: #fbbf24;">string</span>) => <span style="color: #c084fc;">void</span>;
+}
+  </pre>
+</div>
+
+<div class="section">
+  <h3>状态流转</h3>
+  <div style="display: flex; align-items: center; gap: 10px; font-size: 14px; padding: 16px; background: var(--color-bg-secondary); border-radius: 8px; flex-wrap: wrap;">
+    <span style="background: #dbeafe; padding: 6px 14px; border-radius: 16px; font-weight: 500;">📝 新创建</span>
+    <span style="font-size: 18px;">→</span>
+    <span style="background: #fef9c3; padding: 6px 14px; border-radius: 16px; font-weight: 500;">🔄 进行中</span>
+    <span style="font-size: 18px;">→</span>
+    <span style="background: #ede9fe; padding: 6px 14px; border-radius: 16px; font-weight: 500;">👁 待审查</span>
+    <span style="font-size: 18px;">→</span>
+    <span style="background: #dcfce7; padding: 6px 14px; border-radius: 16px; font-weight: 500;">✅ 完成</span>
+  </div>
+  <ul style="margin-top: 12px; font-size: 13px; line-height: 1.8;">
+    <li><strong>新创建 → 进行中：</strong>用户发第一条消息后自动转换</li>
+    <li><strong>进行中 → 待审查：</strong>Agent turn_end 事件触发（Agent 完成工具调用）</li>
+    <li><strong>待审查 → 完成：</strong>用户手动标记完成</li>
+    <li><strong>任何状态都可删除</strong></li>
+  </ul>
+</div>
+
+<p style="margin-top: 16px; color: var(--color-text-secondary); font-size: 13px;">这个数据模型和 Store API 符合你的预期吗？</p>

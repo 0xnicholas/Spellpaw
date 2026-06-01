@@ -1,0 +1,95 @@
+<h2>Cursor 风格：每个任务 = 独立 Agent 对话</h2>
+<p class="subtitle">左栏任务列表 → 点击切换中栏的对应对话</p>
+
+<div class="mockup" style="margin-bottom: 20px;">
+  <div class="mockup-header">整体布局示意</div>
+  <div class="mockup-body" style="display: flex; gap: 0; padding: 0; min-height: 380px;">
+    <!-- Left: Task List -->
+    <div style="width: 240px; border-right: 1px solid #e5e7eb; background: #fafafa; padding: 12px; flex-shrink: 0;">
+      <div style="font-weight: 600; font-size: 13px; margin-bottom: 10px;">📋 任务</div>
+      <div style="font-size: 11px; font-weight: 500; color: #f59e0b; margin-bottom: 4px;">🔄 进行中 (2)</div>
+      <div style="background: #3b82f6; color: white; border-radius: 6px; padding: 8px; margin-bottom: 6px; font-size: 12px; cursor: pointer;">
+        <div style="font-weight: 600;">生成第二幕分镜</div>
+        <div style="opacity: 0.8; font-size: 10px;">Agent 正在处理…</div>
+      </div>
+      <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; margin-bottom: 6px; font-size: 12px;">
+        <div style="font-weight: 600;">优化场景 1-2 对白</div>
+        <div style="color: #888; font-size: 10px;">等待你的输入</div>
+      </div>
+      <div style="font-size: 11px; font-weight: 500; color: #8b5cf6; margin-bottom: 4px; margin-top: 12px;">👁 待审查 (3)</div>
+      <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; margin-bottom: 6px; font-size: 12px;">
+        <div style="font-weight: 600;">第一幕节奏分析</div>
+        <div style="color: #888; font-size: 10px;">3 个建议 · 5 分钟前</div>
+      </div>
+      <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; margin-bottom: 6px; font-size: 12px;">
+        <div style="font-weight: 600;">场景 1-1 分镜图</div>
+        <div style="color: #888; font-size: 10px;">5 张已生成</div>
+      </div>
+      <div style="font-size: 11px; font-weight: 500; color: #10b981; margin-bottom: 4px; margin-top: 12px;">✅ 已完成 (1)</div>
+      <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; font-size: 12px; opacity: 0.6;">
+        <div style="font-weight: 600;">添加悬念场景</div>
+        <div style="color: #888; font-size: 10px;">已应用 · 昨天</div>
+      </div>
+    </div>
+
+    <!-- Center: Task's Chat -->
+    <div style="flex: 1; background: white; display: flex; flex-direction: column;">
+      <div style="border-bottom: 1px solid #e5e7eb; padding: 8px 12px; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 12px; color: #888;">← 返回全部任务</span>
+        <span style="font-weight: 600; font-size: 13px;">生成第二幕分镜</span>
+        <span style="margin-left: auto; font-size: 10px; background: #fef9c3; padding: 2px 8px; border-radius: 10px;">进行中</span>
+      </div>
+      <div style="flex: 1; padding: 12px; overflow-y: auto;">
+        <div style="background: #eff6ff; border-radius: 6px; padding: 8px; margin-bottom: 8px; font-size: 12px;">
+          <strong>你</strong>: 帮我为第二幕生成分镜图
+        </div>
+        <div style="background: #f9fafb; border-radius: 6px; padding: 8px; margin-bottom: 8px; font-size: 12px;">
+          <strong>Agent</strong>: 好的！第二幕有 3 个场景需要生成分镜：<br>
+          • 场景 2-1：冲突爆发 (3 镜头)<br>
+          • 场景 2-2：内心独白 (2 镜头)<br>
+          • 场景 2-3：转折点 (4 镜头)<br>
+          我按你的风格锁风格开始生成…
+        </div>
+        <div style="background: #f0fdf4; border-radius: 6px; padding: 8px; font-size: 12px; color: #16a34a;">
+          ✅ 场景 2-1 已生成 3 张分镜图
+        </div>
+      </div>
+      <div style="border-top: 1px solid #e5e7eb; padding: 8px 12px;">
+        <div class="mock-input" style="font-size: 12px;">输入消息… (针对此任务)</div>
+      </div>
+    </div>
+
+    <!-- Right: Canvas (unchanged) -->
+    <div style="width: 280px; border-left: 1px solid #e5e7eb; background: #fafafa; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #888; font-size: 12px;">
+      🎨 画布
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>关键设计点确认：</h3>
+  <ul style="font-size: 14px; line-height: 1.8;">
+    <li>左栏 = 任务列表（进行中 / 待审查 / 已完成），<strong>不是单一聊天面板</strong></li>
+    <li>每个任务有自己的<strong>独立 Agent 对话线程</strong></li>
+    <li>点击任务 → 中栏切换为该任务的专属对话</li>
+    <li>中栏顶部有面包屑，可以返回任务列表视图</li>
+    <li>中栏可能有 <strong>Tab 栏</strong>让用户同时打开多个任务对话？还是每次只显示一个？</li>
+  </ul>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>单任务视图（Cursor 风格）</h3>
+      <p>中栏一次只显示一个任务的对话。点击左边不同任务就切换。简单直观</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>多 Tab 视图</h3>
+      <p>中栏顶部有 Tab 栏，可以同时打开多个任务对话，像浏览器标签页一样切换</p>
+    </div>
+  </div>
+</div>

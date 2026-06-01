@@ -14,7 +14,6 @@ import {
   type NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { GitBranch } from 'lucide-react';
 
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useProjectStore } from '@drama/stores/projectStore';
@@ -25,7 +24,6 @@ import { AssetCardNode } from './nodes/AssetCardNode';
 import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
 import { generateId } from '@/shared/lib/utils';
 import { collectScenes } from '@drama/lib/treeUtils';
-import { layoutTreeToCanvas } from '@drama/lib/canvasLayout';
 
 const nodeTypes: NodeTypes = {
   sceneCard: SceneCardNode,
@@ -188,35 +186,6 @@ export function FlowCanvasPanel() {
     setDeleteConfirm(null);
   };
 
-  const handleSyncFromTree = useCallback(() => {
-    const currentTree = useProjectStore.getState().getCurrentTree();
-    if (!currentTree) return;
-
-    const projectId = useProjectStore.getState().currentProjectId;
-    if (!projectId) return;
-
-    // Preserve non-scene cards (assets, notes, user-created cards)
-    const currentNodes = useCanvasStore.getState().getCurrentNodes();
-    const preservedNodes = currentNodes.filter(
-      (n) => n.type !== 'sceneCard' && !n.id.startsWith('canvas_act_')
-    );
-
-    // Generate fresh layout from tree
-    const layout = layoutTreeToCanvas(currentTree);
-
-    // Merge preserved nodes with new layout
-    const mergedNodes = [...layout.nodes, ...preservedNodes];
-    const mergedEdges = layout.edges; // drop old edges, regenerate from tree
-
-    useCanvasStore.getState().syncNodes(mergedNodes);
-    useCanvasStore.getState().syncEdges(mergedEdges);
-
-    // Fit view to show all nodes
-    setTimeout(() => {
-      reactFlowRef.current?.fitView({ duration: 300, padding: 0.2 });
-    }, 50);
-  }, []);
-
   // Collect unlinked scenes for sync-to-tree submenu
   const allScenes = tree ? collectScenes(tree) : [];
   const linkedIds = new Set(persistedNodes.map((n) => n.data.linkedTreeNodeId).filter(Boolean));
@@ -226,16 +195,6 @@ export function FlowCanvasPanel() {
     <div className="flex h-full flex-col">
       <div className="flex-1 relative overflow-hidden">
         {/* Toolbar */}
-        <div className="absolute left-3 top-3 z-10 flex items-center gap-2">
-          <button
-            onClick={handleSyncFromTree}
-            className="flex items-center gap-1.5 rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text-secondary)] shadow-sm transition-colors hover:border-[var(--color-accent-500)] hover:text-[var(--color-accent-500)]"
-            title="从树结构同步到画布"
-          >
-            <GitBranch className="h-3.5 w-3.5" />
-            从树同步
-          </button>
-        </div>
 
         <ReactFlow
           nodes={nodes}

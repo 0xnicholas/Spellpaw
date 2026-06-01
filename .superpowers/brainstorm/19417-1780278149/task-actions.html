@@ -1,0 +1,50 @@
+<h2>任务的操作和状态切换</h2>
+<p class="subtitle">用户点击一个任务卡片后，可以做什么？</p>
+
+<div class="section">
+  <h3>我的理解：</h3>
+  <ul style="font-size: 14px; line-height: 1.8;">
+    <li><strong>进行中</strong> — Agent 正在处理，或任务已被接受但尚未产出结果</li>
+    <li><strong>待审查</strong> — Agent 已完成工作（生成了内容、分析了结构等），等你确认或修改</li>
+  </ul>
+</div>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>点击跳转到对话</h3>
+      <p>点击任务卡片后，聊天面板自动滚动到产生该任务的那条消息，方便查看上下文</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>预览 / 展开详情</h3>
+      <p>点击后在卡片内展开详情（如分镜图预览、分析报告摘要），不用跳转到别处</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>批准 / 拒绝</h3>
+      <p>待审查任务有 ✅ 批准 和 ❌ 拒绝 按钮。批准后应用到项目（如插入场景到画布），拒绝后通知 Agent 重新处理</p>
+    </div>
+  </div>
+  <div class="option" data-choice="d" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>一键应用到项目</h3>
+      <p>待审查任务有一个"应用"按钮 —— 比如「Agent 建议添加场景 X」，点击后直接插入到项目结构</p>
+    </div>
+  </div>
+  <div class="option" data-choice="e" onclick="toggleSelect(this)">
+    <div class="letter">E</div>
+    <div class="content">
+      <h3>继续对话</h3>
+      <p>任务卡片上有一个输入框或快捷按钮，让你直接针对这个任务继续和 Agent 对话</p>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top: 16px; color: var(--color-text-secondary); font-size: 13px;">可以多选。还有其它你想要的操作吗？</p>

@@ -1,24 +1,64 @@
 # Spellpaw 产品路线图
 
 > 时间跨度：Phase 2–Phase 4（6–12 个月）  
-> 制定依据：竞品分析（Higgsfield AI + Topview AI）可借鉴策略  
-> 日期：2026-05-27
+> 制定依据：竞品分析（Higgsfield AI + Topview AI）+ Topview 专项分析  
+> 日期：2026-05-27（更新 2026-05-31）  
+>  
+> **⚠️ 2026-05-31 重大调整：** Topview 新增 Drama Studio / AI Canvas / Board / Skill / OpenAPI，直接进入短剧创作市场。  
+> **路线图调整：** 竞争关键项前移、新增 Phase 2.5「竞争加固」、多语言从 Phase 4 提升至 Phase 2.5。视频/图像生成通过 Pandaria + Tokencamp 网关。  
+> 详见 `docs/topview-analysis-report.md` 和 `docs/competitive-analysis-higgsfield-topview.md`（v1.1）。
 
 ---
 
-## 路线图总览
+## 竞争态势（2026-05-31）
+
+> **Topview 已通过 Drama Studio 直接进入 Spellpaw 的核心市场。竞争窗口从 12-18 个月缩短至 6-12 个月。**
+
+### Topview 的威胁
+
+| 威胁 | Topview 产品 | 紧迫度 | Spellpaw 应对 |
+|------|-------------|:---:|------|
+| 短剧剧本生成 | **Drama Studio**（AI 编剧+导演，6语言分镜） | 🔴 高 | 强化叙事结构可编辑性 + 4级层级深度 |
+| 视频生成闭环 | 12+ 模型 API 聚合，直接出片 | 🔴 高 | 通过 Pandaria + Tokencamp 网关补齐能力（不自研模型） |
+| 模板丰富度 | 30+ 频道模板 | 🟡 中 | 叙事模板 5→15+，社区贡献机制 |
+| 多语言 | 20 UI 语言 + 6 内容语言 | 🟡→🔴 | 英文 MVP 提升至 Phase 2.5 |
+| Agent 生态 | Topview Skill（GitHub 可安装） | 🟡 中 | Phase 4 MCP Server 加速 |
+
+### Spellpaw 的护城河
+
+| 护城河 | 状态 | Topview 短期内能复制吗？ |
+|--------|:---:|:---:|
+| **4 级树状结构**（项目→幕→场景→镜头） | ✅ 坚固 | ❌ Drama Studio 仅到场景级，无止幕概念 |
+| **节点级可编辑元数据** | ✅ 坚固 | ❌ AI 生成内容不可细粒度编辑 |
+| **画布-树-Agent 三向联动** | ✅ 坚固 | ❌ Canvas/Drama Studio 是独立产品 |
+| **本地离线 + 数据主权** | ✅ 坚固 | ❌ Topview 全云端 |
+| **节奏分析 + 结构化报告** | ✅ 坚固 | ❌ 无 |
+| AI 视频生成能力 | ❌ 缺失 | ✅ Topview 12+ 模型 |
+| 多语言 | ❌ 缺失 | ✅ Topview 20 UI + 6 内容 |
+
+### 路线图调整原则
+
+1. **不自研 AI 模型** — 通过 Pandaria + Tokencamp 网关补齐生成能力
+2. **强化可编辑性** — 这是 Drama Studio 无法提供的核心价值
+3. **多语言加速** — 从 Phase 4 提升至 Phase 2.5（英文 MVP）
+4. **模板翻倍** — 从 5 个内置模板扩展到 15+（社区贡献 + AI 生成）
+5. **保持离线优先** — 这是 Topview 永远无法复制的架构优势
+
+---
+
+## 路线图总览（v1.2）
 
 ```
-Phase 1                         Phase 2                         Phase 3                         Phase 4
-「本地编辑工具」                「AI 创作助手」                  「云端协作平台」                 「开放生态」
-3 周                            8 周                            6 周                            6 周
+Phase 1             Phase 2                 Phase 2.5 🆕         Phase 3                 Phase 4
+「本地编辑工具」     「AI 创作助手」          「竞争加固」           「云端协作平台」          「开放生态」
+3 周                 8 周                    2 周                  5 周                     5 周
 
-已完成 / 进行中                  AI 生成能力 +                  云端同步 +                      MCP 协议 +
-  树状 CRUD                      叙事模板系统                   团队协作 +                      国际化 +
-  画布编辑                       分步协作 Agent                 模板市场                        第三方集成
-  Detail Panel                   分镜画面生成                  项目分享画廊
-  项目导入导出                   AI 风格迁移                   版本管理
-  localStorage 持久化
+已完成               AI 生成能力 +           多语言 MVP +          云端同步 +               MCP 协议 +
+  树状 CRUD           叙事模板系统(10+)       模板扩展(15+)         团队协作 +               全面国际化 +
+  画布编辑            分步协作 Agent          英文 UI               模板市场                 第三方集成
+  Detail Panel        分镜画面生成            Drama Studio 对照    版本管理                 REST API
+  项目导入导出        智能推荐/节奏分析                              多语言扩展(日/韩)         CRDT 按需
+  IndexedDB 持久化
 ```
 
 ---
@@ -34,9 +74,11 @@ Phase 1                         Phase 2                         Phase 3         
 | # | 目标 | 成功标准 |
 |---|------|---------|
 | 1 | Agent 接入真实 AI | 用户可通过对话生成/修改项目结构，不再是 mock |
-| 2 | 叙事模板系统上线 | 内置 ≥5 个叙事模板，用户可通过模板创建项目 |
+| 2 | 叙事模板系统上线 | 内置 ≥10 个叙事模板（vs Topview 30+；质量 > 数量），用户可通过模板创建项目 |
 | 3 | AI 生成分镜画面 | 用户可为场景生成参考图（storyboard），画布卡片显示缩略图 |
 | 4 | 分步确认协作流 | Agent 分「大纲→确认→展开→细化」4 步协作，而非一次性黑盒输出 |
+
+> **注：** 视频/图像生成通过 Pandaria tool（`generate_storyboard`）→ Tokencamp 网关路由至模型厂商。
 
 ### 2.2 Phase 2 功能规划
 
@@ -56,9 +98,9 @@ Phase 2 功能全景
 │  ┌─────────────┐   ┌──────────────────┐   ┌──────────────────────┐  │
 │  │ 风格迁移      │   │ 智能推荐          │   │ 导出增强              │  │
 │  │             │   │                  │   │                      │  │
-│  │ 参考图风格   │   │ 模板智能匹配      │   │ 分镜 PDF 导出         │  │
-│  │ → 全局应用   │   │ 结构补全建议      │   │ 带 AI 生成画面的导出   │  │
-│  │ 色调/光线    │   │ 节奏/时长分析     │   │ 对白脚本导出           │  │
+│  │ 参考图风格   │   │ 模板智能匹配      │   │ 分镜脚本→视频预览     │  │
+│  │ → 全局应用   │   │ 结构补全建议      │   │ 一键导出到 Topview    │  │
+│  │ 色调/光线    │   │ 节奏/时长分析     │   │ 模型选择 + 参数配置   │  │
 │  └─────────────┘   └──────────────────┘   └──────────────────────┘  │
 │                                                                      │
 └──────────────────────────────────────────────────────────────────────┘
@@ -112,6 +154,8 @@ interface NarrativeTemplate {
 - [x] 模板分享（`.spellpaw-template.json` 格式导入/导出）
 - [x] 内置模板 ≥ 5 个（悬疑反转 / 甜宠短剧 / 励志逆袭 / 喜剧反转 / 短纪录片）
 - [x] 模板市场（本地 JSON 管理，`/templates` 独立页面）
+- [ ] 🆕 内置模板扩展到 10+（新增：品牌微电影 / 产品种草 / 科技评测 / 时尚穿搭 / 恐怖短片）
+- [ ] 🆕 AI 模板生成（Agent 根据用户项目自动生成模板结构）
 - [ ] 云端模板市场（上传/下载/评价，Phase 3+）
 
 **用户流程：**
@@ -125,7 +169,7 @@ interface NarrativeTemplate {
                               开始编辑细节           从零开始
 ```
 
-#### 2.2.2 Agent 分步协作（≈ 3 周）
+#### 2.2.2 Agent 分步协作（≈ 2.5 周，从 Phase 2 Week 3-5 执行）
 
 **借鉴：** Topview "Tell Your Agent" 模式 + Spellpaw 结构管理优势 → 分步确认式 Agent
 
@@ -363,7 +407,7 @@ User: "确认"
 | 套用模板 | `apply_template` | 展示模板结构后确认 |
 | 生成分镜图 | `generate_storyboard` | 告知后直接执行 |
 
-#### 2.2.3 AI 分镜画面生成（≈ 2 周）
+#### 2.2.3 AI 分镜画面生成（≈ 1.5 周，从 Phase 2 Week 6-7 执行）
 
 **借鉴：** Higgsfield 的 AI 图像生成能力 + Spellpaw 的画布展示
 
@@ -376,7 +420,60 @@ User: "确认"
 - [x] 风格锁（选中一张图的 prompt，应用到其他场景）
 - [ ] 生成的图片存入资产库，可拖拽到画布
 
-#### 2.2.4 智能推荐与导出增强（≈ 1 周收尾）
+#### 2.2.4 🆕 Topview API 桥接（≈ 1 周，Phase 2 Week 6 执行）
+
+**策略：** 不自研 AI 视频模型，通过 Topview REST API 快速补齐视频生成能力。
+
+> **为什么选 Topview API：** 单 API 封装 12+ 视频模型（Veo, Sora, Seedance 等），免费 tier，统一 credit 计费。用户可自备 API key，Spellpaw 仅做桥接层。
+
+**功能：**
+
+| 功能 | 说明 |
+|------|------|
+| API Key 配置 | 用户在设置页填入 Topview API Key + User ID（可选，无 key 时功能隐藏） |
+| 一键导出分镜 | 选中场景 → 「生成视频预览」→ 自动构造 prompt → 调用 Topview text2video |
+| 任务轮询 | taskId → 每 3s 轮询 → 完成时展示视频 URL + 缩略图 |
+| 进度显示 | Chat 面板展示生成进度（提交 → 排队 → 生成中 → 完成） |
+| 结果回写 | 生成的视频 URL 存入场景 metadata + 资产库 |
+
+**技术设计：**
+
+```typescript
+// src/apps/drama/lib/topviewBridge.ts
+interface TopviewConfig {
+  apiKey: string;
+  userId: string;
+}
+
+async function submitText2Video(
+  config: TopviewConfig,
+  prompt: string,
+  options?: { aspectRatio?: string; resolution?: number; duration?: number }
+): Promise<{ taskId: string }> {
+  // POST https://api.topview.ai/v1/common_task/text2video/task/submit
+}
+
+async function pollTask(
+  config: TopviewConfig,
+  taskId: string
+): Promise<{ status: string; videoUrl?: string }> {
+  // GET/POST https://api.topview.ai/v1/common_task/task/query
+}
+```
+
+**Prompt 构造策略：** 从 Spellpaw 项目树自动提取场景信息拼接 prompt：
+
+```
+场景标题: {scene.title}
+描述: {scene.metadata.description}
+地点: {scene.metadata.location}
+时间: {scene.metadata.timeOfDay}
+镜头类型: {scene.metadata.shotType}
+机位: {scene.metadata.cameraMovement}
+风格: {project.lockedStylePrompt}
+```
+
+**风险缓解：** Topview API 可能随时变更或收费。Spellpaw 的桥接层设计为**可插拔 provider 模式**——用户也可选择其他视频生成 API（如 Runway, Pika），或通过 Pandaria 的 generate_storyboard tool 生成静态分镜图（fallback）。
 
 | 功能 | 说明 | 状态 | 借鉴来源 |
 |------|------|:---:|---------|
@@ -385,70 +482,58 @@ User: "确认"
 | 节奏分析 | 分析各场景时长分布，标记节奏问题（CV、前重后重、建议拆分） | ✅ | 自研 |
 | 分镜 PDF 导出 | 导出为竖版分镜表 PDF（含 AI 参考图、镜头描述、时长） | ⬜ | 自研 |
 
-### 2.3 Phase 2 里程碑
+#### 2.2.5 智能推荐与导出增强（≈ 1 周收尾，Phase 2 Week 8）
+
+| 功能 | 说明 | 状态 | 借鉴来源 |
+|------|------|:---:|---------|
+| 模板智能匹配 | 根据用户已编辑的项目结构，推荐匹配的叙事模板 | ⬜ | Higgsfield trending 算法思路 |
+| 结构补全建议 | 当用户只建了 2 幕时，Agent 建议「通常短剧需要 3 幕，是否补全？」 | ⬜ | Topview 模板补全 |
+| 节奏分析 | 分析各场景时长分布，标记节奏问题（CV、前重后重、建议拆分） | ✅ | 自研 |
+| 🆕 Drama Studio 对照 | 对比分析：Spellpaw 可编辑性 vs Drama Studio AI 生成限制 | ⬜ | 竞争差异化 |
+
+### 2.3 Phase 2 里程碑（v1.2 更新）
 
 ```
-依赖链：
-  模板系统（独立）  +  Tool Server（独立）
-        ↓                    ↓
-        └────────┬───────────┘
-                 ↓
-        Pandaria Session 配置 + system_prompt
-                 ↓
-        SSE 消费 + Chat 流式渲染
-                 ↓
-        端到端集成测试
-                 ↓
-        AI 分镜 + 收尾
-```
-
-```
-Week 1-2:   叙事模板系统
+Week 1-2:   叙事模板系统（10+ 模板）
             ├── Week 1: 数据模型 + 模板浏览器 UI
-            └── Week 2: 5 个内置模板 + 一键创建项目 + 本地 JSON 导入导出
+            └── Week 2: 内置模板扩展到 10+ + AI 模板生成
 
-Week 3-4:   Tool Server
+Week 3-4:   Tool Server + Agent 分步协作（提前）
             ├── Week 3: Vite 插件骨架（HTTP /tool + WebSocket /tool-ws）
-            │          + call_id 匹配 + 超时处理
-            └── Week 4: toolRouter 全部 8 个 action 实现
-                        + curl 自测（无需 Pandaria）
+            │          + call_id 匹配 + 超时处理 + toolRouter 全部 action
+            └── Week 4: Pandaria session 配置 + system_prompt 注入
+                        + SSE 事件消费基础通
 
-Week 5:     Pandaria 对接
-            ├── 本地 Pandaria 环境搭建
-            ├── session 创建脚本（system_prompt 注入 + tool 注册）
-            └── SSE 事件消费基础通（text_delta 打印到控制台验证）
+Week 5:     Chat 流式 UI
+            ├── text_delta 流式打字 + Markdown 渲染
+            └── tool_call_started/done 进度指示 + 端到端集成测试
 
-Week 6:     Chat 流式 UI
-            ├── text_delta 流式打字效果 + Markdown 渲染
-            ├── tool_call_started / tool_call_done 进度指示
-            ├── thinking_delta 折叠展示
-            └── error / turn_end 事件处理
+Week 6:     AI 分镜 + 🆕 Topview 桥接（并行）
+            ├── generate_storyboard tool + 画布缩略图 + 风格锁
+            └── Topview API 桥接（text2video + 任务轮询 + 进度展示）
 
-Week 7:     集成 + 协作流验证
-            ├── 端到端测试：用户输入 → LLM → tool → store → Chat 反馈
-            ├── system_prompt 调优（分步确认效果验证）
-            └── 异常路径：浏览器断连 / 超时 / tool 执行失败
+Week 7:     协作流验证 + system_prompt 调优
+            ├── 分步确认效果验证
+            └── 异常路径：断连 / 超时 / tool 失败
 
-Week 8:     AI 分镜 + 收尾
-            ├── generate_storyboard tool + 画布缩略图集成
-            ├── 智能推荐 + 节奏分析
-            └── 分镜 PDF 导出 + 集成测试
+Week 8:     智能推荐 + 导出 + 集成测试
+            ├── 模板智能匹配 + 结构补全建议
+            ├── 🆕 Drama Studio 对照导出
+            └── 集成测试 + 性能优化
 ```
 
-### 2.4 Phase 2 技术选型
+### 2.4 Phase 2 技术选型（v1.2 更新）
 
 | 决策点 | 选型 | 理由 |
 |--------|------|------|
 | Agent 后端 | Pandaria（Rust，`../pandaria`） | 项目内已有；REST + SSE + HttpProxyTool 机制完备 |
-| Tool Server 开发期 | Vite 插件（embedded middleware） | 单进程，与 Vite dev 并发启动；`POST /tool` + `/tool-ws` WebSocket 同在 `:5173` |
-| Tool Server 生产期 | Electron `ipcMain.handle()` / `ipcRenderer.invoke()` | 无端口暴露，更安全；transport 可插拔，Tool Router 复用 |
-| WebSocket 库 | `ws`（服务端，Vite 插件内） + 浏览器原生 `WebSocket` | 轻量，服务端仅需 `WebSocketServer` |
-| Tool 协议 | Pandaria HttpProxyTool → `POST localhost:5173/tool` | 原生机制，无需定制 Pandaria |
-| Tool 结果匹配 | `Map<callId, pendingResolve>` + 30s 超时 | 异步请求-响应配对，防内存泄漏 |
-| 上下文注入 | `system_prompt`（大纲层）+ turn 前 PATCH + `get_subtree` tool（细节层） | 两层上下文：~500 token 固定开销，镜头按需获取 |
-| Chat 流式渲染 | SSE `text_delta` + `tool_call_*` 事件 | Pandaria 原生 SSE；React state 驱动流式更新 |
-| 图像生成 | Tool endpoint 内部转发到 DALL·E / Stability API | Pandaria 不负责图像；Spellpaw tool server 作为中间层 |
-| 模板存储 | `.spellpaw-template.json`（本地文件） | 与项目 JSON 格式统一，Phase 3 迁移至云端 |
+| Tool Server 开发期 | Vite 插件（embedded middleware） | 单进程，与 Vite dev 并发启动 |
+| Tool Server 生产期 | Electron `ipcMain.handle()` / `ipcRenderer.invoke()` | 无端口暴露，更安全 |
+| WebSocket 库 | `ws`（服务端，Vite 插件内） + 浏览器原生 `WebSocket` | 轻量 |
+| Chat 流式渲染 | SSE `text_delta` + `tool_call_*` 事件 | Pandaria 原生 SSE |
+| 图像生成 | Tool endpoint 内部转发到 DALL·E / Stability API | Pandaria 不负责图像 |
+| 🆕 视频生成 | **Topview REST API 桥接**（可插拔 provider） | 不自研模型；免费 tier；单 API 12+ 模型 |
+| 模板存储 | `.spellpaw-template.json`（本地文件） | 与项目 JSON 格式统一 |
 
 ### 2.5 Tool Server 架构
 
@@ -741,7 +826,57 @@ test('full turn: message → agent → tool → store', async () => {
 
 ---
 
-## Phase 3：云端协作与内容生态（约 6 周）
+## Phase 2.5 🆕：竞争加固（约 2 周）
+
+> **核心命题：在 Phase 2 AI 能力上线后，快速补齐与 Topview 的差距项**  
+> **触发原因：** Topview Drama Studio 直接竞争 + 20 语言 + 30 模板 + API 生态  
+> **策略：** 不做大功能，做「竞争差异化的加固」
+
+### 2.5.1 目标
+
+| # | 目标 | 成功标准 |
+|---|------|---------|
+| 1 | 英文 UI MVP | 用户可切换中/英文界面，覆盖所有主要 UI 文案 |
+| 2 | 模板扩展至 15+ | 社区贡献机制上线，模板总量 ≥15（内置 + 社区 + AI 生成） |
+| 3 | Topview 桥接完善 | 支持多模型选择，增加参数配置 |
+| 4 | Drama Studio 对照导出 | 一键导出项目结构与 Drama Studio 的对照分析 |
+
+### 2.5.2 英文 UI MVP（≈ 1 周）
+
+**范围：** 仅中/英双语，用最简单 key-value 翻译表覆盖核心 UI。
+
+- [ ] 翻译表：`src/shared/i18n/` 下 `zh.json` + `en.json`
+- [ ] 语言切换：Navbar 下拉菜单（中/英），存入 `localStorage`
+- [ ] 覆盖范围：导航、树视图、画布、Chat、Detail Panel、模板浏览器
+- [ ] 不包括：模板内容翻译、Agent 对话翻译、帮助文档
+
+**为什么先做英文：** Topview 的英文市场优势明显。Spellpaw 即使只有英文 UI（内容仍可为中文），也能降低海外创作者尝试门槛。同时验证 i18n 架构，为 Phase 4 全面国际化铺路。
+
+### 2.5.3 模板扩展 15+（≈ 0.5 周）
+
+- [ ] 新增内置模板：品牌微电影、产品种草、科技评测、时尚穿搭、恐怖短片（5 个新增）
+- [ ] AI 模板生成：Agent 一键导出当前项目为模板
+- [ ] 社区贡献入口：`/templates` 增加「提交模板」→ 生成 `.spellpaw-template.json` → 复制分享
+
+### 2.5.4 Topview 桥接完善（≈ 0.5 周）
+
+- [ ] 模型选择器：Veo 3.2 / Sora 2 / Seedance 2.0 / Kling 2
+- [ ] 参数配置面板：aspect ratio (16:9 / 9:16 / 1:1)、resolution (720p / 1080p)、duration
+- [ ] Fallback：Topview API 不可用时降级为静态分镜图生成
+
+### 2.5.5 Drama Studio 对照导出
+
+**定位：** 展示 Spellpaw 相较 Drama Studio 的「可编辑性」优势。帮助用户理解为什么 Spellpaw 的叙事结构管理比 AI 生成更有价值。
+
+导出 Markdown / PDF 包含：
+- 结构深度对比（4 级层级 vs 场景级）
+- 元数据可编辑性对比
+- 节点状态流转 vs 无状态
+- 节奏分析 vs 无分析
+
+---
+
+## Phase 3：云端协作与内容生态（约 5 周）
 
 > **核心命题：从"单人本地工具"升级为"可协作、可分享的平台"**  
 > **竞品借鉴：** Higgsfield Community 画廊 + Higgsfield Collab（简化版）  
@@ -754,7 +889,9 @@ test('full turn: message → agent → tool → store', async () => {
 | 1 | 云端同步 | 用户登录后可跨设备推送/拉取项目，冲突时展示 diff 供手动选择 |
 | 2 | 团队协作 | 多人可异步编辑同一项目（push/pull 模式），非同时编辑 |
 | 3 | 模板市场 | 用户可上传/下载模板，形成内容飞轮 |
-| 4 | 项目分享画廊 | 用户可公开分享项目分镜集，类似 Higgsfield 社区画廊 |
+| 4 | 🆕 多语言扩展 | 英文 UI 完善 + 新增 2 语言（日/韩），Agent 对话支持多语言理解 |
+
+> **注：** 英文 MVP 已在 Phase 2.5 完成。Phase 3 扩展至日/韩，并让 Agent 支持多语言对话。
 
 ### 3.2 Phase 3 功能规划
 
@@ -771,17 +908,16 @@ Phase 3 功能全景
 │  │ 多端同步        │   │ 协作状态指示      │   │ Trending 算法   │   │
 │  └─────────────────┘   └──────────────────┘   └────────────────┘   │
 │                                                                      │
-│  ┌─────────────────┐                                                │
-│  │ 版本管理          │                                                │
-│  │                 │                                                │
-│  │ 自动版本快照     │                                                │
-│  │ 版本对比/回滚    │                                                │
-│  └─────────────────┘                                                │
+│  ┌─────────────────┐   ┌──────────────────┐                        │
+│  │ 版本管理          │   │ 🆕 多语言扩展       │                        │
+│  │                 │   │                  │                        │
+│  │ 自动版本快照     │   │ 日/韩 UI 语言     │                        │
+│  │ 版本对比/回滚    │   │ Agent 多语言对话   │                        │
+│  │                 │   │ 模板本地化        │                        │
+│  └─────────────────┘   └──────────────────┘                        │
 │                                                                      │
 └──────────────────────────────────────────────────────────────────────┘
 ```
-
-> **后移到 Phase 4：** 国际化（UI i18n + 内容多语言）、CRDT 实时协作（按需升级）
 
 #### 3.2.1 云端基础设施
 
@@ -886,11 +1022,13 @@ Week 6:     画廊 + 版本管理 + 集成
 
 ---
 
-## Phase 4：开放生态（约 6 周）
+## Phase 4：开放生态（约 5 周）
 
 > **核心命题：从"封闭平台"升级为"协议级基础设施"**  
 > **竞品借鉴：** Higgsfield MCP 协议 + Topview 全面多语言  
-> **Phase 3 后移项：** 国际化（UI i18n + prompt 多语言生成）、CRDT 实时协作（按需从异步升级）
+> **Phase 3 后移项：** CRDT 实时协作（按需从异步升级）
+
+> **注：** 国际化已在 Phase 2.5（英文 MVP）+ Phase 3（日/韩）启动，Phase 4 完成剩余语言。
 
 ### 4.1 目标与成功标准
 
@@ -898,9 +1036,11 @@ Week 6:     画廊 + 版本管理 + 集成
 |---|------|---------|
 | 1 | MCP Server 上线 | 外部 AI agent 可通过 MCP 协议读/写 Spellpaw 项目结构 |
 | 2 | 第三方集成 | ≥1 个外部应用接入（如 Claude 直接操作 Spellpaw 项目） |
-| 3 | 全面国际化 | 支持 ≥5 种语言（中/英/日/韩/西），含 prompt 级别多语言生成（Phase 3 后移） |
+| 3 | 全面国际化 | 支持 ≥5 种语言（中/英/日/韩/西），含 prompt 级别多语言生成 |
 | 4 | API 文档 | 完整的 REST API + MCP 文档，开发者可自行集成 |
 | 5 | 实时协作升级（可选） | 若异步 push/pull 不够用，升级为 CRDT 实时协作 |
+
+> **注：** 英文 MVP（Phase 2.5）+ 日/韩（Phase 3）已完成，Phase 4 补齐西语 + prompt 多语言生成。
 
 ### 4.2 Phase 4 功能规划
 
@@ -1007,7 +1147,7 @@ Week 6:     第三方合作伙伴接入 + 集成测试
 
 ---
 
-## 路线图全景时间线
+## 路线图全景时间线（v1.2）
 
 ```
 Month 1            Month 2            Month 3            Month 4
@@ -1015,34 +1155,43 @@ Month 1            Month 2            Month 3            Month 4
 │ 本地内容编辑      │                                       │
 │                   ├─ Phase 2 ────────────────────────────┤
 │                   │ AI 创作助手                            │
-│                   │  模板 · Tool Server · Pandaria · Chat  │
+│                   │  模板(10+) · ToolServer · Pandaria    │
+│                   │  Chat · Topview桥接 · 分镜生成        │
 │                   │                                       │
 ├───────────────────┼───────────────────────────────────────┤
 Month 5            Month 6            Month 7            Month 8
-├─ Phase 3 ──────────────────────────┤                    │
-│ 云端协作 + 内容生态                   │                    │
-│  异步push/pull · 模板市场 · 画廊     │                    │
-│                                      ├─ Phase 4 ────────┤
-│                                      │ 开放生态           │
-│                                      │  MCP · i18n · API │
-│                                      │  CRDT 按需升级     │
-├──────────────────────────────────────┼───────────────────┤
+├─ Phase 2.5 ──────┤                                      │
+│ 竞争加固           │                                      │
+│  英文UI · 模板15+  │                                      │
+│  对照导出          │                                      │
+├───────────────────┤                                      │
+│ ├──────── Phase 3 ────────────────────┤                  │
+│ │ 云端协作 + 内容生态                   │                  │
+│ │  异步push/pull · 模板市场 · 多语言    │                  │
+│ │                                      ├─ Phase 4 ──────┤
+│ │                                      │ 开放生态         │
+│ │                                      │  MCP · i18n    │
+│ │                                      │  REST API      │
+├─┴──────────────────────────────────────┼────────────────┤
 ```
 
 ---
 
-## 竞品借鉴映射总表
+## 竞品借鉴映射总表（v1.2 更新）
 
 | 借鉴来源 | 借鉴内容 | 落地 Phase | 优先级 | 落地方式 |
 |---------|---------|:---:|:---:|---------|
-| Higgsfield Viral Presets | 叙事模板系统 | Phase 2 | 🔴 高 | 内置模板 + 本地 JSON 导入导出 |
+| Higgsfield Viral Presets | 叙事模板系统 | Phase 2 | 🔴 高 | 内置模板 10+ + 本地 JSON 导入导出 |
 | Topview 频道模板 | 剧本类型模板（结构+场景绑定） | Phase 2 | 🔴 高 | 合入叙事模板，类型作为模板 meta |
-| Topview Agent 对话 | 分步确认式 Agent 协作 | Phase 2 | 🔴 高 | 自研轻量 agent loop |
+| Topview Agent 对话 | 分步确认式 Agent 协作 | Phase 2 | 🔴 高 | Pandaria + Tool Server + SSE |
 | Higgsfield 文生图 | AI 分镜画面生成 | Phase 2 | 🟡 中 | 先接入第三方 API |
+| 🆕 Topview API 聚合 | **Topview API 桥接（不自研模型）** | Phase 2 | 🔴 高 | 可插拔 provider 模式 |
 | Higgsfield Community | 模板市场 + 项目分享画廊 | Phase 3 | 🟡 中 | 云端平台 + trending 算法 |
 | Higgsfield Collab | 异步 push/pull 协作（Git-like） | Phase 3 | 🟡 中 | 节点级 version + diff 对比 UI |
-| Topview 多语言 prompt | 国际化（UI + 内容生成） | Phase 4 | 🟢 低 | i18n + prompt 多语言 |
-| Higgsfield MCP | MCP Server（互补模式 A）+ REST API | Phase 4 | 🟢 低 | 复用 Phase 2 AgentAction 映射为 MCP Tools |
+| 🆕 Topview 多语言 | **多语言 MVP（英文 Phase 2.5 + 日/韩 Phase 3）** | Phase 2.5+3 | 🔴 高 | i18n 框架 + 翻译表 |
+| Topview Drama Studio 警示 | **Drama Studio 对照导出 + 可编辑性强化** | Phase 2.5 | 🔴 高 | Markdown/PDF 对比报告 |
+| Higgsfield MCP | MCP Server（互补模式 A）+ REST API | Phase 4 | 🟢→🟡 | 复用 Phase 2 AgentAction 映射为 MCP Tools |
+| Topview Skill 生态 | Spellpaw MCP 加速 | Phase 4 | 🟡 中 | 标准化 MCP Tools |
 
 ---
 
@@ -1051,16 +1200,19 @@ Month 5            Month 6            Month 7            Month 8
 | 风险 | 影响 Phase | 严重度 | 缓解措施 |
 |------|:---:|:---:|---------|
 | AI 生成质量不稳定（Agent 输出不靠谱） | Phase 2 | 🔴 高 | system_prompt 规则约束（分步操作、先征求同意）；每次关键操作前要求用户确认 |
-| Tool Server WebSocket 断连 | Phase 2 | 🟡 中 | 浏览器自动重连（指数退避，最多 3 次）；断连期间 queue 未发送的消息 |
-| system_prompt token 膨胀 | Phase 2 | 🟡 中 | 两层上下文（大纲层 ~500 token + 细节层 tool 按需获取）；turn 前自动 PATCH |
-| Pandaria 版本不兼容 | Phase 2 | 🟡 中 | 固定 Pandaria API 版本号；Spellpaw 启动时做兼容性检查（`GET /healthz` + 版本比对） |
-| localStorage → IndexedDB + 云端迁移 | Phase 3 | 🟡 中 | 渐进迁移（先做可选同步，不做强制云存储）；迁移脚本 + 回滚能力 |
+| 🆕 Topview API 不可用或收费变更 | Phase 2 | 🟡 中 | 可插拔 provider 模式；fallback 到 Pandaria 静态分镜图生成 |
+| Tool Server WebSocket 断连 | Phase 2 | 🟡 中 | 浏览器自动重连（指数退避，最多 3 次） |
+| system_prompt token 膨胀 | Phase 2 | 🟡 中 | 两层上下文（大纲层 ~500 token + 细节层 tool 按需获取） |
+| Pandaria 版本不兼容 | Phase 2 | 🟡 中 | 固定 API 版本号；启动时兼容性检查 |
+| 🆕 Drama Studio 用户心智占领 | Phase 2.5 | 🔴 高 | 加速上线 + 对照导出展示差异化 + 英文 MVP 抢海外市场 |
+| IndexedDB 迁移 | Phase 3 | 🟡 中 | 渐进迁移（先做可选同步）；迁移脚本 + 回滚能力 |
 | 异步协作冲突频率高于预期 | Phase 3 | 🟡 中 | diff UI 已覆盖；若冲突 > 10% 的 push，升级到 Phase 4 CRDT |
 | MCP 协议生态未成熟 | Phase 4 | 🟢 低 | Phase 4 距离较远；备选：自有 REST API + Webhook |
-| 国际化文本量超预期 | Phase 4 | 🟢 低 | 先中/英双语验证 i18n 框架；其他语言逐步追加 |
 
 ---
 
-*文档版本：v1.1*  
-*更新日期：2026-05-30*  
-*下次审视：Phase 3 云端后端启动前*
+*文档版本：v1.2*  
+*更新日期：2026-05-31（重大调整：Topview Drama Studio 竞争响应）*  
+*上次版本：v1.1（2026-05-30）*  
+*下次审视：Phase 2 完成时，或 Topview 重大产品发布后*  
+*关联文档：`docs/topview-analysis-report.md` · `docs/competitive-analysis-higgsfield-topview.md`*

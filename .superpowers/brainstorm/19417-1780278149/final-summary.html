@@ -1,0 +1,72 @@
+<h2>✅ 设计总结</h2>
+<p class="subtitle">「左栏任务列表」完整设计 — 请最终确认</p>
+
+<div class="section">
+  <h3>布局变更</h3>
+  <div style="display: flex; gap: 0; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-top: 8px;">
+    <div style="width: 20%; background: #eff6ff; padding: 10px; text-align: center; font-size: 12px; border-right: 1px solid #e5e7eb;">
+      <strong>📋 任务列表</strong>
+      <div style="color: #888; margin-top: 4px;">进行中<br>待审查<br>已完成</div>
+    </div>
+    <div style="width: 30%; background: #fefce8; padding: 10px; text-align: center; font-size: 12px; border-right: 1px solid #e5e7eb;">
+      <strong>💬 任务对话</strong>
+      <div style="color: #888; margin-top: 4px;">当前任务的<br>独立 Agent 对话</div>
+    </div>
+    <div style="width: 50%; background: #f0fdf4; padding: 10px; text-align: center; font-size: 12px;">
+      <strong>🎨 画布</strong>
+      <div style="color: #888; margin-top: 4px;">场景卡片 · 拖拽编辑</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>核心数据流</h3>
+  <ol style="font-size: 13px; line-height: 2;">
+    <li>用户在中栏空状态输入需求 → <strong>taskStore.createTask()</strong></li>
+    <li>用户消息发送 → Agent 开始处理（通过 Pandaria SSE）→ 状态 = <strong>进行中</strong></li>
+    <li>Agent 直接调用 tool（toolRouter）修改项目/生成内容</li>
+    <li>Agent turn_end → task 自动变为 <strong>待审查</strong></li>
+    <li>用户点击任务进入对话 → 查看产出 → 对话中 <strong>标记完成</strong> 或 <strong>继续修改</strong></li>
+  </ol>
+</div>
+
+<div class="section">
+  <h3>技术要点</h3>
+  <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 6px 10px; font-weight: 600;">状态管理</td>
+      <td style="padding: 6px 10px;">新增 <code>taskStore</code>（Zustand + Immer + IDB 持久化）</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 6px 10px; font-weight: 600;">SSE</td>
+      <td style="padding: 6px 10px;">每个 task 独立 Pandaria session。新增 <code>useTaskSSE</code> hook 管理 per-task SSE 连接</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 6px 10px; font-weight: 600;">toolRouter</td>
+      <td style="padding: 6px 10px;">不变。Agent 在任务中调用 tool 直接修改 projectStore</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 6px 10px; font-weight: 600;">chatStore</td>
+      <td style="padding: 6px 10px;">保留不动，但 WorkspacePage 不再直接使用</td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 10px; font-weight: 600;">projectStore</td>
+      <td style="padding: 6px 10px;">不变。仍管理项目树和选择状态</td>
+    </tr>
+  </table>
+</div>
+
+<div class="section">
+  <h3>边界：不做什么</h3>
+  <ul style="font-size: 13px; line-height: 1.8;">
+    <li>❌ 不删除 TreeViewPanel / AssetManagerPanel / DetailPanel 代码（只从 WorkspacePage 解引用）</li>
+    <li>❌ 不改动右栏画布的任何逻辑</li>
+    <li>❌ 不改 toolRouter</li>
+    <li>❌ 不引入实时协作 / CRDT</li>
+    <li>❌ 不做模板市场变更</li>
+  </ul>
+</div>
+
+<div style="margin-top: 20px; padding: 12px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; font-size: 13px;">
+  <strong>确认以上全部设计后，我将写入设计文档并进入实现阶段。</strong>
+</div>

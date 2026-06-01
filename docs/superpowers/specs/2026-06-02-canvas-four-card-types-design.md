@@ -154,13 +154,20 @@ const nodeTypes = {
 
 ### 5.1 Agent Tool 调用
 
-Agent 在任务中调用 tool 创建卡片，toolRouter 新增 action：
+Agent 在任务中调用 tool 创建卡片，toolRouter 变更：
 
 | action | 说明 |
 |--------|------|
-| `add_canvas_card` | 通用卡片创建（type + data） |
+| `add_canvas_card` | 🆕 通用卡片创建（type + data） |
+| `generate_storyboard` | 🔄 重构：不再更新 linked sceneCard，改为创建 `art` 类型卡片，设置 thumbnail + prompt + linkedTreeNodeId |
 
 已有 `add_node` / `update_node` 等 tool 不受影响。
+
+`generate_storyboard` 新行为：
+1. 调用图像 API 生成分镜图
+2. 在画布上创建新的 `art` 类型卡片
+3. 卡片 data: `{ title: 节点标题, thumbnail: imageUrl, prompt, linkedTreeNodeId: nodeId }`
+4. 不再查找现有 linkedCard 更新
 
 ### 5.2 用户手动创建
 
@@ -185,7 +192,10 @@ Agent 在任务中调用 tool 创建卡片，toolRouter 新增 action：
 |--------|----------|
 | `sceneCard` | 不自动迁移。现有数据保留在 store 中但不再渲染（type 不在 nodeTypes 映射中） |
 | `assetCard` | 同上 |
-| `linkedTreeNodeId` | 字段保留在 data 中（不破坏现有序列化数据），但不再被读取 |
+| `linkedTreeNodeId` | 仅 `art` 类型保留使用。`script` / `output` / `character` 不读此字段 |
+| `sync.ts` | 停止 subscribe 调用（文件保留不删） |
+| `canvasLayout.ts` | 停止使用（文件保留不删） |
+| `mockCanvasData.ts` | 替换为新的 4 种类型示例数据 |
 
 ---
 
@@ -199,12 +209,24 @@ Agent 在任务中调用 tool 创建卡片，toolRouter 新增 action：
 
 ---
 
-## 9. 验收标准
+## 9. 受影响的需要修复的功能
+
+| 功能 | 当前行为 | 新行为 |
+|------|----------|--------|
+| `generate_storyboard` | 查找 linked sceneCard 更新 thumbnail | 创建新的 `art` 卡片（type=art, thumbnail+prompt+linkedTreeNodeId） |
+| `exportPrint.ts` | 通过 linkedTreeNodeId 找 thumbnail | 通过 `art` 卡片的 linkedTreeNodeId 查找 thumbnail |
+| DetailPanel「添加到画布」 | 创建 sceneCard | DetailPanel 已从 WorkspacePage 移除，无需处理 |
+| `sync.ts` 双向同步 | subscribe projectStore 变更 → 增删 sceneCard | 停止 subscribe 调用 |
+| `detailStore.requestFocusCanvas` | 查找 linkedTreeNodeId 节点聚焦 | 功能失效（可接受，树已从 Workspace 移除） |
+
+## 10. 验收标准
 
 1. 画布支持 4 种卡片节点类型（script / art / output / character）
 2. 每种卡片有不同的视觉样式（颜色、布局、字段）
-3. 卡片与项目树完全解耦（不再双向同步）
-4. 用户可通过工具栏/右键菜单创建任意类型卡片
-5. Agent 可通过 tool 创建卡片
-6. 旧 sceneCard / assetCard 数据不再渲染（保留但不显示）
-7. 所有现有测试继续通过（调整与画布卡片相关的测试）
+3. 树节点增删不再触发画布自动变更（移除双向同步）
+4. `generate_storyboard` 创建 `art` 卡片而非更新 linked sceneCard
+5. 用户可通过工具栏/右键菜单创建任意类型卡片
+6. Agent 可通过 tool 创建卡片
+7. 旧 sceneCard / assetCard 数据不再渲染（type 不在 nodeTypes 中）
+8. mockCanvasData 使用新类型示例
+9. 所有现有测试继续通过（调整与画布卡片相关的测试）

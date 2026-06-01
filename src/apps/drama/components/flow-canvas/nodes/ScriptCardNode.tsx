@@ -49,7 +49,7 @@ export function ScriptCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
               className="flex-1 rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-secondary)] px-1.5 py-0.5 text-sm font-medium outline-none"
             />
           ) : (
-            <h4 className="text-sm font-medium text-[var(--color-text-primary)] cursor-text"
+            <h4 className="text-[13px] font-medium text-[var(--color-text-primary)] cursor-text"
               onDoubleClick={() => { setEditValue(data.title); setIsEditing(true); }} title="双击编辑">
               {data.title}
             </h4>
@@ -58,7 +58,7 @@ export function ScriptCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
         </div>
 
         {data.description && (
-          <p className="text-xs text-[var(--color-text-tertiary)] line-clamp-3 mb-2">{data.description}</p>
+          <p className="text-[11px] text-[var(--color-text-tertiary)] line-clamp-3 mb-2">{data.description}</p>
         )}
 
         {dialogue && (

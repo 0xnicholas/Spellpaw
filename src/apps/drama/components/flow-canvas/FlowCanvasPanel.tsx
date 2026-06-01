@@ -42,6 +42,7 @@ export function FlowCanvasPanel() {
   const duplicateNode = useCanvasStore((s) => s.duplicateNode);
   const removeNode = useCanvasStore((s) => s.removeNode);
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
@@ -118,8 +119,8 @@ export function FlowCanvasPanel() {
           onNodeDragStop={onNodeDragStop}
           onNodeContextMenu={onNodeContextMenu}
           onPaneClick={closeContextMenu}
-          fitView
           className="bg-[var(--color-bg-secondary)]"
+          proOptions={{ hideAttribution: true }}
         >
           <Background gap={20} size={1} color="var(--color-border-subtle)" />
           <Controls className="!rounded-[var(--radius-base)] !border !border-[var(--color-border-default)] !shadow-sm" />

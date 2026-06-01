@@ -100,7 +100,7 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
               className="w-full rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-secondary)] px-1.5 py-0.5 text-sm font-medium outline-none"
             />
           ) : (
-            <h4 className="text-sm font-medium text-[var(--color-text-primary)] cursor-text truncate"
+            <h4 className="text-[13px] font-medium text-[var(--color-text-primary)] cursor-text truncate"
               onDoubleClick={() => { setEditValue(data.title); setIsEditing(true); }}>
               {data.title}
             </h4>

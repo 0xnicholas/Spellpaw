@@ -24,6 +24,7 @@ export function OutputCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
   return (
     <div
       style={{
+        position: 'relative',
         width: 240,
         borderRadius: 'var(--radius-base)',
         border: selected ? '1.5px solid var(--color-accent-500)' : '1px solid var(--color-border-default)',

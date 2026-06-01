@@ -57,8 +57,12 @@ export function OutputCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
         )}
 
         {summary && (
-          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">{summary}</p>
+          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed mb-2">{summary}</p>
         )}
+
+        <div className="flex items-center gap-2 text-[10px] text-[var(--color-text-tertiary)] border-t border-[var(--color-border-default)] pt-2">
+          <span>📦 产出</span>
+        </div>
       </div>
 
       <Handle type="source" position={Position.Right} className="!bg-[var(--color-accent-500)]" />

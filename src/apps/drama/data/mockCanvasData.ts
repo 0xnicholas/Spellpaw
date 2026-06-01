@@ -14,7 +14,7 @@ export const mockCanvasNodes: CanvasNode[] = [
     data: { title: '场景 1-1 分镜', prompt: '咖啡馆, 阳光, 温暖氛围', tags: ['室内', '温暖'], thumbnail: '' },
   },
   {
-    id: 'cn_output_1',
+    id: 'cn_output_v2',
     type: 'output',
     position: { x: 100, y: 400 },
     data: { title: '第一幕节奏分析', outputType: 'analysis', summary: '3 个建议：场景 1-1 偏慢 (-5s) · 缺少过渡镜头 · 高潮时机恰当', sourceTaskId: 'task_1' },

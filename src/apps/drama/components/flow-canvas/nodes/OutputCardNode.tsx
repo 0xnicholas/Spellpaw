@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
+import type { NodeProps, Node } from '@xyflow/react';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import type { CanvasNodeData } from '@drama/types';
 
@@ -29,10 +29,9 @@ export function OutputCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
         border: selected ? '1.5px solid var(--color-accent-500)' : '1px solid var(--color-border-default)',
         background: 'var(--color-bg-secondary)',
         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-        overflow: 'hidden',
       }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: 'var(--color-accent-500)' }} />
+      {/* Handles hidden for debug */}
 
       <div
         style={{
@@ -73,7 +72,7 @@ export function OutputCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
         )}
       </div>
 
-      <Handle type="source" position={Position.Right} style={{ background: 'var(--color-accent-500)' }} />
+      {/* Handle hidden for debug */}
     </div>
   );
 }

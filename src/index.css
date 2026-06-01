@@ -208,6 +208,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 /* React Flow Styles */
 .react-flow__node {
   border-radius: var(--radius-base);
+  background: var(--color-base-gray-200);
 }
 .react-flow__node.selected {
   box-shadow: 0 0 0 1.5px var(--color-accent-500);

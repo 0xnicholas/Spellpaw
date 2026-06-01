@@ -9,6 +9,8 @@ import { useAuthStore } from '@/shared/stores/authStore';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { mockProjects } from '@drama/data/mockProjects';
 import { mockTreeData } from '@drama/data/mockTreeData';
+import { mockTasks } from '@drama/data/mockTaskData';
+import { useTaskStore } from '@drama/stores/taskStore';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -37,11 +39,24 @@ function App() {
       }
     };
 
+    const seedTasksIfEmpty = () => {
+      const tasks = useTaskStore.getState().tasks;
+      if (tasks.length === 0) {
+        taskUnsub?.();
+        useTaskStore.setState({ tasks: mockTasks });
+      }
+    };
+
+    // Seed tasks
+    let taskUnsub: (() => void) | null = null;
+    seedTasksIfEmpty();
+    taskUnsub = useTaskStore.subscribe(seedTasksIfEmpty);
+
     // Check immediately (before rehydration) and also subscribe to catch
     // the rehydration update that may clear mock data from IndexedDB.
     seedIfEmpty();
     unsub = useProjectStore.subscribe(seedIfEmpty);
-    return () => unsub?.();
+    return () => { unsub?.(); taskUnsub?.(); };
   }, []);
 
   return (

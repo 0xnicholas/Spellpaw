@@ -228,16 +228,22 @@ export const toolRouter: ToolRouter = {
 
       const imageUrl = await generateImage({ prompt, size: '1024x1792' });
 
+      // Create a new art card on canvas instead of updating a linked sceneCard
       const { useCanvasStore } = await import('./canvasStore');
       const canvasState = useCanvasStore.getState();
-      const canvasNodes = canvasState.getCurrentNodes();
-      const linkedCard = canvasNodes.find((n: { data: { linkedTreeNodeId?: string } }) => n.data.linkedTreeNodeId === nodeId);
-      if (linkedCard) {
-        canvasState.updateNodeData(linkedCard.id, {
+      const { generateId } = await import('@/shared/lib/utils');
+      canvasState.addNode({
+        id: generateId('canvas_art_'),
+        type: 'art' as const,
+        position: { x: Math.random() * 300 + 100, y: Math.random() * 300 + 100 },
+        data: {
+          title: node.title,
           thumbnail: imageUrl,
-          generatedPrompt: prompt,
-        });
-      }
+          prompt,
+          linkedTreeNodeId: nodeId,
+          tags: stylePrompt ? [stylePrompt] : [],
+        },
+      } as import('@drama/types').CanvasNode);
 
       return `已为「${node.title}」生成参考图: ${imageUrl}`;
     } catch (err) {
@@ -491,5 +497,20 @@ export const toolRouter: ToolRouter = {
     }
 
     return `✅ 已优化 ${plan.length} 个场景时长，总时长变化 ${plan.reduce((s, p) => s + (p.newDuration - p.oldDuration), 0)}s`;
+  },
+
+  add_canvas_card: async (params) => {
+    const cardType = params.cardType as string;
+    const cardData = params.data as Record<string, unknown> ?? {};
+    const { useCanvasStore } = await import('./canvasStore');
+    const { generateId } = await import('@/shared/lib/utils');
+    const canvasState = useCanvasStore.getState();
+    canvasState.addNode({
+      id: generateId('canvas_'),
+      type: cardType as import('@drama/types').CanvasNodeType,
+      position: { x: Math.random() * 200 + 200, y: Math.random() * 200 + 200 },
+      data: { title: (cardData.title as string) ?? '未命名', ...cardData },
+    } as import('@drama/types').CanvasNode);
+    return `已创建 ${cardType} 卡片`;
   },
 };

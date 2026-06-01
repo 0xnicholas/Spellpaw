@@ -60,6 +60,7 @@ useCanvasStore.subscribe((state) => {
   const nodes = state.canvases[projectId]?.nodes ?? [];
 
   // Phase 3: tree/canvas decoupled — sync disabled
+  // eslint-disable-next-line no-constant-condition
   if (true) return;
 
   for (const node of nodes) {
@@ -117,6 +118,7 @@ useProjectStore.subscribe((state) => {
   const canvasNodes = cs.canvases[projectId]?.nodes ?? [];
 
   // Phase 3: tree/canvas decoupled — sync disabled
+  // eslint-disable-next-line no-constant-condition
   if (true) return;
 
   // 1. Field-level sync: title / status / description

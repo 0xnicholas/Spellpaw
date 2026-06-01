@@ -107,7 +107,11 @@ export function FlowCanvasPanel() {
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
-          onInit={(instance: ReactFlowInstance) => { reactFlowRef.current = instance; }}
+          onInit={(instance: ReactFlowInstance) => {
+            reactFlowRef.current = instance;
+            setZoom(instance.getZoom());
+          }}
+          onMove={(_: unknown, viewport: { zoom: number }) => setZoom(viewport.zoom)}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChangeWrapper}
           onConnect={onConnect}
@@ -120,6 +124,10 @@ export function FlowCanvasPanel() {
           <Background gap={20} size={1} color="var(--color-border-subtle)" />
           <Controls className="!rounded-[var(--radius-base)] !border !border-[var(--color-border-default)] !shadow-sm" />
         </ReactFlow>
+
+        <div className="absolute bottom-2 left-2 z-10 rounded-[var(--radius-sm)] bg-[var(--color-bg-primary)]/80 px-2 py-0.5 text-[10px] text-[var(--color-text-tertiary)] backdrop-blur-sm border border-[var(--color-border-default)]">
+          {Math.round(zoom * 100)}%
+        </div>
 
         {/* Context Menu */}
         {contextMenu && (

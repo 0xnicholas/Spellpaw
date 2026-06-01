@@ -15,9 +15,9 @@ export const mockCanvasNodes: CanvasNode[] = [
   },
   {
     id: 'cn_output_1',
-    type: 'output',
+    type: 'script',
     position: { x: 100, y: 400 },
-    data: { title: '第一幕节奏分析', outputType: 'analysis', summary: '3 个建议：场景 1-1 偏慢 (-5s) · 缺少过渡镜头 · 高潮时机恰当', sourceTaskId: 'task_1' },
+    data: { title: '第一幕节奏分析', description: '3 个建议：场景 1-1 偏慢 (-5s) · 缺少过渡镜头 · 高潮时机恰当', status: 'review' },
   },
   {
     id: 'cn_char_1',

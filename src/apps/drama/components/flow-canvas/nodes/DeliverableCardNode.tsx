@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { Image, Video, Music, Play, ImageOff, Clock, HardDrive, Maximize } from 'lucide-react';
 import { Lightbox } from '@/shared/components/ui/Lightbox';
-import { Badge } from '@/shared/components/ui/Badge';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import type { CanvasNodeData, DeliverableType } from '@drama/types';
 
@@ -77,6 +76,7 @@ export function DeliverableCardNode({ data, id, selected }: NodeProps<Node<Canva
   const [imgLoaded, setImgLoaded] = useState(false);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
 
+  const displayNumber = (data._displayNumber as string) ?? '';
   const deliverableType: DeliverableType = data.deliverableType ?? 'image';
   const config = typeConfig[deliverableType];
   const Icon = config.icon;
@@ -113,6 +113,9 @@ export function DeliverableCardNode({ data, id, selected }: NodeProps<Node<Canva
           className="rounded-t-[var(--radius-base)] px-3 py-1.5 border-b border-[var(--color-border-default)] flex items-center gap-1.5"
           style={{ backgroundColor: config.headerBg }}
         >
+          {displayNumber && (
+            <span className="text-[9px] font-mono text-[var(--color-text-tertiary)] tracking-[0.02em] shrink-0">{displayNumber}</span>
+          )}
           <Icon className="h-3 w-3" style={{ color: config.headerText }} />
           <span
             className="text-[10px] font-semibold uppercase tracking-wider"

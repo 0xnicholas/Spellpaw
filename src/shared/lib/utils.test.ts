@@ -52,3 +52,25 @@ describe('generateId', () => {
     expect(id1).not.toBe(id2);
   });
 });
+
+describe('generateId with length param', () => {
+  it('generates id with custom prefix and default length', () => {
+    const id = generateId('nd_');
+    expect(id).toMatch(/^nd_[a-z0-9]+_[a-z0-9]{5}$/);
+  });
+
+  it('generates id with custom prefix and custom random length', () => {
+    const id = generateId('cv_', 10);
+    expect(id).toMatch(/^cv_[a-z0-9]+_[a-z0-9]{10}$/);
+  });
+
+  it('generates unique ids', () => {
+    const ids = new Set(Array.from({ length: 100 }, () => generateId('test_', 8)));
+    expect(ids.size).toBe(100);
+  });
+
+  it('preserves backward compatibility - no length param', () => {
+    const id = generateId('old_');
+    expect(id).toMatch(/^old_[a-z0-9]+_[a-z0-9]{5}$/);
+  });
+});

@@ -20,22 +20,33 @@ export const mockCanvasNodes: CanvasNode[] = [
     data: { title: '场景 1-2 街头', prompt: '城市街道, 黄昏, 暖色调', tags: ['室外', '黄昏'], thumbnail: '' },
   },
   {
-    id: 'cn_output_1',
-    type: 'output',
-    position: { x: 100, y: 400 },
-    data: { title: '第一幕节奏分析', outputType: 'analysis', summary: '3 个建议：场景 1-1 偏慢 (-5s) · 缺少过渡镜头 · 高潮时机恰当', sourceTaskId: 'task_1' },
-  },
-  {
     id: 'cn_char_1',
     type: 'character',
     position: { x: 400, y: 400 },
     data: { title: '林小夏', name: '林小夏', role: '女主', age: 25, occupation: '咖啡师', personality: '温柔坚韧，内心敏感' },
+  },
+  {
+    id: 'cn_deliverable_img',
+    type: 'deliverable',
+    position: { x: 700, y: 80 },
+    data: { title: '咖啡馆场景概念图', description: '场景 1-1 主视觉概念', deliverableType: 'image', resolution: '2048×1152', fileSize: 2457600 },
+  },
+  {
+    id: 'cn_deliverable_video',
+    type: 'deliverable',
+    position: { x: 700, y: 260 },
+    data: { title: '场景 1-1 粗剪', description: '第一幕素材粗剪版本', deliverableType: 'video', duration: 45, resolution: '1920×1080', fileSize: 52428800 },
+  },
+  {
+    id: 'cn_deliverable_audio',
+    type: 'deliverable',
+    position: { x: 700, y: 420 },
+    data: { title: '咖啡馆环境音', description: '背景音效：咖啡机、轻音乐、人声', deliverableType: 'audio', duration: 120, fileSize: 3145728 },
   },
 ];
 
 export const mockCanvasEdges: CanvasEdge[] = [
   { id: 'e1-2', source: 'cn_script_1', target: 'cn_art_1', animated: true },
   { id: 'e2-3', source: 'cn_script_1', target: 'cn_art_2', animated: true },
-  { id: 'e3-4', source: 'cn_output_1', target: 'cn_script_1' },
   { id: 'e4-5', source: 'cn_char_1', target: 'cn_script_1' },
 ];

@@ -16,14 +16,14 @@ import '@xyflow/react/dist/style.css';
 
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import type { CanvasNode, CanvasEdge } from '@drama/types';
-import { ScriptCardNode, ArtCardNode, OutputCardNode, CharacterCardNode } from './nodes';
+import { ScriptCardNode, ArtCardNode, CharacterCardNode, DeliverableCardNode } from './nodes';
 import { generateId } from '@/shared/lib/utils';
 
 const nodeTypes: NodeTypes = {
   script: ScriptCardNode,
   art: ArtCardNode,
-  output: OutputCardNode,
   character: CharacterCardNode,
+  deliverable: DeliverableCardNode,
 };
 
 interface ContextMenuState {

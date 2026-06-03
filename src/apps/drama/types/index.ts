@@ -76,7 +76,9 @@ export interface AgentTask {
 }
 
 // Canvas
-export type CanvasNodeType = 'script' | 'art' | 'output' | 'character';
+export type CanvasNodeType = 'script' | 'art' | 'character' | 'deliverable';
+
+export type DeliverableType = 'image' | 'video' | 'audio';
 
 export interface CanvasNodeData extends Record<string, unknown> {
   title: string;
@@ -86,6 +88,10 @@ export interface CanvasNodeData extends Record<string, unknown> {
   generatedPrompt?: string;
   tags?: string[];
   linkedTreeNodeId?: string;
+  deliverableType?: DeliverableType;
+  duration?: number;
+  fileSize?: number;
+  resolution?: string;
 }
 
 export interface CanvasNode {

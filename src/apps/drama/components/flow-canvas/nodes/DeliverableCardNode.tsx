@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { Image, Video, Music, Play, ImageOff, Clock, HardDrive, Maximize } from 'lucide-react';
 import { Lightbox } from '@/shared/components/ui/Lightbox';
-import { Badge } from '@/shared/components/ui/Badge';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import type { CanvasNodeData, DeliverableType } from '@drama/types';
 

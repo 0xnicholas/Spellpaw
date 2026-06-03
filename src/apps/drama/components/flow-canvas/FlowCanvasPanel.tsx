@@ -117,7 +117,7 @@ export function FlowCanvasPanel() {
     <div className="flex h-full flex-col">
       <div className="flex-1 relative overflow-hidden">
         <ReactFlow
-          nodes={nodesWithDisplay}
+          nodes={nodesWithDisplay as Node[]}
           edges={edges}
           nodeTypes={nodeTypes}
           onInit={(instance: ReactFlowInstance) => {

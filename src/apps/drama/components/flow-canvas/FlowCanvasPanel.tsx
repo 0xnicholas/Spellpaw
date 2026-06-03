@@ -53,6 +53,9 @@ export function FlowCanvasPanel() {
 
   const currentTree = useProjectStore((s) => s.getCurrentTree());
 
+  const [nodes, , onNodesChange] = useNodesState(persistedNodes as Node[]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(persistedEdges as Edge[]);
+
   const nodesWithDisplay = useMemo(() => {
     const map = computeDisplayNumbers(currentTree, getCurrentNodes());
     return nodes.map((n) => ({
@@ -60,9 +63,6 @@ export function FlowCanvasPanel() {
       data: { ...n.data, _displayNumber: map.get(n.id) ?? '' },
     }));
   }, [nodes, currentTree, getCurrentNodes]);
-
-  const [nodes, , onNodesChange] = useNodesState(persistedNodes as Node[]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(persistedEdges as Edge[]);
 
   const onConnect = useCallback(
     (connection: Connection) => {

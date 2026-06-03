@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useMemo, useState, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -15,6 +15,8 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { computeDisplayNumbers } from '@drama/lib/numbering';
 import type { CanvasNode, CanvasEdge } from '@drama/types';
 import { ScriptCardNode, ArtCardNode, CharacterCardNode, DeliverableCardNode } from './nodes';
 import { generateId } from '@/shared/lib/utils';
@@ -48,6 +50,16 @@ export function FlowCanvasPanel() {
 
   const persistedNodes = getCurrentNodes();
   const persistedEdges = getCurrentEdges();
+
+  const currentTree = useProjectStore((s) => s.getCurrentTree());
+
+  const nodesWithDisplay = useMemo(() => {
+    const map = computeDisplayNumbers(currentTree, getCurrentNodes());
+    return nodes.map((n) => ({
+      ...n,
+      data: { ...n.data, _displayNumber: map.get(n.id) ?? '' },
+    }));
+  }, [nodes, currentTree, getCurrentNodes]);
 
   const [nodes, , onNodesChange] = useNodesState(persistedNodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(persistedEdges as Edge[]);
@@ -105,7 +117,7 @@ export function FlowCanvasPanel() {
     <div className="flex h-full flex-col">
       <div className="flex-1 relative overflow-hidden">
         <ReactFlow
-          nodes={nodes}
+          nodes={nodesWithDisplay}
           edges={edges}
           nodeTypes={nodeTypes}
           onInit={(instance: ReactFlowInstance) => {

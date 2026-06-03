@@ -29,6 +29,8 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
     setImgLoaded(false);
   }, [thumbnail]);
 
+  const displayNumber = (data._displayNumber as string) ?? '';
+
   const handleSave = () => {
     if (editValue.trim() && editValue.trim() !== data.title) {
       updateNodeData(id, { title: editValue.trim() });
@@ -50,7 +52,10 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
       >
         <Handle type="target" position={Position.Left} className="!bg-[var(--color-accent-500)]" />
 
-        <div className="rounded-t-[var(--radius-base)] bg-[var(--color-status-warning-bg)] px-3 py-1.5 border-b border-[var(--color-border-default)]">
+        <div className="rounded-t-[var(--radius-base)] bg-[var(--color-status-warning-bg)] px-3 py-1.5 border-b border-[var(--color-border-default)] flex items-center gap-1.5">
+          {displayNumber && (
+            <span className="text-[9px] font-mono text-[var(--color-text-tertiary)] tracking-[0.02em] shrink-0">{displayNumber}</span>
+          )}
           <span className="text-[10px] font-semibold text-[var(--color-status-warning-text)] uppercase tracking-wider">🎨 美术</span>
         </div>
 

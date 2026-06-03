@@ -21,6 +21,8 @@ export function ScriptCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
   const duration = data.duration as number | undefined;
   const timeOfDay = data.timeOfDay as string | undefined;
 
+  const displayNumber = (data._displayNumber as string) ?? '';
+
   const handleSave = () => {
     if (editValue.trim() && editValue.trim() !== data.title) {
       updateNodeData(id, { title: editValue.trim() });
@@ -36,7 +38,10 @@ export function ScriptCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
     >
       <Handle type="target" position={Position.Left} className="!bg-[var(--color-accent-500)]" />
 
-      <div className="rounded-t-[var(--radius-base)] bg-[var(--color-bg-secondary)] px-3 py-1.5 border-b-2 border-[var(--color-accent-300)]">
+      <div className="rounded-t-[var(--radius-base)] bg-[var(--color-bg-secondary)] px-3 py-1.5 border-b-2 border-[var(--color-accent-300)] flex items-center gap-1.5">
+        {displayNumber && (
+          <span className="text-[9px] font-mono text-[var(--color-text-tertiary)] tracking-[0.02em] shrink-0">{displayNumber}</span>
+        )}
         <span className="text-[10px] font-semibold text-[var(--color-accent-600)] uppercase tracking-wider">📝 剧本</span>
       </div>
 

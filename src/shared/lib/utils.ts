@@ -18,6 +18,13 @@ export function formatDate(iso: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export function generateId(prefix: string = ''): string {
-  return `${prefix}${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+export function generateId(prefix: string = '', randomLength: number = 5): string {
+  // Sortable timestamp prefix preserved for debugging-friendly ordering
+  const timestamp = Date.now().toString(36);
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let random = '';
+  for (let i = 0; i < randomLength; i++) {
+    random += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `${prefix}${timestamp}_${random}`;
 }

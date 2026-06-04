@@ -73,3 +73,62 @@ describe('canvasStore', () => {
     expect(nodes[1].data.linkedTreeNodeId).toBeUndefined();
   });
 });
+
+describe('selectedCardId', () => {
+  beforeEach(() => {
+    useProjectStore.setState({
+      projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
+      trees: { 'proj_1': { id: 'root', type: 'project', title: 'Test', status: 'draft' } },
+      currentProjectId: 'proj_1',
+      selectedNodeId: null,
+    });
+    useCanvasStore.setState({
+      canvases: {
+        'proj_1': { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
+      },
+    });
+  });
+
+  it('starts null', () => {
+    expect(useCanvasStore.getState().selectedCardId).toBeNull();
+  });
+
+  it('setSelectedCardId sets and getSelectedCard returns the node', () => {
+    useCanvasStore.getState().addNode({
+      id: 'card_1',
+      type: 'script',
+      position: { x: 0, y: 0 },
+      data: { title: 'Scene 1', status: 'draft' },
+    });
+    useCanvasStore.getState().setSelectedCardId('card_1');
+    expect(useCanvasStore.getState().selectedCardId).toBe('card_1');
+    const card = useCanvasStore.getState().getSelectedCard();
+    expect(card).not.toBeNull();
+    expect(card!.id).toBe('card_1');
+    expect(card!.data.title).toBe('Scene 1');
+  });
+
+  it('setSelectedCardId(null) clears selection', () => {
+    useCanvasStore.getState().addNode({
+      id: 'card_1',
+      type: 'script',
+      position: { x: 0, y: 0 },
+      data: { title: 'Scene 1', status: 'draft' },
+    });
+    useCanvasStore.getState().setSelectedCardId('card_1');
+    useCanvasStore.getState().setSelectedCardId(null);
+    expect(useCanvasStore.getState().selectedCardId).toBeNull();
+    expect(useCanvasStore.getState().getSelectedCard()).toBeNull();
+  });
+
+  it('getSelectedCard returns null when node does not exist', () => {
+    useCanvasStore.getState().setSelectedCardId('nonexistent');
+    expect(useCanvasStore.getState().getSelectedCard()).toBeNull();
+  });
+
+  it('selectedCardId is not persisted (not in partialize)', () => {
+    useCanvasStore.getState().setSelectedCardId('test');
+    useCanvasStore.setState({ selectedCardId: null });
+    expect(useCanvasStore.getState().selectedCardId).toBeNull();
+  });
+});

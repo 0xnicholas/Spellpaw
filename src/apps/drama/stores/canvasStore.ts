@@ -36,6 +36,10 @@ interface CanvasState {
   addEdge: (edge: CanvasEdge) => void;
   removeEdge: (id: string) => void;
 
+  selectedCardId: string | null;
+  setSelectedCardId: (id: string | null) => void;
+  getSelectedCard: () => CanvasNode | null;
+
   clearCurrentProjectCanvas: () => void;
 }
 
@@ -58,6 +62,8 @@ export const useCanvasStore = create<CanvasState>()(
           viewport: { x: 0, y: 0, zoom: 1 },
         },
       },
+
+      selectedCardId: null,
 
       getCurrentNodes: () => {
         const projectId = useProjectStore.getState().currentProjectId;
@@ -208,6 +214,15 @@ export const useCanvasStore = create<CanvasState>()(
             },
           };
         }),
+
+      setSelectedCardId: (id) => set({ selectedCardId: id }),
+
+      getSelectedCard: () => {
+        const nodes = get().getCurrentNodes();
+        const id = get().selectedCardId;
+        if (!id) return null;
+        return nodes.find((n) => n.id === id) ?? null;
+      },
 
       clearCurrentProjectCanvas: () =>
         set((state) => {

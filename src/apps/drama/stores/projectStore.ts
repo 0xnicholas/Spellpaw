@@ -55,7 +55,33 @@ export const useProjectStore = create<ProjectState>()(
         return (currentProjectId && trees[currentProjectId]) ? trees[currentProjectId] : null;
       },
 
-      setCurrentProject: (id) => set({ currentProjectId: id, selectedNodeId: null }),
+      setCurrentProject: (id) =>
+        set((state) => {
+          if (state.trees[id]) {
+            return { currentProjectId: id, selectedNodeId: null };
+          }
+          // Auto-create empty tree for projects that lack one
+          const project = state.projects.find((p) => p.id === id);
+          const now = new Date().toISOString();
+          const treeRoot: TreeNode = {
+            id: generateId('tree_root_'),
+            type: 'project',
+            title: project?.title ?? 'Untitled',
+            status: 'draft',
+            expanded: true,
+            metadata: {
+              description: project?.description ?? '',
+              duration: 0,
+              createdAt: now,
+              updatedAt: now,
+            },
+          };
+          return {
+            currentProjectId: id,
+            selectedNodeId: null,
+            trees: { ...state.trees, [id]: treeRoot },
+          };
+        }),
 
       createProject: (title, description, coverColor) => {
         const id = generateId('proj_');

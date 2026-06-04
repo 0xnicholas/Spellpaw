@@ -148,6 +148,7 @@ export const useCanvasStore = create<CanvasState>()(
                 edges: entry.edges.filter((e) => e.source !== id && e.target !== id),
               },
             },
+            ...(state.selectedCardId === id ? { selectedCardId: null } : {}),
           };
         }),
 
@@ -229,7 +230,7 @@ export const useCanvasStore = create<CanvasState>()(
           const projectId = useProjectStore.getState().currentProjectId;
           if (!projectId) return state;
           const { [projectId]: _, ...rest } = state.canvases;
-          return { canvases: rest };
+          return { canvases: rest, selectedCardId: null };
         }),
     }),
     {

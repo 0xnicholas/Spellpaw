@@ -51,6 +51,13 @@ export function FlowCanvasPanel() {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Cleanup click debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    };
+  }, []);
+
   const persistedNodes = getCurrentNodes();
   const persistedEdges = getCurrentEdges();
 

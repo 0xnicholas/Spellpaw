@@ -52,11 +52,26 @@ function App() {
     seedTasksIfEmpty();
     taskUnsub = useTaskStore.subscribe(seedTasksIfEmpty);
 
-    // Check immediately (before rehydration) and also subscribe to catch
-    // the rehydration update that may clear mock data from IndexedDB.
+    // Check immediately (before rehydration) and also after rehydration settles.
+    // The subscribe catches IndexedDB rehydration which may overwrite with stale empty data.
     seedIfEmpty();
     unsub = useProjectStore.subscribe(seedIfEmpty);
-    return () => { unsub?.(); taskUnsub?.(); };
+
+    // Safety net: force-check once more after IndexedDB rehydration has settled.
+    // The persist middleware's getItem is async; subscribe may fire before it completes.
+    const retryTimer = setTimeout(() => {
+      const state = useProjectStore.getState();
+      if (state.projects.length === 0 || Object.keys(state.trees).length === 0) {
+        useProjectStore.setState({
+          projects: mockProjects,
+          trees: { 'proj_1': mockTreeData },
+          currentProjectId: mockProjects[0]?.id ?? null,
+          selectedNodeId: null,
+        });
+      }
+    }, 500);
+
+    return () => { unsub?.(); taskUnsub?.(); clearTimeout(retryTimer); };
   }, []);
 
   return (

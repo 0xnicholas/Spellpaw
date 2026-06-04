@@ -34,6 +34,19 @@ export function ProjectListPage() {
         selectedNodeId: null,
       });
     }
+    // Safety net: force-check after async rehydration settles
+    const timer = setTimeout(() => {
+      const current = useProjectStore.getState();
+      if (current.projects.length === 0 || Object.keys(current.trees).length === 0) {
+        useProjectStore.setState({
+          projects: mockProjects,
+          trees: { 'proj_1': mockTreeData },
+          currentProjectId: mockProjects[0]?.id ?? null,
+          selectedNodeId: null,
+        });
+      }
+    }, 800);
+    return () => clearTimeout(timer);
   }, [projects]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);

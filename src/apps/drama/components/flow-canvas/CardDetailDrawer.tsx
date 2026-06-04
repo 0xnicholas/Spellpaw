@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/Badge';
 import { useCanvasStore } from '@drama/stores/canvasStore';
@@ -278,11 +278,11 @@ export function CardDetailDrawer() {
   }, [card?.id]);
 
   // Compute displayNumber on-the-fly (not stored, derived from tree structure)
-  const displayNumber = useMemo(() => {
+  const displayNumber = (() => {
     if (!card) return '';
     const map = computeDisplayNumbers(tree, allNodes);
     return map.get(card.id) ?? '';
-  }, [card, tree, allNodes]);
+  })();
 
   useHotkeys({ 'Escape': () => setSelectedCardId(null) }, []);
 

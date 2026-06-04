@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/Badge';
 import { useCanvasStore } from '@drama/stores/canvasStore';
@@ -256,6 +256,27 @@ export function CardDetailDrawer() {
   const tree = useProjectStore((s) => s.getCurrentTree());
   const allNodes = useCanvasStore((s) => s.getCurrentNodes());
 
+  // Slide-in/out animation state
+  const [visible, setVisible] = useState(false);
+  const [slideIn, setSlideIn] = useState(false);
+  const prevCardId = useRef<string | null>(null);
+
+  useEffect(() => {
+    const cardId = card?.id ?? null;
+    if (cardId && cardId !== prevCardId.current) {
+      // New card selected — mount and animate in
+      prevCardId.current = cardId;
+      setVisible(true);
+      requestAnimationFrame(() => setSlideIn(true));
+    } else if (!cardId && prevCardId.current) {
+      // Card deselected — animate out then unmount
+      prevCardId.current = null;
+      setSlideIn(false);
+      const timer = setTimeout(() => setVisible(false), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [card?.id]);
+
   // Compute displayNumber on-the-fly (not stored, derived from tree structure)
   const displayNumber = useMemo(() => {
     if (!card) return '';
@@ -265,7 +286,7 @@ export function CardDetailDrawer() {
 
   useHotkeys({ 'Escape': () => setSelectedCardId(null) }, []);
 
-  if (!card) return null;
+  if (!visible || !card) return null;
 
   const data = card.data;
   const statusInfo = data.status ? statusMap[data.status as string] : null;
@@ -290,7 +311,7 @@ export function CardDetailDrawer() {
       <div
         className="absolute right-0 top-0 bottom-0 z-20 w-[340px] bg-[var(--color-bg-primary)] border-l border-[var(--color-border-default)] shadow-lg flex flex-col"
         style={{
-          transform: 'translateX(0)',
+          transform: slideIn ? 'translateX(0)' : 'translateX(100%)',
           transition: 'transform 0.2s ease-out',
         }}
       >

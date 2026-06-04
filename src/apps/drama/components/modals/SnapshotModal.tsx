@@ -9,7 +9,12 @@ import {
   type ProjectSnapshot,
 } from '@drama/lib/projectSnapshot';
 import { diffTrees, type NodeDiff } from '@drama/lib/treeDiff';
+import type { CanvasNode, CanvasEdge } from '@drama/types';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+
+// Stable empty array reference to prevent infinite re-render from Zustand selector equality check
+const EMPTY_NODES: CanvasNode[] = [];
+const EMPTY_EDGES: CanvasEdge[] = [];
 
 interface SnapshotModalProps {
   isOpen: boolean;
@@ -19,8 +24,8 @@ interface SnapshotModalProps {
 export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
   const projectId = useProjectStore((s) => s.currentProjectId);
   const tree = useProjectStore((s) => (projectId ? s.trees[projectId] : null));
-  const canvasNodes = useCanvasStore((s) => (projectId ? s.canvases[projectId]?.nodes ?? [] : []));
-  const canvasEdges = useCanvasStore((s) => (projectId ? s.canvases[projectId]?.edges ?? [] : []));
+  const canvasNodes = useCanvasStore((s) => (projectId ? s.canvases[projectId]?.nodes ?? EMPTY_NODES : EMPTY_NODES));
+  const canvasEdges = useCanvasStore((s) => (projectId ? s.canvases[projectId]?.edges ?? EMPTY_EDGES : EMPTY_EDGES));
 
   const [snapshots, setSnapshots] = useState<ProjectSnapshot[]>([]);
   const [name, setName] = useState('');

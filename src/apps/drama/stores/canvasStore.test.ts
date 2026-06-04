@@ -126,9 +126,10 @@ describe('selectedCardId', () => {
     expect(useCanvasStore.getState().getSelectedCard()).toBeNull();
   });
 
-  it('selectedCardId is not persisted (not in partialize)', () => {
-    useCanvasStore.getState().setSelectedCardId('test');
-    useCanvasStore.setState({ selectedCardId: null });
-    expect(useCanvasStore.getState().selectedCardId).toBeNull();
+  it('selectedCardId is excluded from persist partialize', () => {
+    useCanvasStore.getState().setSelectedCardId('card_1');
+    const opts = useCanvasStore.persist.getOptions();
+    const partial = opts.partialize(useCanvasStore.getState());
+    expect(partial).not.toHaveProperty('selectedCardId');
   });
 });

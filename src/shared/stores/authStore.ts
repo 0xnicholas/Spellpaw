@@ -32,10 +32,10 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (email, password) => {
         // Demo account bypass for development
-        if (email === 'demo@spellpaw.ai' && password === 'password123') {
+        if (email === 'demo@spellpaw.xyz' && password === 'password123') {
           set({
             isAuthenticated: true,
-            user: { id: 'demo-user', name: 'Demo User', email: 'demo@spellpaw.ai', avatar: null },
+            user: { id: 'demo-user', name: 'Demo User', email: 'demo@spellpaw.xyz', avatar: null },
             token: 'demo-token',
           });
           return { success: true };

@@ -14,7 +14,7 @@ export function LoginPage() {
   const login = useAuthStore((s) => s.login);
   const register = useAuthStore((s) => s.register);
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('demo@spellpaw.ai');
+  const [email, setEmail] = useState('demo@spellpaw.xyz');
   const [password, setPassword] = useState('password123');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);

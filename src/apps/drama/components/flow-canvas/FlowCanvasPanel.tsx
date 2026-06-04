@@ -19,6 +19,7 @@ import { useProjectStore } from '@drama/stores/projectStore';
 import { computeDisplayNumbers } from '@drama/lib/numbering';
 import type { CanvasNode, CanvasEdge } from '@drama/types';
 import { ScriptCardNode, ArtCardNode, CharacterCardNode, DeliverableCardNode } from './nodes';
+import { CardDetailDrawer } from './CardDetailDrawer';
 import { generateId } from '@/shared/lib/utils';
 
 const nodeTypes: NodeTypes = {
@@ -43,10 +44,12 @@ export function FlowCanvasPanel() {
   const addEdge = useCanvasStore((s) => s.addEdge);
   const duplicateNode = useCanvasStore((s) => s.duplicateNode);
   const removeNode = useCanvasStore((s) => s.removeNode);
+  const setSelectedCardId = useCanvasStore((s) => s.setSelectedCardId);
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
   const [zoom, setZoom] = useState(1);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const persistedNodes = getCurrentNodes();
   const persistedEdges = getCurrentEdges();
@@ -100,6 +103,28 @@ export function FlowCanvasPanel() {
 
   const closeContextMenu = () => setContextMenu(null);
 
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      // Skip if clicking interactive elements (thumbnails, inputs, buttons)
+      const target = _event.target as HTMLElement;
+      if (
+        target.tagName === 'IMG' ||
+        target.tagName === 'INPUT' ||
+        target.tagName === 'BUTTON' ||
+        target.closest('button') ||
+        target.closest('input')
+      ) {
+        return;
+      }
+      // Debounce to avoid drawer flash on double-click-to-edit
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = setTimeout(() => {
+        setSelectedCardId(node.id);
+      }, 250);
+    },
+    [setSelectedCardId]
+  );
+
   const handleContextAction = (action: string) => {
     if (!contextMenu) return;
     switch (action) {
@@ -130,13 +155,20 @@ export function FlowCanvasPanel() {
           onConnect={onConnect}
           onNodeDragStop={onNodeDragStop}
           onNodeContextMenu={onNodeContextMenu}
-          onPaneClick={closeContextMenu}
+          onNodeClick={onNodeClick}
+          onPaneClick={() => {
+            closeContextMenu();
+            setSelectedCardId(null);
+          }}
           className="bg-[var(--color-bg-secondary)]"
           proOptions={{ hideAttribution: true }}
         >
           <Background gap={20} size={1} color="var(--color-border-subtle)" />
           <Controls className="!rounded-[var(--radius-base)] !border !border-[var(--color-border-default)] !shadow-sm" />
         </ReactFlow>
+
+        {/* Card Detail Drawer */}
+        <CardDetailDrawer />
 
         <div className="absolute bottom-2 left-2 z-10 rounded-[var(--radius-sm)] bg-[var(--color-bg-primary)]/80 px-2 py-0.5 text-[10px] text-[var(--color-text-tertiary)] backdrop-blur-sm border border-[var(--color-border-default)]">
           {Math.round(zoom * 100)}%

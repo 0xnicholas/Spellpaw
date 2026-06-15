@@ -6,7 +6,7 @@ import { TaskChatPanel } from '@drama/components/task-chat/TaskChatPanel';
 import { FlowCanvasPanel } from '@drama/components/flow-canvas/FlowCanvasPanel';
 import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
 import { ConflictResolverModal } from '@drama/components/modals/ConflictResolverModal';
-import { BuilderPanel } from '@/shared/components/builder';
+import { BuilderPanel } from '@shared/components/builder';
 import { useHotkeys } from '@/shared/hooks/useHotkeys';
 import { useToolBridge } from '@drama/hooks/useToolBridge';
 import { useProjectStore } from '@drama/stores/projectStore';

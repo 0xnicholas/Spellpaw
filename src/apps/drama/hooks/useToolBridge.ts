@@ -8,7 +8,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { toolRouter } from '@drama/stores/toolRouter';
 import { useBuilderStore } from '@drama/stores/builderStore';
 import { parseAndValidate } from '@shared/lib/builderSchema';
-import { getTotalSteps } from '@/shared/components/builder/registry';
+import { getTotalSteps } from '@shared/components/builder/registry';
 
 interface ToolCallMessage {
   type: 'tool_call';

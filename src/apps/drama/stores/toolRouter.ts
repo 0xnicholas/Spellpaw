@@ -2,6 +2,7 @@ import { useProjectStore } from './projectStore';
 import { useCustomTemplateStore } from './customTemplateStore';
 import type { ToolRouter, TreeNode, NarrativeTemplate, TemplateAct, TemplateScene } from '@drama/types';
 import { analyzePacing, suggestCompletions, generatePacingReport } from '@drama/lib/projectAnalysis';
+import { createNodeHandler, updateNodeHandler, deleteNodeHandler, addCanvasCardHandler } from '@drama/lib/builderHandlers';
 
 function nodeToLine(node: TreeNode, depth: number): string {
   const indent = '│   '.repeat(Math.max(0, depth - 1)) + (depth > 0 ? '├── ' : '');
@@ -60,49 +61,32 @@ export const toolRouter: ToolRouter = {
   },
 
   add_node: async (params) => {
-    const store = useProjectStore.getState();
     const parentId = params.parentId as string;
     const type = params.type as TreeNode['type'];
     const title = params.title as string;
-
-    const newNode: TreeNode = {
-      id: crypto.randomUUID(),
-      type,
-      title,
-      status: 'draft',
-      metadata: {
-        duration: (params.duration as number) ?? 0,
-        description: params.description as string | undefined,
-        location: params.location as string | undefined,
-        timeOfDay: params.timeOfDay as 'morning' | 'day' | 'evening' | 'night' | undefined,
-        shotType: params.shotType as 'wide' | 'medium' | 'close-up' | 'insert' | 'pov' | undefined,
-        cameraMovement: params.cameraMovement as 'static' | 'pan' | 'tilt' | 'dolly' | 'handheld' | undefined,
-        dialogue: params.dialogue as string | undefined,
-        notes: params.notes as string | undefined,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    };
-
-    store.addTreeNode(parentId, newNode);
+    const metadata: Record<string, unknown> = {};
+    if (params.duration != null) metadata.duration = params.duration as number;
+    if (params.description != null) metadata.description = params.description as string;
+    if (params.location != null) metadata.location = params.location as string;
+    if (params.timeOfDay != null) metadata.timeOfDay = params.timeOfDay;
+    if (params.shotType != null) metadata.shotType = params.shotType;
+    if (params.cameraMovement != null) metadata.cameraMovement = params.cameraMovement;
+    if (params.dialogue != null) metadata.dialogue = params.dialogue;
+    if (params.notes != null) metadata.notes = params.notes;
+    const newNode = createNodeHandler(parentId, type, title, metadata);
     return `已添加 ${type}「${title}」(id: ${newNode.id})`;
   },
 
   update_node: async (params) => {
-    const store = useProjectStore.getState();
     const nodeId = params.nodeId as string;
     const changes = params.changes as Partial<TreeNode>;
-    store.updateTreeNode(nodeId, changes);
+    updateNodeHandler(nodeId, changes);
     return `已更新 ${nodeId}`;
   },
 
   delete_node: async (params) => {
-    const store = useProjectStore.getState();
     const nodeId = params.nodeId as string;
-    const tree = store.getCurrentTree();
-    const node = tree ? findNode(tree, nodeId) : null;
-    const label = node ? `${node.type}「${node.title}」` : nodeId;
-    store.deleteTreeNode(nodeId);
+    const label = deleteNodeHandler(nodeId);
     return `已删除 ${label}`;
   },
 
@@ -502,15 +486,7 @@ export const toolRouter: ToolRouter = {
   add_canvas_card: async (params) => {
     const cardType = params.cardType as string;
     const cardData = params.data as Record<string, unknown> ?? {};
-    const { useCanvasStore } = await import('./canvasStore');
-    const { generateId } = await import('@/shared/lib/utils');
-    const canvasState = useCanvasStore.getState();
-    canvasState.addNode({
-      id: generateId('canvas_'),
-      type: cardType as import('@drama/types').CanvasNodeType,
-      position: { x: Math.random() * 200 + 200, y: Math.random() * 200 + 200 },
-      data: { title: (cardData.title as string) ?? '未命名', ...cardData },
-    } as import('@drama/types').CanvasNode);
+    await addCanvasCardHandler(cardType as import('@drama/types').CanvasNodeType, cardData);
     return `已创建 ${cardType} 卡片`;
   },
 };

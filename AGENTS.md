@@ -1,6 +1,6 @@
 # Spellpaw — AI Agent 项目上下文
 
-> 本文档为 AI agent 提供项目全局上下文。人类开发者 → 见 `docs/ROADMAP.md`。
+> 本文档为 AI agent 提供项目全局上下文。人类开发者 → 见 `README.md` 和 `docs/ROADMAP.md`。
 
 ---
 
@@ -278,13 +278,17 @@ npm run lint:server   # tsc --noEmit（server 目录）
 
 | 文档 | 路径 |
 |------|------|
+| 项目 README（人类入口） | `README.md` |
 | 产品路线图（Phase 1-4） | `docs/ROADMAP.md` |
 | 竞品分析 | `docs/competitive-analysis-higgsfield-topview.md` |
+| Topview 深度分析 | `docs/topview-analysis-report.md` |
 | Phase 1 需求规格 | `docs/specs/workspace_spec.md` |
 | Phase 1 技术 spec | `docs/specs/2026-05-27-phase1-core-content-editing.md` |
 | 设计系统 | `DESIGN.md` |
 | Pandaria API 文档 | `../pandaria/docs/openapi.yaml` |
 | 行为准则 | `CLAUDE.md` |
+| 架构决策记录（ADR） | `docs/decisions/ADR-*.md` |
+| 历史归档（Phase 0-1 计划） | `docs/archive/` |
 
 ## 9. 与 Pandaria 的关系
 

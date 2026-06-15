@@ -13,126 +13,7 @@ import { useTaskStore } from '@drama/stores/taskStore';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { createSession, sendMessage, subscribeSSE, buildSystemPrompt } from '@drama/lib/pandaria';
 import { findNode } from '@drama/lib/treeUtils';
-import { config } from '@/shared/config';
-
-const TOOL_ENDPOINT = config.toolServerEndpoint;
-
-// Reuse the same tool configs as usePandariaSSE
-const TOOL_CONFIGS = [
-  {
-    name: 'spellpaw_add_node',
-    description: 'Add a node (act/scene/shot) to the project tree.',
-    parameters: {
-      type: 'object',
-      properties: {
-        parentId: { type: 'string' },
-        type: { type: 'string', enum: ['act', 'scene', 'shot'] },
-        title: { type: 'string' },
-        description: { type: 'string' },
-        duration: { type: 'number' },
-      },
-      required: ['parentId', 'type', 'title'],
-    },
-    endpoint: TOOL_ENDPOINT,
-  },
-  {
-    name: 'spellpaw_update_node',
-    description: "Update a node's title or metadata.",
-    parameters: {
-      type: 'object',
-      properties: { nodeId: { type: 'string' }, changes: { type: 'object' } },
-      required: ['nodeId', 'changes'],
-    },
-    endpoint: TOOL_ENDPOINT,
-  },
-  {
-    name: 'spellpaw_delete_node',
-    description: 'Delete a node. CAREFUL: irreversible. Ask user first.',
-    parameters: {
-      type: 'object',
-      properties: { nodeId: { type: 'string' } },
-      required: ['nodeId'],
-    },
-    endpoint: TOOL_ENDPOINT,
-  },
-  {
-    name: 'spellpaw_get_tree',
-    description: 'Get the full project tree structure.',
-    parameters: { type: 'object', properties: {} },
-    endpoint: TOOL_ENDPOINT,
-  },
-  {
-    name: 'spellpaw_get_subtree',
-    description: 'Get a subtree starting from a specific node.',
-    parameters: {
-      type: 'object',
-      properties: { nodeId: { type: 'string' } },
-      required: ['nodeId'],
-    },
-    endpoint: TOOL_ENDPOINT,
-  },
-  {
-    name: 'spellpaw_apply_template',
-    description: 'Apply a narrative template to the current project.',
-    parameters: {
-      type: 'object',
-      properties: { templateId: { type: 'string' }, parentId: { type: 'string' } },
-      required: ['templateId'],
-    },
-    endpoint: TOOL_ENDPOINT,
-  },
-  {
-    name: 'spellpaw_generate_storyboard',
-    description: 'Generate a storyboard reference image for a scene or shot.',
-    parameters: {
-      type: 'object',
-      properties: { nodeId: { type: 'string' }, prompt: { type: 'string' } },
-      required: ['nodeId'],
-    },
-    endpoint: TOOL_ENDPOINT,
-  },
-  {
-    name: 'spellpaw_analyze_structure',
-    description: 'Analyze project structure health.',
-    parameters: { type: 'object', properties: {} },
-    endpoint: TOOL_ENDPOINT,
-  },
-  {
-    name: 'spellpaw_get_pacing_report',
-    description: 'Get detailed pacing report with duration statistics.',
-    parameters: { type: 'object', properties: {} },
-    endpoint: TOOL_ENDPOINT,
-  },
-  {
-    name: 'spellpaw_match_template',
-    description: 'Match project against built-in narrative templates.',
-    parameters: { type: 'object', properties: {} },
-    endpoint: TOOL_ENDPOINT,
-  },
-  {
-    name: 'spellpaw_optimize_pacing',
-    description: 'Auto-adjust scene durations based on pacing analysis.',
-    parameters: {
-      type: 'object',
-      properties: { dryRun: { type: 'boolean' } },
-    },
-    endpoint: TOOL_ENDPOINT,
-  },
-  {
-    name: 'spellpaw_build_ui',
-    description: 'Build interactive UI components (character maps, dashboards, storyboard grids).',
-    parameters: {
-      type: 'object',
-      properties: {
-        component: { type: 'string', enum: ['character_map'] },
-        data: { type: 'object' },
-        target: { type: 'string', enum: ['canvas', 'detail_panel', 'tree_placeholder'] },
-      },
-      required: ['component', 'data'],
-    },
-    endpoint: TOOL_ENDPOINT,
-  },
-];
+import { SPELLPAW_TOOL_CONFIGS } from '@drama/lib/toolConfigs';
 
 export function useTaskSSE() {
   const {
@@ -163,7 +44,7 @@ export function useTaskSSE() {
 
             const treeText = tree ? treeToPromptText(tree, 0) : '(空项目)';
             const systemPrompt = buildSystemPrompt(projectTitle, treeText);
-            const session = await createSession(projectTitle, systemPrompt, TOOL_CONFIGS);
+            const session = await createSession(projectTitle, systemPrompt, SPELLPAW_TOOL_CONFIGS);
 
             taskSessions.set(taskId, session.id);
             setTaskSessionId(taskId, session.id);

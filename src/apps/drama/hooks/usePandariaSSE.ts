@@ -126,6 +126,20 @@ const TOOL_CONFIGS = [
     },
     endpoint: TOOL_ENDPOINT,
   },
+  {
+    name: 'spellpaw_build_ui',
+    description: 'Build interactive UI components (character maps, dashboards, storyboard grids). Use when user asks for visual elements like character relationship diagrams.',
+    parameters: {
+      type: 'object',
+      properties: {
+        component: { type: 'string', enum: ['character_map'] },
+        data: { type: 'object' },
+        target: { type: 'string', enum: ['canvas', 'detail_panel', 'tree_placeholder'] },
+      },
+      required: ['component', 'data'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
 ];
 
 export function usePandariaSSE() {

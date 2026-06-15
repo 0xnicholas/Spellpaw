@@ -6,6 +6,9 @@
  */
 import { useEffect, useRef, useCallback } from 'react';
 import { toolRouter } from '@drama/stores/toolRouter';
+import { useBuilderStore } from '@drama/stores/builderStore';
+import { parseAndValidate } from '@shared/lib/builderSchema';
+import { getTotalSteps } from '@/shared/components/builder/registry';
 
 interface ToolCallMessage {
   type: 'tool_call';
@@ -24,6 +27,28 @@ function connect(wsRef: React.MutableRefObject<WebSocket | null>, retries = 0) {
 
       const { callId, params } = msg;
       const action = params.action as string;
+
+      // ③ Builder Renderer channel — spellpaw_build_ui
+      if (action === 'spellpaw_build_ui') {
+        const result = parseAndValidate(params);
+        if ('error' in result) {
+          ws.send(JSON.stringify({
+            callId,
+            content: [{ type: 'text', text: result.error.error || '校验失败' }],
+            is_error: true,
+          }));
+          return;
+        }
+        useBuilderStore.getState().setConfig(result.config, getTotalSteps(result.config.component));
+        useBuilderStore.getState().setStatus('previewing');
+        ws.send(JSON.stringify({
+          callId,
+          content: [{ type: 'text', text: '已渲染，请在 Builder 面板中确认' }],
+          is_error: false,
+        }));
+        return;
+      }
+
       const handler = toolRouter[action];
 
       if (!handler) {

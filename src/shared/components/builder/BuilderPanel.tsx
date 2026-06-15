@@ -1,8 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useBuilderStore } from '@drama/stores/builderStore';
 import { getBuilderComponent } from './registry';
 import { BuilderErrorBoundary } from './BuilderErrorBoundary';
 import { addCanvasCardHandler } from '@drama/lib/builderHandlers';
+import type { CanvasNodeType } from '@drama/types';
+
+/** Map BuilderConfig.component to canvas card type */
+const COMPONENT_TO_CARD_TYPE: Record<string, CanvasNodeType> = {
+  character_map: 'character',
+};
 
 export function BuilderPanel() {
   const config = useBuilderStore((s) => s.config);
@@ -14,6 +20,7 @@ export function BuilderPanel() {
   const confirmStep = useBuilderStore((s) => s.confirmStep);
   const updateEdits = useBuilderStore((s) => s.updateEdits);
   const reset = useBuilderStore((s) => s.reset);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Listen for cancel events from ErrorBoundary
   useEffect(() => {
@@ -25,21 +32,32 @@ export function BuilderPanel() {
   // On all steps confirmed, write to store via shared handler
   useEffect(() => {
     if (status === 'confirmed' && config) {
+      // Clear any pending reset timer
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+
       // Merge edits into data
       const mergedData = { ...config.data, ...edits };
 
       // Write to appropriate target
       if (config.target === 'canvas') {
-        addCanvasCardHandler('character', {
-          title: '角色关系图',
-          nodes: mergedData.nodes,
-          edges: mergedData.edges,
+        const cardType = COMPONENT_TO_CARD_TYPE[config.component] ?? 'character';
+        addCanvasCardHandler(cardType, {
+          title: mergedData.title as string ?? '角色关系图',
+          ...mergedData,
         });
       }
 
       // Reset after write
-      const timer = setTimeout(() => reset(), 500);
-      return () => clearTimeout(timer);
+      resetTimerRef.current = setTimeout(() => {
+        resetTimerRef.current = null;
+        reset();
+      }, 500);
+      return () => {
+        if (resetTimerRef.current) {
+          clearTimeout(resetTimerRef.current);
+          resetTimerRef.current = null;
+        }
+      };
     }
   }, [status, config, edits, reset]);
 

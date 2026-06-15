@@ -42,3 +42,10 @@ export function collectScenes(root: TreeNode | null): TreeNode[] {
   });
   return scenes;
 }
+
+/** Collect all node IDs in the tree (for metadata validation context). */
+export function collectNodeIds(root: TreeNode | null): string[] {
+  const ids: string[] = [];
+  walkTree(root, (node) => ids.push(node.id));
+  return ids;
+}

@@ -2,7 +2,7 @@
  * Builder Renderer validation schemas
  * 
  * Defines the structure LLM must output for spellpaw_build_ui.
- * Uses manual validation (dependency-free) — can be upgraded to Zod later.
+ * Uses manual validation — dependency-free and sufficient for current component set.
  */
 
 export type BuilderComponent = 'character_map';

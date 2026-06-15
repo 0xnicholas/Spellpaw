@@ -12,7 +12,7 @@ interface BuilderState {
   edits: Record<string, unknown>;
   error: string | null;
 
-  setConfig: (config: BuilderConfig, totalSteps: number) => void;
+  setConfig: (config: BuilderConfig | null, totalSteps: number) => void;
   setStatus: (status: BuilderStatus) => void;
   updateEdits: (data: Record<string, unknown>) => void;
   confirmStep: () => void;

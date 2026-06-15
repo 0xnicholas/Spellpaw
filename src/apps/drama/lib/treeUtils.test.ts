@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findNode, findParent, getSiblings, collectScenes } from './treeUtils';
+import { findNode, findParent, getSiblings, collectScenes, collectNodeIds } from './treeUtils';
 import type { TreeNode } from '@drama/types';
 
 const tree: TreeNode = {
@@ -79,5 +79,17 @@ describe('collectScenes', () => {
   it('returns empty when no scenes', () => {
     const t: TreeNode = { id: 'r', type: 'project', title: 'R', status: 'draft' };
     expect(collectScenes(t)).toHaveLength(0);
+  });
+});
+
+describe('collectNodeIds', () => {
+  it('returns all node ids in the tree', () => {
+    const ids = collectNodeIds(tree);
+    expect(ids).toContain('root');
+    expect(ids.length).toBeGreaterThan(2);
+  });
+
+  it('returns empty array for null', () => {
+    expect(collectNodeIds(null)).toEqual([]);
   });
 });

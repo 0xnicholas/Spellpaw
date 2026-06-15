@@ -46,12 +46,16 @@ export async function addCanvasCardHandler(
 ) {
   const { useCanvasStore } = await import('@drama/stores/canvasStore');
   const { generateId } = await import('@/shared/lib/utils');
+  // Place new card offset from canvas center with slight jitter to avoid exact overlap
+  const existingCount = useCanvasStore.getState().nodes.length;
+  const offset = 40 * (existingCount % 5);
+  const jitter = () => Math.floor(Math.random() * 30) - 15;
   const card = {
     id: generateId('canvas_'),
     type: cardType,
     position: {
-      x: Math.random() * 200 + 200,
-      y: Math.random() * 200 + 200,
+      x: 300 + offset + jitter(),
+      y: 200 + offset + jitter(),
     },
     data: { title: (data.title as string) ?? '未命名', ...data },
   };

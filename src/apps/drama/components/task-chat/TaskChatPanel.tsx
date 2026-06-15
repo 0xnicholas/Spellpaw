@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { Sparkles } from 'lucide-react';
-import { MessageList } from '@drama/components/chat-panel/MessageList';
-import { MessageInput } from '@drama/components/chat-panel/MessageInput';
+import { MessageList } from '@/shared/components/copilot/MessageList';
+import { MessageInput } from '@/shared/components/copilot/MessageInput';
 import { TaskChatHeader } from './TaskChatHeader';
 import { useTaskStore } from '@drama/stores/taskStore';
 import { useProjectStore } from '@drama/stores/projectStore';

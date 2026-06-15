@@ -14,9 +14,19 @@ export function Footer() {
               SpellPaw
             </span>
           </div>
-          <p className="text-xs text-[var(--color-text-tertiary)]">
-            © 2026 SpellPaw. AI 驱动的创作平台。
-          </p>
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-xs text-[var(--color-text-tertiary)]">
+              © 2026 SpellPaw. AI 驱动的创作平台。
+            </p>
+            <a
+              href="https://beian.miit.gov.cn/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-secondary)]"
+            >
+              浙ICP备2026042372号
+            </a>
+          </div>
           <div className="flex items-center gap-4">
             <Link
               to="/login"

@@ -6,6 +6,7 @@ import { TaskChatPanel } from '@drama/components/task-chat/TaskChatPanel';
 import { FlowCanvasPanel } from '@drama/components/flow-canvas/FlowCanvasPanel';
 import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
 import { ConflictResolverModal } from '@drama/components/modals/ConflictResolverModal';
+import { BuilderPanel } from '@/shared/components/builder';
 import { useHotkeys } from '@/shared/hooks/useHotkeys';
 import { useToolBridge } from '@drama/hooks/useToolBridge';
 import { useProjectStore } from '@drama/stores/projectStore';
@@ -82,7 +83,7 @@ export function WorkspacePage() {
     <MobileGuard>
       <div className="flex h-screen flex-col">
         <Navbar onToggleSidebar={toggleSidebar} />
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden relative">
           <Group orientation="horizontal" className="h-full" groupRef={groupRef}>
             <Panel id="left" defaultSize="18%" minSize="18%" maxSize="28%" collapsible collapsedSize="0%" style={{ minWidth: 240 }}>
               <div className="h-full overflow-hidden border-r border-[var(--color-border-default)]">
@@ -102,6 +103,7 @@ export function WorkspacePage() {
               </div>
             </Panel>
           </Group>
+          <BuilderPanel />
         </div>
       </div>
       <DeleteConfirmDialog

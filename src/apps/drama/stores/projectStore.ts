@@ -4,6 +4,7 @@ import { produce } from 'immer';
 import type { TreeNode, Project } from '@drama/types';
 import { generateId } from '@/shared/lib/utils';
 import { createIDBStorage } from '@/shared/lib/idbStorage';
+import { authApi } from '@/shared/stores/authStore';
 
 interface ProjectState {
   projects: Project[];
@@ -125,6 +126,8 @@ export const useProjectStore = create<ProjectState>()(
           const newCurrentId = state.currentProjectId === id
             ? (newProjects[0]?.id ?? null)
             : state.currentProjectId;
+          // Best-effort server deletion; ignore failures so the UI stays responsive offline.
+          authApi.apiCall(`/api/projects/${id}`, { method: 'DELETE' }).catch(() => {});
           return {
             projects: newProjects,
             trees: restTrees,

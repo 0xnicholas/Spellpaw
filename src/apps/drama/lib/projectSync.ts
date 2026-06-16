@@ -283,11 +283,12 @@ export async function resolveConflictWithRemote(conflict: ConflictInfo): Promise
   }));
 }
 
-/** Resolve a conflict by force-pushing local data (bumping version). */
+/** Resolve a conflict by force-pushing local data. */
 export async function resolveConflictWithLocal(conflict: ConflictInfo): Promise<PushResult> {
-  // Bump local version to remote + 1 and retry push
+  // Align local version to the current remote version so the server accepts the PUT.
+  // The server will increment the version itself after a successful save.
   useProjectStore.getState().updateProject(conflict.projectId, {
-    version: conflict.remoteVersion + 1,
+    version: conflict.remoteVersion,
   });
   return pushProject(conflict.projectId);
 }
@@ -308,12 +309,13 @@ export async function resolveConflictWithMerge(
   const { mergeTrees } = await import('./treeDiff');
   const mergedTree = mergeTrees(localTree, remoteTree, choices);
 
-  // Update local store with merged tree
+  // Update local store with merged tree, aligning version to remote first.
+  // pushProject will update the local version from the server response.
   useProjectStore.setState((s) => ({
     trees: { ...s.trees, [conflict.projectId]: mergedTree },
     projects: s.projects.map((p) =>
       p.id === conflict.projectId
-        ? { ...p, title: conflict.remoteProject.title, version: conflict.remoteVersion + 1, updatedAt: new Date().toISOString() }
+        ? { ...p, title: conflict.remoteProject.title, version: conflict.remoteVersion, updatedAt: new Date().toISOString() }
         : p
     ),
   }));

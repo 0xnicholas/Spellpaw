@@ -48,6 +48,42 @@ interface PacingPlanItem {
   reason: string;
 }
 
+const BUILTIN_TEMPLATES = [
+  { id: 'suspense-reversal', name: '悬疑反转', category: 'suspense', keywords: ['悬疑','密室','反转','侦探','凶杀','失踪','谜','真相','阴谋','惊悚','犯罪','追凶','暗','恐怖'] },
+  { id: 'sweet-romance', name: '甜宠短剧', category: 'romance', keywords: ['甜宠','恋爱','爱情','霸道','总裁','心动','初恋','约会','浪漫','甜蜜','表白','吻','宠','嫁','娶'] },
+  { id: 'comedy-twist', name: '喜剧反转', category: 'comedy', keywords: ['喜剧','搞笑','幽默','段子','笑','荒诞','讽刺','无厘头','欢乐','逗','趣'] },
+  { id: 'underdog-comeback', name: '励志逆袭', category: 'drama', keywords: ['励志','逆袭','奋斗','成长','追梦','突破','翻身','成功','努力','拼搏','创业','穷'] },
+  { id: 'mini-documentary', name: '短纪录片', category: 'documentary', keywords: ['纪录','纪实','访谈','真实','纪录片','人文','社会','探索','历史','见证'] },
+];
+
+function scoreTemplates(corpus: string) {
+  const corpusLower = corpus.toLowerCase();
+  return BUILTIN_TEMPLATES.map((t) => {
+    const hits = t.keywords.filter((k) => corpusLower.includes(k)).length;
+    return { ...t, score: hits / Math.max(1, t.keywords.length * 0.6), hits };
+  }).sort((a, b) => b.score - a.score);
+}
+
+function findBestTemplate(theme: string, genre?: string) {
+  if (genre) {
+    const matched = BUILTIN_TEMPLATES.find((t) => t.category.toLowerCase() === genre.toLowerCase());
+    if (matched) return matched;
+  }
+  const scores = scoreTemplates(theme);
+  return scores[0];
+}
+
+function collectScenes(node: TreeNode): TreeNode[] {
+  const scenes: TreeNode[] = [];
+  if (node.type === 'scene') {
+    scenes.push(node);
+  }
+  for (const child of node.children ?? []) {
+    scenes.push(...collectScenes(child));
+  }
+  return scenes;
+}
+
 export const toolRouter: ToolRouter = {
   get_tree: async (_params) => {
     const tree = useProjectStore.getState().getCurrentTree();
@@ -375,20 +411,9 @@ export const toolRouter: ToolRouter = {
         if (scene.metadata?.description) texts.push(scene.metadata.description);
       }
     }
-    const corpus = texts.join(' ').toLowerCase();
+    const corpus = texts.join(' ');
 
-    const BUILTIN_TEMPLATES = [
-      { id: 'suspense-reversal', name: '悬疑反转', category: 'suspense', keywords: ['悬疑','密室','反转','侦探','凶杀','失踪','谜','真相','阴谋','惊悚','犯罪','追凶','暗','恐怖'] },
-      { id: 'sweet-romance', name: '甜宠短剧', category: 'romance', keywords: ['甜宠','恋爱','爱情','霸道','总裁','心动','初恋','约会','浪漫','甜蜜','表白','吻','宠','嫁','娶'] },
-      { id: 'comedy-twist', name: '喜剧反转', category: 'comedy', keywords: ['喜剧','搞笑','幽默','段子','笑','荒诞','讽刺','无厘头','欢乐','逗','趣'] },
-      { id: 'underdog-comeback', name: '励志逆袭', category: 'drama', keywords: ['励志','逆袭','奋斗','成长','追梦','突破','翻身','成功','努力','拼搏','创业','穷'] },
-      { id: 'mini-documentary', name: '短纪录片', category: 'documentary', keywords: ['纪录','纪实','访谈','真实','纪录片','人文','社会','探索','历史','见证'] },
-    ];
-
-    const scores = BUILTIN_TEMPLATES.map((t) => {
-      const hits = t.keywords.filter((k) => corpus.includes(k)).length;
-      return { ...t, score: hits / Math.max(1, t.keywords.length * 0.6), hits };
-    }).sort((a, b) => b.score - a.score);
+    const scores = scoreTemplates(corpus);
 
     const best = scores[0];
     const lines: string[] = [`📋 模板匹配结果：《${title}》`, ''];
@@ -578,5 +603,45 @@ export const toolRouter: ToolRouter = {
 
     canvasStore.removeNode(cardId);
     return `已删除画布卡片「${existing.data.title}」(${cardId})`;
+  },
+
+  kickstart_project: async (params) => {
+    const theme = params.theme as string;
+    const genre = params.genre as string | undefined;
+    const cardType = (params.cardType as 'sceneCard' | 'script' | undefined) ?? 'sceneCard';
+
+    const store = useProjectStore.getState();
+    const tree = store.getCurrentTree();
+    if (!tree) throw new Error('当前没有打开的项目');
+
+    // 1. Pick the best template
+    const best = findBestTemplate(theme, genre);
+    if (!best) throw new Error('未找到合适的叙事模板');
+
+    // 2. Apply the template under the current project root
+    await toolRouter.apply_template({ action: 'apply_template', templateId: best.id, parentId: tree.id });
+
+    // 3. Refresh tree and collect scenes
+    const freshTree = store.getCurrentTree();
+    if (!freshTree) throw new Error('套用模板后无法获取项目树');
+    const scenes = collectScenes(freshTree);
+
+    // 4. Create a canvas card for each scene
+    let cardCount = 0;
+    for (const scene of scenes) {
+      const description = scene.metadata?.description as string | undefined;
+      await toolRouter.add_canvas_card({
+        action: 'add_canvas_card',
+        cardType,
+        data: {
+          title: scene.title,
+          description: description ?? '',
+          linkedTreeNodeId: scene.id,
+        },
+      });
+      cardCount++;
+    }
+
+    return `已基于「${best.name}」模板创建项目结构：共 ${scenes.length} 个场景，并生成 ${cardCount} 张${cardType === 'sceneCard' ? '场景卡' : '剧本卡'}。`;
   },
 };

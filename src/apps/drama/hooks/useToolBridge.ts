@@ -18,9 +18,32 @@ interface ToolCallMessage {
   params: Record<string, unknown>;
 }
 
-function connect(wsRef: React.MutableRefObject<WebSocket | null>, retries = 0) {
+function getCandidateUrls(): string[] {
   const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  const ws = new WebSocket(`${protocol}://${window.location.host}/tool-ws`);
+  const host = window.location.host; // e.g. localhost:5173
+  const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+  const hostnames = [host, `127.0.0.1:${port}`, `127.0.0.1.nip.io:${port}`];
+  return hostnames.map((h) => `${protocol}://${h}/tool-ws`);
+}
+
+function connect(
+  wsRef: React.MutableRefObject<WebSocket | null>,
+  urls = getCandidateUrls(),
+  urlIndex = 0,
+  retries = 0,
+) {
+  const url = urls[urlIndex];
+  if (!url) {
+    console.error('[useToolBridge] exhausted all candidate URLs', urls);
+    return;
+  }
+
+  console.log(`[useToolBridge] trying ${url} (attempt ${retries + 1})`);
+  const ws = new WebSocket(url);
+
+  ws.onopen = () => {
+    console.log(`[useToolBridge] connected to ${url}`);
+  };
 
   ws.onmessage = async (event) => {
     try {
@@ -88,16 +111,31 @@ function connect(wsRef: React.MutableRefObject<WebSocket | null>, retries = 0) {
     }
   };
 
-  ws.onclose = () => {
+  ws.onclose = (event) => {
+    // If this ws is no longer the current one, it was closed by cleanup (e.g.
+    // React StrictMode double mount/unmount). Don't retry.
+    if (wsRef.current !== ws) return;
+
+    console.warn(`[useToolBridge] closed ${url} code=${event.code} reason=${event.reason}`);
     wsRef.current = null;
-    if (retries < 3) {
+
+    // Try next URL after a few retries on the current one
+    const maxRetriesPerUrl = 2;
+    if (retries < maxRetriesPerUrl) {
       const delay = Math.pow(2, retries) * 1000;
-      setTimeout(() => connect(wsRef, retries + 1), delay);
+      setTimeout(() => connect(wsRef, urls, urlIndex, retries + 1), delay);
+    } else if (urlIndex < urls.length - 1) {
+      console.warn(`[useToolBridge] switching to fallback URL`);
+      setTimeout(() => connect(wsRef, urls, urlIndex + 1, 0), 500);
+    } else {
+      console.error('[useToolBridge] all WebSocket connection attempts failed');
     }
   };
 
-  ws.onerror = () => {
-    ws.close();
+  ws.onerror = (event) => {
+    // Ignore errors from sockets that have already been replaced by cleanup.
+    if (wsRef.current !== ws) return;
+    console.error(`[useToolBridge] error on ${url}`, event);
   };
 
   wsRef.current = ws;
@@ -110,8 +148,10 @@ export function useToolBridge() {
     connect(wsRef);
 
     return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      wsRef.current?.close();
+      // Close and clear the ref so onclose/onerror of this socket ignore retries.
+      const ws = wsRef.current;
+      wsRef.current = null;
+      ws?.close();
     };
   }, []);
 

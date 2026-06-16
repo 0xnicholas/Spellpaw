@@ -79,19 +79,26 @@ export function spellpawToolServer(): Plugin {
 
         try {
           const body = await parseBody(req);
-          const tool_call_id = body.tool_call_id as string;
+          const callId = (body.callId as string) || (body.tool_call_id as string);
           const params = (body.params ?? {}) as Record<string, unknown>;
+
+          if (!callId) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ content: [{ type: 'text', text: 'Missing callId' }], is_error: true }));
+            return;
+          }
 
           const result = await new Promise<ToolResult>((resolve, reject) => {
             const timer = setTimeout(() => {
-              pendingCalls.delete(tool_call_id);
+              pendingCalls.delete(callId);
               reject(new Error('TIMEOUT'));
             }, TIMEOUT_MS);
 
-            pendingCalls.set(tool_call_id, { resolve, reject, timer });
+            pendingCalls.set(callId, { resolve, reject, timer });
 
-            console.log(`[tool-server] forwarding call ${tool_call_id} to ${clients.size} browser client(s)`);
-            const message = JSON.stringify({ type: 'tool_call', callId: tool_call_id, params });
+            console.log(`[tool-server] forwarding call ${callId} to ${clients.size} browser client(s)`);
+            const message = JSON.stringify({ type: 'tool_call', callId, params });
             for (const client of clients) {
               if (client.readyState === WebSocket.OPEN) {
                 client.send(message);

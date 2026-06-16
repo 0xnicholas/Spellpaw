@@ -169,7 +169,7 @@ export const SPELLPAW_TOOL_CONFIGS = [
   },
   {
     name: 'spellpaw_match_template',
-    description: 'Match the current project against built-in narrative templates based on title, description, and scene keywords. Returns the best match with similarity score.',
+    description: 'Match the current project against built-in narrative templates based on title, description, and scene keywords. Returns the best match with similarity score and templateId. After calling this, continue by calling spellpaw_apply_template with the returned templateId.',
     parameters: { type: 'object', properties: {} },
     endpoint: TOOL_ENDPOINT,
   },
@@ -199,8 +199,23 @@ export const SPELLPAW_TOOL_CONFIGS = [
     endpoint: TOOL_ENDPOINT,
   },
   {
+    name: 'spellpaw_kickstart_project',
+    description: 'Create a complete narrative structure (acts, scenes, shots) from a theme and generate canvas cards for every scene. Use this whenever the user asks to create a project structure and generate scene cards in one go.',
+    parameters: {
+      type: 'object',
+      properties: {
+        theme: { type: 'string', description: 'Theme or title of the project, e.g. "密室逃脱"' },
+        genre: { type: 'string', description: 'Optional genre hint, e.g. "悬疑" or "romance"' },
+        targetDuration: { type: 'number', description: 'Optional total target duration in seconds' },
+        cardType: { type: 'string', enum: ['sceneCard', 'script'], description: 'Type of canvas card to create for each scene. Defaults to sceneCard.' },
+      },
+      required: ['theme'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
     name: 'spellpaw_add_canvas_card',
-    description: 'Add a card to the flow canvas. Use when the user asks to create a visual card for a scene, character, art reference, or deliverable. cardType must be one of script/sceneCard/art/character/deliverable.',
+    description: 'Add a card to the flow canvas. Use when the user asks to create a visual card for a scene, character, art reference, or deliverable, or when generating scene cards after creating project structure. For scene cards, use cardType=sceneCard and set linkedTreeNodeId to the corresponding scene node id.',
     parameters: {
       type: 'object',
       properties: {

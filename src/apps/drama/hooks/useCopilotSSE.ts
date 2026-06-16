@@ -29,6 +29,7 @@ export function useCopilotSSE() {
 
     useChatStore.setState({
       sendMessage: async (content: string) => {
+        console.log('[useCopilotSSE] sendMessage called:', content.slice(0, 80));
         // Build node context for the message
         const projectStore = useProjectStore.getState();
         const tree = projectStore.getCurrentTree();
@@ -85,12 +86,15 @@ export function useCopilotSSE() {
             const projectTitle = useProjectStore.getState()
               .projects.find(p => p.id === useProjectStore.getState().currentProjectId)?.title ?? 'Untitled';
             const prompt = buildSystemPrompt(projectTitle, treeText);
+            console.log('[useCopilotSSE] creating session with', SPELLPAW_TOOL_CONFIGS.length, 'tools');
             const session = await provider.createSession(projectTitle, prompt, SPELLPAW_TOOL_CONFIGS);
             sessionRef.current = session.id;
+            console.log('[useCopilotSSE] session created:', session.id);
 
             // Subscribe to SSE
             sseRef.current?.close();
             sseRef.current = provider.subscribeSSE(session.id, (event) => {
+              console.log('[useCopilotSSE] SSE event:', event.type, event);
               switch (event.type) {
                 case 'message_start':
                   startStreaming(crypto.randomUUID());
@@ -114,6 +118,7 @@ export function useCopilotSSE() {
               }
             });
           } catch (err) {
+            console.error('[useCopilotSSE] session init failed:', err);
             appendMessage({
               id: crypto.randomUUID(),
               role: 'agent',
@@ -128,9 +133,12 @@ export function useCopilotSSE() {
 
         // Send message
         if (sessionRef.current) {
+          console.log('[useCopilotSSE] sending message to session', sessionRef.current);
           try {
             await provider.sendMessage(sessionRef.current, enrichedContent);
+            console.log('[useCopilotSSE] message sent');
           } catch (err) {
+            console.error('[useCopilotSSE] sendMessage failed:', err);
             appendMessage({
               id: crypto.randomUUID(),
               role: 'agent',
@@ -140,6 +148,8 @@ export function useCopilotSSE() {
             });
             endStreaming('error');
           }
+        } else {
+          console.error('[useCopilotSSE] no session available');
         }
       },
     });

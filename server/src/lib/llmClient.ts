@@ -54,10 +54,19 @@ function toOpenAITools(tools: ToolConfig[] = []): Array<{
   }));
 }
 
-export async function* streamChat(options: ChatOptions): AsyncGenerator<SSEvent, void, unknown> {
-  const apiKey = process.env.DEEPSEEK_API_KEY || process.env.LLM_API_KEY;
-  const baseUrl = process.env.LLM_BASE_URL || 'https://api.deepseek.com/v1';
-  const model = options.model || process.env.LLM_MODEL || 'deepseek-chat';
+export interface StreamChatContext {
+  apiKey?: string;
+  baseUrl?: string;
+  model?: string;
+}
+
+export async function* streamChat(
+  options: ChatOptions,
+  context: StreamChatContext = {}
+): AsyncGenerator<SSEvent, void, unknown> {
+  const apiKey = context.apiKey || process.env.DEEPSEEK_API_KEY || process.env.LLM_API_KEY;
+  const baseUrl = context.baseUrl || process.env.LLM_BASE_URL || 'https://api.deepseek.com/v1';
+  const model = context.model || options.model || process.env.LLM_MODEL || 'deepseek-chat';
 
   if (!apiKey) {
     yield { type: 'error', message: 'LLM_API_KEY not configured' };
@@ -70,9 +79,12 @@ export async function* streamChat(options: ChatOptions): AsyncGenerator<SSEvent,
   const tools = options.tools && options.tools.length > 0 ? options.tools : undefined;
   const maxIterations = 5;
 
+  console.log(`[llmClient] streamChat start: model=${model}, tools=${tools?.length ?? 0}, messages=${messages.length}`);
+
   yield { type: 'message_start' };
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
+    console.log(`[llmClient] LLM iteration ${iteration + 1}/${maxIterations}`);
     const body: Record<string, unknown> = {
       model,
       messages,
@@ -105,9 +117,12 @@ export async function* streamChat(options: ChatOptions): AsyncGenerator<SSEvent,
 
     if (!res.ok || !res.body) {
       const text = await res.text().catch(() => 'unknown error');
+      console.error(`[llmClient] LLM request failed: ${res.status} ${text}`);
       yield { type: 'error', message: `LLM request failed: ${res.status} ${text}` };
       return;
     }
+
+    console.log('[llmClient] LLM response streaming');
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -179,20 +194,24 @@ export async function* streamChat(options: ChatOptions): AsyncGenerator<SSEvent,
       }));
 
     messages.push({ role: 'assistant', content: assistantText, tool_calls: toolCalls });
+    console.log(`[llmClient] assistant requested ${toolCalls.length} tool call(s):`, toolCalls.map((tc) => tc.function.name));
 
     // Execute each tool call and append tool-role messages for the next LLM turn.
     for (const tc of toolCalls) {
       yield { type: 'tool_call_started', call_id: tc.id, name: tc.function.name };
+      console.log(`[llmClient] executing tool ${tc.function.name} -> ${resolveToolEndpoint(tc.function.name)}`);
 
       let resultText: string;
       let isError = false;
       try {
         const toolEndpoint = resolveToolEndpoint(tc.function.name);
-        resultText = await callToolEndpoint(toolEndpoint, tc.function.name, tc.function.arguments);
+        resultText = await callToolEndpoint(toolEndpoint, tc.function.name, tc.function.arguments, tc.id);
+        console.log(`[llmClient] tool ${tc.function.name} result:`, resultText.slice(0, 120));
         yield { type: 'text_delta', delta: `\n\n[Tool result: ${resultText}]\n\n` };
       } catch (err) {
         resultText = (err as Error).message;
         isError = true;
+        console.error(`[llmClient] tool ${tc.function.name} error:`, resultText);
         yield { type: 'text_delta', delta: `\n\n[Tool error: ${resultText}]\n\n` };
       }
 
@@ -235,7 +254,7 @@ function resolveToolEndpoint(toolName: string): string {
   return toolEndpointMap[toolName] || toolEndpoint;
 }
 
-async function callToolEndpoint(endpoint: string, toolName: string, argsJson: string): Promise<string> {
+async function callToolEndpoint(endpoint: string, toolName: string, argsJson: string, toolCallId: string): Promise<string> {
   let params: Record<string, unknown>;
   try {
     params = argsJson ? JSON.parse(argsJson) : {};
@@ -248,7 +267,7 @@ async function callToolEndpoint(endpoint: string, toolName: string, argsJson: st
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       type: 'tool_call',
-      callId: `${toolName}_${Date.now()}`,
+      callId: toolCallId,
       params: { action: toolName, ...params },
     }),
   });

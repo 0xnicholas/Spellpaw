@@ -5,6 +5,7 @@
  */
 import { config } from '@/shared/config';
 import { useAuthStore } from '@/shared/stores/authStore';
+import { getLLMSettings } from '@console/lib/llmSettings';
 import type { LLMProvider, Session, SSESubscription, ToolConfig, SSEEvent } from './types';
 
 const BASE_URL = config.llmBase || `${config.serverBase}/api/v1`;
@@ -23,6 +24,12 @@ function authHeaders(): Record<string, string> {
   const token = useAuthStore.getState().token;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
+  const settings = getLLMSettings();
+  if (settings.provider === 'custom') {
+    if (settings.apiKey) headers['X-LLM-API-Key'] = settings.apiKey;
+    if (settings.baseUrl) headers['X-LLM-Base-URL'] = settings.baseUrl;
+    if (settings.model) headers['X-LLM-Model'] = settings.model;
+  }
   return headers;
 }
 

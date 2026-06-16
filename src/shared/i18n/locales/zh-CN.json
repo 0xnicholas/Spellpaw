@@ -55,7 +55,16 @@
       "openaiKey": "OpenAI API Key",
       "openaiHint": "用于 AI 分镜图生成。仅保存在本地浏览器中，不会上传到服务器。",
       "save": "保存 API Key",
-      "saved": "已保存"
+      "saved": "已保存",
+      "saveError": "保存失败，请重试",
+      "llmTitle": "对话 LLM Provider",
+      "llmProvider": "Provider",
+      "customProvider": "自定义 Provider",
+      "llmApiKey": "API Key",
+      "llmBaseUrl": "Base URL",
+      "llmBaseUrlHint": "OpenAI 兼容接口地址，例如 https://api.deepseek.com/v1",
+      "llmModel": "模型",
+      "saveLlm": "保存 LLM 设置"
     }
   }
 }

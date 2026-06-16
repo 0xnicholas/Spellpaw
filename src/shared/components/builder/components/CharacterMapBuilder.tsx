@@ -108,7 +108,7 @@ export function CharacterMapBuilder({
         <div className="flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">关系连线</h3>
           <div className="flex flex-col gap-1.5">
-            {mergedEdges.map((edge, idx) => {
+            {mergedEdges.map((edge) => {
               const fromNode = mergedNodes.find((n) => n.id === edge.from);
               const toNode = mergedNodes.find((n) => n.id === edge.to);
               return (

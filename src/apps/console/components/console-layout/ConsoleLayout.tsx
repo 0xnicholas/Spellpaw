@@ -20,7 +20,6 @@ export function ConsoleLayout({ activeTab, onChangeTab, children }: ConsoleLayou
     { id: 'integrations', label: t('console.tabs.integrations'), icon: Plug },
   ];
 
-export function ConsoleLayout({ activeTab, onChangeTab, children }: ConsoleLayoutProps) {
   return (
     <div className="flex h-screen flex-col bg-[var(--color-bg-primary)]">
       <header className="flex h-12 shrink-0 items-center gap-3 border-b border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-4">

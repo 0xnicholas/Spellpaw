@@ -16,6 +16,12 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  openaiApiKey String?
+  llmProvider  String    @default("spellpaw")
+  llmApiKey    String?
+  llmBaseUrl   String?
+  llmModel     String?
+
   projects  Project[]
   tasks     Task[]
   chat      Chat?

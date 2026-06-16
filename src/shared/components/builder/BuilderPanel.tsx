@@ -23,7 +23,10 @@ export function BuilderPanel() {
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Stable ref for reset to avoid useEffect dependency issues
   const resetRef = useRef(reset);
-  resetRef.current = reset;
+
+  useEffect(() => {
+    resetRef.current = reset;
+  });
 
   // Listen for cancel events from ErrorBoundary
   useEffect(() => {

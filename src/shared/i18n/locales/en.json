@@ -55,7 +55,16 @@
       "openaiKey": "OpenAI API Key",
       "openaiHint": "Used for AI storyboard generation. Stored locally in your browser only; never uploaded to the server.",
       "save": "Save API Key",
-      "saved": "Saved"
+      "saved": "Saved",
+      "saveError": "Save failed, please try again",
+      "llmTitle": "Chat LLM Provider",
+      "llmProvider": "Provider",
+      "customProvider": "Custom Provider",
+      "llmApiKey": "API Key",
+      "llmBaseUrl": "Base URL",
+      "llmBaseUrlHint": "OpenAI-compatible endpoint, e.g. https://api.deepseek.com/v1",
+      "llmModel": "Model",
+      "saveLlm": "Save LLM Settings"
     }
   }
 }

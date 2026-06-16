@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import { seedUser } from './seed';
 
@@ -22,17 +23,24 @@ export function auth(prisma: PrismaClient) {
     // Demo account bypass: ensure demo user exists in DB and seed demo data
     if (token === 'demo-token') {
       const demoUserId = 'demo-user';
+      const demoEmail = 'demo@spellpaw.xyz';
+      const demoPassword = 'password123';
       const existing = await prisma.user.findUnique({ where: { id: demoUserId } });
       if (!existing) {
+        const passwordHash = await bcrypt.hash(demoPassword, 10);
         await prisma.user.create({
           data: {
             id: demoUserId,
-            email: 'demo@spellpaw.xyz',
+            email: demoEmail,
             name: 'Demo User',
-            passwordHash: 'demo-password-hash',
+            passwordHash,
           },
         });
         await seedUser(prisma, demoUserId);
+      } else if (existing.passwordHash === 'demo-password-hash') {
+        // Migrate old placeholder demo hash to a real bcrypt hash
+        const passwordHash = await bcrypt.hash(demoPassword, 10);
+        await prisma.user.update({ where: { id: demoUserId }, data: { passwordHash } });
       }
       (req as AuthenticatedRequest).userId = demoUserId;
       next();

@@ -65,6 +65,7 @@ export function llmRoutes(prisma: PrismaClient): Router {
     if (!content || !Array.isArray(content)) { res.status(400).json({ error: 'content required' }); return; }
 
     const text = content.map((c: { type: string; text?: string }) => c.text).filter(Boolean).join('\n');
+    console.log(`[llm route] message received for session ${req.params.id}:`, text.slice(0, 120));
     session.messages.push({ role: 'user', content: text });
 
     res.status(202).end();
@@ -89,11 +90,17 @@ export function llmRoutes(prisma: PrismaClient): Router {
     try {
       // streamChat mutates session.messages in place, appending assistant/tool
       // turns as needed. The event stream is forwarded to the client unchanged.
+      // Allow per-request LLM overrides from the front-end settings.
+      const context = {
+        apiKey: req.headers['x-llm-api-key'] as string | undefined,
+        baseUrl: req.headers['x-llm-base-url'] as string | undefined,
+        model: req.headers['x-llm-model'] as string | undefined,
+      };
       for await (const event of streamChat({
         messages: session.messages,
         tools: session.tools,
         model: session.model,
-      })) {
+      }, context)) {
         sendEvent(event);
       }
     } catch (err) {

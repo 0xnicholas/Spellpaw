@@ -17,6 +17,7 @@ function App() {
     <Routes>
       <Route path="/" element={<PortalPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/project" element={<Navigate to="/projects" replace />} />
       <Route
         path="/projects"
         element={

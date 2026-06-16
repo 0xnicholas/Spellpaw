@@ -8,21 +8,21 @@ export function PreferencesSection() {
   const setMode = useThemeStore((s) => s.setMode);
 
   const themeOptions: { value: ThemeMode; label: string }[] = [
-    { value: 'dark', label: '深色' },
-    { value: 'light', label: '浅色' },
-    { value: 'system', label: '跟随系统' },
+    { value: 'dark', label: t('console.preferences.dark') },
+    { value: 'light', label: t('console.preferences.light') },
+    { value: 'system', label: t('console.preferences.system') },
   ];
 
   return (
     <section className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">偏好设置</h2>
-        <p className="text-sm text-[var(--color-text-secondary)]">自定义界面语言和主题</p>
+        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">{t('console.preferences.title')}</h2>
+        <p className="text-sm text-[var(--color-text-secondary)]">{t('console.preferences.description')}</p>
       </div>
 
       <div className="space-y-4">
         <div>
-          <label className="mb-2 block text-xs font-medium text-[var(--color-text-secondary)]">语言</label>
+          <label className="mb-2 block text-xs font-medium text-[var(--color-text-secondary)]">{t('console.preferences.language')}</label>
           <div className="flex gap-2">
             <Button
               variant={i18n.language === 'zh-CN' ? 'primary' : 'outline'}
@@ -42,7 +42,7 @@ export function PreferencesSection() {
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-medium text-[var(--color-text-secondary)]">主题</label>
+          <label className="mb-2 block text-xs font-medium text-[var(--color-text-secondary)]">{t('console.preferences.theme')}</label>
           <div className="flex gap-2">
             {themeOptions.map((option) => (
               <Button

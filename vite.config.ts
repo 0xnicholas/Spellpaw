@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), spellpawToolServer()],
   server: {
     host: '0.0.0.0',
-    allowedHosts: ['localhost', '127.0.0.1.nip.io', 'spellpaw.xyz', 'www.spellpaw.xyz'],
+    allowedHosts: ['localhost', '127.0.0.1', '127.0.0.1.nip.io', 'spellpaw.xyz', 'www.spellpaw.xyz'],
   },
   resolve: {
     alias: {

@@ -131,7 +131,6 @@ function ArtDetail({ data, linkedTreeNodeId }: { data: CanvasNodeData; linkedTre
 
 // ── Character detail ──
 function CharacterDetail({ data }: { data: CanvasNodeData }) {
-  const name = (data.name as string) || data.title;
   const role = data.role as string | undefined;
   const age = data.age as number | undefined;
   const occupation = data.occupation as string | undefined;

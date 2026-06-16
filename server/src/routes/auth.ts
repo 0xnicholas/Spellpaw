@@ -79,5 +79,51 @@ export function authRoutes(prisma: PrismaClient): Router {
     }
   });
 
+  router.get('/settings', auth(prisma), async (req, res) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: getUserId(req) },
+        select: { openaiApiKey: true, llmProvider: true, llmApiKey: true, llmBaseUrl: true, llmModel: true },
+      });
+      if (!user) { res.status(404).json({ error: 'Not found' }); return; }
+      res.json({
+        openaiApiKey: user.openaiApiKey ?? '',
+        llmProvider: user.llmProvider ?? 'spellpaw',
+        llmApiKey: user.llmApiKey ?? '',
+        llmBaseUrl: user.llmBaseUrl ?? '',
+        llmModel: user.llmModel ?? '',
+      });
+    } catch {
+      res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+  });
+
+  router.patch('/settings', auth(prisma), async (req, res) => {
+    try {
+      const { openaiApiKey, llmProvider, llmApiKey, llmBaseUrl, llmModel } = req.body;
+      const data: Record<string, string | null> = {};
+      if (openaiApiKey !== undefined) data.openaiApiKey = openaiApiKey || null;
+      if (llmProvider !== undefined) data.llmProvider = llmProvider || 'spellpaw';
+      if (llmApiKey !== undefined) data.llmApiKey = llmApiKey || null;
+      if (llmBaseUrl !== undefined) data.llmBaseUrl = llmBaseUrl || null;
+      if (llmModel !== undefined) data.llmModel = llmModel || null;
+
+      const user = await prisma.user.update({
+        where: { id: getUserId(req) },
+        data,
+        select: { openaiApiKey: true, llmProvider: true, llmApiKey: true, llmBaseUrl: true, llmModel: true },
+      });
+      res.json({
+        openaiApiKey: user.openaiApiKey ?? '',
+        llmProvider: user.llmProvider ?? 'spellpaw',
+        llmApiKey: user.llmApiKey ?? '',
+        llmBaseUrl: user.llmBaseUrl ?? '',
+        llmModel: user.llmModel ?? '',
+      });
+    } catch {
+      res.status(500).json({ error: 'Settings update failed' });
+    }
+  });
+
   return router;
 }

@@ -7,6 +7,8 @@ import '@/shared/i18n'
 import { initTheme } from '@/shared/stores/themeStore'
 import { migrateToIDB } from '@drama/lib/migrateToIDB'
 import { initSyncEngine } from '@drama/lib/syncEngine'
+import { syncUserSettings } from '@console/lib/syncSettings'
+import { useAuthStore } from '@/shared/stores/authStore'
 import App from './App.tsx'
 
 async function bootstrap() {
@@ -15,6 +17,10 @@ async function bootstrap() {
 
   await migrateToIDB()
   initSyncEngine()
+
+  if (useAuthStore.getState().isAuthenticated) {
+    syncUserSettings().catch(() => { /* ignore */ });
+  }
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

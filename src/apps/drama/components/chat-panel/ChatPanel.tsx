@@ -5,6 +5,7 @@ import { DetailPanel } from '@drama/components/detail-panel/DetailPanel';
 import { CopilotChat } from '@/shared/components/copilot';
 import { ContextBar } from './ContextBar';
 import { QuickActions } from './QuickActions';
+import { WorkflowGuide } from './WorkflowGuide';
 import { useChatStore } from '@drama/stores/chatStore';
 import { useDetailStore } from '@drama/stores/detailStore';
 import { useProjectStore } from '@drama/stores/projectStore';
@@ -118,6 +119,7 @@ export function ChatPanel() {
             onSend={sendMessage}
             onActionClick={handleActionClick}
             placeholder="输入创作想法…"
+            emptyState={<WorkflowGuide />}
           />
         </TabPanel>
         <TabPanel isActive={activeTab === 'details' && showDetailsTab}>

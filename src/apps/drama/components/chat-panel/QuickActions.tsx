@@ -1,10 +1,10 @@
-import { PenLine, Clapperboard, Palette, Scissors } from 'lucide-react';
+import { Rocket, PenLine, Palette, Scissors } from 'lucide-react';
 
 const actions = [
-  { icon: PenLine, label: '生成下一幕' },
-  { icon: Clapperboard, label: '分析剧本结构' },
-  { icon: Palette, label: '生成视觉风格' },
-  { icon: Scissors, label: '优化节奏' },
+  { icon: Rocket, label: '🚀 Kickstart：快速生成初稿' },
+  { icon: PenLine, label: '✨ Enhance：展开下一幕' },
+  { icon: Scissors, label: '✨ Enhance：优化节奏' },
+  { icon: Palette, label: '✨ Enhance：生成视觉风格' },
 ];
 
 interface QuickActionsProps {

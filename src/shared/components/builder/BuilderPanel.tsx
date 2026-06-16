@@ -21,13 +21,16 @@ export function BuilderPanel() {
   const updateEdits = useBuilderStore((s) => s.updateEdits);
   const reset = useBuilderStore((s) => s.reset);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Stable ref for reset to avoid useEffect dependency issues
+  const resetRef = useRef(reset);
+  resetRef.current = reset;
 
   // Listen for cancel events from ErrorBoundary
   useEffect(() => {
-    const handler = () => reset();
+    const handler = () => resetRef.current();
     window.addEventListener('builder:cancel', handler);
     return () => window.removeEventListener('builder:cancel', handler);
-  }, [reset]);
+  }, []);
 
   // On all steps confirmed, write to store via shared handler
   useEffect(() => {
@@ -50,7 +53,7 @@ export function BuilderPanel() {
       // Reset after write
       resetTimerRef.current = setTimeout(() => {
         resetTimerRef.current = null;
-        reset();
+        resetRef.current();
       }, 500);
       return () => {
         if (resetTimerRef.current) {
@@ -59,7 +62,7 @@ export function BuilderPanel() {
         }
       };
     }
-  }, [status, config, edits, reset]);
+  }, [status, config, edits]);
 
   // Nothing to show
   if (!config || status === 'idle') return null;

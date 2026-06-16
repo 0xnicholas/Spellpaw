@@ -89,6 +89,23 @@ export const SPELLPAW_TOOL_CONFIGS = [
     endpoint: TOOL_ENDPOINT,
   },
   {
+    name: 'spellpaw_generate_asset',
+    description: 'Generate an image or video asset for a tree node and add it to the canvas as a card. Use when the user asks to generate a storyboard, reference image, scene visual, or video for a scene/shot. Valid providers: openai.',
+    parameters: {
+      type: 'object',
+      properties: {
+        nodeId: { type: 'string', description: 'ID of the scene or shot node to generate for' },
+        mediaType: { type: 'string', enum: ['image', 'video'], description: 'Type of media to generate' },
+        prompt: { type: 'string', description: 'Optional generation prompt; if omitted, built from node metadata' },
+        provider: { type: 'string', enum: ['openai'], description: 'Optional provider id' },
+        count: { type: 'number', description: 'Number of variants to generate (default 1)' },
+        cardType: { type: 'string', enum: ['art', 'sceneCard', 'deliverable'], description: 'Canvas card type to create (default art for image, deliverable for video)' },
+      },
+      required: ['nodeId', 'mediaType'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
     name: 'spellpaw_analyze_structure',
     description: 'Analyze the project structure health: check act/scene counts, duration distribution, and suggest completions. Returns a diagnostic report.',
     parameters: { type: 'object', properties: {} },

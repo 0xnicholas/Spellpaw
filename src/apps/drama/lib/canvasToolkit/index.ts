@@ -1,4 +1,7 @@
 export * from './types';
-export { providerRegistry } from './registry';
+import { providerRegistry } from './registry';
+export { providerRegistry };
+import { createOpenAIProvider } from './providers/openaiProvider';
+providerRegistry.register(createOpenAIProvider());
 export { useTaskStore } from './taskStore';
-export { generateAsset } from './actions/generateAsset';
+export { generateAsset, startPolling } from './actions/generateAsset';

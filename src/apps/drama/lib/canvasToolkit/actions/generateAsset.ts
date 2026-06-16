@@ -16,9 +16,9 @@ export interface GenerateAssetParams {
 }
 
 function buildDefaultPrompt(node: TreeNode): string {
-  const m = node.metadata ?? {};
+  const m = (node.metadata ?? {}) as NonNullable<TreeNode['metadata']>;
   const parts: string[] = [`Cinematic storyboard frame for "${node.title}".`];
-  if (m.description) parts.push(m.description as string);
+  if (m.description) parts.push(m.description);
   if (m.shotType) parts.push(`Shot type: ${m.shotType}.`);
   if (m.location) parts.push(`Location: ${m.location}.`);
   if (m.timeOfDay) parts.push(`Time of day: ${m.timeOfDay}.`);
@@ -42,7 +42,7 @@ function updateCardThumbnail(cardId: string, url: string) {
   });
 }
 
-function startPolling(taskId: string, provider: GenerationProvider, cardId: string) {
+export function startPolling(taskId: string, provider: GenerationProvider, cardId: string) {
   if (!provider.poll) return;
   const interval = setInterval(async () => {
     const task = await provider.poll!(taskId);
@@ -92,6 +92,7 @@ export async function generateAsset(params: GenerateAssetParams): Promise<Toolki
     const card = await addCanvasCardHandler(cardType, {
       title: `${node.title}${titleSuffix}`,
       description: input.prompt,
+      generatedPrompt: input.prompt,
       linkedTreeNodeId: node.id,
       status: 'draft',
       sourceProvider: provider.id,
@@ -108,7 +109,7 @@ export async function generateAsset(params: GenerateAssetParams): Promise<Toolki
         cardId: card.id,
         createdAt: new Date().toISOString(),
       });
-      startPolling(taskId, provider, card.id);
+      startPolling(task.taskId, provider, card.id);
     } else {
       return { success: false, message: task.error ?? '生成失败', retryable: true };
     }

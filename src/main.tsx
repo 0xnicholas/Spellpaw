@@ -7,6 +7,7 @@ import '@/shared/i18n'
 import { initTheme } from '@/shared/stores/themeStore'
 import { migrateToIDB } from '@drama/lib/migrateToIDB'
 import { initSyncEngine } from '@drama/lib/syncEngine'
+import { providerRegistry, startPolling, useTaskStore } from '@drama/lib/canvasToolkit'
 import { syncUserSettings } from '@console/lib/syncSettings'
 import { useAuthStore } from '@/shared/stores/authStore'
 import App from './App.tsx'
@@ -17,6 +18,11 @@ async function bootstrap() {
 
   await migrateToIDB()
   initSyncEngine()
+
+  useTaskStore.getState().tasks.forEach((t) => {
+    const provider = providerRegistry.get(t.providerId)
+    if (provider?.poll) startPolling(t.taskId, provider, t.cardId)
+  })
 
   if (useAuthStore.getState().isAuthenticated) {
     syncUserSettings().catch(() => { /* ignore */ });

@@ -239,7 +239,7 @@ export const toolRouter: ToolRouter = {
   },
 
   generate_asset: async (params) => {
-    const result = await generateAsset(params as Parameters<typeof generateAsset>[0]);
+    const result = await generateAsset(params as unknown as Parameters<typeof generateAsset>[0]);
     if (!result.success) throw new Error(result.message);
     return result.message;
   },

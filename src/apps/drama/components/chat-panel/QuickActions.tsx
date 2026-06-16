@@ -1,10 +1,11 @@
-import { Rocket, PenLine, Palette, Scissors } from 'lucide-react';
+import { Rocket, PenLine, Palette, Scissors, Image } from 'lucide-react';
 
 const actions = [
   { icon: Rocket, label: '🚀 Kickstart：快速生成初稿' },
   { icon: PenLine, label: '✨ Enhance：展开下一幕' },
   { icon: Scissors, label: '✨ Enhance：优化节奏' },
   { icon: Palette, label: '✨ Enhance：生成视觉风格' },
+  { icon: Image, label: '🎨 为当前场景生成 art 卡片' },
 ];
 
 interface QuickActionsProps {

@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ChatMessage } from '@drama/types';
-import { mockChatMessages } from '@drama/data/mockChatData';
 import { generateId } from '@/shared/lib/utils';
 import { createIDBStorage } from '@/shared/lib/idbStorage';
+import { authApi } from '@/shared/stores/authStore';
 
 interface InFlightToolCall {
   callId: string;
@@ -23,6 +23,7 @@ interface ChatState {
   // Phase 3: node-scoped chat filtering
   filterNodeId: string | null;
 
+  loadChat: () => Promise<void>;
   sendMessage: (content: string) => void;
   setInputValue: (value: string) => void;
   appendMessage: (message: ChatMessage) => void;
@@ -60,16 +61,51 @@ function mockAgentReply(userContent: string): ChatMessage {
   };
 }
 
+async function saveChatMessages(messages: ChatMessage[]): Promise<void> {
+  try {
+    await authApi.apiCall('/api/chat', {
+      method: 'PUT',
+      body: JSON.stringify({ messages }),
+    });
+  } catch {
+    // offline / network errors are tolerated; local IndexedDB remains the cache
+  }
+}
+
 export const useChatStore = create<ChatState>()(
   persist(
     (set) => ({
-      messages: mockChatMessages,
+      messages: [],
       isLoading: false,
       inputValue: '',
       streamingMessage: null,
       streamingMessageId: null,
       toolCalls: [],
       filterNodeId: null,
+
+      loadChat: async () => {
+        try {
+          const res = await authApi.apiCall('/api/chat');
+          if (!res.ok) return;
+          const data = await res.json();
+          const remoteMessages = Array.isArray(data.messages) ? data.messages : [];
+          if (remoteMessages.length === 0) return;
+
+          // Merge remote messages into the local cache instead of overwriting it.
+          // This prevents an empty server chat from wiping locally-stored messages on refresh.
+          set((state) => {
+            const localIds = new Set(state.messages.map((m) => m.id));
+            const merged = [
+              ...state.messages,
+              ...remoteMessages.filter((m) => !localIds.has(m.id)),
+            ];
+            merged.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+            return { messages: merged };
+          });
+        } catch {
+          // keep local cache on error
+        }
+      },
 
       sendMessage: (content) => {
         const userMsg: ChatMessage = {
@@ -79,23 +115,38 @@ export const useChatStore = create<ChatState>()(
           type: 'text',
           timestamp: new Date().toISOString(),
         };
-        set((state) => ({ messages: [...state.messages, userMsg], isLoading: true }));
+        set((state) => {
+          const messages = [...state.messages, userMsg];
+          void saveChatMessages(messages);
+          return { messages, isLoading: true };
+        });
 
         setTimeout(() => {
           const agentMsg = mockAgentReply(content);
-          set((state) => ({
-            messages: [...state.messages, agentMsg],
-            isLoading: false,
-          }));
+          set((state) => {
+            const messages = [...state.messages, agentMsg];
+            void saveChatMessages(messages);
+            return {
+              messages,
+              isLoading: false,
+            };
+          });
         }, 1200);
       },
 
       setInputValue: (value) => set({ inputValue: value }),
 
       appendMessage: (message) =>
-        set((state) => ({ messages: [...state.messages, message] })),
+        set((state) => {
+          const messages = [...state.messages, message];
+          void saveChatMessages(messages);
+          return { messages };
+        }),
 
-      clearMessages: () => set({ messages: [] }),
+      clearMessages: () => {
+        set({ messages: [] });
+        void saveChatMessages([]);
+      },
       setFilterNodeId: (nodeId) => set({ filterNodeId: nodeId }),
 
       // Phase 2: SSE streaming actions
@@ -127,12 +178,16 @@ export const useChatStore = create<ChatState>()(
             type: 'text',
             timestamp: new Date().toISOString(),
           };
-          set((s) => ({
-            messages: [...s.messages, finalMsg],
-            streamingMessage: null,
-            streamingMessageId: null,
-            isLoading: false,
-          }));
+          set((s) => {
+            const messages = [...s.messages, finalMsg];
+            void saveChatMessages(messages);
+            return {
+              messages,
+              streamingMessage: null,
+              streamingMessageId: null,
+              isLoading: false,
+            };
+          });
         } else {
           set({ streamingMessage: null, streamingMessageId: null, isLoading: false });
         }

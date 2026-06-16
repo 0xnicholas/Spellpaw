@@ -265,7 +265,7 @@ if (action === 'spellpaw_build_ui') {
 }
 ```
 
-- [ ] **Step 2: 注册 tool config 到 usePandariaSSE 和 useTaskSSE**
+- [ ] **Step 2: 注册 tool config 到 useCopilotSSE 和 useTaskSSE**
 
 在 TOOL_CONFIGS 数组中增加：
 ```typescript
@@ -287,7 +287,7 @@ if (action === 'spellpaw_build_ui') {
 - [ ] **Step 3: Commit**
 
 ```bash
-git add src/apps/drama/hooks/useBuilderBridge.ts src/apps/drama/hooks/usePandariaSSE.ts src/apps/drama/hooks/useTaskSSE.ts
+git add src/apps/drama/hooks/useBuilderBridge.ts src/apps/drama/hooks/useCopilotSSE.ts src/apps/drama/hooks/useTaskSSE.ts
 git commit -m "feat: add useBuilderBridge WebSocket listener + spellpaw_build_ui tool config"
 ```
 

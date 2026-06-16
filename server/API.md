@@ -1,6 +1,6 @@
 # Spellpaw Server API
 
-> Base URL: `http://localhost:3001`  
+> Base URL: `http://localhost:3002`  
 > Auth: Bearer JWT token (from `/api/auth/login` or `/api/auth/register`)
 
 ---
@@ -163,5 +163,5 @@ npx prisma db push   # Sync schema to SQLite
 | Variable | Default | Required |
 |----------|---------|:---:|
 | `JWT_SECRET` | — | ✅ |
-| `PORT` | `3001` | |
+| `PORT` | — | ✅ |
 | `CLIENT_ORIGIN` | `http://localhost:5173` | |

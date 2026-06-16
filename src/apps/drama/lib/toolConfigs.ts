@@ -1,6 +1,6 @@
 /**
- * Shared Pandaria tool configs — single source of truth.
- * Used by usePandariaSSE (ChatPanel) and useTaskSSE (TaskChatPanel).
+ * Shared Copilot tool configs — single source of truth.
+ * Used by useCopilotSSE (ChatPanel).
  */
 import { config } from '@/shared/config';
 
@@ -131,4 +131,60 @@ export const SPELLPAW_TOOL_CONFIGS = [
     },
     endpoint: TOOL_ENDPOINT,
   },
-] as const;
+  {
+    name: 'spellpaw_add_canvas_card',
+    description: 'Add a card to the flow canvas. Use when the user asks to create a visual card for a scene, character, art reference, or deliverable. cardType must be one of script/sceneCard/art/character/deliverable.',
+    parameters: {
+      type: 'object',
+      properties: {
+        cardType: {
+          type: 'string',
+          enum: ['script', 'sceneCard', 'art', 'character', 'deliverable'],
+          description: 'Canvas card type',
+        },
+        data: {
+          type: 'object',
+          description: 'Card content. Must include title. Optional: description, status, tags, linkedTreeNodeId, duration, dialogue, deliverableType, thumbnail, generatedPrompt, etc.',
+        },
+        position: {
+          type: 'object',
+          properties: {
+            x: { type: 'number' },
+            y: { type: 'number' },
+          },
+          description: 'Optional fixed position. If omitted, auto-layout is applied.',
+        },
+      },
+      required: ['cardType', 'data'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_update_canvas_card',
+    description: 'Update an existing canvas card by cardId. Can change title, description, status, thumbnail, generatedPrompt, tags, or linkedTreeNodeId.',
+    parameters: {
+      type: 'object',
+      properties: {
+        cardId: { type: 'string', description: 'ID of the canvas card to update' },
+        data: {
+          type: 'object',
+          description: 'Fields to update. Same optional fields as add_canvas_card.',
+        },
+      },
+      required: ['cardId', 'data'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_delete_canvas_card',
+    description: 'Delete a canvas card by cardId. CAREFUL: irreversible. Ask user first if not explicitly requested.',
+    parameters: {
+      type: 'object',
+      properties: {
+        cardId: { type: 'string', description: 'ID of the canvas card to delete' },
+      },
+      required: ['cardId'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+];

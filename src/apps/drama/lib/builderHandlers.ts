@@ -40,25 +40,39 @@ export function deleteNodeHandler(nodeId: string): string {
   return label;
 }
 
+interface AddCanvasCardOptions {
+  position?: { x: number; y: number };
+}
+
 export async function addCanvasCardHandler(
   cardType: CanvasNodeType,
   data: Record<string, unknown>,
+  options?: AddCanvasCardOptions,
 ) {
   const { useCanvasStore } = await import('@drama/stores/canvasStore');
   const { generateId } = await import('@/shared/lib/utils');
-  // Place new card offset from canvas center with slight jitter to avoid exact overlap
-  const existingCount = useCanvasStore.getState().nodes.length;
-  const offset = 40 * (existingCount % 5);
-  const jitter = () => Math.floor(Math.random() * 30) - 15;
+
+  const canvasStore = useCanvasStore.getState();
+  const existingCount = canvasStore.getCurrentNodes().length;
+
+  // Grid-based auto-layout to avoid overlap
+  const cols = 4;
+  const gap = 220;
+  const row = Math.floor(existingCount / cols);
+  const col = existingCount % cols;
+  const jitter = () => Math.floor(Math.random() * 40) - 20;
+
+  const position = options?.position ?? {
+    x: 200 + col * gap + jitter(),
+    y: 150 + row * 160 + jitter(),
+  };
+
   const card = {
     id: generateId('canvas_'),
     type: cardType,
-    position: {
-      x: 300 + offset + jitter(),
-      y: 200 + offset + jitter(),
-    },
+    position,
     data: { title: (data.title as string) ?? '未命名', ...data },
   };
-  useCanvasStore.getState().addNode(card as import('@drama/types').CanvasNode);
+  canvasStore.addNode(card as import('@drama/types').CanvasNode);
   return card;
 }

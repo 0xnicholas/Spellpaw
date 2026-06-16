@@ -1,27 +1,31 @@
 /**
- * usePandariaSSE — 连接 Pandaria，消费 SSE 事件流
+ * useCopilotSSE — 连接配置的 LLM provider，消费 SSE 事件流
  *
- * 替换 useMockSSE。需要 Pandaria 本地运行 + LLM API key 配置。
+ * 需要 Spellpaw Server 运行 + LLM API key 配置。
  */
 import { useEffect, useRef } from 'react';
 import { useChatStore } from '@drama/stores/chatStore';
 import { useProjectStore } from '@drama/stores/projectStore';
-import { createSession, sendMessage, subscribeSSE, buildSystemPrompt } from '@drama/lib/pandaria';
+import { useCanvasStore } from '@drama/stores/canvasStore';
+import { buildSystemPrompt } from '@drama/lib/systemPrompt';
+import { getLLMProvider } from '@drama/lib/llm';
 import { findNode } from '@drama/lib/treeUtils';
 import { SPELLPAW_TOOL_CONFIGS } from '@drama/lib/toolConfigs';
 
-export function usePandariaSSE() {
+export function useCopilotSSE() {
   const sessionRef = useRef<string | null>(null);
   const sseRef = useRef<{ close: () => void } | null>(null);
+  const providerRef = useRef(getLLMProvider());
 
   const {
-    startStreaming, appendDelta, startToolCall, endToolCall, endStreaming,
+    startStreaming, appendDelta, startToolCall, endToolCall, endStreaming, appendMessage,
   } = useChatStore();
 
   useEffect(() => {
-    // Override sendMessage to use Pandaria
+    // Override sendMessage to use the configured LLM provider
     const originalSend = useChatStore.getState().sendMessage;
     let initDone = false;
+    const provider = providerRef.current;
 
     useChatStore.setState({
       sendMessage: async (content: string) => {
@@ -32,6 +36,7 @@ export function usePandariaSSE() {
         let enrichedContent = content;
         let contextNodeId: string | undefined;
         let contextNodeType: string | undefined;
+        const contextParts: string[] = [];
 
         if (selectedNodeId && tree) {
           const node = findNode(tree, selectedNodeId);
@@ -43,9 +48,21 @@ export function usePandariaSSE() {
             if (node.metadata?.description) metaParts.push(`描述：${node.metadata.description}`);
             if (node.metadata?.duration) metaParts.push(`时长：${node.metadata.duration}秒`);
             if (node.metadata?.location) metaParts.push(`地点：${node.metadata.location}`);
-            const contextHeader = `[当前节点：${path.join(' > ')}${metaParts.length > 0 ? ' · ' + metaParts.join(' · ') : ''}]`;
-            enrichedContent = `${contextHeader}\n\n${content}`;
+            contextParts.push(`当前节点：${path.join(' > ')}${metaParts.length > 0 ? ' · ' + metaParts.join(' · ') : ''}`);
           }
+        }
+
+        const selectedCard = useCanvasStore.getState().getSelectedCard();
+        if (selectedCard) {
+          const cardMeta = [`类型：${selectedCard.type}`, `标题：${selectedCard.data.title}`];
+          if (selectedCard.data.linkedTreeNodeId) {
+            cardMeta.push(`关联节点：${selectedCard.data.linkedTreeNodeId}`);
+          }
+          contextParts.push(`当前画布卡片：${cardMeta.join(' · ')}`);
+        }
+
+        if (contextParts.length > 0) {
+          enrichedContent = `[${contextParts.join(' | ')}]\n\n${content}`;
         }
 
         // Add user message
@@ -59,7 +76,7 @@ export function usePandariaSSE() {
         };
         useChatStore.setState((s) => ({ messages: [...s.messages, userMsg] }));
 
-        // Lazy init Pandaria session
+        // Lazy init LLM session
         if (!initDone) {
           initDone = true;
           try {
@@ -68,12 +85,12 @@ export function usePandariaSSE() {
             const projectTitle = useProjectStore.getState()
               .projects.find(p => p.id === useProjectStore.getState().currentProjectId)?.title ?? 'Untitled';
             const prompt = buildSystemPrompt(projectTitle, treeText);
-            const session = await createSession(projectTitle, prompt, SPELLPAW_TOOL_CONFIGS);
+            const session = await provider.createSession(projectTitle, prompt, SPELLPAW_TOOL_CONFIGS);
             sessionRef.current = session.id;
 
             // Subscribe to SSE
             sseRef.current?.close();
-            sseRef.current = subscribeSSE(session.id, (event) => {
+            sseRef.current = provider.subscribeSSE(session.id, (event) => {
               switch (event.type) {
                 case 'message_start':
                   startStreaming(crypto.randomUUID());
@@ -97,7 +114,13 @@ export function usePandariaSSE() {
               }
             });
           } catch (err) {
-            appendDelta(`\n\n❌ Failed to connect to Pandaria: ${(err as Error).message}`);
+            appendMessage({
+              id: crypto.randomUUID(),
+              role: 'agent',
+              content: `❌ 连接失败: ${(err as Error).message}`,
+              type: 'text',
+              timestamp: new Date().toISOString(),
+            });
             endStreaming('error');
             return;
           }
@@ -106,9 +129,15 @@ export function usePandariaSSE() {
         // Send message
         if (sessionRef.current) {
           try {
-            await sendMessage(sessionRef.current, enrichedContent);
+            await provider.sendMessage(sessionRef.current, enrichedContent);
           } catch (err) {
-            appendDelta(`\n\n❌ ${(err as Error).message}`);
+            appendMessage({
+              id: crypto.randomUUID(),
+              role: 'agent',
+              content: `❌ 发送失败: ${(err as Error).message}`,
+              type: 'text',
+              timestamp: new Date().toISOString(),
+            });
             endStreaming('error');
           }
         }

@@ -4,9 +4,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 实现 `toolRouter`——将 8 个 tool action 字符串映射到 Zustand store actions，返回简短确认文本。这是整个 Phase 2 Tool Server / Pandaria 集成的基础层。
+**Goal:** 实现 `toolRouter`——将 8 个 tool action 字符串映射到 Zustand store actions，返回简短确认文本。这是整个 Phase 2 Tool Server / Copilot 集成的基础层。
 
-**Architecture:** 纯函数映射表。无 HTTP、无 WebSocket、无外部依赖。直接 import projectStore / canvasStore，调用已有 actions。每个 tool 返回纯文本结果（非 JSON），供 Pandaria 消费。
+**Architecture:** 纯函数映射表。无 HTTP、无 WebSocket、无外部依赖。直接 import projectStore / canvasStore，调用已有 actions。每个 tool 返回纯文本结果（非 JSON），供 Copilot 消费。
 
 **Tech Stack:** TypeScript · Zustand 5 · Vitest
 
@@ -42,7 +42,7 @@ Phase 1 提供的 store actions（已存在，**不需要修改**）：
 ```typescript
 // === Phase 2: Tool Router ===
 
-/** Pandaria HttpProxyTool 发来的请求参数 */
+/** Tool Server / Spellpaw Server 发来的请求参数 */
 export interface ToolParams {
   action: string;
   [key: string]: unknown;
@@ -499,5 +499,5 @@ git commit -m "chore(toolRouter): final cleanup, all tests pass"
 ## 下一步（Phase 2 后续 Plans）
 
 - **Plan 2:** Vite 插件 Tool Server（HTTP + WebSocket bridge）
-- **Plan 3:** Pandaria 对接（session 配置 + SSE 消费 + Chat 流式 UI）
+- **Plan 3:** Copilot 对接（session 配置 + SSE 消费 + Chat 流式 UI）
 - **Plan 4:** 叙事模板系统（模板浏览器 + 5 个内置模板）

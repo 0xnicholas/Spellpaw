@@ -1,8 +1,10 @@
 import { useProjectStore } from './projectStore';
+import { useCanvasStore } from './canvasStore';
 import { useCustomTemplateStore } from './customTemplateStore';
 import type { ToolRouter, TreeNode, NarrativeTemplate, TemplateAct, TemplateScene } from '@drama/types';
 import { analyzePacing, suggestCompletions, generatePacingReport } from '@drama/lib/projectAnalysis';
 import { createNodeHandler, updateNodeHandler, deleteNodeHandler, addCanvasCardHandler } from '@drama/lib/builderHandlers';
+import { validateCanvasCardPayload, normalizeCardData, validateCanvasCardUpdateData, normalizeCardUpdateData } from '@drama/lib/canvasCardSchema';
 
 function nodeToLine(node: TreeNode, depth: number): string {
   const indent = '│   '.repeat(Math.max(0, depth - 1)) + (depth > 0 ? '├── ' : '');
@@ -484,9 +486,66 @@ export const toolRouter: ToolRouter = {
   },
 
   add_canvas_card: async (params) => {
-    const cardType = params.cardType as string;
-    const cardData = params.data as Record<string, unknown> ?? {};
-    await addCanvasCardHandler(cardType as import('@drama/types').CanvasNodeType, cardData);
-    return `已创建 ${cardType} 卡片`;
+    const validation = validateCanvasCardPayload(params);
+    if (!validation.valid) {
+      throw new Error(`画布卡片参数错误: ${validation.error}`);
+    }
+
+    const cardType = params.cardType as import('@drama/types').CanvasNodeType;
+    const rawData = (params.data as Record<string, unknown>) ?? {};
+    const position = params.position as { x: number; y: number } | undefined;
+
+    const normalizedData = normalizeCardData(cardType, rawData);
+    await addCanvasCardHandler(cardType, normalizedData as Record<string, unknown>, {
+      position,
+    });
+
+    const linkedInfo = normalizedData.linkedTreeNodeId
+      ? ` (关联节点: ${normalizedData.linkedTreeNodeId})`
+      : '';
+    return `已创建 ${cardType} 卡片「${normalizedData.title}」${linkedInfo}`;
+  },
+
+  update_canvas_card: async (params) => {
+    const cardId = params.cardId as string;
+    const rawData = (params.data as Record<string, unknown>) ?? {};
+
+    if (!cardId) {
+      throw new Error('cardId 必填');
+    }
+
+    const canvasStore = useCanvasStore.getState();
+    const existing = canvasStore.getCurrentNodes().find((n) => n.id === cardId);
+    if (!existing) {
+      throw new Error(`未找到画布卡片: ${cardId}`);
+    }
+
+    const validation = validateCanvasCardUpdateData(existing.type, rawData);
+    if (!validation.valid) {
+      throw new Error(`画布卡片更新参数错误: ${validation.error}`);
+    }
+
+    const updates = normalizeCardUpdateData(existing.type, rawData);
+    canvasStore.updateNodeData(cardId, updates);
+
+    const newTitle = updates.title ?? existing.data.title;
+    return `已更新画布卡片「${newTitle}」(${cardId})`;
+  },
+
+  delete_canvas_card: async (params) => {
+    const cardId = params.cardId as string;
+
+    if (!cardId) {
+      throw new Error('cardId 必填');
+    }
+
+    const canvasStore = useCanvasStore.getState();
+    const existing = canvasStore.getCurrentNodes().find((n) => n.id === cardId);
+    if (!existing) {
+      throw new Error(`未找到画布卡片: ${cardId}`);
+    }
+
+    canvasStore.removeNode(cardId);
+    return `已删除画布卡片「${existing.data.title}」(${cardId})`;
   },
 };

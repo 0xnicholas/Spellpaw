@@ -4,6 +4,7 @@
  */
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import { useChatStore } from '@drama/stores/chatStore';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { pushAll, pullAll, type ConflictInfo, type PushAllResult } from './projectSync';
 
@@ -113,6 +114,7 @@ async function performPull() {
 
   try {
     await pullAll();
+    await useChatStore.getState().loadChat();
     setState({
       state: 'synced',
       pendingCount: 0,
@@ -194,4 +196,13 @@ export function initSyncEngine(): void {
   if (useAuthStore.getState().isAuthenticated) {
     void performPull();
   }
+
+  // Watch auth state: start syncing after login, stop after logout
+  useAuthStore.subscribe((state, prevState) => {
+    if (state.isAuthenticated && !prevState.isAuthenticated) {
+      void performPull();
+    } else if (!state.isAuthenticated && prevState.isAuthenticated) {
+      setState({ state: 'synced', pendingCount: 0, conflicts: [], error: null });
+    }
+  });
 }

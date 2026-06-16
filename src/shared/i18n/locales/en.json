@@ -6,5 +6,56 @@
   "template": { "builtin": "Built-in", "community": "Community", "myTemplates": "My Templates", "useTemplate": "Use this template", "noTemplates": "No templates found", "import": "Import template file", "exportAsTemplate": "Export as template", "deleteTemplate": "Delete template", "noCustomTemplates": "No custom templates yet, import one above" },
   "gallery": { "title": "Community Gallery", "publish": "Publish to Gallery" },
   "workspace": { "chat": "Chat", "details": "Details", "tree": "Project Tree", "assets": "Assets", "canvas": "Canvas" },
-  "common": { "loading": "Loading...", "save": "Save", "confirm": "Confirm" }
+  "common": { "loading": "Loading...", "save": "Save", "confirm": "Confirm" },
+  "console": {
+    "title": "Console",
+    "back": "Back to home",
+    "tabs": {
+      "profile": "Profile",
+      "security": "Security",
+      "preferences": "Preferences",
+      "integrations": "Integrations"
+    },
+    "profile": {
+      "title": "Profile",
+      "description": "Manage your public display info",
+      "email": "Email",
+      "emailReadonly": "Email cannot be changed right now",
+      "name": "Display name",
+      "avatar": "Avatar URL",
+      "save": "Save profile",
+      "nameRequired": "Name is required",
+      "updateSuccess": "Profile updated",
+      "updateError": "Update failed"
+    },
+    "security": {
+      "title": "Security",
+      "description": "Change your password regularly to keep your account safe",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "passwordMin": "Password must be at least 8 characters",
+      "passwordMismatch": "New passwords do not match",
+      "submit": "Change password",
+      "success": "Password updated",
+      "error": "Password update failed"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "description": "Customize language and theme",
+      "language": "Language",
+      "theme": "Theme",
+      "dark": "Dark",
+      "light": "Light",
+      "system": "System"
+    },
+    "integrations": {
+      "title": "Integrations / API",
+      "description": "Manage third-party API keys and local integration settings",
+      "openaiKey": "OpenAI API Key",
+      "openaiHint": "Used for AI storyboard generation. Stored locally in your browser only; never uploaded to the server.",
+      "save": "Save API Key",
+      "saved": "Saved"
+    }
+  }
 }

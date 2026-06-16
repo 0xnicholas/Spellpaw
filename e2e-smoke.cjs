@@ -13,7 +13,8 @@ const authState = {
       value: JSON.stringify({
         state: {
           isAuthenticated: true,
-          user: { id: 'u_1', name: '创作者', email: 'creator@spellpaw.app' }
+          token: 'demo-token',
+          user: { id: 'demo-user', name: 'Demo User', email: 'demo@spellpaw.xyz' }
         }
       })
     }]

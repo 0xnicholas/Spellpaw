@@ -44,8 +44,8 @@ src/
         ├── pages/（LoginPage, ProjectListPage, WorkspacePage, ...）
         ├── components/（tree-view, chat-panel, flow-canvas, ...）
         ├── stores/（projectStore, canvasStore, chatStore, ...）
-        ├── hooks/（usePandariaSSE, useToolBridge, ...）
-        ├── lib/（treeUtils, syncEngine, pandaria, ...）
+        ├── hooks/（useCopilotSSE, useToolBridge, ...）
+        ├── lib/（treeUtils, syncEngine, systemPrompt, ...）
         └── types/index.ts
 ```
 

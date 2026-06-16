@@ -216,19 +216,25 @@ export async function pullAll(): Promise<PullResult> {
       }
       const detail: ServerProject = await detailRes.json();
       const parsed = JSON.parse(detail.data || '{}');
-      const projectId = useProjectStore.getState().createProject(detail.title, detail.description, detail.coverColor);
-      // createProject generates a new id, but we want the server id
-      // So we need to fix the id after creation
+
       useProjectStore.setState((s) => {
-        const created = s.projects[s.projects.length - 1];
-        if (created) {
-          created.id = detail.id;
-          created.version = detail.version;
-          created.updatedAt = detail.updatedAt;
+        // Defensive: concurrent pulls or re-runs may race; skip if already imported.
+        if (s.projects.find((p) => p.id === detail.id)) {
+          return {};
         }
+        const newProject: Project = {
+          id: detail.id,
+          title: detail.title,
+          description: detail.description,
+          coverColor: detail.coverColor,
+          version: detail.version,
+          updatedAt: detail.updatedAt,
+          sceneCount: 0,
+          duration: 0,
+        };
         return {
-          projects: [...s.projects],
-          trees: { ...s.trees, [detail.id]: parsed.tree ?? s.trees[projectId] },
+          projects: [...s.projects, newProject],
+          trees: { ...s.trees, [detail.id]: parsed.tree ?? null },
         };
       });
       useCanvasStore.setState((s) => ({

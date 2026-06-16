@@ -2,8 +2,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { produce } from 'immer';
 import type { TreeNode, Project } from '@drama/types';
-import { mockProjects } from '@drama/data/mockProjects';
-import { mockTreeData } from '@drama/data/mockTreeData';
 import { generateId } from '@/shared/lib/utils';
 import { createIDBStorage } from '@/shared/lib/idbStorage';
 
@@ -28,6 +26,7 @@ interface ProjectState {
   setLockedStyle: (prompt: string, nodeId: string) => void;
   clearLockedStyle: () => void;
   getLockedStyle: () => { prompt: string | null; nodeId: string | null };
+  deduplicateProjects: () => void;
 }
 
 function findNodePath(node: TreeNode | null, targetId: string, path: string[] = []): string[] | null {
@@ -45,9 +44,9 @@ function findNodePath(node: TreeNode | null, targetId: string, path: string[] = 
 export const useProjectStore = create<ProjectState>()(
   persist(
     (set, get) => ({
-      projects: mockProjects,
-      trees: { 'proj_1': mockTreeData },
-      currentProjectId: mockProjects[0]?.id ?? null,
+      projects: [],
+      trees: {},
+      currentProjectId: null,
       selectedNodeId: null,
 
       getCurrentTree: () => {
@@ -360,10 +359,46 @@ export const useProjectStore = create<ProjectState>()(
           nodeId: tree.metadata.lockedStyleNodeId ?? null,
         };
       },
+
+      // Runtime cleanup: remove duplicate projects caused by pullAll() races or migration misses.
+      deduplicateProjects: () => {
+        set((state) => {
+          const projects = state.projects;
+          const byId = new Map<string, Project>();
+          for (const p of projects) {
+            const existing = byId.get(p.id);
+            if (!existing || (p.updatedAt && p.updatedAt > existing.updatedAt)) {
+              byId.set(p.id, p);
+            }
+          }
+          let deduped = Array.from(byId.values());
+
+          const seedTitleToId: Record<string, string> = {
+            '都市奇缘': 'proj_1',
+            '密室逃脱': 'proj_2',
+          };
+          const byTitle = new Map<string, Project[]>();
+          for (const p of deduped) {
+            const group = byTitle.get(p.title) ?? [];
+            group.push(p);
+            byTitle.set(p.title, group);
+          }
+          for (const [title, group] of byTitle) {
+            const seedId = seedTitleToId[title];
+            if (seedId && group.length > 1) {
+              const keeper = group.find((p) => p.id === seedId) ?? group[group.length - 1];
+              deduped = deduped.filter((p) => p.title !== title || p.id === keeper.id);
+            }
+          }
+
+          if (deduped.length === projects.length) return {};
+          return { projects: deduped };
+        });
+      },
     }),
     {
       name: 'spellpaw_project',
-      version: 3,
+      version: 5,
       storage: createIDBStorage<ProjectState>('projectStore'),
       migrate: (persistedState: unknown, version) => {
         const state = persistedState as Record<string, unknown>;
@@ -455,6 +490,41 @@ export const useProjectStore = create<ProjectState>()(
             for (const p of projects) {
               if (p.title in projectTitleMap) p.title = projectTitleMap[p.title];
               if (p.description in projectDescMap) p.description = projectDescMap[p.description];
+            }
+          }
+        }
+        if (version < 5) {
+          // Deduplicate projects by id (keep the most recently updated one).
+          // This fixes a race in pullAll() where rapid pulls could create duplicate server projects locally.
+          if (state.projects) {
+            const projects = state.projects as Project[];
+            const seen = new Map<string, Project>();
+            for (const p of projects) {
+              const existing = seen.get(p.id);
+              if (!existing || (p.updatedAt && p.updatedAt > existing.updatedAt)) {
+                seen.set(p.id, p);
+              }
+            }
+            state.projects = Array.from(seen.values());
+
+            // Some race duplicates kept the temporary generated id while copying the seed title.
+            // For the canonical seed titles, keep the official seed id (proj_1 / proj_2) and drop look-alikes.
+            const seedTitleToId: Record<string, string> = {
+              '都市奇缘': 'proj_1',
+              '密室逃脱': 'proj_2',
+            };
+            const byTitle = new Map<string, Project[]>();
+            for (const p of state.projects) {
+              const group = byTitle.get(p.title) ?? [];
+              group.push(p);
+              byTitle.set(p.title, group);
+            }
+            for (const [title, group] of byTitle) {
+              const seedId = seedTitleToId[title];
+              if (seedId && group.length > 1) {
+                const keeper = group.find((p) => p.id === seedId) ?? group[group.length - 1];
+                state.projects = state.projects.filter((p) => p.title !== title || p.id === keeper.id);
+              }
             }
           }
         }

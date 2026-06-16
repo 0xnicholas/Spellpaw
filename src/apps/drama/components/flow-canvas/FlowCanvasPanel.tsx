@@ -18,7 +18,7 @@ import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { computeDisplayNumbers } from '@drama/lib/numbering';
 import type { CanvasNode, CanvasEdge } from '@drama/types';
-import { ScriptCardNode, ArtCardNode, CharacterCardNode, DeliverableCardNode } from './nodes';
+import { ScriptCardNode, ArtCardNode, CharacterCardNode, DeliverableCardNode, SceneCardNode } from './nodes';
 import { CardDetailDrawer } from './CardDetailDrawer';
 import { generateId } from '@/shared/lib/utils';
 
@@ -27,6 +27,7 @@ const nodeTypes: NodeTypes = {
   art: ArtCardNode,
   character: CharacterCardNode,
   deliverable: DeliverableCardNode,
+  sceneCard: SceneCardNode,
 };
 
 interface ContextMenuState {

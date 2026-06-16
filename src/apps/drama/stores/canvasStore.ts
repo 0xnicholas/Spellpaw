@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CanvasNode, CanvasEdge } from '@drama/types';
-import { mockCanvasNodes, mockCanvasEdges } from '@drama/data/mockCanvasData';
 import { generateId } from '@/shared/lib/utils';
 import { createIDBStorage } from '@/shared/lib/idbStorage';
 import { useProjectStore } from './projectStore';
@@ -60,13 +59,7 @@ function ensureEntry(state: CanvasState): CanvasEntry {
 export const useCanvasStore = create<CanvasState>()(
   persist(
     (set, get) => ({
-      canvases: {
-        'proj_1': {
-          nodes: mockCanvasNodes,
-          edges: mockCanvasEdges,
-          viewport: { x: 0, y: 0, zoom: 1 },
-        },
-      },
+      canvases: {},
 
       selectedCardId: null,
 

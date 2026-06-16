@@ -4,7 +4,7 @@ import { auth, getUserId } from '../middleware';
 
 export function projectRoutes(prisma: PrismaClient): Router {
   const router = Router();
-  router.use(auth);
+  router.use(auth(prisma));
 
   router.get('/', async (req, res) => {
     const projects = await prisma.project.findMany({

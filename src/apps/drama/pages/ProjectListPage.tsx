@@ -13,8 +13,7 @@ import { exportProjectToJSON, importProjectFromJSON } from '@drama/lib/exportImp
 import { treeToTemplate, downloadTemplateFile } from '@drama/lib/templateExportImport';
 import { pushAll, pullAll } from '@drama/lib/projectSync';
 import { exportStoryboardPDF, exportDialogueScript } from '@drama/lib/exportPrint';
-import { mockProjects } from '@drama/data/mockProjects';
-import { mockTreeData } from '@drama/data/mockTreeData';
+
 
 export function ProjectListPage() {
   const navigate = useNavigate();
@@ -22,32 +21,12 @@ export function ProjectListPage() {
   const setCurrentProject = useProjectStore((s) => s.setCurrentProject);
   const createProject = useProjectStore((s) => s.createProject);
   const deleteProject = useProjectStore((s) => s.deleteProject);
+  const deduplicateProjects = useProjectStore((s) => s.deduplicateProjects);
   const user = useAuthStore((s) => s.user);
 
-  // Ensure mock data is present if store was cleared by IndexedDB rehydration
   useEffect(() => {
-    if (projects.length === 0) {
-      useProjectStore.setState({
-        projects: mockProjects,
-        trees: { 'proj_1': mockTreeData },
-        currentProjectId: mockProjects[0]?.id ?? null,
-        selectedNodeId: null,
-      });
-    }
-    // Safety net: force-check after async rehydration settles
-    const timer = setTimeout(() => {
-      const current = useProjectStore.getState();
-      if (current.projects.length === 0 || Object.keys(current.trees).length === 0) {
-        useProjectStore.setState({
-          projects: mockProjects,
-          trees: { 'proj_1': mockTreeData },
-          currentProjectId: mockProjects[0]?.id ?? null,
-          selectedNodeId: null,
-        });
-      }
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [projects]);
+    deduplicateProjects();
+  }, [deduplicateProjects]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);

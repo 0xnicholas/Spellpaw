@@ -25,7 +25,7 @@ export function CopilotChat({
   toolCalls,
   isLoading,
   onSend,
-  placeholder = '输入消息…（Cmd + Enter 发送）',
+  placeholder = '输入消息…（Enter 发送，Shift + Enter 换行）',
   emptyState,
   onActionClick,
 }: CopilotChatProps) {

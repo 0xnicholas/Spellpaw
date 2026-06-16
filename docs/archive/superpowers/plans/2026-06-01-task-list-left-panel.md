@@ -4,16 +4,16 @@
 
 **Goal:** 将 WorkspacePage 左栏从「项目结构树 + 资产管理」替换为「Agent 对话任务列表」，每个任务 = 独立 Agent 对话线程。
 
-**Architecture:** 新增 `taskStore`（Zustand + Immer + IDB）管理多任务，`useTaskSSE` hook 管理 per-task Pandaria session 和 SSE（模仿 usePandariaSSE 模式：覆盖 sendMessage → 创建 session → 订阅 SSE → 路由事件到 taskStore）。重构 `MessageList`/`MessageInput` 接受 props。原有代码全部保留。
+**Architecture:** 新增 `taskStore`（Zustand + Immer + IDB）管理多任务，`useTaskSSE` hook 管理 per-task Spellpaw Server session 和 SSE（模仿 useCopilotSSE 模式：覆盖 sendMessage → 创建 session → 订阅 SSE → 路由事件到 taskStore）。重构 `MessageList`/`MessageInput` 接受 props。原有代码全部保留。
 
 **Tech Stack:** React 19, TypeScript 6.0, Zustand 5 + Immer, IndexedDB (idbStorage), Tailwind CSS 4 + OKLCH
 
 **References:**
 - Spec: `docs/superpowers/specs/2026-06-01-task-list-left-panel-design.md`
-- Pandaria API: `src/apps/drama/lib/pandaria.ts` (exports: `createSession`, `sendMessage`, `subscribeSSE`, `buildSystemPrompt`)
-- SSE pattern: `src/apps/drama/hooks/usePandariaSSE.ts`
+- Spellpaw Server API: `src/apps/drama/lib/copilot.ts` (exports: `createSession`, `sendMessage`, `subscribeSSE`, `buildSystemPrompt`)
+- SSE pattern: `src/apps/drama/hooks/useCopilotSSE.ts`
 - IDB: `src/shared/lib/idbStorage.ts`
-- Tool configs: copy from `usePandariaSSE.ts` TOOL_CONFIGS
+- Tool configs: copy from `useCopilotSSE.ts` TOOL_CONFIGS
 
 ---
 
@@ -30,7 +30,7 @@
 | `src/apps/drama/components/task-list/TaskListPanel.tsx` | 左栏任务列表面板 |
 | `src/apps/drama/components/task-chat/TaskChatHeader.tsx` | 中栏任务对话标题栏 |
 | `src/apps/drama/components/task-chat/TaskChatPanel.tsx` | 中栏任务对话面板（调用 useTaskSSE） |
-| `src/apps/drama/hooks/useTaskSSE.ts` | Per-task Pandaria session + SSE 管理 |
+| `src/apps/drama/hooks/useTaskSSE.ts` | Per-task Spellpaw Server session + SSE 管理 |
 | `src/shared/lib/idbStorage.ts` | IDB migration: 添加 taskStore object store |
 | `src/apps/drama/pages/WorkspacePage.tsx` | 左栏+中栏替换 |
 
@@ -92,7 +92,7 @@ export interface AgentTask {
   projectId: string | null;         // 所属项目（用于跨项目过滤）
   createdAt: string;
   updatedAt: string;
-  sessionId?: string;               // Pandaria session ID
+  sessionId?: string;               // Spellpaw Server session ID
 }
 ```
 
@@ -998,9 +998,9 @@ git commit -m "feat: add TaskChatHeader component"
 **Files:**
 - Create: `src/apps/drama/hooks/useTaskSSE.ts`
 
-- [ ] **Step 1: Study usePandariaSSE.ts pattern**
+- [ ] **Step 1: Study useCopilotSSE.ts pattern**
 
-The hook overrides `chatStore.sendMessage` in a useEffect. On first call it creates a Pandaria session, subscribes SSE, and routes events (text_delta, tool_call_started, tool_call_done, turn_end, error) to chatStore. We replicate this pattern for taskStore.
+The hook overrides `chatStore.sendMessage` in a useEffect. On first call it creates a Spellpaw Server session, subscribes SSE, and routes events (text_delta, tool_call_started, tool_call_done, turn_end, error) to chatStore. We replicate this pattern for taskStore.
 
 - [ ] **Step 2: Create useTaskSSE.ts**
 
@@ -1010,13 +1010,13 @@ The hook overrides `chatStore.sendMessage` in a useEffect. On first call it crea
 import { useEffect } from 'react';
 import { useTaskStore } from '@drama/stores/taskStore';
 import { useProjectStore } from '@drama/stores/projectStore';
-import { createSession, sendMessage, subscribeSSE, buildSystemPrompt } from '@drama/lib/pandaria';
+import { createSession, sendMessage, subscribeSSE, buildSystemPrompt } from '@drama/lib/copilot';
 import { findNode } from '@drama/lib/treeUtils';
 import { config } from '@/shared/config';
 
 const TOOL_ENDPOINT = config.toolServerEndpoint;
 
-// Reuse the same tool configs as usePandariaSSE
+// Reuse the same tool configs as useCopilotSSE
 const TOOL_CONFIGS = [
   {
     name: 'spellpaw_add_node',
@@ -1120,11 +1120,11 @@ const TOOL_CONFIGS = [
 ];
 
 /**
- * Manages per-task Pandaria sessions and SSE.
+ * Manages per-task Spellpaw Server sessions and SSE.
  * Overrides taskStore.sendMessage to create sessions on first use,
- * send messages to Pandaria, and route SSE events to taskStore.
+ * send messages to Spellpaw Server, and route SSE events to taskStore.
  *
- * Follows the same pattern as usePandariaSSE.
+ * Follows the same pattern as useCopilotSSE.
  */
 export function useTaskSSE() {
   const {
@@ -1136,7 +1136,7 @@ export function useTaskSSE() {
     const taskSessions = new Map<string, string>(); // taskId → sessionId
     const taskSSE = new Map<string, { close: () => void }>(); // taskId → SSE closer
 
-    // Override sendMessage to intercept and route to Pandaria
+    // Override sendMessage to intercept and route to Spellpaw Server
     const originalSend = useTaskStore.getState().sendMessage;
 
     useTaskStore.setState({
@@ -1145,7 +1145,7 @@ export function useTaskSSE() {
         storeSendMessage(taskId, content);
 
         try {
-          // 2. Create Pandaria session if first message for this task
+          // 2. Create Spellpaw Server session if first message for this task
           if (!taskSessions.has(taskId)) {
             const projectStore = useProjectStore.getState();
             const tree = projectStore.getCurrentTree();
@@ -1202,7 +1202,7 @@ export function useTaskSSE() {
             taskSSE.set(taskId, sse);
           }
 
-          // 4. Send message to Pandaria
+          // 4. Send message to Spellpaw Server
           const sessionId = taskSessions.get(taskId);
           if (sessionId) {
             const projectStore = useProjectStore.getState();
@@ -1280,7 +1280,7 @@ Expected: May have warnings about unused `initError` (remove if so). No type err
 
 ```bash
 git add src/apps/drama/hooks/useTaskSSE.ts
-git commit -m "feat: add useTaskSSE hook for per-task Pandaria SSE management"
+git commit -m "feat: add useTaskSSE hook for per-task Spellpaw Server SSE management"
 ```
 
 ---
@@ -1324,7 +1324,7 @@ export function TaskChatPanel() {
       sendMessage(activeTaskId, content);
     } else if (currentProjectId) {
       const newId = createTask(currentProjectId);
-      // sendMessage is now intercepted by useTaskSSE which calls Pandaria
+      // sendMessage is now intercepted by useTaskSSE which calls Spellpaw Server
       sendMessage(newId, content);
     }
   }, [activeTaskId, sendMessage, createTask, currentProjectId]);
@@ -1414,7 +1414,7 @@ useToolBridge();
 With:
 ```typescript
 useToolBridge();  // Keep: still needed for tool calls from ANY source (tasks or chat)
-useTaskSSE();     // Add: manage per-task Pandaria SSE
+useTaskSSE();     // Add: manage per-task Spellpaw Server SSE
 ```
 
 **Remove:**
@@ -1542,7 +1542,7 @@ These are spec requirements intentionally deferred for follow-up:
 
 | Item | Reason |
 |------|--------|
-| SSE 自动重连（spec §8.3） | 需要修改 `pandaria.ts` 的 `subscribeSSE`，现有 `usePandariaSSE` 也没有重连。Phase 1 可用手动重试（重新发消息） |
-| Mock SSE for tasks（spec §8.3） | `useMockSSE.ts` 仅支持 chatStore。Task mock 可在后续添加；开发时可本地运行 Pandaria |
+| SSE 自动重连（spec §8.3） | 需要修改 `copilot.ts` 的 `subscribeSSE`，现有 `useCopilotSSE` 也没有重连。Phase 1 可用手动重试（重新发消息） |
+| Mock SSE for tasks（spec §8.3） | `useMockSSE.ts` 仅支持 chatStore。Task mock 可在后续添加；开发时可本地运行 Spellpaw Server |
 | 组件集成测试 | 当前计划仅覆盖 taskStore 单元测试。TaskCard/TaskListPanel/TaskChatPanel 渲染测试可在稳定后补充 |
 | DetailPanel 移除（spec §11） | 代码保留，WorkspacePage 中不再渲染。节点元数据编辑和节奏分析通过 Agent 对话完成 |

@@ -11,7 +11,8 @@
     "paths": {
       "@/*": ["src/*"],
       "@shared/*": ["src/shared/*"],
-      "@drama/*": ["src/apps/drama/*"]
+      "@drama/*": ["src/apps/drama/*"],
+      "@console/*": ["src/apps/console/*"]
     },
 
     /* Bundler mode */

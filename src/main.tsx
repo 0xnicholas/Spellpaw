@@ -4,14 +4,14 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import '@drama/stores/sync'
 import '@/shared/i18n'
-import { applyDarkTheme } from '@/shared/stores/themeStore'
+import { initTheme } from '@/shared/stores/themeStore'
 import { migrateToIDB } from '@drama/lib/migrateToIDB'
 import { initSyncEngine } from '@drama/lib/syncEngine'
 import App from './App.tsx'
 
 async function bootstrap() {
-  // Apply dark theme before any rendering to prevent flash
-  applyDarkTheme()
+  // Initialize theme before any rendering to prevent flash
+  initTheme()
 
   await migrateToIDB()
   initSyncEngine()

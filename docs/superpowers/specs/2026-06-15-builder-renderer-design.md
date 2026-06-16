@@ -26,7 +26,7 @@
 ## 3. 架构定位
 
 ```
-                         Pandaria
+                    Spellpaw Server
                             │
               ┌─────────────┼─────────────┐
               ▼                           ▼
@@ -55,7 +55,7 @@
 
 ### 4.1 结构化输出 — Schema 约束
 
-Pandaria tool `spellpaw_build_ui` 的参数由严格 JSON Schema 定义。LLM 输出不合法 JSON → Pandaria 拒收。
+Spellpaw Server tool `spellpaw_build_ui` 的参数由严格 JSON Schema 定义。LLM 输出不合法 JSON → Spellpaw Server 拒收。
 
 ```typescript
 interface BuilderConfig {
@@ -166,9 +166,9 @@ src/apps/drama/
 
 ```
 用户: "帮我设计角色关系图"
-  → Pandaria session message
+  → Spellpaw Server session message
   → LLM 调用 spellpaw_build_ui({ component: "character_map", data: {...} })
-  → Pandaria POST /tool
+  → Spellpaw Server POST /tool
   → Vite 插件 WebSocket → useBuilderBridge
   → builderStore.setConfig(config)
   → BuilderPanel 渲染:
@@ -210,4 +210,4 @@ src/apps/drama/
 | 2 | `builderStore.ts` — Builder 运行时状态 | 依赖 1 |
 | 3 | `useBuilderBridge.ts` — WebSocket 接收 | 依赖 2 |
 | 4 | `BuilderPanel.tsx` + `CharacterMapBuilder.tsx` | 依赖 3 |
-| 5 | Pandaria tool config 注册 `spellpaw_build_ui` | 依赖 4 |
+| 5 | Spellpaw Server tool config 注册 `spellpaw_build_ui` | 依赖 4 |

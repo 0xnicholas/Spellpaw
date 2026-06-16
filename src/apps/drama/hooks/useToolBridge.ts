@@ -28,10 +28,12 @@ function connect(wsRef: React.MutableRefObject<WebSocket | null>, retries = 0) {
       if (msg.type !== 'tool_call') return;
 
       const { callId, params } = msg;
-      const action = params.action as string;
+      const rawAction = params.action as string;
+      // Tool names exposed to the LLM are prefixed with "spellpaw_"; the local router uses plain names.
+      const action = rawAction.replace(/^spellpaw_/, '');
 
       // ③ Builder Renderer channel — spellpaw_build_ui
-      if (action === 'spellpaw_build_ui') {
+      if (action === 'build_ui') {
         // Build context for metadata validation (②)
         const tree = useProjectStore.getState().getCurrentTree();
         const treeNodes = tree ? collectNodeIds(tree) : [];

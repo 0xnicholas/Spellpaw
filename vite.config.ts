@@ -7,13 +7,14 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), spellpawToolServer()],
   server: {
     host: '0.0.0.0',
-    allowedHosts: ['127.0.0.1.nip.io', 'spellpaw.xyz', 'www.spellpaw.xyz'],
+    allowedHosts: ['localhost', '127.0.0.1.nip.io', 'spellpaw.xyz', 'www.spellpaw.xyz'],
   },
   resolve: {
     alias: {
       '@': '/src',
       '@shared': '/src/shared',
       '@drama': '/src/apps/drama',
+      '@console': '/src/apps/console',
     },
   },
   // @ts-expect-error Vitest config keys are not in Vite's UserConfig type

@@ -1,7 +1,7 @@
 /**
  * Spellpaw Tool Server — Vite Plugin
  *
- * 提供 HTTP POST /tool 端点（接收 Pandaria HttpProxyTool 请求）
+ * 提供 HTTP POST /tool 端点（接收 Spellpaw Server 转发的 tool 调用）
  * + WebSocket /tool-ws（转发给浏览器执行 store actions）。
  */
 import type { Plugin, ViteDevServer } from 'vite';
@@ -35,6 +35,7 @@ export function spellpawToolServer(): Plugin {
         if (req.url === '/tool-ws') {
           wss.handleUpgrade(req, socket, head, (ws) => {
             clients.add(ws);
+            console.log(`[tool-server] browser connected (${clients.size} client${clients.size > 1 ? 's' : ''})`);
             ws.on('message', (data) => {
               try {
                 const msg = JSON.parse(data.toString());
@@ -42,6 +43,7 @@ export function spellpawToolServer(): Plugin {
                 if (pending) {
                   clearTimeout(pending.timer);
                   pendingCalls.delete(msg.callId);
+                  console.log(`[tool-server] received result for call ${msg.callId}`);
                   pending.resolve({
                     content: msg.content ?? [{ type: 'text', text: '' }],
                     is_error: msg.is_error ?? false,
@@ -51,12 +53,15 @@ export function spellpawToolServer(): Plugin {
                 // Ignore malformed messages
               }
             });
-            ws.on('close', () => clients.delete(ws));
+            ws.on('close', () => {
+              clients.delete(ws);
+              console.log(`[tool-server] browser disconnected (${clients.size} client${clients.size === 1 ? '' : 's'} left)`);
+            });
           });
         }
       });
 
-      // --- HTTP: Pandaria tool call endpoint ---
+      // --- HTTP: Spellpaw Server tool call endpoint ---
       server.middlewares.use('/tool', async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405;
@@ -65,6 +70,7 @@ export function spellpawToolServer(): Plugin {
         }
 
         if (clients.size === 0) {
+          console.error('[tool-server] /tool called but no browser connected to /tool-ws');
           res.statusCode = 503;
           res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify({ content: [{ type: 'text', text: 'No browser connected to /tool-ws' }], is_error: true }));
@@ -84,6 +90,7 @@ export function spellpawToolServer(): Plugin {
 
             pendingCalls.set(tool_call_id, { resolve, reject, timer });
 
+            console.log(`[tool-server] forwarding call ${tool_call_id} to ${clients.size} browser client(s)`);
             const message = JSON.stringify({ type: 'tool_call', callId: tool_call_id, params });
             for (const client of clients) {
               if (client.readyState === WebSocket.OPEN) {

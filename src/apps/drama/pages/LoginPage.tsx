@@ -3,20 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { useAuthStore } from '@/shared/stores/authStore';
-import { useProjectStore } from '@drama/stores/projectStore';
-import { mockProjects } from '@drama/data/mockProjects';
-import { mockTreeData } from '@drama/data/mockTreeData';
 import { useTranslation } from 'react-i18next';
 
 export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
-  const register = useAuthStore((s) => s.register);
-  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('demo@spellpaw.xyz');
   const [password, setPassword] = useState('password123');
-  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -24,30 +18,13 @@ export function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const result = mode === 'login'
-      ? await login(email, password)
-      : await register(email, password, name);
+    const result = await login(email, password);
     setLoading(false);
     if (result.success) {
-      // Ensure demo account has mock project data
-      const projectState = useProjectStore.getState();
-      if (projectState.projects.length === 0) {
-        useProjectStore.setState({
-          projects: mockProjects,
-          trees: { 'proj_1': mockTreeData },
-          currentProjectId: mockProjects[0]?.id ?? null,
-          selectedNodeId: null,
-        });
-      }
       navigate('/projects');
     } else {
       setError(result.error || '出了点问题');
     }
-  };
-
-  const switchMode = () => {
-    setMode(mode === 'login' ? 'register' : 'login');
-    setError('');
   };
 
   return (
@@ -63,7 +40,7 @@ export function LoginPage() {
           </span>
         </div>
         <p className="mb-6 text-center text-sm text-[var(--color-text-secondary)]">
-          {mode === 'login' ? t('auth.signIn') : t('auth.signUp')}
+          {t('auth.signIn')}
         </p>
 
         {error && (
@@ -73,17 +50,6 @@ export function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          {mode === 'register' && (
-            <div>
-              <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">{t('auth.name')}</label>
-              <Input
-                placeholder="您的名称"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-          )}
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">{t('auth.email')}</label>
             <Input
@@ -109,7 +75,7 @@ export function LoginPage() {
             className="w-full !bg-gradient-to-r !from-[#5b21ff] !to-[#a855f7] !text-white hover:!from-[#4c1ad9] hover:!to-[#9646e5]"
             loading={loading}
           >
-            {mode === 'login' ? t('auth.signIn') : t('auth.signUp')}
+            {t('auth.signIn')}
           </Button>
         </form>
 

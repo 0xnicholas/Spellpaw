@@ -172,7 +172,7 @@ Spellpaw:    创作层工具 → 「叙事驱动的 AI 辅助制作工作台」
 | 维度 | Higgsfield | Topview | Spellpaw |
 |------|-----------|---------|----------|
 | 交互模式 | 社区 prompt 分享 + 手动调用 | Agent 对话 + **Canvas 可视化编排 + Board 多模型工作台 + API 程序化调用** | Agent 对话 + 结构操作执行 |
-| AI 能力范围 | 生成图像/视频 | 生成视频/数字人/分镜/广告素材（12+ 模型） | Phase 2：Pandaria Agent SSE + Tool Server |
+| AI 能力范围 | 生成图像/视频 | 生成视频/数字人/分镜/广告素材（12+ 模型） | Phase 2：Spellpaw Copilot SSE + Tool Server |
 | 上下文感知 | prompt 独立 | 单次会话 + @mention 素材引用 | 选中节点自动更新 Agent 上下文 |
 | 建议/推荐 | Community trending | 频道模板推荐 + Ad Library | 快捷操作预设（"生成下一幕"等）+
 | Agent 协议/生态 | ✅ Higgsfield MCP | ✅ **Topview Skill（GitHub 可安装）** | ❌ |
@@ -246,7 +246,7 @@ Spellpaw:    创作层工具 → 「叙事驱动的 AI 辅助制作工作台」
 | 离线能力 | 依赖网络 | ✅ 完全离线 |
 | 首屏性能 | SSR 优化 | SPA 加载 |
 | 国际化 | ✅ 20 语言（Topview） | ❌ 仅中文 |
-| AI 模型调用 | 服务端直连 | 通过 Pandaria 代理 |
+| AI 模型调用 | 服务端直连 | 通过 Spellpaw Server 代理 |
 
 ---
 

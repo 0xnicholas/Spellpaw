@@ -12,7 +12,7 @@ interface MessageInputProps {
 export function MessageInput({
   onSend,
   disabled = false,
-  placeholder = '输入消息…（Cmd + Enter 发送）',
+  placeholder = '输入消息…（Enter 发送，Shift + Enter 换行）',
 }: MessageInputProps) {
   const [value, setValue] = useState('');
 
@@ -23,7 +23,7 @@ export function MessageInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
       e.preventDefault();
       handleSubmit();
     }

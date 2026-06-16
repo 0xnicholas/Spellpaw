@@ -1,133 +1,6 @@
 /**
- * Pandaria API client — token generation + HTTP helpers
+ * Build the system prompt for the Copilot from the current project tree.
  */
-import { config } from '@/shared/config';
-
-const PANDARIA_BASE = config.pandariaBase;
-const AUTH_SECRET = config.pandariaAuthSecret;
-const TENANT_ID = 'test-tenant';
-
-// ---- Token generation ----
-async function generateToken(): Promise<string> {
-  const encoder = new TextEncoder();
-  const now = Math.floor(Date.now() / 1000);
-  const payload = JSON.stringify({
-    tenant_id: TENANT_ID,
-    iat: now,
-    exp: now + 3600,
-  });
-
-  const payloadBytes = encoder.encode(payload);
-  const payloadB64 = btoa(String.fromCharCode(...payloadBytes))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-  const key = await crypto.subtle.importKey(
-    'raw', encoder.encode(AUTH_SECRET),
-    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, payloadBytes);
-  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-  return `${payloadB64}.${sigB64}`;
-}
-
-async function authHeaders(): Promise<Record<string, string>> {
-  return { Authorization: `Bearer ${await generateToken()}` };
-}
-
-// ---- API calls ----
-
-interface ToolConfig {
-  name: string;
-  description: string;
-  parameters: Record<string, unknown>;
-  endpoint: string;
-}
-
-export interface PandariaSession {
-  id: string;
-  title: string;
-  model: string;
-}
-
-/** Create a Pandaria session with system_prompt + tools */
-export async function createSession(
-  title: string,
-  systemPrompt: string,
-  tools: ToolConfig[] = [],
-): Promise<PandariaSession> {
-  const res = await fetch(`${PANDARIA_BASE}/api/v1/sessions`, {
-    method: 'POST',
-    headers: { ...await authHeaders(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, system_prompt: systemPrompt, tools }),
-  });
-  if (!res.ok) throw new Error(`Create session failed: ${res.status}`);
-  return res.json();
-}
-
-/** Send a user message to a session */
-export async function sendMessage(sessionId: string, content: string): Promise<void> {
-  const res = await fetch(`${PANDARIA_BASE}/api/v1/sessions/${sessionId}/messages`, {
-    method: 'POST',
-    headers: { ...await authHeaders(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      content: [{ type: 'text', text: content }],
-    }),
-  });
-  if (!res.ok) throw new Error(`Send message failed: ${res.status}`);
-}
-
-/** Subscribe to SSE events for a session. Calls onEvent for each event. */
-export function subscribeSSE(
-  sessionId: string,
-  onEvent: (event: Record<string, unknown>) => void,
-): { close: () => void } {
-  let aborted = false;
-  const controller = new AbortController();
-
-  (async () => {
-    const token = await generateToken();
-    if (aborted) return;
-
-    const res = await fetch(`${PANDARIA_BASE}/api/v1/sessions/${sessionId}/events`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    });
-
-    if (!res.ok || !res.body) return;
-    aborted = false;
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (!aborted) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            onEvent(data);
-          } catch { /* skip malformed */ }
-        }
-      }
-    }
-  })();
-
-  return {
-    close: () => {
-      aborted = true;
-      controller.abort();
-    },
-  };
-}
 
 /** Infer genre from project title for style adaptation */
 function inferGenre(title: string): string {
@@ -201,6 +74,27 @@ export function buildSystemPrompt(
     `- spellpaw_optimize_pacing — 一键优化场景时长节奏（dryRun 预览 / 执行）`,
     `- spellpaw_generate_storyboard (nodeId, prompt?) — 为场景生成参考图`,
     `- spellpaw_build_ui (component, data) — 生成角色关系图等可交互 UI 组件`,
+    `- spellpaw_add_canvas_card (cardType, data, position?) — 在画布上生成卡片`,
+    `- spellpaw_update_canvas_card (cardId, data) — 更新已有画布卡片`,
+    `- spellpaw_delete_canvas_card (cardId) — 删除画布卡片 ⚠️ 先征求用户同意`,
+    ``,
+    `## 画布卡片规格`,
+    `画布上有五种卡片，可直接通过 spellpaw_add_canvas_card 创建：`,
+    `- script（剧本卡）: title, description, status, duration, dialogue, notes, linkedTreeNodeId`,
+    `- sceneCard（场景视觉卡）: title, description, status, thumbnail, generatedPrompt, tags, linkedTreeNodeId`,
+    `- art（美术参考卡）: title, description, thumbnail, generatedPrompt, tags, linkedTreeNodeId`,
+    `- character（角色卡）: title, description, status, tags, linkedTreeNodeId`,
+    `- deliverable（产出物卡）: title, description, status, deliverableType, duration, fileSize, resolution, tags, linkedTreeNodeId`,
+    `通用规则：`,
+    `- data 必须包含 title`,
+    `- status 可选值: draft / in_progress / review / done`,
+    `- linkedTreeNodeId 用于把卡片关联到项目树的具体节点`,
+    `- 不需要传 position，系统会自动布局避免重叠`,
+    `- 更新已有卡片用 spellpaw_update_canvas_card({ cardId, data })`,
+    `- 删除卡片前必须先征求用户同意`,
+    `示例：`,
+    `- spellpaw_add_canvas_card({ cardType: 'sceneCard', data: { title: '雨夜重逢', description: '男女主角在旧巷相遇', linkedTreeNodeId: 'scene-xxx' } })`,
+    `- spellpaw_add_canvas_card({ cardType: 'character', data: { title: '林若', tags: ['女主', '高冷'] } })`,
     ``,
     `## 项目结构说明`,
     `项目 → 幕(act) → 场景(scene) → 镜头(shot)`,

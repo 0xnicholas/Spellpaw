@@ -3,7 +3,7 @@
 > 基于 Buzzy 分析的 5 个可借鉴方向，按实施优先级排列
 
 **日期**: 2026-06-15
-**来源**: `docs/competitive-analysis-buzzy.md`
+**来源**: 原 `docs/competitive-analysis-buzzy.md` 已删除（分析对象为 Buzzy.buzz，与 Spellpaw 无关）。本计划保留为历史归档。
 
 ---
 
@@ -15,7 +15,7 @@
 | B | 强化「语义定义」定位 | 4h（system prompt + 文案） | 无 |
 | C | Figma 导出 | 2d | canvasStore 数据结构 |
 | D | 共享模板/规则引擎 | 3d | builderHandlers 已就绪 |
-| E | Spellpaw MCP Server | 1w | Pandaria MCP 协议 |
+| E | Spellpaw MCP Server | 1w | MCP 协议 |
 
 ---
 
@@ -82,7 +82,7 @@
 
 ### B.1 System prompt 重写
 
-`src/apps/drama/lib/pandaria.ts` — `buildSystemPrompt()` 顶部增加定位声明：
+`src/apps/drama/lib/copilot.ts` — `buildSystemPrompt()` 顶部增加定位声明：
 
 ```diff
   return [
@@ -105,7 +105,7 @@
 
 ### B.3 交付物
 
-- `lib/pandaria.ts` — `buildSystemPrompt()` 增加定位声明
+- `lib/copilot.ts` — `buildSystemPrompt()` 增加定位声明
 - `lib/toolConfigs.ts` — tool descriptions 中文化 + 对齐术语
 
 ---

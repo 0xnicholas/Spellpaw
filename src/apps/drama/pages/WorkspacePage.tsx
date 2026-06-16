@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Panel, Group, Separator, useGroupRef } from 'react-resizable-panels';
+import { useParams } from 'react-router-dom';
+import { Panel, Group } from 'react-resizable-panels';
 import { Navbar } from '@drama/layouts/Navbar';
-import { TaskListPanel } from '@drama/components/task-list/TaskListPanel';
-import { TaskChatPanel } from '@drama/components/task-chat/TaskChatPanel';
+import { ChatPanel } from '@drama/components/chat-panel/ChatPanel';
 import { FlowCanvasPanel } from '@drama/components/flow-canvas/FlowCanvasPanel';
 import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
 import { ConflictResolverModal } from '@drama/components/modals/ConflictResolverModal';
@@ -10,7 +10,6 @@ import { BuilderPanel } from '@shared/components/builder';
 import { useHotkeys } from '@/shared/hooks/useHotkeys';
 import { useToolBridge } from '@drama/hooks/useToolBridge';
 import { useProjectStore } from '@drama/stores/projectStore';
-import { useTaskSSE } from '@drama/hooks/useTaskSSE';
 import { subscribeSync, type SyncEngineState } from '@drama/lib/syncEngine';
 
 
@@ -43,13 +42,14 @@ function MobileGuard({ children }: { children: React.ReactNode }) {
 }
 
 export function WorkspacePage() {
-  // Phase 2: connect to Tool Server WebSocket for Pandaria tool calls
+  const { projectId } = useParams<{ projectId: string }>();
+
+  // Phase 2: connect to Tool Server WebSocket for Copilot tool calls
   useToolBridge();
-  useTaskSSE();
 
   const selectNode = useProjectStore((s) => s.selectNode);
   const deleteTreeNode = useProjectStore((s) => s.deleteTreeNode);
-  const groupRef = useGroupRef();
+  const setCurrentProject = useProjectStore((s) => s.setCurrentProject);
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; childCount: number } | null>(null);
   const [syncState, setSyncState] = useState<SyncEngineState | null>(null);
@@ -58,16 +58,12 @@ export function WorkspacePage() {
     return subscribeSync(setSyncState);
   }, []);
 
-  const toggleSidebar = () => {
-    const layout = groupRef.current?.getLayout();
-    if (!layout) return;
-    const leftSize = (layout as Record<string, number>).left ?? 0;
-    if (leftSize > 5) {
-      groupRef.current?.setLayout({ left: 0, center: 30, right: 70 });
-    } else {
-      groupRef.current?.setLayout({ left: 18, center: 30, right: 52 });
+  // Sync current project with URL route parameter
+  useEffect(() => {
+    if (projectId) {
+      setCurrentProject(projectId);
     }
-  };
+  }, [projectId, setCurrentProject]);
 
   useHotkeys({
     Escape: () => {
@@ -82,22 +78,15 @@ export function WorkspacePage() {
   return (
     <MobileGuard>
       <div className="flex h-screen flex-col">
-        <Navbar onToggleSidebar={toggleSidebar} />
+        <Navbar />
         <div className="flex-1 overflow-hidden relative">
-          <Group orientation="horizontal" className="h-full" groupRef={groupRef}>
-            <Panel id="left" defaultSize="18%" minSize="18%" maxSize="28%" collapsible collapsedSize="0%" style={{ minWidth: 240 }}>
+          <Group orientation="horizontal" className="h-full">
+            <Panel id="center" defaultSize="35%" minSize="25%" maxSize="45%" style={{ minWidth: 280 }}>
               <div className="h-full overflow-hidden border-r border-[var(--color-border-default)]">
-                <TaskListPanel />
+                <ChatPanel />
               </div>
             </Panel>
-            <Separator className="w-px bg-[var(--color-border-default)] hover:bg-[var(--color-accent-500)] transition-colors" />
-            <Panel id="center" defaultSize="30%" minSize="22%" maxSize="40%" style={{ minWidth: 280 }}>
-              <div className="h-full overflow-hidden border-r border-[var(--color-border-default)]">
-                <TaskChatPanel />
-              </div>
-            </Panel>
-            <Separator className="w-px bg-[var(--color-border-default)] hover:bg-[var(--color-accent-500)] transition-colors" />
-            <Panel id="right" defaultSize="54%" minSize="30%">
+            <Panel id="right" defaultSize="65%" minSize="30%">
               <div className="h-full overflow-hidden">
                 <FlowCanvasPanel />
               </div>

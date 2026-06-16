@@ -46,7 +46,7 @@ interface AgentTask {
   messages: ChatMessage[];          // 复用现有类型
   createdAt: string;
   updatedAt: string;
-  sessionId?: string;               // Pandaria session（首次发消息后创建）
+  sessionId?: string;               // Spellpaw Server session（首次发消息后创建）
   affectedNodeIds?: string[];       // 受影响的树节点 ID
   generatedAssetIds?: string[];     // 生成的资产 ID
 }
@@ -214,7 +214,7 @@ WorkspacePage
   → taskStore.createTask()         // 状态: in_progress, title 初始为空
   → taskStore.setActiveTask(newId) // 内部实现：创建后自动设为活跃任务
   → taskStore.sendMessage(taskId, content)
-  → POST /api/v1/sessions          // 创建 Pandaria session，注入项目上下文 system_prompt
+  → POST /api/v1/sessions          // 创建 Spellpaw Server session，注入项目上下文 system_prompt
   → 保存 sessionId 到 task
   → POST /api/v1/sessions/{id}/messages
   → 订阅 SSE（该 session 的事件流）
@@ -251,13 +251,13 @@ Agent 通过 toolRouter 调用本地 store。与现有机制完全一致——Ag
 
 ## 8. SSE 连接管理
 
-### 8.1 useTaskSSE 与 usePandariaSSE 的关系
+### 8.1 useTaskSSE 与 useCopilotSSE 的关系
 
-`useTaskSSE` **替代** `usePandariaSSE` 在 WorkspacePage 中的角色。`usePandariaSSE` 代码保留不动（仍被 ChatPanel 引用），但 WorkspacePage 不再调用它。
+`useTaskSSE` **替代** `useCopilotSSE` 在 WorkspacePage 中的角色。`useCopilotSSE` 代码保留不动（仍被 ChatPanel 引用），但 WorkspacePage 不再调用它。
 
 ### 8.2 策略
 
-每个活跃任务对应一个 Pandaria session。同一时间只有一个任务是"活跃"的（activeTaskId）。切换任务时：
+每个活跃任务对应一个 Spellpaw Server session。同一时间只有一个任务是"活跃"的（activeTaskId）。切换任务时：
 
 1. 关闭旧任务的 SSE 连接
 2. 如果有未完成的 streaming，先 flush（通过 endStreaming 保存）
@@ -292,11 +292,11 @@ function useTaskSSE() {
 
 ---
 
-## 9. Pandaria Session 生命周期
+## 9. Spellpaw Server Session 生命周期
 
 - `sessionId` 在用户发送首条消息后创建（POST /api/v1/sessions）
 - 任务完成后 session 保留（以便后续继续对话）
-- 任务删除时无需显式清理 Pandaria session（Pandaria 侧有 TTL 自动过期）
+- 任务删除时无需显式清理 Spellpaw Server session（服务端有 TTL 自动过期）
 - 切换任务时关闭旧 SSE 连接，但 session 本身保持活跃
 
 ## 10. 文件变更清单
@@ -314,7 +314,7 @@ function useTaskSSE() {
 | 🔄 修改 | `src/apps/drama/types/index.ts` |
 | 🔄 修改 | `src/apps/drama/components/chat-panel/MessageList.tsx`（接受 messages prop） |
 | 🔄 修改 | `src/apps/drama/components/chat-panel/MessageInput.tsx`（接受 onSend prop） |
-| 🗑 保留 | `TreeViewPanel`, `AssetManagerPanel`, `ChatPanel`, `DetailPanel`, `usePandariaSSE`（代码不动，只解引用） |
+| 🗑 保留 | `TreeViewPanel`, `AssetManagerPanel`, `ChatPanel`, `DetailPanel`, `useCopilotSSE`（代码不动，只解引用） |
 
 ---
 

@@ -1,4 +1,4 @@
-import { Film, ArrowRight, Clock } from 'lucide-react';
+import { Film, ArrowRight, Clock, UserCog } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const apps = [
@@ -10,6 +10,15 @@ const apps = [
     href: '/projects',
     status: 'available',
     tags: ['短剧创作', '分镜', 'AI 助手'],
+  },
+  {
+    id: 'console',
+    name: '个人中心',
+    description: '管理你的账户资料、密码、语言主题偏好以及第三方 API Key 设置。',
+    icon: UserCog,
+    href: '/console',
+    status: 'available',
+    tags: ['账户', '偏好', 'API'],
   },
 ];
 

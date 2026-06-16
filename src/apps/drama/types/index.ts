@@ -55,7 +55,7 @@ export interface AgentTask {
 }
 
 // Canvas
-export type CanvasNodeType = 'script' | 'art' | 'character' | 'deliverable';
+export type CanvasNodeType = 'script' | 'art' | 'character' | 'deliverable' | 'sceneCard';
 
 export type DeliverableType = 'image' | 'video' | 'audio';
 
@@ -105,7 +105,7 @@ export type { User } from '@/shared/types';
 
 // === Phase 2: Tool Router ===
 
-/** Pandaria HttpProxyTool 发来的请求参数 */
+/** Tool Server / Spellpaw Server 发来的请求参数 */
 export interface ToolParams {
   action: string;
   [key: string]: unknown;

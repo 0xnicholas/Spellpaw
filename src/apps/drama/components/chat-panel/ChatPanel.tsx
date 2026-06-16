@@ -9,7 +9,7 @@ import { WorkflowGuide } from './WorkflowGuide';
 import { useChatStore } from '@drama/stores/chatStore';
 import { useDetailStore } from '@drama/stores/detailStore';
 import { useProjectStore } from '@drama/stores/projectStore';
-import { usePandariaSSE } from '@drama/hooks/usePandariaSSE';
+import { useCopilotSSE } from '@drama/hooks/useCopilotSSE';
 import { findNode, findParent } from '@drama/lib/treeUtils';
 import { generateId } from '@/shared/lib/utils';
 import { toolRouter } from '@drama/stores/toolRouter';
@@ -30,8 +30,8 @@ export function ChatPanel() {
   const tree = useProjectStore((s) => s.getCurrentTree());
   const addTreeNode = useProjectStore((s) => s.addTreeNode);
 
-  // Phase 2: connect to Pandaria for real-time AI collaboration
-  usePandariaSSE();
+  // Phase 2: connect to LLM provider for real-time AI collaboration
+  useCopilotSSE();
 
   const filteredMessages = filterNodeId
     ? messages.filter((m) => m.context?.nodeId === filterNodeId || m.role === 'agent')

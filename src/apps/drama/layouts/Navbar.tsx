@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Command, ChevronRight, PanelLeft, Pencil, Download, Settings } from 'lucide-react';
+import { Bell, Command, ChevronRight, Pencil, Download, Settings, UserCog } from 'lucide-react';
 import { IconButton } from '@/shared/components/ui/IconButton';
 import { ProjectSettingsModal } from '@drama/components/modals/ProjectSettingsModal';
 import { SettingsModal } from '@drama/components/modals/SettingsModal';
@@ -23,11 +23,7 @@ function findNodePath(node: TreeNode | null, targetId: string, path: string[] = 
   return null;
 }
 
-interface NavbarProps {
-  onToggleSidebar?: () => void;
-}
-
-export function Navbar({ onToggleSidebar }: NavbarProps) {
+export function Navbar() {
   const project = useProjectStore((s) =>
     s.projects.find((p) => p.id === s.currentProjectId)
   );
@@ -52,13 +48,6 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-4">
       <div className="flex items-center gap-3">
-        <button
-          onClick={onToggleSidebar}
-          className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-base)] text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-          title="切换侧边栏"
-        >
-          <PanelLeft className="h-4 w-4" />
-        </button>
         <Link to="/" className="flex items-center gap-2">
           <img src="/favicon.svg" alt="SpellPaw" className="h-5 w-5" />
           <span
@@ -84,7 +73,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
         >
           <Download className="h-3 w-3" />
         </button>
-        {path.length > 0 && (
+        {path.length > 1 && (
           <div className="flex items-center gap-1 text-xs text-[var(--color-text-tertiary)]">
             {path.map((segment, i) => (
               <span key={i} className="flex items-center gap-1">
@@ -99,6 +88,13 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
         <SyncStatusIndicator />
         <IconButton icon={<Command className="h-4 w-4" />} label="命令面板" size="sm" />
         <IconButton icon={<Bell className="h-4 w-4" />} label="通知" size="sm" />
+        <Link
+          to="/console"
+          className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-base)] text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
+          title="个人中心"
+        >
+          <UserCog className="h-3.5 w-3.5" />
+        </Link>
         <button
           onClick={() => setGlobalSettingsOpen(true)}
           className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-base)] text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"

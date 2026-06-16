@@ -5,6 +5,7 @@ import type { ToolRouter, TreeNode, NarrativeTemplate, TemplateAct, TemplateScen
 import { analyzePacing, suggestCompletions, generatePacingReport } from '@drama/lib/projectAnalysis';
 import { createNodeHandler, updateNodeHandler, deleteNodeHandler, addCanvasCardHandler } from '@drama/lib/builderHandlers';
 import { validateCanvasCardPayload, normalizeCardData, validateCanvasCardUpdateData, normalizeCardUpdateData } from '@drama/lib/canvasCardSchema';
+import { generateAsset } from '@drama/lib/canvasToolkit';
 
 function nodeToLine(node: TreeNode, depth: number): string {
   const indent = '│   '.repeat(Math.max(0, depth - 1)) + (depth > 0 ? '├── ' : '');
@@ -235,6 +236,12 @@ export const toolRouter: ToolRouter = {
     } catch (err) {
       throw new Error(`分镜生成失败: ${(err as Error).message}`, { cause: err });
     }
+  },
+
+  generate_asset: async (params) => {
+    const result = await generateAsset(params as Parameters<typeof generateAsset>[0]);
+    if (!result.success) throw new Error(result.message);
+    return result.message;
   },
 
   analyze_structure: async (_params) => {

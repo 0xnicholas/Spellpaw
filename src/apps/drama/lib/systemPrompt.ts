@@ -27,6 +27,15 @@ function genreGuidance(genre: string): string {
   return map[genre] ?? map['剧情'];
 }
 
+function buildCanvasToolkitSection(): string {
+  return [
+    `## 画布内容生成工具包`,
+    `当用户提到「生成参考图 / 生成分镜 / 为场景生成图片 / 生成视频」时，直接调用下列工具，不要拆成多个 add_canvas_card：`,
+    `- spellpaw_generate_asset({ nodeId, mediaType: "image"|"video", prompt?, provider?, count?, cardType? })`,
+    `可用 provider: openai`,
+  ].join('\n');
+}
+
 /** Build system_prompt from project tree */
 export function buildSystemPrompt(
   projectTitle: string,
@@ -95,6 +104,8 @@ export function buildSystemPrompt(
     `示例：`,
     `- spellpaw_add_canvas_card({ cardType: 'sceneCard', data: { title: '雨夜重逢', description: '男女主角在旧巷相遇', linkedTreeNodeId: 'scene-xxx' } })`,
     `- spellpaw_add_canvas_card({ cardType: 'character', data: { title: '林若', tags: ['女主', '高冷'] } })`,
+    ``,
+    buildCanvasToolkitSection(),
     ``,
     `## 项目结构说明`,
     `项目 → 幕(act) → 场景(scene) → 镜头(shot)`,

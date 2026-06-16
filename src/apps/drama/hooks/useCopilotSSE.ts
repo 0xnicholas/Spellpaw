@@ -27,6 +27,34 @@ export function useCopilotSSE() {
     let initDone = false;
     const provider = providerRef.current;
 
+    const subscribeToSession = (sessionId: string) => {
+      sseRef.current?.close();
+      sseRef.current = provider.subscribeSSE(sessionId, (event) => {
+        console.log('[useCopilotSSE] SSE event:', event.type, event);
+        switch (event.type) {
+          case 'message_start':
+            startStreaming(crypto.randomUUID());
+            break;
+          case 'text_delta':
+            appendDelta(event.delta as string);
+            break;
+          case 'tool_call_started':
+            startToolCall(event.call_id as string, event.name as string);
+            break;
+          case 'tool_call_done':
+            endToolCall(event.call_id as string);
+            break;
+          case 'turn_end':
+            endStreaming(event.stop_reason as string);
+            break;
+          case 'error':
+            appendDelta(`\n\n❌ Error: ${event.message}`);
+            endStreaming('error');
+            break;
+        }
+      });
+    };
+
     useChatStore.setState({
       sendMessage: async (content: string) => {
         console.log('[useCopilotSSE] sendMessage called:', content.slice(0, 80));
@@ -90,33 +118,7 @@ export function useCopilotSSE() {
             const session = await provider.createSession(projectTitle, prompt, SPELLPAW_TOOL_CONFIGS);
             sessionRef.current = session.id;
             console.log('[useCopilotSSE] session created:', session.id);
-
-            // Subscribe to SSE
-            sseRef.current?.close();
-            sseRef.current = provider.subscribeSSE(session.id, (event) => {
-              console.log('[useCopilotSSE] SSE event:', event.type, event);
-              switch (event.type) {
-                case 'message_start':
-                  startStreaming(crypto.randomUUID());
-                  break;
-                case 'text_delta':
-                  appendDelta(event.delta as string);
-                  break;
-                case 'tool_call_started':
-                  startToolCall(event.call_id as string, event.name as string);
-                  break;
-                case 'tool_call_done':
-                  endToolCall(event.call_id as string);
-                  break;
-                case 'turn_end':
-                  endStreaming(event.stop_reason as string);
-                  break;
-                case 'error':
-                  appendDelta(`\n\n❌ Error: ${event.message}`);
-                  endStreaming('error');
-                  break;
-              }
-            });
+            subscribeToSession(session.id);
           } catch (err) {
             console.error('[useCopilotSSE] session init failed:', err);
             appendMessage({
@@ -135,6 +137,8 @@ export function useCopilotSSE() {
         if (sessionRef.current) {
           console.log('[useCopilotSSE] sending message to session', sessionRef.current);
           try {
+            // Re-subscribe before each turn: some backends close the SSE stream after turn_end.
+            subscribeToSession(sessionRef.current);
             await provider.sendMessage(sessionRef.current, enrichedContent);
             console.log('[useCopilotSSE] message sent');
           } catch (err) {

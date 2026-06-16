@@ -180,6 +180,7 @@ export function normalizeCardData(
   if (typeof raw.status === 'string') common.status = raw.status as CanvasNodeData['status'];
   if (Array.isArray(raw.tags)) common.tags = raw.tags.filter((t): t is string => typeof t === 'string');
   if (typeof raw.linkedTreeNodeId === 'string') common.linkedTreeNodeId = raw.linkedTreeNodeId;
+  if (typeof raw.sourceProvider === 'string') common.sourceProvider = raw.sourceProvider;
 
   switch (cardType) {
     case 'script': {
@@ -236,6 +237,7 @@ export function normalizeCardUpdateData(
     common.tags = raw.tags.filter((t): t is string => typeof t === 'string');
   }
   if (typeof raw.linkedTreeNodeId === 'string') common.linkedTreeNodeId = raw.linkedTreeNodeId;
+  if (typeof raw.sourceProvider === 'string') common.sourceProvider = raw.sourceProvider;
 
   switch (cardType) {
     case 'script': {

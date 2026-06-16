@@ -65,6 +65,7 @@ export interface CanvasNodeData extends Record<string, unknown> {
   status?: 'draft' | 'in_progress' | 'review' | 'done';
   thumbnail?: string;
   generatedPrompt?: string;
+  sourceProvider?: string;
   tags?: string[];
   linkedTreeNodeId?: string;
   deliverableType?: DeliverableType;

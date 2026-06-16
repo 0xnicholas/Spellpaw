@@ -12,6 +12,11 @@ interface Viewport {
   zoom: number;
 }
 
+// Stable empty references to prevent Zustand infinite loops
+const EMPTY_NODES: CanvasNode[] = [];
+const EMPTY_EDGES: CanvasEdge[] = [];
+const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 };
+
 interface CanvasEntry {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
@@ -67,19 +72,19 @@ export const useCanvasStore = create<CanvasState>()(
 
       getCurrentNodes: () => {
         const projectId = useProjectStore.getState().currentProjectId;
-        return projectId ? get().canvases[projectId]?.nodes ?? [] : [];
+        return projectId ? get().canvases[projectId]?.nodes ?? EMPTY_NODES : EMPTY_NODES;
       },
 
       getCurrentEdges: () => {
         const projectId = useProjectStore.getState().currentProjectId;
-        return projectId ? get().canvases[projectId]?.edges ?? [] : [];
+        return projectId ? get().canvases[projectId]?.edges ?? EMPTY_EDGES : EMPTY_EDGES;
       },
 
       getCurrentViewport: () => {
         const projectId = useProjectStore.getState().currentProjectId;
         return projectId
-          ? get().canvases[projectId]?.viewport ?? { x: 0, y: 0, zoom: 1 }
-          : { x: 0, y: 0, zoom: 1 };
+          ? get().canvases[projectId]?.viewport ?? DEFAULT_VIEWPORT
+          : DEFAULT_VIEWPORT;
       },
 
       syncNodes: (nodes) =>

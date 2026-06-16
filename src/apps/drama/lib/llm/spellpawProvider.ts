@@ -68,38 +68,46 @@ export const spellpawProvider: LLMProvider = {
     const controller = new AbortController();
 
     (async () => {
-      const headers: Record<string, string> = {};
-      const token = useAuthStore.getState().token;
-      if (token) headers.Authorization = `Bearer ${token}`;
-      if (aborted) return;
+      try {
+        const headers: Record<string, string> = {};
+        const token = useAuthStore.getState().token;
+        if (token) headers.Authorization = `Bearer ${token}`;
+        if (aborted) return;
 
-      const res = await fetch(`${BASE_URL}/sessions/${sessionId}/events`, {
-        headers,
-        signal: controller.signal,
-      });
+        const res = await fetch(`${BASE_URL}/sessions/${sessionId}/events`, {
+          headers,
+          signal: controller.signal,
+        });
 
-      if (!res.ok || !res.body) return;
-      aborted = false;
+        if (!res.ok || !res.body) return;
+        aborted = false;
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-      while (!aborted) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        while (!aborted) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              onEvent(data);
-            } catch { /* skip malformed */ }
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                onEvent(data);
+              } catch { /* skip malformed */ }
+            }
           }
+        }
+      } catch (err) {
+        // AbortError is expected when the subscription is explicitly closed.
+        const isAbort = err instanceof Error && (err.name === 'AbortError' || err.message?.includes('aborted'));
+        if (!isAbort) {
+          console.error('[spellpawProvider] SSE error:', err);
         }
       }
     })();

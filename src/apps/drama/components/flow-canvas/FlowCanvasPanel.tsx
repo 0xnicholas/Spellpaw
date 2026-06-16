@@ -45,6 +45,7 @@ export function FlowCanvasPanel() {
   const duplicateNode = useCanvasStore((s) => s.duplicateNode);
   const removeNode = useCanvasStore((s) => s.removeNode);
   const setSelectedCardId = useCanvasStore((s) => s.setSelectedCardId);
+  const currentProjectId = useProjectStore((s) => s.currentProjectId);
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
   const [zoom, setZoom] = useState(1);
 
@@ -63,8 +64,17 @@ export function FlowCanvasPanel() {
 
   const currentTree = useProjectStore((s) => s.getCurrentTree());
 
-  const [nodes, , onNodesChange] = useNodesState(persistedNodes as Node[]);
+  const [nodes, setNodes, onNodesChange] = useNodesState(persistedNodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(persistedEdges as Edge[]);
+
+  // Reset React Flow internal state when switching projects
+  useEffect(() => {
+    const freshNodes = getCurrentNodes();
+    const freshEdges = getCurrentEdges();
+    setNodes(freshNodes as Node[]);
+    setEdges(freshEdges as Edge[]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProjectId]);
 
   const nodesWithDisplay = useMemo(() => {
     const map = computeDisplayNumbers(currentTree, getCurrentNodes());

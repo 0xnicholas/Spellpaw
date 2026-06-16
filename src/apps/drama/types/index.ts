@@ -39,7 +39,8 @@ export interface AssetItem {
 }
 
 // Chat — re-exported from shared
-export type { MessageRole, MessageType, ChatAction, ChatMessage } from '@shared/types';
+import type { MessageRole, MessageType, ChatAction, ChatMessage } from '@shared/types';
+export type { MessageRole, MessageType, ChatAction, ChatMessage };
 
 // Task
 

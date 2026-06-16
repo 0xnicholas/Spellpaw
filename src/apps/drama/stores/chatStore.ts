@@ -88,7 +88,7 @@ export const useChatStore = create<ChatState>()(
           const res = await authApi.apiCall('/api/chat');
           if (!res.ok) return;
           const data = await res.json();
-          const remoteMessages = Array.isArray(data.messages) ? data.messages : [];
+          const remoteMessages = (Array.isArray(data.messages) ? data.messages : []) as ChatMessage[];
           if (remoteMessages.length === 0) return;
 
           // Merge remote messages into the local cache instead of overwriting it.

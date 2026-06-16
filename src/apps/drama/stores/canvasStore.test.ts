@@ -7,7 +7,7 @@ describe('canvasStore', () => {
     // Ensure we have a project set so canvas operations work
     useProjectStore.setState({
       projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
-      trees: { 'proj_1': { id: 'root', type: 'project', title: 'Test', status: 'draft' } },
+      trees: { 'proj_1': { id: 'root', type: 'project', title: 'Test', status: 'draft' as const } },
       currentProjectId: 'proj_1',
       selectedNodeId: null,
     });
@@ -23,7 +23,7 @@ describe('canvasStore', () => {
       id: 'test_1',
       type: 'sceneCard' as const,
       position: { x: 0, y: 0 },
-      data: { title: 'Test', status: 'draft' },
+      data: { title: 'Test', status: 'draft' as const },
     };
     useCanvasStore.getState().addNode(node);
     expect(useCanvasStore.getState().getCurrentNodes()).toHaveLength(1);
@@ -35,7 +35,7 @@ describe('canvasStore', () => {
       id: 'test_1',
       type: 'sceneCard' as const,
       position: { x: 0, y: 0 },
-      data: { title: 'Test', status: 'draft' },
+      data: { title: 'Test', status: 'draft' as const },
     };
     useCanvasStore.getState().addNode(node);
     useCanvasStore.getState().removeNode('test_1');
@@ -53,7 +53,7 @@ describe('canvasStore', () => {
       id: 'test_1',
       type: 'sceneCard',
       position: { x: 0, y: 0 },
-      data: { title: 'Old', status: 'draft' },
+      data: { title: 'Old', status: 'draft' as const },
     });
     useCanvasStore.getState().updateNodeData('test_1', { title: 'New' });
     expect(useCanvasStore.getState().getCurrentNodes()[0].data.title).toBe('New');
@@ -78,7 +78,7 @@ describe('selectedCardId', () => {
   beforeEach(() => {
     useProjectStore.setState({
       projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
-      trees: { 'proj_1': { id: 'root', type: 'project', title: 'Test', status: 'draft' } },
+      trees: { 'proj_1': { id: 'root', type: 'project', title: 'Test', status: 'draft' as const } },
       currentProjectId: 'proj_1',
       selectedNodeId: null,
     });
@@ -98,7 +98,7 @@ describe('selectedCardId', () => {
       id: 'card_1',
       type: 'script',
       position: { x: 0, y: 0 },
-      data: { title: 'Scene 1', status: 'draft' },
+      data: { title: 'Scene 1', status: 'draft' as const },
     });
     useCanvasStore.getState().setSelectedCardId('card_1');
     expect(useCanvasStore.getState().selectedCardId).toBe('card_1');
@@ -113,7 +113,7 @@ describe('selectedCardId', () => {
       id: 'card_1',
       type: 'script',
       position: { x: 0, y: 0 },
-      data: { title: 'Scene 1', status: 'draft' },
+      data: { title: 'Scene 1', status: 'draft' as const },
     });
     useCanvasStore.getState().setSelectedCardId('card_1');
     useCanvasStore.getState().setSelectedCardId(null);
@@ -129,7 +129,7 @@ describe('selectedCardId', () => {
   it('selectedCardId is excluded from persist partialize', () => {
     useCanvasStore.getState().setSelectedCardId('card_1');
     const opts = useCanvasStore.persist.getOptions();
-    const partial = opts.partialize(useCanvasStore.getState());
+    const partial = opts.partialize!(useCanvasStore.getState());
     expect(partial).not.toHaveProperty('selectedCardId');
   });
 });

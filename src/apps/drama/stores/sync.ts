@@ -65,19 +65,19 @@ useCanvasStore.subscribe((state) => {
 
   for (const node of nodes) {
     const prev = prevCanvasNodes.get(node.id);
-    if (!prev) continue;
-
+    const linkedTreeNodeId = node.data.linkedTreeNodeId;
     if (
-      node.data.linkedTreeNodeId &&
-      (node.data.title !== prev.title ||
-        node.data.status !== prev.status ||
-        node.data.description !== prev.description)
+      prev &&
+      linkedTreeNodeId &&
+      (node.data.title !== prev!.title ||
+        node.data.status !== prev!.status ||
+        node.data.description !== prev!.description)
     ) {
       syncGuard = true;
-      useProjectStore.getState().updateTreeNode(node.data.linkedTreeNodeId, {
-        title: node.data.title !== prev.title ? node.data.title : undefined,
-        status: node.data.status !== prev.status ? node.data.status : undefined,
-        metadata: node.data.description !== prev.description
+      useProjectStore.getState().updateTreeNode(linkedTreeNodeId as string, {
+        title: node.data.title !== prev!.title ? node.data.title : undefined,
+        status: node.data.status !== prev!.status ? node.data.status : undefined,
+        metadata: node.data.description !== prev!.description
           ? { description: node.data.description }
           : undefined,
       } as Partial<TreeNode>);
@@ -126,25 +126,25 @@ useProjectStore.subscribe((state) => {
     const linkedId = card.data.linkedTreeNodeId;
     if (!linkedId) continue;
 
-    const oldTreeNode = findNodeById(prevTree, linkedId);
-    const newTreeNode = findNodeById(tree, linkedId);
+    const oldTreeNode = findNodeById(prevTree!, linkedId as string);
+    const newTreeNode = findNodeById(tree!, linkedId as string);
     const changes = collectLinkedFieldChanges(oldTreeNode, newTreeNode);
     if (changes) {
       syncGuard = true;
       const cu: Record<string, unknown> = {};
-      if (changes.title !== undefined) cu.title = changes.title;
-      if (changes.status !== undefined) cu.status = changes.status;
-      if (changes.description !== undefined) cu.description = changes.description;
+      if (changes!.title !== undefined) cu.title = changes!.title;
+      if (changes!.status !== undefined) cu.status = changes!.status;
+      if (changes!.description !== undefined) cu.description = changes!.description;
       cs.updateNodeData(card.id, cu as Record<string, unknown>);
       syncGuard = false;
     }
   }
 
   // 2. Node-level sync: detect added / removed scene nodes
-  const { added, removed } = diffScenes(prevTree, tree);
+  const { added, removed } = diffScenes(prevTree!, tree!);
 
   for (const scene of added) {
-    const pos = computeScenePosition(tree, scene.id);
+    const pos = computeScenePosition(tree!, scene.id);
     syncGuard = true;
     cs.addNode({
       id: `canvas_scene_${scene.id}`,
@@ -164,7 +164,7 @@ useProjectStore.subscribe((state) => {
     const canvasNode = canvasNodes.find((n) => n.data.linkedTreeNodeId === removedId);
     if (canvasNode) {
       syncGuard = true;
-      cs.removeNode(canvasNode.id);
+      cs.removeNode(canvasNode!.id);
       syncGuard = false;
     }
   }

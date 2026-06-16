@@ -76,32 +76,82 @@ export const SPELLPAW_TOOL_CONFIGS = [
     endpoint: TOOL_ENDPOINT,
   },
   {
-    name: 'spellpaw_generate_storyboard',
-    description: 'Generate a storyboard reference image for a scene or shot. Returns an image URL that is attached to the linked canvas card.',
-    parameters: {
-      type: 'object',
-      properties: {
-        nodeId: { type: 'string' },
-        prompt: { type: 'string' },
-      },
-      required: ['nodeId'],
-    },
-    endpoint: TOOL_ENDPOINT,
-  },
-  {
     name: 'spellpaw_generate_asset',
-    description: 'Generate an image or video asset for a tree node and add it to the canvas as a card. Use when the user asks to generate a storyboard, reference image, scene visual, or video for a scene/shot. Valid providers: openai.',
+    description: 'Generate an image or video asset for a tree node and add it to the canvas as a card. Use when the user asks to generate a storyboard, reference image, scene visual, or video for a scene/shot. Valid providers: openai, doubao.',
     parameters: {
       type: 'object',
       properties: {
         nodeId: { type: 'string', description: 'ID of the scene or shot node to generate for' },
         mediaType: { type: 'string', enum: ['image', 'video'], description: 'Type of media to generate' },
         prompt: { type: 'string', description: 'Optional generation prompt; if omitted, built from node metadata' },
-        provider: { type: 'string', enum: ['openai'], description: 'Optional provider id' },
+        provider: { type: 'string', enum: ['openai', 'doubao'], description: 'Optional provider id' },
         count: { type: 'number', description: 'Number of variants to generate (default 1)' },
         cardType: { type: 'string', enum: ['art', 'sceneCard', 'deliverable'], description: 'Canvas card type to create (default art for image, deliverable for video)' },
       },
       required: ['nodeId', 'mediaType'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_generate_variants',
+    description: 'Generate multiple variant images of an existing scene or canvas card. Useful when the user wants "more options", "a few versions", or "variations of this shot".',
+    parameters: {
+      type: 'object',
+      properties: {
+        nodeId: { type: 'string', description: 'ID of the scene/shot node to generate variants for (alternative to cardId)' },
+        cardId: { type: 'string', description: 'ID of an existing canvas card to generate variants from (alternative to nodeId)' },
+        mediaType: { type: 'string', enum: ['image', 'video'], description: 'Type of media to generate' },
+        prompt: { type: 'string', description: 'Optional override prompt; if omitted, inherits from card or node metadata' },
+        provider: { type: 'string', enum: ['openai', 'doubao'], description: 'Optional provider id' },
+        count: { type: 'number', description: 'Number of variants to generate (default 1)' },
+      },
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_edit_asset',
+    description: 'Edit an existing image canvas card based on a text instruction (e.g. "make it rain", "change the color grading to noir"). If no dedicated image-editing provider is available, falls back to generating a new edited-version art card.',
+    parameters: {
+      type: 'object',
+      properties: {
+        cardId: { type: 'string', description: 'ID of the canvas card to edit' },
+        prompt: { type: 'string', description: 'Text instruction describing the desired edit' },
+        provider: { type: 'string', enum: ['openai', 'doubao'], description: 'Optional provider id' },
+      },
+      required: ['cardId', 'prompt'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_apply_style',
+    description: 'Create a new styled version of an existing image card. Provide either a stylePrompt (e.g. "watercolor", "cyberpunk neon") or a styleCardId referencing an existing style reference card.',
+    parameters: {
+      type: 'object',
+      properties: {
+        sourceCardId: { type: 'string', description: 'ID of the source image card' },
+        stylePrompt: { type: 'string', description: 'Text description of the desired style' },
+        styleCardId: { type: 'string', description: 'ID of an existing style reference card (alternative to stylePrompt)' },
+        provider: { type: 'string', enum: ['openai', 'doubao'], description: 'Optional provider id' },
+      },
+      required: ['sourceCardId'],
+    },
+    endpoint: TOOL_ENDPOINT,
+  },
+  {
+    name: 'spellpaw_batch_apply_style',
+    description: 'Batch apply a visual style to multiple scene/shot nodes. Creates a styled art card for each selected node. Use when the user wants "unify the style of selected scenes" or "apply this style to all selected shots".',
+    parameters: {
+      type: 'object',
+      properties: {
+        nodeIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'IDs of scene/shot nodes to style',
+        },
+        stylePrompt: { type: 'string', description: 'Text description of the desired visual style' },
+        provider: { type: 'string', enum: ['openai', 'doubao'], description: 'Optional provider id' },
+      },
+      required: ['nodeIds', 'stylePrompt'],
     },
     endpoint: TOOL_ENDPOINT,
   },

@@ -159,7 +159,7 @@ export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
                     }>
                       {d.type === 'added' ? '+ 新增' : d.type === 'removed' ? '- 删除' : '~ 修改'}
                     </span>
-                    <span className="text-[var(--color-text-secondary)] ml-1">{d.nodePath}</span>
+                    <span className="text-[var(--color-text-secondary)] ml-1">{d.path.join(' / ')}</span>
                   </div>
                 ))}
                 {diffs.length > 20 && <p className="text-[10px] text-[var(--color-text-tertiary)]">...还有 {diffs.length - 20} 项</p>}

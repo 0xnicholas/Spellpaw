@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { treeToTemplate, validateTemplate, downloadTemplateFile } from './templateExportImport';
 import type { TreeNode, Project } from '@drama/types';
 

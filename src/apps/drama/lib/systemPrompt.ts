@@ -30,9 +30,13 @@ function genreGuidance(genre: string): string {
 function buildCanvasToolkitSection(): string {
   return [
     `## 画布内容生成工具包`,
-    `当用户提到「生成参考图 / 生成分镜 / 为场景生成图片 / 生成视频」时，直接调用下列工具，不要拆成多个 add_canvas_card：`,
+    `当用户提到「生成参考图 / 生成分镜 / 为场景生成图片 / 生成视频 / 再来几个版本 / 换个风格 / 编辑这张图」时，直接调用下列工具，不要拆成多个 add_canvas_card：`,
     `- spellpaw_generate_asset({ nodeId, mediaType: "image"|"video", prompt?, provider?, count?, cardType? })`,
-    `可用 provider: openai`,
+    `- spellpaw_generate_variants({ nodeId? | cardId?, mediaType?, prompt?, provider?, count? })`,
+    `- spellpaw_edit_asset({ cardId, prompt, provider? })`,
+    `- spellpaw_apply_style({ sourceCardId, stylePrompt? | styleCardId?, provider? })`,
+    `- spellpaw_batch_apply_style({ nodeIds, stylePrompt, provider? }) — 为多个 scene/shot 节点批量应用统一风格`,
+    `可用 provider: openai（图片） / doubao（图片+视频，支持图生图、风格迁移、视频生成）`,
   ].join('\n');
 }
 
@@ -81,7 +85,6 @@ export function buildSystemPrompt(
     `- spellpaw_analyze_structure — 诊断结构健康度并给出补全建议`,
     `- spellpaw_get_pacing_report — 获取节奏分析报告（时长分布、CV、问题）`,
     `- spellpaw_optimize_pacing — 一键优化场景时长节奏（dryRun 预览 / 执行）`,
-    `- spellpaw_generate_storyboard (nodeId, prompt?) — 为场景生成参考图`,
     `- spellpaw_build_ui (component, data) — 生成角色关系图等可交互 UI 组件`,
     `- spellpaw_add_canvas_card (cardType, data, position?) — 在画布上生成卡片`,
     `- spellpaw_update_canvas_card (cardId, data) — 更新已有画布卡片`,

@@ -19,6 +19,7 @@ async function bootstrap() {
   await migrateToIDB()
   initSyncEngine()
 
+  await useTaskStore.persist.rehydrate()
   useTaskStore.getState().tasks.forEach((t) => {
     const provider = providerRegistry.get(t.providerId)
     if (provider?.poll) startPolling(t.taskId, provider, t.cardId)

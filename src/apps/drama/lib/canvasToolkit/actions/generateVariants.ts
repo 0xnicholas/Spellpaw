@@ -1,44 +1,69 @@
 import { useProjectStore } from '@drama/stores/projectStore';
+import { useCanvasStore } from '@drama/stores/canvasStore';
 import { addCanvasCardHandler } from '@drama/lib/builderHandlers';
 import { findNode } from '@drama/lib/treeUtils';
 import { providerRegistry } from '../registry';
 import { useTaskStore } from '../taskStore';
 import { buildDefaultPrompt, updateCardThumbnail, startPolling } from '../shared';
 import type { ToolkitResult, GenerationInput, Capability, MediaType } from '../types';
-import type { CanvasNodeType } from '@drama/types';
+import type { TreeNode } from '@drama/types';
 
-export interface GenerateAssetParams {
-  action: 'generate_asset';
-  nodeId: string;
-  mediaType: MediaType;
+export interface GenerateVariantsParams {
+  action: 'generate_variants';
+  nodeId?: string;
+  cardId?: string;
+  mediaType?: MediaType;
   prompt?: string;
-  provider?: string;
   count?: number;
-  cardType?: CanvasNodeType;
+  provider?: string;
 }
 
-export async function generateAsset(params: GenerateAssetParams): Promise<ToolkitResult> {
+export async function generateVariants(params: GenerateVariantsParams): Promise<ToolkitResult> {
   const store = useProjectStore.getState();
   const tree = store.getCurrentTree();
   if (!tree) {
     return { success: false, message: '当前没有打开的项目', retryable: false };
   }
 
-  const node = findNode(tree, params.nodeId);
-  if (!node) {
-    return { success: false, message: `未找到节点: ${params.nodeId}`, retryable: false };
+  let node: TreeNode | null = null;
+  let basePrompt = params.prompt;
+
+  if (params.nodeId) {
+    node = findNode(tree, params.nodeId) ?? null;
+    if (!node) {
+      return { success: false, message: `未找到节点: ${params.nodeId}`, retryable: false };
+    }
+    basePrompt ??= buildDefaultPrompt(node);
+  } else if (params.cardId) {
+    const card = useCanvasStore.getState().getCurrentNodes().find((n) => n.id === params.cardId);
+    if (!card) {
+      return { success: false, message: `未找到卡片: ${params.cardId}`, retryable: false };
+    }
+    basePrompt ??= (card.data.generatedPrompt as string | undefined)
+      || (card.data.description as string | undefined)
+      || card.data.title;
+    if (card.data.linkedTreeNodeId) {
+      node = findNode(tree, card.data.linkedTreeNodeId) ?? null;
+    }
+  } else {
+    return { success: false, message: '请提供 nodeId 或 cardId', retryable: false };
   }
 
-  if (params.mediaType !== 'image' && params.mediaType !== 'video') {
-    return { success: false, message: `不支持的 mediaType: ${params.mediaType}`, retryable: false };
+  if (!basePrompt) {
+    return { success: false, message: '无法确定生成提示词', retryable: false };
   }
 
-  const capability: Capability = params.mediaType === 'video' ? 'text2video' : 'text2image';
+  const mediaType = params.mediaType ?? 'image';
+  if (mediaType !== 'image' && mediaType !== 'video') {
+    return { success: false, message: `不支持的 mediaType: ${mediaType}`, retryable: false };
+  }
+
+  const capability: Capability = mediaType === 'video' ? 'text2video' : 'text2image';
   const batchCount = Math.max(1, Math.floor(params.count ?? 1));
   const input: GenerationInput = {
-    type: params.mediaType,
+    type: mediaType,
     capability,
-    prompt: params.prompt ?? buildDefaultPrompt(node),
+    prompt: basePrompt,
     batchCount,
   };
 
@@ -48,7 +73,6 @@ export async function generateAsset(params: GenerateAssetParams): Promise<Toolki
   }
 
   const provider = selection.provider;
-  const cardType = params.cardType ?? (params.mediaType === 'video' ? 'deliverable' : 'art');
   const cardIds: string[] = [];
   const pendingTaskIds: string[] = [];
 
@@ -59,19 +83,15 @@ export async function generateAsset(params: GenerateAssetParams): Promise<Toolki
     }
 
     const titleSuffix = batchCount > 1 ? ` 变体 ${i + 1}` : '';
-    const cardData: Record<string, unknown> = {
-      title: `${node.title}${titleSuffix}`,
-      description: input.prompt,
-      generatedPrompt: input.prompt,
-      linkedTreeNodeId: node.id,
+    const title = node ? `${node.title}${titleSuffix}` : `${basePrompt.slice(0, 20)}${titleSuffix}`;
+    const card = await addCanvasCardHandler('art', {
+      title,
+      description: basePrompt,
+      generatedPrompt: basePrompt,
+      linkedTreeNodeId: node?.id,
       status: 'draft',
       sourceProvider: provider.id,
-    };
-    if (cardType === 'deliverable') {
-      cardData.deliverableType = 'video';
-    }
-
-    const card = await addCanvasCardHandler(cardType, cardData);
+    });
     cardIds.push(card.id);
 
     if (task.status === 'done' && task.resultUrl) {
@@ -91,7 +111,7 @@ export async function generateAsset(params: GenerateAssetParams): Promise<Toolki
   const pendingSuffix = pendingTaskIds.length > 0 ? `（${pendingTaskIds.length} 个任务正在后台生成）` : '';
   return {
     success: true,
-    message: `已使用 ${provider.name} 创建 ${cardIds.length} 张${cardType === 'deliverable' ? '视频' : '图片'}卡片${pendingSuffix}`,
+    message: `已使用 ${provider.name} 创建 ${cardIds.length} 张变体图片卡片${pendingSuffix}`,
     cardIds,
     ...(pendingTaskIds.length > 0 ? { taskId: pendingTaskIds[0] } : {}),
   };

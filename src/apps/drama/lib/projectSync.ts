@@ -10,7 +10,7 @@ import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { authApi, useAuthStore } from '@/shared/stores/authStore';
 import { config } from '@/shared/config';
-import type { TreeNode } from '@drama/types';
+import type { TreeNode, Project } from '@drama/types';
 
 const API_BASE = config.serverBase;
 

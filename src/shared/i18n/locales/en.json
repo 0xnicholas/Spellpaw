@@ -54,6 +54,8 @@
       "description": "Manage third-party API keys and local integration settings",
       "openaiKey": "OpenAI API Key",
       "openaiHint": "Used for AI storyboard generation. Stored locally in your browser only; never uploaded to the server.",
+      "doubaoKey": "Doubao / Volcengine Ark API Key",
+      "doubaoHint": "Used for Doubao image generation, image-to-image, style transfer and video generation. Stored locally in your browser only.",
       "save": "Save API Key",
       "saved": "Saved",
       "saveError": "Save failed, please try again",

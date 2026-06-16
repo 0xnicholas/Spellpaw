@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
-import { getSettings, setApiKey } from '@drama/lib/imageGen';
+import { getSettings, setApiKey, getDoubaoApiKey, setDoubaoApiKey } from '@drama/lib/imageGen';
 import { getLLMSettings, setLLMSettings, type LLMProviderType } from '@console/lib/llmSettings';
 import { fetchSettings, updateSettings } from '@console/lib/consoleApi';
 
 export function IntegrationsSection() {
   const { t } = useTranslation();
   const [apiKey, setApiKeyState] = useState('');
+  const [doubaoApiKey, setDoubaoApiKeyState] = useState('');
   const [llmProvider, setLlmProvider] = useState<LLMProviderType>('spellpaw');
   const [llmApiKey, setLlmApiKey] = useState('');
   const [llmBaseUrl, setLlmBaseUrl] = useState('');
@@ -21,13 +22,16 @@ export function IntegrationsSection() {
     fetchSettings().then((server) => {
       if (server) {
         setApiKeyState(server.openaiApiKey ?? '');
+        setDoubaoApiKeyState(getDoubaoApiKey() ?? '');
         setLlmProvider((server.llmProvider as LLMProviderType) ?? 'spellpaw');
         setLlmApiKey(server.llmApiKey ?? '');
         setLlmBaseUrl(server.llmBaseUrl ?? '');
         setLlmModel(server.llmModel ?? '');
       } else {
         // Fallback to local storage if server request fails
-        setApiKeyState(getSettings().openaiApiKey ?? '');
+        const local = getSettings();
+        setApiKeyState(local.openaiApiKey ?? '');
+        setDoubaoApiKeyState(local.doubaoApiKey ?? '');
         const llm = getLLMSettings();
         setLlmProvider(llm.provider);
         setLlmApiKey(llm.apiKey);
@@ -52,6 +56,13 @@ export function IntegrationsSection() {
     } else {
       setStatus('error');
     }
+  };
+
+  const handleSaveDoubao = () => {
+    const trimmed = doubaoApiKey.trim();
+    setDoubaoApiKey(trimmed);
+    setDoubaoApiKeyState(trimmed);
+    showSaved();
   };
 
   const handleSaveLLM = async () => {
@@ -104,6 +115,28 @@ export function IntegrationsSection() {
 
         <div className="pt-2">
           <Button size="sm" onClick={handleSaveOpenAI} disabled={status === 'loading'}>{t('console.integrations.save')}</Button>
+        </div>
+      </div>
+
+      <div className="space-y-4 border-t border-[var(--color-border-default)] pt-6">
+        <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{t('console.integrations.doubaoKey')}</h3>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
+            {t('console.integrations.doubaoKey')}
+          </label>
+          <Input
+            type="password"
+            value={doubaoApiKey}
+            onChange={(e) => setDoubaoApiKeyState(e.target.value)}
+            placeholder="ark-..."
+          />
+          <p className="mt-1 text-[10px] text-[var(--color-text-tertiary)]">
+            {t('console.integrations.doubaoHint')}
+          </p>
+        </div>
+
+        <div className="pt-2">
+          <Button size="sm" onClick={handleSaveDoubao} disabled={status === 'loading'}>{t('console.integrations.save')}</Button>
         </div>
       </div>
 

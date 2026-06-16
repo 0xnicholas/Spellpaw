@@ -25,7 +25,7 @@ export const useTaskStore = create<TaskStoreState>()(
     {
       name: 'spellpaw_canvas_tasks',
       version: 1,
-      storage: createIDBStorage<TaskStoreState>('canvasTaskStore'),
+      storage: createIDBStorage<TaskStoreState>('taskStore'),
     }
   )
 );

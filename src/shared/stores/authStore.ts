@@ -35,7 +35,7 @@ export const useAuthStore = create<AuthState>()(
         if (email === 'demo@spellpaw.xyz' && password === 'password123') {
           set({
             isAuthenticated: true,
-            user: { id: 'demo-user', name: 'Demo User', email: 'demo@spellpaw.xyz', avatar: null },
+            user: { id: 'demo-user', name: 'Demo User', email: 'demo@spellpaw.xyz' },
             token: 'demo-token',
           });
           return { success: true };

@@ -54,6 +54,8 @@
       "description": "管理第三方 API Key 和本地集成设置",
       "openaiKey": "OpenAI API Key",
       "openaiHint": "用于 AI 分镜图生成。仅保存在本地浏览器中，不会上传到服务器。",
+      "doubaoKey": "豆包 / 火山方舟 API Key",
+      "doubaoHint": "用于豆包图片生成、图生图、风格迁移和视频生成。仅保存在本地浏览器中。",
       "save": "保存 API Key",
       "saved": "已保存",
       "saveError": "保存失败，请重试",

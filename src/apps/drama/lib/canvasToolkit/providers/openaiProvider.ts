@@ -23,13 +23,19 @@ export function createOpenAIProvider(): GenerationProvider {
     requiredConfigKeys: ['openaiApiKey'],
 
     isConfigured() {
-      if (config.apiKey) return true;
+      if (typeof config.apiKey === 'string' && config.apiKey.length > 0) return true;
       const settings = readSettings();
       return typeof settings.openaiApiKey === 'string' && settings.openaiApiKey.length > 0;
     },
 
     configure(next) {
-      config = { ...config, ...next };
+      const apiKey =
+        typeof next.apiKey === 'string' && next.apiKey.length > 0
+          ? next.apiKey
+          : typeof next.openaiApiKey === 'string' && next.openaiApiKey.length > 0
+            ? next.openaiApiKey
+            : undefined;
+      config = { ...config, ...next, ...(apiKey ? { apiKey } : {}) };
     },
 
     estimateCost(_input: GenerationInput) {

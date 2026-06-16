@@ -497,7 +497,7 @@ export const useProjectStore = create<ProjectState>()(
           // Deduplicate projects by id (keep the most recently updated one).
           // This fixes a race in pullAll() where rapid pulls could create duplicate server projects locally.
           if (state.projects) {
-            const projects = state.projects as Project[];
+            let projects = state.projects as Project[];
             const seen = new Map<string, Project>();
             for (const p of projects) {
               const existing = seen.get(p.id);
@@ -505,7 +505,7 @@ export const useProjectStore = create<ProjectState>()(
                 seen.set(p.id, p);
               }
             }
-            state.projects = Array.from(seen.values());
+            projects = Array.from(seen.values());
 
             // Some race duplicates kept the temporary generated id while copying the seed title.
             // For the canonical seed titles, keep the official seed id (proj_1 / proj_2) and drop look-alikes.
@@ -514,7 +514,7 @@ export const useProjectStore = create<ProjectState>()(
               '密室逃脱': 'proj_2',
             };
             const byTitle = new Map<string, Project[]>();
-            for (const p of state.projects) {
+            for (const p of projects) {
               const group = byTitle.get(p.title) ?? [];
               group.push(p);
               byTitle.set(p.title, group);
@@ -523,9 +523,10 @@ export const useProjectStore = create<ProjectState>()(
               const seedId = seedTitleToId[title];
               if (seedId && group.length > 1) {
                 const keeper = group.find((p) => p.id === seedId) ?? group[group.length - 1];
-                state.projects = state.projects.filter((p) => p.title !== title || p.id === keeper.id);
+                projects = projects.filter((p) => p.title !== title || p.id === keeper.id);
               }
             }
+            state.projects = projects;
           }
         }
         return state as unknown as ProjectState;

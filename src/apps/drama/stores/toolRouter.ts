@@ -5,7 +5,7 @@ import type { ToolRouter, TreeNode, NarrativeTemplate, TemplateAct, TemplateScen
 import { analyzePacing, suggestCompletions, generatePacingReport } from '@drama/lib/projectAnalysis';
 import { createNodeHandler, updateNodeHandler, deleteNodeHandler, addCanvasCardHandler } from '@drama/lib/builderHandlers';
 import { validateCanvasCardPayload, normalizeCardData, validateCanvasCardUpdateData, normalizeCardUpdateData } from '@drama/lib/canvasCardSchema';
-import { generateAsset } from '@drama/lib/canvasToolkit';
+import { generateAsset, generateVariants, editAsset, applyStyle, batchApplyStyle } from '@drama/lib/canvasToolkit';
 
 function nodeToLine(node: TreeNode, depth: number): string {
   const indent = '│   '.repeat(Math.max(0, depth - 1)) + (depth > 0 ? '├── ' : '');
@@ -244,6 +244,30 @@ export const toolRouter: ToolRouter = {
     return result.message;
   },
 
+  generate_variants: async (params) => {
+    const result = await generateVariants(params as unknown as Parameters<typeof generateVariants>[0]);
+    if (!result.success) throw new Error(result.message);
+    return result.message;
+  },
+
+  edit_asset: async (params) => {
+    const result = await editAsset(params as unknown as Parameters<typeof editAsset>[0]);
+    if (!result.success) throw new Error(result.message);
+    return result.message;
+  },
+
+  apply_style: async (params) => {
+    const result = await applyStyle(params as unknown as Parameters<typeof applyStyle>[0]);
+    if (!result.success) throw new Error(result.message);
+    return result.message;
+  },
+
+  batch_apply_style: async (params) => {
+    const result = await batchApplyStyle(params as unknown as Parameters<typeof batchApplyStyle>[0]);
+    if (!result.success) throw new Error(result.message);
+    return result.message;
+  },
+
   analyze_structure: async (_params) => {
     const store = useProjectStore.getState();
     const tree = store.getCurrentTree();
@@ -476,7 +500,7 @@ export const toolRouter: ToolRouter = {
       const node = findNode(tree, p.nodeId);
       if (node) {
         store.updateTreeNode(p.nodeId, {
-          metadata: { ...(node.metadata ?? {}), duration: p.newDuration, updatedAt: new Date().toISOString() },
+          metadata: { ...(node.metadata ?? {}), duration: p.newDuration, updatedAt: new Date().toISOString() } as TreeNode['metadata'],
         });
       }
     }

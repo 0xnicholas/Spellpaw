@@ -1,3 +1,5 @@
+import { DEFAULT_LLM_PROVIDER, isSupportedLLMProvider, LLM_PROVIDER_DEFAULTS } from './providers';
+
 /**
  * LLM Client — OpenAI-compatible chat completions with streaming.
  *
@@ -54,20 +56,6 @@ function toOpenAITools(tools: ToolConfig[] = []): Array<{
   }));
 }
 
-const SUPPORTED_PROVIDERS = ['doubao', 'minimax', 'deepseek', 'openai'] as const;
-type SupportedProvider = typeof SUPPORTED_PROVIDERS[number];
-
-const PROVIDER_DEFAULTS: Record<SupportedProvider, { baseUrl: string; model: string }> = {
-  doubao: { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-pro-32k' },
-  minimax: { baseUrl: 'https://api.minimax.chat/v1', model: 'abab6.5s-chat' },
-  deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
-  openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-};
-
-function isSupportedProvider(value: unknown): value is SupportedProvider {
-  return typeof value === 'string' && (SUPPORTED_PROVIDERS as readonly string[]).includes(value);
-}
-
 export interface StreamChatContext {
   provider?: string;
   apiKey?: string;
@@ -79,8 +67,8 @@ export async function* streamChat(
   options: ChatOptions,
   context: StreamChatContext = {}
 ): AsyncGenerator<SSEvent, void, unknown> {
-  const providerName = isSupportedProvider(context.provider) ? context.provider : 'deepseek';
-  const defaults = PROVIDER_DEFAULTS[providerName];
+  const providerName = isSupportedLLMProvider(context.provider) ? context.provider : DEFAULT_LLM_PROVIDER;
+  const defaults = LLM_PROVIDER_DEFAULTS[providerName];
 
   const apiKey = context.apiKey || process.env.LLM_API_KEY;
   const baseUrl = context.baseUrl || process.env.LLM_BASE_URL || defaults.baseUrl;

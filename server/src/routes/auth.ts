@@ -3,14 +3,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { auth, getUserId } from '../middleware';
-
-const SUPPORTED_LLM_PROVIDERS = ['doubao', 'minimax', 'deepseek', 'openai'] as const;
-const DEFAULT_LLM_PROVIDER = 'deepseek';
+import { DEFAULT_LLM_PROVIDER, isSupportedLLMProvider } from '../lib/providers';
 
 function normalizeLlmProvider(value: unknown): string {
-  return typeof value === 'string' && (SUPPORTED_LLM_PROVIDERS as readonly string[]).includes(value)
-    ? value
-    : DEFAULT_LLM_PROVIDER;
+  return isSupportedLLMProvider(value) ? value : DEFAULT_LLM_PROVIDER;
 }
 
 const JWT_SECRET = process.env.JWT_SECRET!;

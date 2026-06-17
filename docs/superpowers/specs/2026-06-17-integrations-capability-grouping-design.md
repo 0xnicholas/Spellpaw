@@ -30,7 +30,9 @@
 
 - OpenAI API Key（用于 DALL·E 图片生成）
 - 豆包 / 火山方舟 API Key（用于豆包图片、图生图、风格迁移、视频生成）
-- Minimax API Key（预留，用于后续 Minimax 视频生成；UI 标注“即将支持”）
+- Minimax API Key（预留，用于后续 Minimax 视频生成）
+  - 输入框 `disabled`，placeholder 显示 `console.integrations.minimaxPlaceholder`（“即将支持” / “Coming soon”）。
+  - 字段仅用于收集和存储 Key，当前没有功能调用它。
 - 保存按钮（三个 Key 一起保存）
 
 保存语义：提交时对每个输入值做 `.trim()`，然后把当前值（含空字符串）写入后端。空字符串在服务端存为 `null`，本地存为空字符串；这样用户可以清空某个 Key。
@@ -59,46 +61,67 @@ npx prisma generate
 #### localStorage
 `spellpaw_settings` 中新增 `minimaxApiKey` 字段，与 `openaiApiKey`、`doubaoApiKey` 一起同步。
 
+加载策略：`IntegrationsSection` 应复用或对齐 `syncUserSettings()` 的逻辑：从服务端拉取三个多模态 Key，并始终写入 localStorage（包括空值），确保服务端清空后本地也被清空。`IntegrationsSection` 内部不再单独调用 `setDoubaoApiKey` 等局部方法，统一由 `syncUserSettings()` 处理。
+
 ### Server API
 `/api/auth/settings` GET/PATCH 增加 `minimaxApiKey` 字段。
 
 在 `server/src/routes/auth.ts` 中：
-- GET `/settings` 的 `select` 和响应对象加入 `minimaxApiKey`。
-- PATCH `/settings` 的解构、`data` 赋值、响应对象加入 `minimaxApiKey`。
+- GET `/settings` 的 `select` 和响应对象加入 `minimaxApiKey`，响应使用 `user.minimaxApiKey ?? ''`。
+- PATCH `/settings` 的解构加入 `minimaxApiKey`，`data` 赋值使用 `data.minimaxApiKey = minimaxApiKey || null`，响应对象同样使用 `user.minimaxApiKey ?? ''`。
 - `llmProvider` 合法值保持为 `doubao | minimax | deepseek | openai`。
+
+示例 PATCH 逻辑片段：
+
+```ts
+const { openaiApiKey, doubaoApiKey, minimaxApiKey, llmProvider, llmApiKey, llmBaseUrl, llmModel } = req.body;
+const data: Record<string, string | null> = {};
+if (openaiApiKey !== undefined) data.openaiApiKey = openaiApiKey || null;
+if (doubaoApiKey !== undefined) data.doubaoApiKey = doubaoApiKey || null;
+if (minimaxApiKey !== undefined) data.minimaxApiKey = minimaxApiKey || null;
+// ... existing LLM fields
+```
 
 ### 前端改动
 
 | 文件 | 改动 |
 |------|------|
-| `src/apps/console/components/integrations/IntegrationsSection.tsx` | 按新结构重组 UI；加载 server settings 后调用 `setMinimaxApiKey` 同步到 localStorage |
+| `src/apps/console/components/integrations/IntegrationsSection.tsx` | 按新结构重组 UI；移除手写的局部 Key 同步，统一依赖 `syncUserSettings()` |
 | `src/apps/drama/lib/imageGen.ts` | 增加 `getMinimaxApiKey` / `setMinimaxApiKey` |
 | `src/apps/console/lib/consoleApi.ts` | `UserSettings` 增加 `minimaxApiKey` |
-| `src/apps/console/lib/syncSettings.ts` | 同步 `minimaxApiKey` 到 localStorage |
+| `src/apps/console/lib/syncSettings.ts` | 同步三个多模态 Key 到 localStorage，支持空值覆盖 |
 | `src/shared/i18n/locales/zh-CN.json` / `en.json` | 更新分组标题、说明、按钮文案 |
 
-### i18n 新增/变更键
+### i18n 键变更清单
 
 `console.integrations` 下：
 
+**新增**
 | 键 | 中文 | 英文 |
 |---|---|---|
 | `languageModelTitle` | 语言模型 | Language Model |
 | `languageModelDescription` | 用于 Copilot 对话和 Agent 工具调用 | Used for Copilot chat and Agent tool calls |
 | `multimodalTitle` | 多模态生成 | Multimodal Generation |
 | `multimodalDescription` | 用于图片、图生图、风格迁移和视频生成 | Used for images, image-to-image, style transfer and video |
-| `openaiKey` | OpenAI API Key | OpenAI API Key |
-| `openaiHint` | 用于 DALL·E 图片生成 | Used for DALL·E image generation |
-| `doubaoKey` | 豆包 / 火山方舟 API Key | Doubao / Volcengine Ark API Key |
-| `doubaoHint` | 用于豆包图片生成、图生图、风格迁移和视频生成 | Used for Doubao image generation, image-to-image, style transfer and video |
 | `minimaxKey` | Minimax API Key | Minimax API Key |
 | `minimaxHint` | 预留，用于 Minimax 视频生成 | Reserved for Minimax video generation |
 | `minimaxPlaceholder` | 即将支持 | Coming soon |
 | `saveLanguageModel` | 保存语言模型设置 | Save Language Model Settings |
 | `saveMultimodal` | 保存多模态 Key | Save Multimodal Keys |
 
-保留并复用的键：`llmProvider`（Provider 标签）、`llmApiKey`（API Key 标签）、`llmBaseUrl`（Base URL 标签）、`llmModel`（Model 标签）。
-移除或替换旧键：`llmTitle` → `languageModelTitle`；`saveLlm` → `saveLanguageModel`；`customProvider` 不再使用；`llmBaseUrlHint` 文案改为“已根据 Provider 预设，通常无需修改”。
+**保留并复用（文案不变）**
+- `llmProvider`、`llmApiKey`、`llmBaseUrl`、`llmModel`：语言模型区块的表单标签。
+- `save`：通用“保存”文案，可用于多模态保存按钮（若希望按钮文案统一），也可被 `saveMultimodal` 替代。
+
+**保留并修改文案**
+- `openaiHint`：从“用于 AI 分镜图生成”改为“用于 DALL·E 图片生成”。
+- `doubaoHint`：文案不变（已覆盖图片/图生图/风格迁移/视频）。
+- `llmBaseUrlHint`：从“OpenAI 兼容接口地址...”改为“已根据 Provider 预设，通常无需修改”。
+
+**移除/替换**
+- `llmTitle` → 替换为 `languageModelTitle`
+- `saveLlm` → 替换为 `saveLanguageModel`
+- `customProvider` → 不再使用
 
 ### 测试更新
 - `src/apps/console/lib/consoleApi.test.ts`：`fetchSettings` 和 `updateSettings` 的 mock settings 必须包含完整字段：`openaiApiKey`、`doubaoApiKey`、`minimaxApiKey`、`llmProvider`、`llmApiKey`、`llmBaseUrl`、`llmModel`。

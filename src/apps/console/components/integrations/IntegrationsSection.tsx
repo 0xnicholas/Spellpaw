@@ -40,11 +40,11 @@ export function IntegrationsSection() {
       const provider = server && isValidProvider(server.llmProvider) ? server.llmProvider : llm.provider;
       setLlmProvider(provider);
       setLlmApiKey(server?.llmApiKey ?? llm.apiKey);
-      setLlmBaseUrl(server?.llmBaseUrl ?? llm.baseUrl || LLM_PROVIDER_DEFAULTS[provider].baseUrl);
-      setLlmModel(server?.llmModel ?? llm.model || LLM_PROVIDER_DEFAULTS[provider].model);
+      setLlmBaseUrl(server?.llmBaseUrl ?? (llm.baseUrl || LLM_PROVIDER_DEFAULTS[provider].baseUrl));
+      setLlmModel(server?.llmModel ?? (llm.model || LLM_PROVIDER_DEFAULTS[provider].model));
 
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, []);
 
   const showSaved = (setter: (v: boolean) => void) => {
@@ -234,7 +234,7 @@ export function IntegrationsSection() {
             value={minimaxKey}
             onChange={(e) => setMinimaxKey(e.target.value)}
             placeholder={t('console.integrations.minimaxPlaceholder')}
-            disabled
+            disabled={loading}
           />
         </div>
 

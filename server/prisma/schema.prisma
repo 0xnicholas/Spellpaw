@@ -16,9 +16,10 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  openaiApiKey String?
-  doubaoApiKey String?
-  llmProvider  String    @default("spellpaw")
+  openaiApiKey  String?
+  doubaoApiKey  String?
+  minimaxApiKey String?
+  llmProvider   String    @default("deepseek")
   llmApiKey    String?
   llmBaseUrl   String?
   llmModel     String?

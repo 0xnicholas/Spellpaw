@@ -16,6 +16,7 @@ import { auth, getUserId } from '../middleware';
 const PROVIDER_BASE_URLS: Record<string, string> = {
   openai: 'https://api.openai.com/v1',
   doubao: 'https://ark.cn-beijing.volces.com/api/v3',
+  siliconflow: 'https://api.siliconflow.cn/v1',
 };
 
 function providerUrl(provider: string, wildcard: string): string | undefined {

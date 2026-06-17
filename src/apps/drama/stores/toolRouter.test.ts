@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useProjectStore } from './projectStore';
 import { useCanvasStore } from './canvasStore';
 import { toolRouter } from './toolRouter';
+import { providerRegistry, useTaskStore } from '@drama/lib/canvasToolkit';
+import type { GenerationProvider } from '@drama/lib/canvasToolkit';
 
 // 准备一棵测试树（project → act → scene → shot）
 function seedTree(): string {
@@ -383,28 +385,135 @@ describe('toolRouter — AI 感知 tool', () => {
 describe('toolRouter — generate_storyboard', () => {
   beforeEach(() => {
     useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null });
+    useCanvasStore.setState({ canvases: {}, selectedCardId: null });
+    providerRegistry.clear();
   });
 
-  it('accepts stylePrompt parameter in function signature', async () => {
+  function fakeProvider(opts: {
+    id: string;
+    name?: string;
+    configured?: boolean;
+    resultUrl?: string;
+    async?: boolean;
+  }): GenerationProvider {
+    const id = opts.id;
+    return {
+      id,
+      name: opts.name ?? id,
+      supportedMedia: ['image'],
+      capabilities: ['text2image'],
+      requiredConfigKeys: [`${id}Key`],
+      isConfigured: () => opts.configured ?? true,
+      configure: () => {},
+      estimateCost: () => ({ amount: 1, unit: 'image' }),
+      submit: async () =>
+        opts.async
+          ? { taskId: `${id}_task`, status: 'pending' }
+          : { taskId: `${id}_task`, status: 'done', resultUrl: opts.resultUrl ?? `https://${id}.example/img.png` },
+      poll: async (taskId) => ({
+        taskId,
+        status: 'done',
+        resultUrl: opts.resultUrl ?? `https://${id}.example/img.png`,
+      }),
+    };
+  }
+
+  it('国产 provider 优先，默认使用 doubao', async () => {
     seedTree();
-    // We can't actually call OpenAI in tests, but we verify the router accepts stylePrompt
-    // by checking that the error path works (OpenAI will fail without real API key)
-    await expect(
-      toolRouter.generate_storyboard({
-        action: 'generate_storyboard',
-        nodeId: 'scene-1',
-        stylePrompt: 'A cinematic noir style with high contrast.',
-      })
-    ).rejects.toThrow();
+    providerRegistry.register(fakeProvider({ id: 'doubao', name: '豆包' }));
+    providerRegistry.register(fakeProvider({ id: 'siliconflow', name: '硅基流动' }));
+    providerRegistry.register(fakeProvider({ id: 'openai', name: 'OpenAI' }));
+    providerRegistry.register(fakeProvider({ id: 'mock', name: 'Mock' }));
+
+    const result = await toolRouter.generate_storyboard({
+      action: 'generate_storyboard',
+      nodeId: 'scene-1',
+    });
+
+    expect(result).toContain('豆包');
+    const nodes = useCanvasStore.getState().getCurrentNodes();
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].data.sourceProvider).toBe('doubao');
+    expect(nodes[0].data.thumbnail).toContain('doubao.example');
   });
 
-  it('falls back to buildImagePrompt when no stylePrompt is provided', async () => {
+  it('doubao 未配置时 fallback 到另一家国产 siliconflow', async () => {
     seedTree();
-    await expect(
-      toolRouter.generate_storyboard({
-        action: 'generate_storyboard',
-        nodeId: 'scene-1',
-      })
-    ).rejects.toThrow();
+    providerRegistry.register(fakeProvider({ id: 'doubao', configured: false }));
+    providerRegistry.register(fakeProvider({ id: 'siliconflow', name: '硅基流动' }));
+
+    const result = await toolRouter.generate_storyboard({
+      action: 'generate_storyboard',
+      nodeId: 'scene-1',
+    });
+
+    expect(result).toContain('硅基流动');
+    expect(useCanvasStore.getState().getCurrentNodes()[0].data.sourceProvider).toBe('siliconflow');
+  });
+
+  it('国产 provider 都未配置时 fallback 到 openai', async () => {
+    seedTree();
+    providerRegistry.register(fakeProvider({ id: 'doubao', configured: false }));
+    providerRegistry.register(fakeProvider({ id: 'siliconflow', configured: false }));
+    providerRegistry.register(fakeProvider({ id: 'openai', name: 'OpenAI' }));
+
+    const result = await toolRouter.generate_storyboard({
+      action: 'generate_storyboard',
+      nodeId: 'scene-1',
+    });
+
+    expect(result).toContain('OpenAI');
+    expect(useCanvasStore.getState().getCurrentNodes()[0].data.sourceProvider).toBe('openai');
+  });
+
+  it('doubao/siliconflow/openai 都未配置时 fallback 到 mock', async () => {
+    seedTree();
+    providerRegistry.register(fakeProvider({ id: 'doubao', configured: false }));
+    providerRegistry.register(fakeProvider({ id: 'siliconflow', configured: false }));
+    providerRegistry.register(fakeProvider({ id: 'openai', configured: false }));
+    providerRegistry.register(fakeProvider({ id: 'mock', name: 'Mock' }));
+
+    const result = await toolRouter.generate_storyboard({
+      action: 'generate_storyboard',
+      nodeId: 'scene-1',
+    });
+
+    expect(result).toContain('Mock');
+    expect(useCanvasStore.getState().getCurrentNodes()[0].data.sourceProvider).toBe('mock');
+  });
+
+  it('异步任务会写入 taskStore 并启动轮询', async () => {
+    seedTree();
+    providerRegistry.register(fakeProvider({ id: 'doubao', async: true }));
+
+    const result = await toolRouter.generate_storyboard({
+      action: 'generate_storyboard',
+      nodeId: 'scene-1',
+    });
+
+    expect(result).toContain('提交');
+    expect(result).toContain('doubao_task');
+    const nodes = useCanvasStore.getState().getCurrentNodes();
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].data.thumbnail).toBeUndefined();
+
+    const tasks = useTaskStore.getState().tasks;
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].providerId).toBe('doubao');
+  });
+
+  it('stylePrompt 会覆盖默认 prompt 并写入 tags', async () => {
+    seedTree();
+    providerRegistry.register(fakeProvider({ id: 'doubao' }));
+
+    await toolRouter.generate_storyboard({
+      action: 'generate_storyboard',
+      nodeId: 'scene-1',
+      stylePrompt: 'A cinematic noir style with high contrast.',
+    });
+
+    const card = useCanvasStore.getState().getCurrentNodes()[0];
+    expect(card.data.generatedPrompt).toContain('A cinematic noir style');
+    expect(card.data.tags).toEqual(['A cinematic noir style with high contrast.']);
   });
 });

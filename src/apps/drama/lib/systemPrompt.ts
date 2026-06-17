@@ -36,7 +36,8 @@ function buildCanvasToolkitSection(): string {
     `- spellpaw_edit_asset({ cardId, prompt, provider? })`,
     `- spellpaw_apply_style({ sourceCardId, stylePrompt? | styleCardId?, provider? })`,
     `- spellpaw_batch_apply_style({ nodeIds, stylePrompt, provider? }) — 为多个 scene/shot 节点批量应用统一风格`,
-    `可用 provider: openai（图片） / doubao（图片+视频，支持图生图、风格迁移、视频生成）`,
+    `可用 provider: doubao（图片+视频，支持图生图、风格迁移、视频生成） / siliconflow（图片，国产 OpenAI-compatible） / openai（图片）`,
+    `spellpaw_generate_storyboard 默认按国产优先顺序自动选择可用 provider：doubao → siliconflow → openai → mock。`,
     `## 强制规则`,
     `如果用户请求属于「生成 / 变体 / 编辑 / 风格迁移」中的任意一种，你必须调用上述对应工具完成操作，不能只回复文字。`,
   ].join('\n');

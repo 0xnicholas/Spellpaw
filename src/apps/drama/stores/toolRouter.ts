@@ -5,7 +5,10 @@ import type { ToolRouter, TreeNode, NarrativeTemplate, TemplateAct, TemplateScen
 import { analyzePacing, suggestCompletions, generatePacingReport } from '@drama/lib/projectAnalysis';
 import { createNodeHandler, updateNodeHandler, deleteNodeHandler, addCanvasCardHandler } from '@drama/lib/builderHandlers';
 import { validateCanvasCardPayload, normalizeCardData, validateCanvasCardUpdateData, normalizeCardUpdateData } from '@drama/lib/canvasCardSchema';
-import { generateAsset, generateVariants, editAsset, applyStyle, batchApplyStyle } from '@drama/lib/canvasToolkit';
+import {
+  generateAsset, generateVariants, editAsset, applyStyle, batchApplyStyle,
+  providerRegistry, useTaskStore, startPolling,
+} from '@drama/lib/canvasToolkit';
 
 function nodeToLine(node: TreeNode, depth: number): string {
   const indent = '│   '.repeat(Math.max(0, depth - 1)) + (depth > 0 ? '├── ' : '');
@@ -235,43 +238,71 @@ export const toolRouter: ToolRouter = {
     const node = findNode(tree, nodeId);
     if (!node) return `(未找到节点 ${nodeId})`;
 
-    try {
-      const { generateImage, buildImagePrompt } = await import('../lib/imageGen');
+    const { buildImagePrompt } = await import('@drama/lib/imageGen');
 
-      let prompt: string;
-      if (stylePrompt) {
-        prompt = `${stylePrompt}\n\nScene: "${node.title}".`
-          + (node.metadata?.location ? ` Location: ${node.metadata.location}.` : '')
-          + (node.metadata?.timeOfDay ? ` Time: ${node.metadata.timeOfDay}.` : '')
-          + (node.metadata?.shotType ? ` Shot: ${node.metadata.shotType}.` : '')
-          + (node.metadata?.description ? ` ${node.metadata.description}` : '');
-      } else {
-        prompt = customPrompt || buildImagePrompt(node);
-      }
-
-      const imageUrl = await generateImage({ prompt, size: '1024x1792' });
-
-      // Create a new art card on canvas instead of updating a linked sceneCard
-      const { useCanvasStore } = await import('./canvasStore');
-      const canvasState = useCanvasStore.getState();
-      const { generateId } = await import('@/shared/lib/utils');
-      canvasState.addNode({
-        id: generateId('canvas_art_'),
-        type: 'art' as const,
-        position: { x: Math.random() * 300 + 100, y: Math.random() * 300 + 100 },
-        data: {
-          title: node.title,
-          thumbnail: imageUrl,
-          prompt,
-          linkedTreeNodeId: nodeId,
-          tags: stylePrompt ? [stylePrompt] : [],
-        },
-      } as import('@drama/types').CanvasNode);
-
-      return `已为「${node.title}」生成参考图: ${imageUrl}`;
-    } catch (err) {
-      throw new Error(`分镜生成失败: ${(err as Error).message}`, { cause: err });
+    let prompt: string;
+    if (stylePrompt) {
+      prompt = `${stylePrompt}\n\nScene: "${node.title}".`
+        + (node.metadata?.location ? ` Location: ${node.metadata.location}.` : '')
+        + (node.metadata?.timeOfDay ? ` Time: ${node.metadata.timeOfDay}.` : '')
+        + (node.metadata?.shotType ? ` Shot: ${node.metadata.shotType}.` : '')
+        + (node.metadata?.description ? ` ${node.metadata.description}` : '');
+    } else {
+      prompt = customPrompt || buildImagePrompt(node);
     }
+
+    const input = {
+      type: 'image' as const,
+      capability: 'text2image' as const,
+      prompt,
+    };
+
+    function selectProvider() {
+      const domestic = [
+        providerRegistry.select(input, 'doubao'),
+        providerRegistry.select(input, 'siliconflow'),
+      ];
+      for (const selection of domestic) {
+        if (!('error' in selection)) return selection.provider;
+      }
+      const openai = providerRegistry.select(input, 'openai');
+      if (!('error' in openai)) return openai.provider;
+      const fallback = providerRegistry.select(input);
+      if ('error' in fallback) throw new Error(fallback.error);
+      return fallback.provider;
+    }
+
+    const provider = selectProvider();
+    const task = await provider.submit(input);
+
+    if (task.status === 'failed') {
+      throw new Error(task.error ?? '分镜生成失败');
+    }
+
+    const card = await addCanvasCardHandler('art' as import('@drama/types').CanvasNodeType, {
+      title: node.title,
+      description: prompt,
+      generatedPrompt: prompt,
+      linkedTreeNodeId: nodeId,
+      status: 'draft',
+      sourceProvider: provider.id,
+      ...(stylePrompt ? { tags: [stylePrompt] } : {}),
+    });
+
+    if (task.status === 'done' && task.resultUrl) {
+      useCanvasStore.getState().updateNodeData(card.id, { thumbnail: task.resultUrl });
+      return `已使用 ${provider.name} 为「${node.title}」生成参考图: ${task.resultUrl}`;
+    }
+
+    useTaskStore.getState().addTask({
+      taskId: task.taskId,
+      providerId: provider.id,
+      cardId: card.id,
+      createdAt: new Date().toISOString(),
+    });
+    startPolling(task.taskId, provider, card.id);
+
+    return `已使用 ${provider.name} 为「${node.title}」提交分镜生成任务，任务 ID: ${task.taskId}`;
   },
 
   generate_asset: async (params) => {

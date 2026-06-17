@@ -1,24 +1,26 @@
-import { fetchSettings } from './consoleApi';
+import { fetchSettings, type UserSettings } from './consoleApi';
 import { setApiKey, setDoubaoApiKey, setMinimaxApiKey } from '@drama/lib/imageGen';
 import { setLLMSettings, isValidProvider, DEFAULT_PROVIDER } from './llmSettings';
 
 /**
  * Pull user settings from server and write them to localStorage.
  * Falls back to local values on error.
+ *
+ * @param server Optional pre-fetched settings; if omitted, a fresh fetch is performed.
  */
-export async function syncUserSettings(): Promise<void> {
-  const server = await fetchSettings();
-  if (!server) return;
+export async function syncUserSettings(server?: UserSettings | null): Promise<void> {
+  const settings = server ?? await fetchSettings();
+  if (!settings) return;
 
   // Server wins for all keys; empty strings clear local values.
-  setApiKey(server.openaiApiKey ?? '');
-  setDoubaoApiKey(server.doubaoApiKey ?? '');
-  setMinimaxApiKey(server.minimaxApiKey ?? '');
+  setApiKey(settings.openaiApiKey ?? '');
+  setDoubaoApiKey(settings.doubaoApiKey ?? '');
+  setMinimaxApiKey(settings.minimaxApiKey ?? '');
 
   setLLMSettings({
-    provider: isValidProvider(server.llmProvider) ? server.llmProvider : DEFAULT_PROVIDER,
-    apiKey: server.llmApiKey ?? '',
-    baseUrl: server.llmBaseUrl ?? '',
-    model: server.llmModel ?? '',
+    provider: isValidProvider(settings.llmProvider) ? settings.llmProvider : DEFAULT_PROVIDER,
+    apiKey: settings.llmApiKey ?? '',
+    baseUrl: settings.llmBaseUrl ?? '',
+    model: settings.llmModel ?? '',
   });
 }

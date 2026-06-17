@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
-import { getSettings, setApiKey, setDoubaoApiKey, setMinimaxApiKey } from '@drama/lib/imageGen';
-import { getLLMSettings, setLLMSettings, LLM_PROVIDERS, LLM_PROVIDER_DEFAULTS, isValidProvider, DEFAULT_PROVIDER, type LLMProviderType } from '@console/lib/llmSettings';
+import { getSettings } from '@drama/lib/imageGen';
+import { getLLMSettings, setLLMSettings, LLM_PROVIDERS, LLM_PROVIDER_DEFAULTS, isValidProvider, type LLMProviderType } from '@console/lib/llmSettings';
 import { fetchSettings, updateSettings } from '@console/lib/consoleApi';
+import { syncUserSettings } from '@console/lib/syncSettings';
 
 export function IntegrationsSection() {
   const { t } = useTranslation();
@@ -25,33 +26,23 @@ export function IntegrationsSection() {
 
   useEffect(() => {
     setLoading(true);
-    fetchSettings().then((server) => {
+    fetchSettings().then(async (server) => {
       if (server) {
-        // Sync multimodal keys to localStorage directly from the server response.
-        setApiKey(server.openaiApiKey ?? '');
-        setDoubaoApiKey(server.doubaoApiKey ?? '');
-        setMinimaxApiKey(server.minimaxApiKey ?? '');
-
-        setOpenaiKey(server.openaiApiKey ?? '');
-        setDoubaoKey(server.doubaoApiKey ?? '');
-        setMinimaxKey(server.minimaxApiKey ?? '');
-
-        const provider = isValidProvider(server.llmProvider) ? server.llmProvider : DEFAULT_PROVIDER;
-        setLlmProvider(provider);
-        setLlmApiKey(server.llmApiKey ?? '');
-        setLlmBaseUrl(server.llmBaseUrl ?? LLM_PROVIDER_DEFAULTS[provider].baseUrl);
-        setLlmModel(server.llmModel ?? LLM_PROVIDER_DEFAULTS[provider].model);
-      } else {
-        const local = getSettings();
-        setOpenaiKey(local.openaiApiKey ?? '');
-        setDoubaoKey(local.doubaoApiKey ?? '');
-        setMinimaxKey(local.minimaxApiKey ?? '');
-        const llm = getLLMSettings();
-        setLlmProvider(llm.provider);
-        setLlmApiKey(llm.apiKey);
-        setLlmBaseUrl(llm.baseUrl || LLM_PROVIDER_DEFAULTS[llm.provider].baseUrl);
-        setLlmModel(llm.model || LLM_PROVIDER_DEFAULTS[llm.provider].model);
+        await syncUserSettings(server);
       }
+
+      const local = getSettings();
+      setOpenaiKey(local.openaiApiKey ?? '');
+      setDoubaoKey(local.doubaoApiKey ?? '');
+      setMinimaxKey(local.minimaxApiKey ?? '');
+
+      const llm = getLLMSettings();
+      const provider = server && isValidProvider(server.llmProvider) ? server.llmProvider : llm.provider;
+      setLlmProvider(provider);
+      setLlmApiKey(server?.llmApiKey ?? llm.apiKey);
+      setLlmBaseUrl(server?.llmBaseUrl ?? llm.baseUrl || LLM_PROVIDER_DEFAULTS[provider].baseUrl);
+      setLlmModel(server?.llmModel ?? llm.model || LLM_PROVIDER_DEFAULTS[provider].model);
+
       setLoading(false);
     });
   }, []);
@@ -101,10 +92,12 @@ export function IntegrationsSection() {
     };
     const result = await updateSettings(settings);
     setMultimodalSaving(false);
-    if (result.success) {
-      setApiKey(settings.openaiApiKey);
-      setDoubaoApiKey(settings.doubaoApiKey);
-      setMinimaxApiKey(settings.minimaxApiKey);
+    if (result.success && result.data) {
+      await syncUserSettings(result.data);
+      const local = getSettings();
+      setOpenaiKey(local.openaiApiKey ?? '');
+      setDoubaoKey(local.doubaoApiKey ?? '');
+      setMinimaxKey(local.minimaxApiKey ?? '');
       showSaved(setMultimodalSaved);
     } else {
       setMultimodalError(true);

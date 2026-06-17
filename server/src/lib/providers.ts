@@ -1,0 +1,15 @@
+export const SUPPORTED_LLM_PROVIDERS = ['doubao', 'minimax', 'deepseek', 'openai'] as const;
+export type SupportedLLMProvider = (typeof SUPPORTED_LLM_PROVIDERS)[number];
+
+export const LLM_PROVIDER_DEFAULTS: Record<SupportedLLMProvider, { baseUrl: string; model: string }> = {
+  doubao: { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-pro-32k' },
+  minimax: { baseUrl: 'https://api.minimax.chat/v1', model: 'abab6.5s-chat' },
+  deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+  openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+};
+
+export const DEFAULT_LLM_PROVIDER: SupportedLLMProvider = 'deepseek';
+
+export function isSupportedLLMProvider(value: unknown): value is SupportedLLMProvider {
+  return typeof value === 'string' && (SUPPORTED_LLM_PROVIDERS as readonly string[]).includes(value);
+}

@@ -47,21 +47,33 @@
     "integrations": {
       "title": "集成 / API",
       "description": "管理第三方 API Key 和本地集成设置",
-      "openaiKey": "OpenAI API Key",
-      "openaiHint": "用于 AI 分镜图生成。",
-      "doubaoKey": "豆包 / 火山方舟 API Key",
-      "doubaoHint": "用于豆包图片生成、图生图、风格迁移和视频生成。",
-      "save": "保存 API Key",
+      "save": "保存",
       "saved": "已保存",
       "saveError": "保存失败，请重试",
-      "llmTitle": "对话 LLM Provider",
+      "languageModelTitle": "语言模型",
+      "languageModelDescription": "用于 Copilot 对话和 Agent 工具调用",
+      "multimodalTitle": "多模态生成",
+      "multimodalDescription": "用于图片、图生图、风格迁移和视频生成",
+      "openaiKey": "OpenAI API Key",
+      "openaiHint": "用于 DALL·E 图片生成",
+      "doubaoKey": "豆包 / 火山方舟 API Key",
+      "doubaoHint": "用于豆包图片生成、图生图、风格迁移和视频生成",
+      "minimaxKey": "Minimax API Key",
+      "minimaxHint": "预留，用于 Minimax 视频生成",
+      "minimaxPlaceholder": "即将支持",
       "llmProvider": "Provider",
-      "customProvider": "自定义 Provider",
       "llmApiKey": "API Key",
       "llmBaseUrl": "Base URL",
-      "llmBaseUrlHint": "OpenAI 兼容接口地址，例如 https://api.deepseek.com/v1",
+      "llmBaseUrlHint": "已根据 Provider 预设，通常无需修改",
       "llmModel": "模型",
-      "saveLlm": "保存 LLM 设置"
+      "saveLanguageModel": "保存语言模型设置",
+      "saveMultimodal": "保存多模态 Key",
+      "providers": {
+        "doubao": "豆包",
+        "minimax": "Minimax",
+        "deepseek": "DeepSeek",
+        "openai": "OpenAI"
+      }
     }
   }
 }

@@ -1,6 +1,10 @@
 import { fetchSettings } from './consoleApi';
-import { getSettings, setApiKey, setDoubaoApiKey } from '@drama/lib/imageGen';
-import { getLLMSettings, setLLMSettings } from './llmSettings';
+import { setApiKey, setDoubaoApiKey, setMinimaxApiKey } from '@drama/lib/imageGen';
+import { getLLMSettings, setLLMSettings, LLM_PROVIDERS, type LLMProviderType } from './llmSettings';
+
+function isValidProvider(value: unknown): value is LLMProviderType {
+  return typeof value === 'string' && (LLM_PROVIDERS as readonly string[]).includes(value);
+}
 
 /**
  * Pull user settings from server and write them to localStorage.
@@ -10,19 +14,13 @@ export async function syncUserSettings(): Promise<void> {
   const server = await fetchSettings();
   if (!server) return;
 
-  const localOpenAI = getSettings().openaiApiKey ?? '';
-  if (server.openaiApiKey && server.openaiApiKey !== localOpenAI) {
-    setApiKey(server.openaiApiKey);
-  }
-
-  const localDoubao = getSettings().doubaoApiKey ?? '';
-  if (server.doubaoApiKey && server.doubaoApiKey !== localDoubao) {
-    setDoubaoApiKey(server.doubaoApiKey);
-  }
+  setApiKey(server.openaiApiKey ?? '');
+  setDoubaoApiKey(server.doubaoApiKey ?? '');
+  setMinimaxApiKey(server.minimaxApiKey ?? '');
 
   const localLLM = getLLMSettings();
   setLLMSettings({
-    provider: (server.llmProvider as 'spellpaw' | 'custom') || localLLM.provider,
+    provider: isValidProvider(server.llmProvider) ? server.llmProvider : localLLM.provider,
     apiKey: server.llmApiKey ?? localLLM.apiKey,
     baseUrl: server.llmBaseUrl ?? localLLM.baseUrl,
     model: server.llmModel ?? localLLM.model,

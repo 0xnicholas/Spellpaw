@@ -33,7 +33,7 @@
 - Minimax API Key（预留，用于后续 Minimax 视频生成；UI 标注“即将支持”）
 - 保存按钮（三个 Key 一起保存）
 
-保存语义：提交时把三个输入框的当前值（含空字符串）写入后端。空字符串在服务端存为 `null`，本地存为空字符串；这样用户可以清空某个 Key。
+保存语义：提交时对每个输入值做 `.trim()`，然后把当前值（含空字符串）写入后端。空字符串在服务端存为 `null`，本地存为空字符串；这样用户可以清空某个 Key。
 
 ### 数据模型
 
@@ -61,13 +61,17 @@ npx prisma generate
 
 ### Server API
 `/api/auth/settings` GET/PATCH 增加 `minimaxApiKey` 字段。
-`llmProvider` 合法值保持为 `doubao | minimax | deepseek | openai`。
+
+在 `server/src/routes/auth.ts` 中：
+- GET `/settings` 的 `select` 和响应对象加入 `minimaxApiKey`。
+- PATCH `/settings` 的解构、`data` 赋值、响应对象加入 `minimaxApiKey`。
+- `llmProvider` 合法值保持为 `doubao | minimax | deepseek | openai`。
 
 ### 前端改动
 
 | 文件 | 改动 |
 |------|------|
-| `src/apps/console/components/integrations/IntegrationsSection.tsx` | 按新结构重组 UI |
+| `src/apps/console/components/integrations/IntegrationsSection.tsx` | 按新结构重组 UI；加载 server settings 后调用 `setMinimaxApiKey` 同步到 localStorage |
 | `src/apps/drama/lib/imageGen.ts` | 增加 `getMinimaxApiKey` / `setMinimaxApiKey` |
 | `src/apps/console/lib/consoleApi.ts` | `UserSettings` 增加 `minimaxApiKey` |
 | `src/apps/console/lib/syncSettings.ts` | 同步 `minimaxApiKey` 到 localStorage |
@@ -83,16 +87,21 @@ npx prisma generate
 | `languageModelDescription` | 用于 Copilot 对话和 Agent 工具调用 | Used for Copilot chat and Agent tool calls |
 | `multimodalTitle` | 多模态生成 | Multimodal Generation |
 | `multimodalDescription` | 用于图片、图生图、风格迁移和视频生成 | Used for images, image-to-image, style transfer and video |
-| `openaiKey` | 保持不变（可调整说明为“用于 DALL·E 图片生成”） | 保持不变 |
-| `doubaoKey` | 保持不变 | 保持不变 |
+| `openaiKey` | OpenAI API Key | OpenAI API Key |
+| `openaiHint` | 用于 DALL·E 图片生成 | Used for DALL·E image generation |
+| `doubaoKey` | 豆包 / 火山方舟 API Key | Doubao / Volcengine Ark API Key |
+| `doubaoHint` | 用于豆包图片生成、图生图、风格迁移和视频生成 | Used for Doubao image generation, image-to-image, style transfer and video |
 | `minimaxKey` | Minimax API Key | Minimax API Key |
 | `minimaxHint` | 预留，用于 Minimax 视频生成 | Reserved for Minimax video generation |
+| `minimaxPlaceholder` | 即将支持 | Coming soon |
+| `saveLanguageModel` | 保存语言模型设置 | Save Language Model Settings |
 | `saveMultimodal` | 保存多模态 Key | Save Multimodal Keys |
 
-移除或替换旧键：`llmTitle` → `languageModelTitle`，`saveLlm` 可保留或改为 `saveLanguageModel`。
+保留并复用的键：`llmProvider`（Provider 标签）、`llmApiKey`（API Key 标签）、`llmBaseUrl`（Base URL 标签）、`llmModel`（Model 标签）。
+移除或替换旧键：`llmTitle` → `languageModelTitle`；`saveLlm` → `saveLanguageModel`；`customProvider` 不再使用；`llmBaseUrlHint` 文案改为“已根据 Provider 预设，通常无需修改”。
 
 ### 测试更新
-- `src/apps/console/lib/consoleApi.test.ts`：mock settings 增加 `minimaxApiKey` 字段，确保断言对象包含新字段。
+- `src/apps/console/lib/consoleApi.test.ts`：`fetchSettings` 和 `updateSettings` 的 mock settings 必须包含完整字段：`openaiApiKey`、`doubaoApiKey`、`minimaxApiKey`、`llmProvider`、`llmApiKey`、`llmBaseUrl`、`llmModel`。
 - 新增或更新 `IntegrationsSection` 相关测试（如项目已有）：验证 provider 切换时默认值正确填充、保存时调用 `updateSettings` 包含正确字段。
 
 ### 默认配置

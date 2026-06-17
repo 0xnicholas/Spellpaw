@@ -60,13 +60,22 @@ export function FlowCanvasPanel() {
     };
   }, []);
 
-  const persistedNodes = getCurrentNodes();
-  const persistedEdges = getCurrentEdges();
+  const persistedNodes = useCanvasStore((s) => s.getCurrentNodes());
+  const persistedEdges = useCanvasStore((s) => s.getCurrentEdges());
 
   const currentTree = useProjectStore((s) => s.getCurrentTree());
 
   const [nodes, setNodes, onNodesChange] = useNodesState(persistedNodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(persistedEdges as Edge[]);
+
+  // Sync React Flow state with external store changes (e.g. Copilot guardrail adding a card).
+  useEffect(() => {
+    setNodes(persistedNodes as Node[]);
+  }, [persistedNodes, setNodes]);
+
+  useEffect(() => {
+    setEdges(persistedEdges as Edge[]);
+  }, [persistedEdges, setEdges]);
 
   // Reset React Flow internal state when switching projects
   useEffect(() => {

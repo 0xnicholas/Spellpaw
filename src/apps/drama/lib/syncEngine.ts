@@ -6,15 +6,14 @@ import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useChatStore } from '@drama/stores/chatStore';
 import { useAuthStore } from '@/shared/stores/authStore';
-import { pushAll, pullAll, type ConflictInfo, type PushAllResult } from './projectSync';
+import { pushAll, pullAll, type PushAllResult } from './projectSync';
 
-export type SyncState = 'synced' | 'syncing' | 'pending' | 'conflict' | 'offline';
+export type SyncState = 'synced' | 'syncing' | 'pending' | 'offline';
 
 export interface SyncEngineState {
   state: SyncState;
   lastSyncAt: number | null;
   pendingCount: number;
-  conflicts: ConflictInfo[];
   error: string | null;
 }
 
@@ -22,7 +21,6 @@ let engineState: SyncEngineState = {
   state: 'synced',
   lastSyncAt: null,
   pendingCount: 0,
-  conflicts: [],
   error: null,
 };
 
@@ -69,15 +67,7 @@ async function performPush() {
   try {
     const result: PushAllResult = await pushAll();
 
-    if (result.conflicts.length > 0) {
-      setState({
-        state: 'conflict',
-        conflicts: result.conflicts,
-        pendingCount: 0,
-        lastSyncAt: Date.now(),
-        error: null,
-      });
-    } else if (result.errors.length > 0) {
+    if (result.errors.length > 0) {
       setState({
         state: 'offline',
         pendingCount: 0,
@@ -88,7 +78,6 @@ async function performPush() {
       setState({
         state: 'synced',
         pendingCount: 0,
-        conflicts: [],
         lastSyncAt: Date.now(),
         error: null,
       });
@@ -153,11 +142,6 @@ export function triggerPull(): void {
   void performPull();
 }
 
-/** Dismiss current conflicts and reset to synced. */
-export function dismissConflicts(): void {
-  setState({ state: 'synced', conflicts: [] });
-}
-
 /** Initialise subscriptions. Call once at app startup. */
 export function initSyncEngine(): void {
   // Watch project data changes (ignore selection changes)
@@ -202,7 +186,7 @@ export function initSyncEngine(): void {
     if (state.isAuthenticated && !prevState.isAuthenticated) {
       void performPull();
     } else if (!state.isAuthenticated && prevState.isAuthenticated) {
-      setState({ state: 'synced', pendingCount: 0, conflicts: [], error: null });
+      setState({ state: 'synced', pendingCount: 0, error: null });
     }
   });
 }

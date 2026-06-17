@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { subscribeSync, getSyncState, type SyncEngineState } from '@drama/lib/syncEngine';
 
 export function SyncStatusIndicator() {
@@ -30,11 +30,6 @@ export function SyncStatusIndicator() {
       icon = <Cloud className={iconClass} />;
       label = '待同步';
       colorClass = 'text-[var(--color-text-tertiary)]';
-      break;
-    case 'conflict':
-      icon = <AlertCircle className={iconClass} />;
-      label = `${state.conflicts.length} 个冲突`;
-      colorClass = 'text-amber-500';
       break;
     case 'offline':
       icon = <CloudOff className={iconClass} />;

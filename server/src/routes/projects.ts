@@ -33,6 +33,7 @@ export function projectRoutes(prisma: PrismaClient): Router {
     const existing = await prisma.project.findFirst({ where: { id: req.params.id, userId: getUserId(req) } });
     if (!existing) { res.status(404).json({ error: 'Not found' }); return; }
     const { title, description, coverColor, data, version } = req.body;
+    // Cloud-wins mode: reject stale local writes so the client can pull the latest server state.
     if (version !== undefined && existing.version !== version) {
       res.status(409).json({ error: 'Conflict', serverVersion: existing.version }); return;
     }

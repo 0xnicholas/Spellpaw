@@ -44,7 +44,7 @@ describe('doubaoProvider', () => {
     expect(task.status).toBe('done');
     expect(task.resultUrl).toBe('https://example.com/doubao.png');
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'https://ark.cn-beijing.volces.com/api/v3/images/generations',
+      'http://localhost:3002/api/v1/proxy/doubao/images/generations',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({ Authorization: 'Bearer sk-test' }),

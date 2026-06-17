@@ -242,6 +242,11 @@ function resolveToolEndpoint(toolName: string): string {
     spellpaw_get_subtree: toolEndpoint,
     spellpaw_apply_template: toolEndpoint,
     spellpaw_generate_storyboard: toolEndpoint,
+    spellpaw_generate_asset: toolEndpoint,
+    spellpaw_generate_variants: toolEndpoint,
+    spellpaw_edit_asset: toolEndpoint,
+    spellpaw_apply_style: toolEndpoint,
+    spellpaw_batch_apply_style: toolEndpoint,
     spellpaw_analyze_structure: toolEndpoint,
     spellpaw_get_pacing_report: toolEndpoint,
     spellpaw_match_template: toolEndpoint,
@@ -250,6 +255,7 @@ function resolveToolEndpoint(toolName: string): string {
     spellpaw_add_canvas_card: toolEndpoint,
     spellpaw_update_canvas_card: toolEndpoint,
     spellpaw_delete_canvas_card: toolEndpoint,
+    spellpaw_kickstart_project: toolEndpoint,
   };
   return toolEndpointMap[toolName] || toolEndpoint;
 }

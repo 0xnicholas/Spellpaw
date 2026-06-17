@@ -11,11 +11,36 @@ import { buildSystemPrompt } from '@drama/lib/systemPrompt';
 import { getLLMProvider } from '@drama/lib/llm';
 import { findNode } from '@drama/lib/treeUtils';
 import { SPELLPAW_TOOL_CONFIGS } from '@drama/lib/toolConfigs';
+import { detectIntent, intentToToolChoice } from '@drama/lib/intentRouter';
+import {
+  generateAsset,
+  generateVariants,
+  editAsset,
+  applyStyle,
+  batchApplyStyle,
+} from '@drama/lib/canvasToolkit';
+import type { CanvasIntent } from '@drama/lib/intentRouter';
 
 export function useCopilotSSE() {
   const sessionRef = useRef<string | null>(null);
   const sseRef = useRef<{ close: () => void } | null>(null);
   const providerRef = useRef(getLLMProvider());
+  const toolCallStartedRef = useRef(false);
+  const toolCallsInTurnRef = useRef<string[]>([]);
+  const currentIntentRef = useRef<CanvasIntent | null>(null);
+
+  const CANVAS_TOOL_NAMES = new Set([
+    'spellpaw_generate_asset',
+    'spellpaw_generate_variants',
+    'spellpaw_edit_asset',
+    'spellpaw_apply_style',
+    'spellpaw_batch_apply_style',
+    'spellpaw_add_canvas_card',
+    'spellpaw_update_canvas_card',
+    'spellpaw_delete_canvas_card',
+    'spellpaw_kickstart_project',
+    'spellpaw_generate_storyboard',
+  ]);
 
   const {
     startStreaming, appendDelta, startToolCall, endToolCall, endStreaming, appendMessage,
@@ -29,16 +54,22 @@ export function useCopilotSSE() {
 
     const subscribeToSession = (sessionId: string) => {
       sseRef.current?.close();
+      toolCallStartedRef.current = false;
+      toolCallsInTurnRef.current = [];
       sseRef.current = provider.subscribeSSE(sessionId, (event) => {
         console.log('[useCopilotSSE] SSE event:', event.type, event);
         switch (event.type) {
           case 'message_start':
+            toolCallStartedRef.current = false;
+            toolCallsInTurnRef.current = [];
             startStreaming(crypto.randomUUID());
             break;
           case 'text_delta':
             appendDelta(event.delta as string);
             break;
           case 'tool_call_started':
+            toolCallStartedRef.current = true;
+            toolCallsInTurnRef.current.push(String(event.name));
             startToolCall(event.call_id as string, event.name as string);
             break;
           case 'tool_call_done':
@@ -46,14 +77,70 @@ export function useCopilotSSE() {
             break;
           case 'turn_end':
             endStreaming(event.stop_reason as string);
+            // Client guardrail: enforce the canvas intent even if the LLM only
+            // called read-only/context tools (e.g. get_tree) or no tool at all.
+            if (currentIntentRef.current && !canvasToolWasCalled()) {
+              console.log('[useCopilotSSE] guardrail triggered for intent:', currentIntentRef.current.type);
+              void runGuardrail(currentIntentRef.current);
+            }
+            currentIntentRef.current = null;
             break;
           case 'error':
             appendDelta(`\n\n❌ Error: ${event.message}`);
             endStreaming('error');
+            currentIntentRef.current = null;
             break;
         }
       });
     };
+
+    function canvasToolWasCalled(): boolean {
+      return toolCallsInTurnRef.current.some((name) => CANVAS_TOOL_NAMES.has(name));
+    }
+
+    async function runGuardrail(intent: CanvasIntent) {
+      if (intent.type === 'unknown') return;
+      console.log('[useCopilotSSE] running guardrail for', intent.type, 'with payload:', intent.payload);
+      try {
+        let result: { success: boolean; message: string };
+        switch (intent.type) {
+          case 'generate_asset':
+            result = await generateAsset(intent.payload as unknown as Parameters<typeof generateAsset>[0]);
+            break;
+          case 'generate_variants':
+            result = await generateVariants(intent.payload as unknown as Parameters<typeof generateVariants>[0]);
+            break;
+          case 'edit_asset':
+            result = await editAsset(intent.payload as unknown as Parameters<typeof editAsset>[0]);
+            break;
+          case 'apply_style':
+            result = await applyStyle(intent.payload as unknown as Parameters<typeof applyStyle>[0]);
+            break;
+          case 'batch_apply_style':
+            result = await batchApplyStyle(intent.payload as unknown as Parameters<typeof batchApplyStyle>[0]);
+            break;
+          default:
+            return;
+        }
+        console.log('[useCopilotSSE] guardrail result:', result);
+        appendMessage({
+          id: crypto.randomUUID(),
+          role: 'agent',
+          content: result.success ? result.message : `❌ ${result.message}`,
+          type: 'action',
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error('[useCopilotSSE] guardrail failed:', err);
+        appendMessage({
+          id: crypto.randomUUID(),
+          role: 'agent',
+          content: `❌ 自动执行失败: ${(err as Error).message}`,
+          type: 'action',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
 
     useChatStore.setState({
       sendMessage: async (content: string) => {
@@ -94,6 +181,21 @@ export function useCopilotSSE() {
           enrichedContent = `[${contextParts.join(' | ')}]\n\n${content}`;
         }
 
+        // Detect canvas toolkit intent and decide whether to force a tool choice.
+        const intentResult = detectIntent(content, {
+          selectedNodeId,
+          selectedCard: useCanvasStore.getState().getSelectedCard(),
+        });
+        currentIntentRef.current = intentResult.confidence === 'high' ? intentResult.intent : null;
+        const toolChoice = intentResult.confidence === 'high'
+          ? intentToToolChoice(intentResult.intent)
+          : undefined;
+        if (toolChoice) {
+          console.log('[useCopilotSSE] forcing tool choice:', toolChoice.function.name);
+        } else if (intentResult.confidence === 'high') {
+          console.log('[useCopilotSSE] high-confidence intent without toolChoice:', intentResult.intent.type);
+        }
+
         // Add user message
         const userMsg = {
           id: crypto.randomUUID(),
@@ -115,7 +217,7 @@ export function useCopilotSSE() {
               .projects.find(p => p.id === useProjectStore.getState().currentProjectId)?.title ?? 'Untitled';
             const prompt = buildSystemPrompt(projectTitle, treeText);
             console.log('[useCopilotSSE] creating session with', SPELLPAW_TOOL_CONFIGS.length, 'tools');
-            const session = await provider.createSession(projectTitle, prompt, SPELLPAW_TOOL_CONFIGS);
+            const session = await provider.createSession(projectTitle, prompt, SPELLPAW_TOOL_CONFIGS, toolChoice);
             sessionRef.current = session.id;
             console.log('[useCopilotSSE] session created:', session.id);
             subscribeToSession(session.id);
@@ -139,7 +241,7 @@ export function useCopilotSSE() {
           try {
             // Re-subscribe before each turn: some backends close the SSE stream after turn_end.
             subscribeToSession(sessionRef.current);
-            await provider.sendMessage(sessionRef.current, enrichedContent);
+            await provider.sendMessage(sessionRef.current, enrichedContent, toolChoice);
             console.log('[useCopilotSSE] message sent');
           } catch (err) {
             console.error('[useCopilotSSE] sendMessage failed:', err);

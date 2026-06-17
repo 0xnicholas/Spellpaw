@@ -6,12 +6,20 @@ import type { PrismaClient } from '@prisma/client';
 import { seedProjects, seedTrees, seedCanvases, seedChatMessages } from './seed-data';
 
 export async function seedUser(prisma: PrismaClient, userId: string): Promise<void> {
-  // Clean existing seed data for this user to stay idempotent
-  await prisma.project.deleteMany({ where: { userId } });
-  await prisma.chat.deleteMany({ where: { userId } });
+  const seedProjectIds = seedProjects.map((p) => p.id);
 
-  // Seed projects (tree + canvas stored as JSON in the data column)
+  // Seed projects only if they are missing. Existing seed projects (possibly edited by the user)
+  // are left untouched so their version history is preserved.
+  const existingIds = new Set(
+    (await prisma.project.findMany({
+      where: { userId, id: { in: seedProjectIds } },
+      select: { id: true },
+    })).map((p) => p.id)
+  );
+
   for (const project of seedProjects) {
+    if (existingIds.has(project.id)) continue;
+
     const tree = seedTrees[project.id] ?? null;
     const canvas = seedCanvases[project.id] ?? { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
     await prisma.project.create({
@@ -27,11 +35,14 @@ export async function seedUser(prisma: PrismaClient, userId: string): Promise<vo
     });
   }
 
-  // Seed global chat
-  await prisma.chat.create({
-    data: {
-      userId,
-      messages: JSON.stringify(seedChatMessages),
-    },
-  });
+  // Seed global chat only if missing
+  const existingChat = await prisma.chat.findFirst({ where: { userId } });
+  if (!existingChat) {
+    await prisma.chat.create({
+      data: {
+        userId,
+        messages: JSON.stringify(seedChatMessages),
+      },
+    });
+  }
 }

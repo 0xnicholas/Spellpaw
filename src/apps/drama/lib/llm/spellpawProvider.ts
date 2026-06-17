@@ -6,7 +6,7 @@
 import { config } from '@/shared/config';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { getLLMSettings } from '@console/lib/llmSettings';
-import type { LLMProvider, Session, SSESubscription, ToolConfig, SSEEvent } from './types';
+import type { LLMProvider, Session, SSESubscription, ToolConfig, SSEEvent, ToolChoice } from './types';
 
 const BASE_URL = config.llmBase || `${config.serverBase}/api/v1`;
 
@@ -20,7 +20,7 @@ function handleFetchError(err: unknown, action: string): never {
   throw new Error(`${action} 失败: ${message}`);
 }
 
-function authHeaders(): Record<string, string> {
+function authHeaders(toolChoice?: ToolChoice): Record<string, string> {
   const token = useAuthStore.getState().token;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -30,15 +30,23 @@ function authHeaders(): Record<string, string> {
     if (settings.baseUrl) headers['X-LLM-Base-URL'] = settings.baseUrl;
     if (settings.model) headers['X-LLM-Model'] = settings.model;
   }
+  if (toolChoice && toolChoice !== 'auto') {
+    headers['X-LLM-Tool-Choice'] = JSON.stringify(toolChoice);
+  }
   return headers;
 }
 
 export const spellpawProvider: LLMProvider = {
-  async createSession(title: string, systemPrompt: string, tools: ToolConfig[] = []): Promise<Session> {
+  async createSession(
+    title: string,
+    systemPrompt: string,
+    tools: ToolConfig[] = [],
+    toolChoice?: ToolChoice
+  ): Promise<Session> {
     try {
       const res = await fetch(`${BASE_URL}/sessions`, {
         method: 'POST',
-        headers: authHeaders(),
+        headers: authHeaders(toolChoice),
         body: JSON.stringify({ title, system_prompt: systemPrompt, tools }),
       });
       if (!res.ok) throw new Error(`Create session failed: ${res.status}`);
@@ -48,11 +56,11 @@ export const spellpawProvider: LLMProvider = {
     }
   },
 
-  async sendMessage(sessionId: string, content: string): Promise<void> {
+  async sendMessage(sessionId: string, content: string, toolChoice?: ToolChoice): Promise<void> {
     try {
       const res = await fetch(`${BASE_URL}/sessions/${sessionId}/messages`, {
         method: 'POST',
-        headers: authHeaders(),
+        headers: authHeaders(toolChoice),
         body: JSON.stringify({
           content: [{ type: 'text', text: content }],
         }),

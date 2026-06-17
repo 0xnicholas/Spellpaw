@@ -2,8 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createOpenAIProvider } from './openaiProvider';
 
 const mockGenerate = vi.fn();
+let lastOpenAIConfig: { apiKey?: string; baseURL?: string } = {};
 vi.mock('openai', () => ({
   default: class MockOpenAI {
+    constructor(config: { apiKey?: string; baseURL?: string }) {
+      lastOpenAIConfig = config;
+    }
     images = { generate: mockGenerate };
   },
 }));
@@ -48,5 +52,7 @@ describe('openaiProvider', () => {
 
     expect(result.status).toBe('done');
     expect(result.resultUrl).toBe('https://example.com/img.png');
+    expect(lastOpenAIConfig.baseURL).toBe('http://localhost:3002/api/v1/proxy/openai');
+    expect(lastOpenAIConfig.apiKey).toBe('sk-test');
   });
 });

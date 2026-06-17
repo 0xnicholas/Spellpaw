@@ -17,6 +17,7 @@ model User {
   updatedAt    DateTime  @updatedAt
 
   openaiApiKey String?
+  doubaoApiKey String?
   llmProvider  String    @default("spellpaw")
   llmApiKey    String?
   llmBaseUrl   String?

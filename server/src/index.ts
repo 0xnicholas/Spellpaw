@@ -6,6 +6,7 @@ import { authRoutes } from './routes/auth';
 import { projectRoutes } from './routes/projects';
 import { chatRoutes } from './routes/chat';
 import { llmRoutes } from './routes/llm';
+import { proxyRoutes } from './routes/proxy';
 
 config(); // Load .env
 
@@ -44,6 +45,7 @@ app.use('/api/auth', authRoutes(prisma));
 app.use('/api/projects', projectRoutes(prisma));
 app.use('/api/chat', chatRoutes(prisma));
 app.use('/api/v1', llmRoutes(prisma));
+app.use('/api/v1/proxy', proxyRoutes(prisma));
 
 async function main() {
   await prisma.$connect();

@@ -24,7 +24,7 @@ export function ConsoleLayout({ activeTab, onChangeTab, children }: ConsoleLayou
     <div className="flex h-screen flex-col bg-[var(--color-bg-primary)]">
       <header className="flex h-12 shrink-0 items-center gap-3 border-b border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-4">
         <Link
-          to="/"
+          to="/projects"
           className="flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
         >
           <ArrowLeft className="h-4 w-4" />

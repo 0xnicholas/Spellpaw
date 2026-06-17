@@ -14,7 +14,7 @@ describe('consoleApi', () => {
 
   it('updateProfile sends PATCH with auth header', async () => {
     const fetchMock = vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ success: true }), { status: 200 }));
-    const result = await updateProfile({ name: 'New Name', avatar: 'https://example.com/avatar.png' });
+    const result = await updateProfile({ name: 'New Name' });
     expect(result.success).toBe(true);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/api/auth/profile'),
@@ -24,7 +24,7 @@ describe('consoleApi', () => {
           'Content-Type': 'application/json',
           Authorization: 'Bearer test-token',
         }),
-        body: JSON.stringify({ name: 'New Name', avatar: 'https://example.com/avatar.png' }),
+        body: JSON.stringify({ name: 'New Name' }),
       })
     );
   });

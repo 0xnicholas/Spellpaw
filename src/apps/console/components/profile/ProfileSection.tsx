@@ -9,7 +9,6 @@ export function ProfileSection() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const [name, setName] = useState(user?.name ?? '');
-  const [avatar, setAvatar] = useState(user?.avatar ?? '');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -17,7 +16,6 @@ export function ProfileSection() {
     fetchCurrentUser().then((fresh) => {
       if (fresh) {
         setName(fresh.name);
-        setAvatar(fresh.avatar ?? '');
       }
     });
   }, []);
@@ -31,7 +29,7 @@ export function ProfileSection() {
       setMessage(t('console.profile.nameRequired'));
       return;
     }
-    const result = await updateProfile({ name: trimmedName, avatar: avatar.trim() });
+    const result = await updateProfile({ name: trimmedName });
     if (result.success) {
       setStatus('success');
       setMessage(t('console.profile.updateSuccess'));
@@ -62,11 +60,6 @@ export function ProfileSection() {
         <div>
           <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">{t('console.profile.name')}</label>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('console.profile.name')} />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">{t('console.profile.avatar')}</label>
-          <Input value={avatar} onChange={(e) => setAvatar(e.target.value)} placeholder="https://..." />
         </div>
 
         {message && (

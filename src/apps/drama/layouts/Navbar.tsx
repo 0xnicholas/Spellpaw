@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Command, ChevronRight, Pencil, Download, Settings, UserCog } from 'lucide-react';
+import { Bell, Command, ChevronRight, Pencil, Download } from 'lucide-react';
 import { IconButton } from '@/shared/components/ui/IconButton';
 import { ProjectSettingsModal } from '@drama/components/modals/ProjectSettingsModal';
-import { SettingsModal } from '@drama/components/modals/SettingsModal';
 import { SyncStatusIndicator } from '@drama/components/sync/SyncStatusIndicator';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useAuthStore } from '@/shared/stores/authStore';
@@ -32,7 +31,6 @@ export function Navbar() {
   const updateProject = useProjectStore((s) => s.updateProject);
   const user = useAuthStore((s) => s.user);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [globalSettingsOpen, setGlobalSettingsOpen] = useState(false);
   const { i18n } = useTranslation();
 
   const handleExportPDF = () => {
@@ -88,20 +86,6 @@ export function Navbar() {
         <SyncStatusIndicator />
         <IconButton icon={<Command className="h-4 w-4" />} label="命令面板" size="sm" />
         <IconButton icon={<Bell className="h-4 w-4" />} label="通知" size="sm" />
-        <Link
-          to="/console"
-          className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-base)] text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-          title="个人中心"
-        >
-          <UserCog className="h-3.5 w-3.5" />
-        </Link>
-        <button
-          onClick={() => setGlobalSettingsOpen(true)}
-          className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-base)] text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-          title="设置"
-        >
-          <Settings className="h-3.5 w-3.5" />
-        </button>
         <button
           onClick={() => i18n.changeLanguage(i18n.language === 'zh-CN' ? 'en' : 'zh-CN')}
           className="flex h-7 items-center rounded-[var(--radius-base)] px-1.5 text-[10px] font-medium text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
@@ -109,9 +93,13 @@ export function Navbar() {
         >
           {i18n.language === 'zh-CN' ? 'EN' : '中'}
         </button>
-        <div className="ml-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-accent-50)] text-xs font-medium text-[var(--color-accent-500)]">
+        <Link
+          to="/console"
+          className="ml-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-accent-50)] text-xs font-medium text-[var(--color-accent-500)] transition-colors hover:bg-[var(--color-accent-100)]"
+          title="个人中心"
+        >
           {user?.name?.[0] ?? 'U'}
-        </div>
+        </Link>
       </div>
 
       <ProjectSettingsModal
@@ -120,7 +108,6 @@ export function Navbar() {
         onClose={() => setSettingsOpen(false)}
         onSave={(id, updates) => updateProject(id, updates)}
       />
-      <SettingsModal isOpen={globalSettingsOpen} onClose={() => setGlobalSettingsOpen(false)} />
     </header>
   );
 }

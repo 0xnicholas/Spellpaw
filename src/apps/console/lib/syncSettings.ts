@@ -1,5 +1,5 @@
 import { fetchSettings } from './consoleApi';
-import { getSettings, setApiKey } from '@drama/lib/imageGen';
+import { getSettings, setApiKey, setDoubaoApiKey } from '@drama/lib/imageGen';
 import { getLLMSettings, setLLMSettings } from './llmSettings';
 
 /**
@@ -13,6 +13,11 @@ export async function syncUserSettings(): Promise<void> {
   const localOpenAI = getSettings().openaiApiKey ?? '';
   if (server.openaiApiKey && server.openaiApiKey !== localOpenAI) {
     setApiKey(server.openaiApiKey);
+  }
+
+  const localDoubao = getSettings().doubaoApiKey ?? '';
+  if (server.doubaoApiKey && server.doubaoApiKey !== localDoubao) {
+    setDoubaoApiKey(server.doubaoApiKey);
   }
 
   const localLLM = getLLMSettings();

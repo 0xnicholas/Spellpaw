@@ -59,35 +59,20 @@ export function authRoutes(prisma: PrismaClient): Router {
     }
   });
 
-  router.patch('/password', auth(prisma), async (req, res) => {
-    try {
-      const { currentPassword, newPassword } = req.body;
-      if (!currentPassword || !newPassword || newPassword.length < 8) {
-        res.status(400).json({ error: 'Invalid password data' });
-        return;
-      }
-      const user = await prisma.user.findUnique({ where: { id: getUserId(req) } });
-      if (!user || !await bcrypt.compare(currentPassword, user.passwordHash)) {
-        res.status(401).json({ error: 'Current password is incorrect' });
-        return;
-      }
-      const passwordHash = await bcrypt.hash(newPassword, 10);
-      await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
-      res.json({ success: true });
-    } catch {
-      res.status(500).json({ error: 'Password update failed' });
-    }
+  router.patch('/password', auth(prisma), async (_req, res) => {
+    res.status(403).json({ error: 'Password change is currently disabled' });
   });
 
   router.get('/settings', auth(prisma), async (req, res) => {
     try {
       const user = await prisma.user.findUnique({
         where: { id: getUserId(req) },
-        select: { openaiApiKey: true, llmProvider: true, llmApiKey: true, llmBaseUrl: true, llmModel: true },
+        select: { openaiApiKey: true, doubaoApiKey: true, llmProvider: true, llmApiKey: true, llmBaseUrl: true, llmModel: true },
       });
       if (!user) { res.status(404).json({ error: 'Not found' }); return; }
       res.json({
         openaiApiKey: user.openaiApiKey ?? '',
+        doubaoApiKey: user.doubaoApiKey ?? '',
         llmProvider: user.llmProvider ?? 'spellpaw',
         llmApiKey: user.llmApiKey ?? '',
         llmBaseUrl: user.llmBaseUrl ?? '',
@@ -100,9 +85,10 @@ export function authRoutes(prisma: PrismaClient): Router {
 
   router.patch('/settings', auth(prisma), async (req, res) => {
     try {
-      const { openaiApiKey, llmProvider, llmApiKey, llmBaseUrl, llmModel } = req.body;
+      const { openaiApiKey, doubaoApiKey, llmProvider, llmApiKey, llmBaseUrl, llmModel } = req.body;
       const data: Record<string, string | null> = {};
       if (openaiApiKey !== undefined) data.openaiApiKey = openaiApiKey || null;
+      if (doubaoApiKey !== undefined) data.doubaoApiKey = doubaoApiKey || null;
       if (llmProvider !== undefined) data.llmProvider = llmProvider || 'spellpaw';
       if (llmApiKey !== undefined) data.llmApiKey = llmApiKey || null;
       if (llmBaseUrl !== undefined) data.llmBaseUrl = llmBaseUrl || null;
@@ -111,10 +97,11 @@ export function authRoutes(prisma: PrismaClient): Router {
       const user = await prisma.user.update({
         where: { id: getUserId(req) },
         data,
-        select: { openaiApiKey: true, llmProvider: true, llmApiKey: true, llmBaseUrl: true, llmModel: true },
+        select: { openaiApiKey: true, doubaoApiKey: true, llmProvider: true, llmApiKey: true, llmBaseUrl: true, llmModel: true },
       });
       res.json({
         openaiApiKey: user.openaiApiKey ?? '',
+        doubaoApiKey: user.doubaoApiKey ?? '',
         llmProvider: user.llmProvider ?? 'spellpaw',
         llmApiKey: user.llmApiKey ?? '',
         llmBaseUrl: user.llmBaseUrl ?? '',

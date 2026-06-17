@@ -9,7 +9,7 @@ import type { CanvasNodeType } from '@drama/types';
 
 export interface GenerateAssetParams {
   action: 'generate_asset';
-  nodeId: string;
+  nodeId?: string;
   mediaType: MediaType;
   prompt?: string;
   provider?: string;
@@ -24,8 +24,8 @@ export async function generateAsset(params: GenerateAssetParams): Promise<Toolki
     return { success: false, message: '当前没有打开的项目', retryable: false };
   }
 
-  const node = findNode(tree, params.nodeId);
-  if (!node) {
+  const node = params.nodeId ? findNode(tree, params.nodeId) : null;
+  if (params.nodeId && !node) {
     return { success: false, message: `未找到节点: ${params.nodeId}`, retryable: false };
   }
 
@@ -33,12 +33,16 @@ export async function generateAsset(params: GenerateAssetParams): Promise<Toolki
     return { success: false, message: `不支持的 mediaType: ${params.mediaType}`, retryable: false };
   }
 
+  if (!node && !params.prompt) {
+    return { success: false, message: '未选择节点时，请提供生成提示词', retryable: false };
+  }
+
   const capability: Capability = params.mediaType === 'video' ? 'text2video' : 'text2image';
   const batchCount = Math.max(1, Math.floor(params.count ?? 1));
   const input: GenerationInput = {
     type: params.mediaType,
     capability,
-    prompt: params.prompt ?? buildDefaultPrompt(node),
+    prompt: params.prompt ?? buildDefaultPrompt(node!),
     batchCount,
   };
 
@@ -59,11 +63,12 @@ export async function generateAsset(params: GenerateAssetParams): Promise<Toolki
     }
 
     const titleSuffix = batchCount > 1 ? ` 变体 ${i + 1}` : '';
+    const baseTitle = node?.title ?? input.prompt.slice(0, 20);
     const cardData: Record<string, unknown> = {
-      title: `${node.title}${titleSuffix}`,
+      title: `${baseTitle}${titleSuffix}`,
       description: input.prompt,
       generatedPrompt: input.prompt,
-      linkedTreeNodeId: node.id,
+      linkedTreeNodeId: node?.id,
       status: 'draft',
       sourceProvider: provider.id,
     };

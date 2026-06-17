@@ -1,7 +1,9 @@
+import { config } from '@/shared/config';
 import type { GenerationProvider, GenerationInput, GenerationTask, ProviderConfig } from '../types';
 
 const SETTINGS_KEY = 'spellpaw_settings';
-const DEFAULT_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3';
+// Direct base URL (kept for reference): https://ark.cn-beijing.volces.com/api/v3
+const PROXY_BASE_URL = `${config.serverBase}/api/v1/proxy/doubao`;
 const DEFAULT_IMAGE_MODEL = 'doubao-seedream-4-0-250828';
 const DEFAULT_VIDEO_MODEL = 'doubao-seedance-1-5-pro';
 
@@ -81,7 +83,7 @@ export function createDoubaoProvider(): GenerationProvider {
         return { taskId, status: 'failed', error: 'Doubao API key not configured' };
       }
 
-      const baseUrl = (config.baseUrl as string | undefined) ?? DEFAULT_BASE_URL;
+      const baseUrl = (config.baseUrl as string | undefined) ?? PROXY_BASE_URL;
       try {
         const res = await fetch(`${baseUrl}/contents/generations/tasks/${taskId}`, {
           headers: { Authorization: `Bearer ${apiKey}` },
@@ -113,7 +115,7 @@ async function submitImage(
   input: GenerationInput,
   config: ProviderConfig,
 ): Promise<GenerationTask> {
-  const baseUrl = (config.baseUrl as string | undefined) ?? DEFAULT_BASE_URL;
+  const baseUrl = (config.baseUrl as string | undefined) ?? PROXY_BASE_URL;
   const model = (config.model as string | undefined) ?? DEFAULT_IMAGE_MODEL;
   const size = pickSize(input.options);
 
@@ -163,7 +165,7 @@ async function submitVideo(
   input: GenerationInput,
   config: ProviderConfig,
 ): Promise<GenerationTask> {
-  const baseUrl = (config.baseUrl as string | undefined) ?? DEFAULT_BASE_URL;
+  const baseUrl = (config.baseUrl as string | undefined) ?? PROXY_BASE_URL;
   const model = pickVideoModel(input.options);
 
   const content: Array<Record<string, unknown>> = [

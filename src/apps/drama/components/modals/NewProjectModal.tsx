@@ -1,15 +1,10 @@
 import { useState } from 'react';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
-import { ColorPicker } from '@/shared/components/ui/ColorPicker';
 import { TemplateBrowser } from '@drama/components/template-browser/TemplateBrowser';
 import type { NarrativeTemplate } from '@drama/types';
 
-const PRESET_COVER_COLORS = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
-  '#f97316', '#f59e0b', '#10b981', '#14b8a6',
-  '#06b6d4', '#0ea5e9', '#3b82f6', '#64748b',
-];
+const DEFAULT_COVER_COLOR = '#6366f1';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -22,13 +17,12 @@ export function NewProjectModal({ isOpen, onClose, onCreate, onCreateFromTemplat
   const [mode, setMode] = useState<'blank' | 'template'>('blank');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [color, setColor] = useState(PRESET_COVER_COLORS[0]);
 
   if (!isOpen) return null;
 
   const handleSubmit = () => {
     if (!title.trim()) return;
-    onCreate(title, description, color);
+    onCreate(title, description, DEFAULT_COVER_COLOR);
     reset();
     onClose();
   };
@@ -42,7 +36,6 @@ export function NewProjectModal({ isOpen, onClose, onCreate, onCreateFromTemplat
   const reset = () => {
     setTitle('');
     setDescription('');
-    setColor(PRESET_COVER_COLORS[0]);
     setMode('blank');
   };
 
@@ -98,10 +91,6 @@ export function NewProjectModal({ isOpen, onClose, onCreate, onCreateFromTemplat
                   onChange={(e) => setDescription(e.target.value)}
                   className="text-xs"
                 />
-              </div>
-              <div>
-                <span className="mb-1.5 block text-[11px] font-medium text-[var(--color-text-secondary)]">封面颜色</span>
-                <ColorPicker colors={PRESET_COVER_COLORS} value={color} onChange={setColor} />
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">

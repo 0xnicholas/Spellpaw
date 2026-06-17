@@ -9,7 +9,7 @@
   "common": { "loading": "Loading...", "save": "Save", "confirm": "Confirm" },
   "console": {
     "title": "Console",
-    "back": "Back to home",
+    "back": "Back to projects",
     "tabs": {
       "profile": "Profile",
       "security": "Security",
@@ -22,7 +22,6 @@
       "email": "Email",
       "emailReadonly": "Email cannot be changed right now",
       "name": "Display name",
-      "avatar": "Avatar URL",
       "save": "Save profile",
       "nameRequired": "Name is required",
       "updateSuccess": "Profile updated",
@@ -42,20 +41,16 @@
     },
     "preferences": {
       "title": "Preferences",
-      "description": "Customize language and theme",
-      "language": "Language",
-      "theme": "Theme",
-      "dark": "Dark",
-      "light": "Light",
-      "system": "System"
+      "description": "Customize language",
+      "language": "Language"
     },
     "integrations": {
       "title": "Integrations / API",
       "description": "Manage third-party API keys and local integration settings",
       "openaiKey": "OpenAI API Key",
-      "openaiHint": "Used for AI storyboard generation. Stored locally in your browser only; never uploaded to the server.",
+      "openaiHint": "Used for AI storyboard generation.",
       "doubaoKey": "Doubao / Volcengine Ark API Key",
-      "doubaoHint": "Used for Doubao image generation, image-to-image, style transfer and video generation. Stored locally in your browser only.",
+      "doubaoHint": "Used for Doubao image generation, image-to-image, style transfer and video generation.",
       "save": "Save API Key",
       "saved": "Saved",
       "saveError": "Save failed, please try again",

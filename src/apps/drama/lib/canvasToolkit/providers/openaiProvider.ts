@@ -1,7 +1,9 @@
 import OpenAI from 'openai';
+import { config } from '@/shared/config';
 import type { GenerationProvider, GenerationInput, GenerationTask, ProviderConfig } from '../types';
 
 const SETTINGS_KEY = 'spellpaw_settings';
+const PROXY_BASE_URL = `${config.serverBase}/api/v1/proxy/openai`;
 
 function readSettings(): Record<string, unknown> {
   try {
@@ -48,7 +50,7 @@ export function createOpenAIProvider(): GenerationProvider {
         return { taskId: '', status: 'failed', error: 'OpenAI API key not configured' };
       }
 
-      const openai = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+      const openai = new OpenAI({ apiKey, baseURL: PROXY_BASE_URL, dangerouslyAllowBrowser: true });
       const size = (input.options?.size as '1024x1024' | '1792x1024' | '1024x1792') ?? '1024x1024';
 
       try {

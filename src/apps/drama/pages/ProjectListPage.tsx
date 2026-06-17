@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Clock, LayoutGrid, Trash2, Download, Upload, FileCode, LayoutTemplate, Printer, FileText, Camera } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { NewProjectModal } from '@drama/components/modals/NewProjectModal';
@@ -125,9 +125,13 @@ export function ProjectListPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-[var(--color-text-tertiary)]">{user?.name}</span>
-          <div className="h-7 w-7 rounded-full bg-[var(--color-accent-50)] flex items-center justify-center text-xs font-medium text-[var(--color-accent-500)]">
+          <Link
+            to="/console"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-accent-50)] text-xs font-medium text-[var(--color-accent-500)] transition-colors hover:bg-[var(--color-accent-100)]"
+            title="个人中心"
+          >
             {user?.name?.[0] ?? 'U'}
-          </div>
+          </Link>
         </div>
       </header>
 

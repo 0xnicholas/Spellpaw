@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
-import { getSettings, setApiKey, getDoubaoApiKey, setDoubaoApiKey } from '@drama/lib/imageGen';
+import { getSettings, setApiKey, setDoubaoApiKey } from '@drama/lib/imageGen';
 import { getLLMSettings, setLLMSettings, type LLMProviderType } from '@console/lib/llmSettings';
 import { fetchSettings, updateSettings } from '@console/lib/consoleApi';
 
@@ -22,7 +22,8 @@ export function IntegrationsSection() {
     fetchSettings().then((server) => {
       if (server) {
         setApiKeyState(server.openaiApiKey ?? '');
-        setDoubaoApiKeyState(getDoubaoApiKey() ?? '');
+        setDoubaoApiKeyState(server.doubaoApiKey ?? '');
+        setDoubaoApiKey(server.doubaoApiKey ?? '');
         setLlmProvider((server.llmProvider as LLMProviderType) ?? 'spellpaw');
         setLlmApiKey(server.llmApiKey ?? '');
         setLlmBaseUrl(server.llmBaseUrl ?? '');
@@ -58,11 +59,15 @@ export function IntegrationsSection() {
     }
   };
 
-  const handleSaveDoubao = () => {
+  const handleSaveDoubao = async () => {
     const trimmed = doubaoApiKey.trim();
     setDoubaoApiKey(trimmed);
-    setDoubaoApiKeyState(trimmed);
-    showSaved();
+    const result = await updateSettings({ doubaoApiKey: trimmed });
+    if (result.success) {
+      showSaved();
+    } else {
+      setStatus('error');
+    }
   };
 
   const handleSaveLLM = async () => {

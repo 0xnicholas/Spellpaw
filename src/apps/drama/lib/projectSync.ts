@@ -1,16 +1,13 @@
 /**
  * Project sync service — push/pull projects between IndexedDB and server.
  *
- * Phase 3 enhancements:
- * - Per-project version tracking for conflict detection
- * - Granular push/pull (single project or all)
- * - Structured conflict results for UI resolution
+ * The server acts as a cloud backup: the latest local state is always accepted.
  */
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { authApi, useAuthStore } from '@/shared/stores/authStore';
 import { config } from '@/shared/config';
-import type { TreeNode, Project } from '@drama/types';
+import type { Project } from '@drama/types';
 
 const API_BASE = config.serverBase;
 
@@ -25,23 +22,13 @@ interface ServerProject {
   isPublic: boolean;
 }
 
-export interface ConflictInfo {
-  projectId: string;
-  projectTitle: string;
-  localVersion: number;
-  remoteVersion: number;
-  remoteProject: ServerProject;
-}
-
 export interface PushResult {
   success: boolean;
-  conflict?: ConflictInfo;
   error?: string;
 }
 
 export interface PushAllResult {
   synced: number;
-  conflicts: ConflictInfo[];
   errors: string[];
 }
 
@@ -88,19 +75,9 @@ export async function pushProject(projectId: string): Promise<PushResult> {
       });
 
       if (res.status === 409) {
-        const body = await res.json().catch(() => ({}));
-        const remote = await fetch(`${API_BASE}/api/projects/${projectId}`, { headers });
-        const remoteProject: ServerProject | null = remote.ok ? await remote.json() : null;
-        return {
-          success: false,
-          conflict: {
-            projectId,
-            projectTitle: project.title,
-            localVersion: version,
-            remoteVersion: body.serverVersion ?? (remoteProject?.version ?? 0),
-            remoteProject: remoteProject!,
-          },
-        };
+        // Cloud-wins mode: local version is stale. Pull the server state and overwrite local.
+        const pulled = await pullProject(projectId);
+        return { success: pulled.success, error: pulled.error };
       }
 
       if (!res.ok) {
@@ -144,14 +121,12 @@ export async function pushProject(projectId: string): Promise<PushResult> {
 /** Push all local projects to server. */
 export async function pushAll(): Promise<PushAllResult> {
   const projects = useProjectStore.getState().projects;
-  const result: PushAllResult = { synced: 0, conflicts: [], errors: [] };
+  const result: PushAllResult = { synced: 0, errors: [] };
 
   for (const project of projects) {
     const r = await pushProject(project.id);
     if (r.success) {
       result.synced++;
-    } else if (r.conflict) {
-      result.conflicts.push(r.conflict);
     } else if (r.error) {
       result.errors.push(`${project.title}: ${r.error}`);
     }
@@ -244,8 +219,8 @@ export async function pullAll(): Promise<PullResult> {
         },
       }));
       result.imported++;
-    } else if ((local.version ?? 0) < sp.version) {
-      // Server has newer version — pull it
+    } else {
+      // Cloud-wins mode: always pull the server copy for existing projects.
       const pr = await pullProject(sp.id);
       if (pr.success) result.updated++;
       else result.errors.push(`${sp.title}: ${pr.error}`);
@@ -253,74 +228,4 @@ export async function pullAll(): Promise<PullResult> {
   }
 
   return result;
-}
-
-/** Resolve a conflict by overwriting local data with remote data. */
-export async function resolveConflictWithRemote(conflict: ConflictInfo): Promise<void> {
-  const parsed = JSON.parse(conflict.remoteProject.data || '{}');
-
-  useProjectStore.setState((s) => ({
-    projects: s.projects.map((p) =>
-      p.id === conflict.projectId
-        ? {
-            ...p,
-            title: conflict.remoteProject.title,
-            description: conflict.remoteProject.description,
-            coverColor: conflict.remoteProject.coverColor,
-            version: conflict.remoteProject.version,
-            updatedAt: conflict.remoteProject.updatedAt,
-          }
-        : p
-    ),
-    trees: { ...s.trees, [conflict.projectId]: parsed.tree ?? s.trees[conflict.projectId] },
-  }));
-
-  useCanvasStore.setState((s) => ({
-    canvases: {
-      ...s.canvases,
-      [conflict.projectId]: parsed.canvases ?? s.canvases[conflict.projectId],
-    },
-  }));
-}
-
-/** Resolve a conflict by force-pushing local data. */
-export async function resolveConflictWithLocal(conflict: ConflictInfo): Promise<PushResult> {
-  // Align local version to the current remote version so the server accepts the PUT.
-  // The server will increment the version itself after a successful save.
-  useProjectStore.getState().updateProject(conflict.projectId, {
-    version: conflict.remoteVersion,
-  });
-  return pushProject(conflict.projectId);
-}
-
-/** Resolve a conflict by merging user-selected changes, then push. */
-export async function resolveConflictWithMerge(
-  conflict: ConflictInfo,
-  choices: Record<string, 'local' | 'remote'>
-): Promise<PushResult> {
-  const parsedRemote = JSON.parse(conflict.remoteProject.data || '{}');
-  const localTree = useProjectStore.getState().trees[conflict.projectId];
-  const remoteTree = parsedRemote.tree as TreeNode | undefined;
-
-  if (!localTree || !remoteTree) {
-    return { success: false, error: 'Missing tree data for merge' };
-  }
-
-  const { mergeTrees } = await import('./treeDiff');
-  const mergedTree = mergeTrees(localTree, remoteTree, choices);
-
-  // Update local store with merged tree, aligning version to remote first.
-  // pushProject will update the local version from the server response.
-  useProjectStore.setState((s) => ({
-    trees: { ...s.trees, [conflict.projectId]: mergedTree },
-    projects: s.projects.map((p) =>
-      p.id === conflict.projectId
-        ? { ...p, title: conflict.remoteProject.title, version: conflict.remoteVersion, updatedAt: new Date().toISOString() }
-        : p
-    ),
-  }));
-
-  // Also merge canvas if canvas choices provided (simplified: keep local canvas for now)
-  // Push merged result
-  return pushProject(conflict.projectId);
 }

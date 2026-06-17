@@ -1,6 +1,6 @@
 export interface ProfileFormData {
   name: string;
-  avatar: string;
+  avatar?: string;
 }
 
 export interface PasswordFormData {

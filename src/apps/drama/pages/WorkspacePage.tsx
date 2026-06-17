@@ -5,12 +5,12 @@ import { Navbar } from '@drama/layouts/Navbar';
 import { ChatPanel } from '@drama/components/chat-panel/ChatPanel';
 import { FlowCanvasPanel } from '@drama/components/flow-canvas/FlowCanvasPanel';
 import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
-import { ConflictResolverModal } from '@drama/components/modals/ConflictResolverModal';
+
 import { BuilderPanel } from '@shared/components/builder';
 import { useHotkeys } from '@/shared/hooks/useHotkeys';
 import { useToolBridge } from '@drama/hooks/useToolBridge';
 import { useProjectStore } from '@drama/stores/projectStore';
-import { subscribeSync, type SyncEngineState } from '@drama/lib/syncEngine';
+import { OfflineBanner } from '@drama/components/sync/OfflineBanner';
 
 
 function MobileGuard({ children }: { children: React.ReactNode }) {
@@ -52,11 +52,6 @@ export function WorkspacePage() {
   const setCurrentProject = useProjectStore((s) => s.setCurrentProject);
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; childCount: number } | null>(null);
-  const [syncState, setSyncState] = useState<SyncEngineState | null>(null);
-
-  useEffect(() => {
-    return subscribeSync(setSyncState);
-  }, []);
 
   // Sync current project with URL route parameter
   useEffect(() => {
@@ -77,6 +72,7 @@ export function WorkspacePage() {
 
   return (
     <MobileGuard>
+      <OfflineBanner />
       <div className="flex h-screen flex-col">
         <Navbar />
         <div className="flex-1 overflow-hidden relative">
@@ -111,10 +107,7 @@ export function WorkspacePage() {
         }}
         onCancel={() => setDeleteTarget(null)}
       />
-      <ConflictResolverModal
-        conflicts={syncState?.conflicts ?? []}
-        onResolved={() => setSyncState((s) => (s ? { ...s, conflicts: [] } : s))}
-      />
+
     </MobileGuard>
   );
 }

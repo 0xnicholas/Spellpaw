@@ -77,18 +77,18 @@ export const SPELLPAW_TOOL_CONFIGS = [
   },
   {
     name: 'spellpaw_generate_asset',
-    description: 'Generate an image or video asset for a tree node and add it to the canvas as a card. Use when the user asks to generate a storyboard, reference image, scene visual, or video for a scene/shot. Valid providers: openai, doubao.',
+    description: 'Generate an image or video asset and add it to the canvas as a card. Use when the user asks to generate a storyboard, reference image, scene visual, or video. If a scene/shot node is selected, pass its nodeId; otherwise provide an explicit prompt. Valid providers: openai, doubao.',
     parameters: {
       type: 'object',
       properties: {
-        nodeId: { type: 'string', description: 'ID of the scene or shot node to generate for' },
+        nodeId: { type: 'string', description: 'ID of the scene or shot node to generate for (optional if prompt is provided)' },
         mediaType: { type: 'string', enum: ['image', 'video'], description: 'Type of media to generate' },
-        prompt: { type: 'string', description: 'Optional generation prompt; if omitted, built from node metadata' },
+        prompt: { type: 'string', description: 'Generation prompt; required when no nodeId is provided. If nodeId is provided and prompt is omitted, built from node metadata' },
         provider: { type: 'string', enum: ['openai', 'doubao'], description: 'Optional provider id' },
         count: { type: 'number', description: 'Number of variants to generate (default 1)' },
         cardType: { type: 'string', enum: ['art', 'sceneCard', 'deliverable'], description: 'Canvas card type to create (default art for image, deliverable for video)' },
       },
-      required: ['nodeId', 'mediaType'],
+      required: ['mediaType'],
     },
     endpoint: TOOL_ENDPOINT,
   },

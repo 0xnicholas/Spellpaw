@@ -19,16 +19,26 @@ export interface Session {
 
 export type SSEEvent = Record<string, unknown>;
 
+export type ToolChoice =
+  | 'auto'
+  | 'required'
+  | { type: 'function'; function: { name: string } };
+
 export interface SSESubscription {
   close: () => void;
 }
 
 export interface LLMProvider {
   /** Create a new chat/session with system prompt and available tools. */
-  createSession(title: string, systemPrompt: string, tools?: ToolConfig[]): Promise<Session>;
+  createSession(
+    title: string,
+    systemPrompt: string,
+    tools?: ToolConfig[],
+    toolChoice?: ToolChoice
+  ): Promise<Session>;
 
   /** Send a user message to an existing session. */
-  sendMessage(sessionId: string, content: string): Promise<void>;
+  sendMessage(sessionId: string, content: string, toolChoice?: ToolChoice): Promise<void>;
 
   /** Subscribe to server-sent events for a session. */
   subscribeSSE(sessionId: string, onEvent: (event: SSEEvent) => void): SSESubscription;

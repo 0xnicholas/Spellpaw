@@ -76,7 +76,6 @@ export function IntegrationsSection() {
       baseUrl: llmBaseUrl.trim() || LLM_PROVIDER_DEFAULTS[provider].baseUrl,
       model: llmModel.trim() || LLM_PROVIDER_DEFAULTS[provider].model,
     };
-    setLLMSettings(settings);
     const result = await updateSettings({
       llmProvider: settings.provider,
       llmApiKey: settings.apiKey,
@@ -85,6 +84,7 @@ export function IntegrationsSection() {
     });
     setLanguageSaving(false);
     if (result.success) {
+      setLLMSettings(settings);
       showSaved(setLanguageSaved);
     } else {
       setLanguageError(true);
@@ -102,6 +102,9 @@ export function IntegrationsSection() {
     const result = await updateSettings(settings);
     setMultimodalSaving(false);
     if (result.success) {
+      setApiKey(settings.openaiApiKey);
+      setDoubaoApiKey(settings.doubaoApiKey);
+      setMinimaxApiKey(settings.minimaxApiKey);
       showSaved(setMultimodalSaved);
     } else {
       setMultimodalError(true);

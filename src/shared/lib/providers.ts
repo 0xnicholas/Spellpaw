@@ -46,8 +46,16 @@ export interface MultimodalProviderConfig {
 }
 
 export const MULTIMODAL_PROVIDER_REGISTRY: Record<MultimodalProviderType, MultimodalProviderConfig> = {
-  openai: { labelKey: 'console.integrations.openaiKey', hintKey: 'console.integrations.openaiHint' },
-  doubao: { labelKey: 'console.integrations.doubaoKey', hintKey: 'console.integrations.doubaoHint' },
+  openai: {
+    labelKey: 'console.integrations.openaiKey',
+    hintKey: 'console.integrations.openaiHint',
+    placeholderKey: 'console.integrations.openaiPlaceholder',
+  },
+  doubao: {
+    labelKey: 'console.integrations.doubaoKey',
+    hintKey: 'console.integrations.doubaoHint',
+    placeholderKey: 'console.integrations.doubaoPlaceholder',
+  },
   minimax: {
     labelKey: 'console.integrations.minimaxKey',
     hintKey: 'console.integrations.minimaxHint',

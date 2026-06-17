@@ -44,4 +44,6 @@ export interface LLMProvider {
   subscribeSSE(sessionId: string, onEvent: (event: SSEEvent) => void): SSESubscription;
 }
 
-export type LLMProviderName = 'spellpaw';
+// Supported back-end models. The front-end currently routes all of them through the
+// Spellpaw Server proxy (`spellpawProvider`).
+export type LLMProviderName = 'spellpaw' | 'doubao' | 'minimax' | 'deepseek' | 'openai';

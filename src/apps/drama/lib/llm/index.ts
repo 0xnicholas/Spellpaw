@@ -9,6 +9,11 @@ import { spellpawProvider } from './spellpawProvider';
 
 const providers: Record<LLMProviderName, LLMProvider> = {
   spellpaw: spellpawProvider,
+  // All named model providers are currently proxied through Spellpaw Server.
+  doubao: spellpawProvider,
+  minimax: spellpawProvider,
+  deepseek: spellpawProvider,
+  openai: spellpawProvider,
 };
 
 export function getLLMProvider(name?: LLMProviderName): LLMProvider {

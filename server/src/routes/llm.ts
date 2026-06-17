@@ -92,6 +92,7 @@ export function llmRoutes(prisma: PrismaClient): Router {
       // turns as needed. The event stream is forwarded to the client unchanged.
       // Allow per-request LLM overrides from the front-end settings.
       const context = {
+        provider: req.headers['x-llm-provider'] as string | undefined,
         apiKey: req.headers['x-llm-api-key'] as string | undefined,
         baseUrl: req.headers['x-llm-base-url'] as string | undefined,
         model: req.headers['x-llm-model'] as string | undefined,

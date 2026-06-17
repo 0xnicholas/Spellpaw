@@ -25,11 +25,10 @@ function authHeaders(toolChoice?: ToolChoice): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   const settings = getLLMSettings();
-  if (settings.provider === 'custom') {
-    if (settings.apiKey) headers['X-LLM-API-Key'] = settings.apiKey;
-    if (settings.baseUrl) headers['X-LLM-Base-URL'] = settings.baseUrl;
-    if (settings.model) headers['X-LLM-Model'] = settings.model;
-  }
+  headers['X-LLM-Provider'] = settings.provider;
+  if (settings.apiKey) headers['X-LLM-API-Key'] = settings.apiKey;
+  if (settings.baseUrl) headers['X-LLM-Base-URL'] = settings.baseUrl;
+  if (settings.model) headers['X-LLM-Model'] = settings.model;
   if (toolChoice && toolChoice !== 'auto') {
     headers['X-LLM-Tool-Choice'] = JSON.stringify(toolChoice);
   }

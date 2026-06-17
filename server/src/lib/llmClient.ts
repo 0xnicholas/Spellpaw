@@ -54,7 +54,22 @@ function toOpenAITools(tools: ToolConfig[] = []): Array<{
   }));
 }
 
+const SUPPORTED_PROVIDERS = ['doubao', 'minimax', 'deepseek', 'openai'] as const;
+type SupportedProvider = typeof SUPPORTED_PROVIDERS[number];
+
+const PROVIDER_DEFAULTS: Record<SupportedProvider, { baseUrl: string; model: string }> = {
+  doubao: { baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-pro-32k' },
+  minimax: { baseUrl: 'https://api.minimax.chat/v1', model: 'abab6.5s-chat' },
+  deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+  openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+};
+
+function isSupportedProvider(value: unknown): value is SupportedProvider {
+  return typeof value === 'string' && (SUPPORTED_PROVIDERS as readonly string[]).includes(value);
+}
+
 export interface StreamChatContext {
+  provider?: string;
   apiKey?: string;
   baseUrl?: string;
   model?: string;
@@ -64,9 +79,12 @@ export async function* streamChat(
   options: ChatOptions,
   context: StreamChatContext = {}
 ): AsyncGenerator<SSEvent, void, unknown> {
-  const apiKey = context.apiKey || process.env.DEEPSEEK_API_KEY || process.env.LLM_API_KEY;
-  const baseUrl = context.baseUrl || process.env.LLM_BASE_URL || 'https://api.deepseek.com/v1';
-  const model = context.model || options.model || process.env.LLM_MODEL || 'deepseek-chat';
+  const providerName = isSupportedProvider(context.provider) ? context.provider : 'deepseek';
+  const defaults = PROVIDER_DEFAULTS[providerName];
+
+  const apiKey = context.apiKey || process.env.LLM_API_KEY;
+  const baseUrl = context.baseUrl || process.env.LLM_BASE_URL || defaults.baseUrl;
+  const model = context.model || options.model || process.env.LLM_MODEL || defaults.model;
 
   if (!apiKey) {
     yield { type: 'error', message: 'LLM_API_KEY not configured' };

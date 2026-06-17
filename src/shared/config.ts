@@ -6,6 +6,8 @@ export const config = {
   serverBase: import.meta.env.VITE_SERVER_BASE || 'http://localhost:3002',
   toolServerEndpoint: import.meta.env.VITE_TOOL_SERVER || 'http://127.0.0.1.nip.io:5173/tool',
   authSecret: import.meta.env.VITE_AUTH_SECRET || 'test-secret-32-chars-long!!!',
-  llmProvider: import.meta.env.VITE_LLM_PROVIDER || 'spellpaw',
+  // This selects the front-end LLM adapter. Currently only `spellpaw` (Spellpaw Server proxy)
+  // is implemented; the actual model (doubao/minimax/deepseek/openai) is chosen in Settings.
+  llmProvider: import.meta.env.VITE_LLM_PROVIDER || 'deepseek',
   llmBase: import.meta.env.VITE_LLM_BASE || '',
 } as const;

@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
-import { getSettings } from '@drama/lib/imageGen';
+import { getSettings, setApiKey, setDoubaoApiKey, setMinimaxApiKey } from '@drama/lib/imageGen';
 import { getLLMSettings, setLLMSettings, LLM_PROVIDERS, LLM_PROVIDER_DEFAULTS, isValidProvider, DEFAULT_PROVIDER, type LLMProviderType } from '@console/lib/llmSettings';
 import { fetchSettings, updateSettings } from '@console/lib/consoleApi';
-import { syncUserSettings } from '@console/lib/syncSettings';
 
 export function IntegrationsSection() {
   const { t } = useTranslation();
@@ -20,18 +19,22 @@ export function IntegrationsSection() {
   const [multimodalSaved, setMultimodalSaved] = useState(false);
   const [languageError, setLanguageError] = useState(false);
   const [multimodalError, setMultimodalError] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'loading'>('idle'); // loading while fetching server settings; fall back to localStorage on failure
+  const [languageSaving, setLanguageSaving] = useState(false);
+  const [multimodalSaving, setMultimodalSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setStatus('loading');
-    fetchSettings().then(async (server) => {
+    setLoading(true);
+    fetchSettings().then((server) => {
       if (server) {
-        await syncUserSettings();
+        // Sync multimodal keys to localStorage directly from the server response.
+        setApiKey(server.openaiApiKey ?? '');
+        setDoubaoApiKey(server.doubaoApiKey ?? '');
+        setMinimaxApiKey(server.minimaxApiKey ?? '');
 
-        const local = getSettings();
-        setOpenaiKey(local.openaiApiKey ?? '');
-        setDoubaoKey(local.doubaoApiKey ?? '');
-        setMinimaxKey(local.minimaxApiKey ?? '');
+        setOpenaiKey(server.openaiApiKey ?? '');
+        setDoubaoKey(server.doubaoApiKey ?? '');
+        setMinimaxKey(server.minimaxApiKey ?? '');
 
         const provider = isValidProvider(server.llmProvider) ? server.llmProvider : DEFAULT_PROVIDER;
         setLlmProvider(provider);
@@ -49,7 +52,7 @@ export function IntegrationsSection() {
         setLlmBaseUrl(llm.baseUrl || LLM_PROVIDER_DEFAULTS[llm.provider].baseUrl);
         setLlmModel(llm.model || LLM_PROVIDER_DEFAULTS[llm.provider].model);
       }
-      setStatus('idle');
+      setLoading(false);
     });
   }, []);
 
@@ -65,6 +68,7 @@ export function IntegrationsSection() {
   };
 
   const handleSaveLanguageModel = async () => {
+    setLanguageSaving(true);
     const provider = llmProvider;
     const settings = {
       provider,
@@ -79,6 +83,7 @@ export function IntegrationsSection() {
       llmBaseUrl: settings.baseUrl,
       llmModel: settings.model,
     });
+    setLanguageSaving(false);
     if (result.success) {
       showSaved(setLanguageSaved);
     } else {
@@ -88,12 +93,14 @@ export function IntegrationsSection() {
   };
 
   const handleSaveMultimodal = async () => {
+    setMultimodalSaving(true);
     const settings = {
       openaiApiKey: openaiKey.trim(),
       doubaoApiKey: doubaoKey.trim(),
       minimaxApiKey: minimaxKey.trim(),
     };
     const result = await updateSettings(settings);
+    setMultimodalSaving(false);
     if (result.success) {
       showSaved(setMultimodalSaved);
     } else {
@@ -126,6 +133,7 @@ export function IntegrationsSection() {
                 variant={llmProvider === provider ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => handleProviderChange(provider)}
+                disabled={loading}
               >
                 {t(`console.integrations.providers.${provider}`)}
               </Button>
@@ -142,6 +150,7 @@ export function IntegrationsSection() {
             value={llmApiKey}
             onChange={(e) => setLlmApiKey(e.target.value)}
             placeholder={LLM_PROVIDER_DEFAULTS[llmProvider].apiKeyPlaceholder}
+            disabled={loading}
           />
         </div>
 
@@ -153,6 +162,7 @@ export function IntegrationsSection() {
             value={llmBaseUrl}
             onChange={(e) => setLlmBaseUrl(e.target.value)}
             placeholder={LLM_PROVIDER_DEFAULTS[llmProvider].baseUrl}
+            disabled={loading}
           />
           <p className="mt-1 text-[10px] text-[var(--color-text-tertiary)]">
             {t('console.integrations.llmBaseUrlHint')}
@@ -167,6 +177,7 @@ export function IntegrationsSection() {
             value={llmModel}
             onChange={(e) => setLlmModel(e.target.value)}
             placeholder={LLM_PROVIDER_DEFAULTS[llmProvider].model}
+            disabled={loading}
           />
         </div>
 
@@ -174,7 +185,9 @@ export function IntegrationsSection() {
         {languageError && <p className="text-xs text-red-500">{t('console.integrations.saveError')}</p>}
 
         <div className="pt-2">
-          <Button size="sm" onClick={handleSaveLanguageModel} disabled={status === 'loading'}>{t('console.integrations.saveLanguageModel')}</Button>
+          <Button size="sm" onClick={handleSaveLanguageModel} loading={languageSaving} disabled={loading}>
+            {t('console.integrations.saveLanguageModel')}
+          </Button>
         </div>
       </div>
 
@@ -193,6 +206,7 @@ export function IntegrationsSection() {
             value={openaiKey}
             onChange={(e) => setOpenaiKey(e.target.value)}
             placeholder="sk-..."
+            disabled={loading}
           />
           <p className="mt-1 text-[10px] text-[var(--color-text-tertiary)]">
             {t('console.integrations.openaiHint')}
@@ -208,6 +222,7 @@ export function IntegrationsSection() {
             value={doubaoKey}
             onChange={(e) => setDoubaoKey(e.target.value)}
             placeholder="ark-..."
+            disabled={loading}
           />
           <p className="mt-1 text-[10px] text-[var(--color-text-tertiary)]">
             {t('console.integrations.doubaoHint')}
@@ -231,7 +246,9 @@ export function IntegrationsSection() {
         {multimodalError && <p className="text-xs text-red-500">{t('console.integrations.saveError')}</p>}
 
         <div className="pt-2">
-          <Button size="sm" onClick={handleSaveMultimodal} disabled={status === 'loading'}>{t('console.integrations.saveMultimodal')}</Button>
+          <Button size="sm" onClick={handleSaveMultimodal} loading={multimodalSaving} disabled={loading}>
+            {t('console.integrations.saveMultimodal')}
+          </Button>
         </div>
       </div>
     </section>

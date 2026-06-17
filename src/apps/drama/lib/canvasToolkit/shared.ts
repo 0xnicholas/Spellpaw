@@ -4,12 +4,14 @@ import type { GenerationProvider } from './types';
 
 export function buildDefaultPrompt(node: TreeNode): string {
   const m = (node.metadata ?? {}) as NonNullable<TreeNode['metadata']>;
-  const parts: string[] = [`Cinematic storyboard frame for "${node.title}".`];
+  const parts: string[] = ['Cinematic storyboard frame for a short drama scene.'];
   if (m.description) parts.push(m.description);
+  parts.push(`Scene: "${node.title}".`);
   if (m.shotType) parts.push(`Shot type: ${m.shotType}.`);
   if (m.location) parts.push(`Location: ${m.location}.`);
   if (m.timeOfDay) parts.push(`Time of day: ${m.timeOfDay}.`);
-  parts.push('Vertical 9:16, cinematic lighting, photorealistic.');
+  if (m.visualStyle) parts.push(`Visual style: ${m.visualStyle}.`);
+  parts.push('Vertical 9:16 aspect ratio, cinematic lighting, photorealistic, unwatermarked.');
   return parts.join(' ');
 }
 

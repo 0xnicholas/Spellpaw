@@ -7,7 +7,7 @@ import { createNodeHandler, updateNodeHandler, deleteNodeHandler, addCanvasCardH
 import { validateCanvasCardPayload, normalizeCardData, validateCanvasCardUpdateData, normalizeCardUpdateData } from '@drama/lib/canvasCardSchema';
 import {
   generateAsset, generateVariants, editAsset, applyStyle, batchApplyStyle,
-  providerRegistry, useTaskStore, startPolling,
+  providerRegistry, useTaskStore, startPolling, buildDefaultPrompt,
 } from '@drama/lib/canvasToolkit';
 
 function nodeToLine(node: TreeNode, depth: number): string {
@@ -238,8 +238,6 @@ export const toolRouter: ToolRouter = {
     const node = findNode(tree, nodeId);
     if (!node) return `(未找到节点 ${nodeId})`;
 
-    const { buildImagePrompt } = await import('@drama/lib/imageGen');
-
     let prompt: string;
     if (stylePrompt) {
       prompt = `${stylePrompt}\n\nScene: "${node.title}".`
@@ -248,7 +246,7 @@ export const toolRouter: ToolRouter = {
         + (node.metadata?.shotType ? ` Shot: ${node.metadata.shotType}.` : '')
         + (node.metadata?.description ? ` ${node.metadata.description}` : '');
     } else {
-      prompt = customPrompt || buildImagePrompt(node);
+      prompt = customPrompt || buildDefaultPrompt(node);
     }
 
     const input = {

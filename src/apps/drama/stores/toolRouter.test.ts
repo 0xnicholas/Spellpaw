@@ -516,4 +516,50 @@ describe('toolRouter — generate_storyboard', () => {
     expect(card.data.generatedPrompt).toContain('A cinematic noir style');
     expect(card.data.tags).toEqual(['A cinematic noir style with high contrast.']);
   });
+
+  it('customPrompt 覆盖默认 prompt', async () => {
+    seedTree();
+    providerRegistry.register(fakeProvider({ id: 'doubao' }));
+
+    await toolRouter.generate_storyboard({
+      action: 'generate_storyboard',
+      nodeId: 'scene-1',
+      prompt: 'Custom cinematic frame.',
+    });
+
+    const card = useCanvasStore.getState().getCurrentNodes()[0];
+    expect(card.data.generatedPrompt).toBe('Custom cinematic frame.');
+  });
+
+  it('没有可用 provider 时抛出错误', async () => {
+    seedTree();
+    // providerRegistry is cleared in beforeEach; mock provider is always configured,
+    // so we intentionally register nothing to simulate total misconfiguration.
+    await expect(
+      toolRouter.generate_storyboard({
+        action: 'generate_storyboard',
+        nodeId: 'scene-1',
+      })
+    ).rejects.toThrow(/没有已配置的 provider/);
+  });
+
+  it('所有候选 provider 提交失败时抛出错误', async () => {
+    seedTree();
+    providerRegistry.register(fakeProvider({ id: 'doubao', configured: false }));
+    providerRegistry.register(fakeProvider({ id: 'siliconflow', configured: false }));
+    providerRegistry.register(fakeProvider({ id: 'openai', configured: false }));
+    // mock is always configured, so this scenario actually cannot happen in practice.
+    // We simulate by registering a failing mock provider that reports configured but fails submit.
+    providerRegistry.register({
+      ...fakeProvider({ id: 'mock', configured: true }),
+      submit: async () => ({ taskId: '', status: 'failed', error: 'mock failure' }),
+    });
+
+    await expect(
+      toolRouter.generate_storyboard({
+        action: 'generate_storyboard',
+        nodeId: 'scene-1',
+      })
+    ).rejects.toThrow(/mock failure/);
+  });
 });

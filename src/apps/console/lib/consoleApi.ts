@@ -4,6 +4,7 @@ import type { ProfileFormData, PasswordFormData } from '@console/types';
 export interface UserSettings {
   openaiApiKey: string;
   doubaoApiKey: string;
+  minimaxApiKey: string;
   llmProvider: string;
   llmApiKey: string;
   llmBaseUrl: string;

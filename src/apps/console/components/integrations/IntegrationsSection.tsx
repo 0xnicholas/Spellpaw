@@ -234,7 +234,7 @@ export function IntegrationsSection() {
             value={minimaxKey}
             onChange={(e) => setMinimaxKey(e.target.value)}
             placeholder={t('console.integrations.minimaxPlaceholder')}
-            disabled={loading}
+            disabled
           />
         </div>
 

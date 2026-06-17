@@ -3,16 +3,23 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { getSettings } from '@drama/lib/imageGen';
-import { getLLMSettings, setLLMSettings, LLM_PROVIDERS, LLM_PROVIDER_DEFAULTS, isValidProvider, type LLMProviderType } from '@console/lib/llmSettings';
-import { fetchSettings, updateSettings } from '@console/lib/consoleApi';
+import {
+  DEFAULT_LLM_PROVIDER,
+  isValidLLMProvider,
+  LLM_PROVIDERS,
+  LLM_PROVIDER_REGISTRY,
+  MULTIMODAL_PROVIDERS,
+  MULTIMODAL_PROVIDER_REGISTRY,
+  type LLMProviderType,
+} from '@shared/lib/providers';
+import { fetchSettings, updateSettings, type UserSettings } from '@console/lib/consoleApi';
+import { getLLMSettings, setLLMSettings } from '@console/lib/llmSettings';
 import { syncUserSettings } from '@console/lib/syncSettings';
 
 export function IntegrationsSection() {
   const { t } = useTranslation();
-  const [openaiKey, setOpenaiKey] = useState('');
-  const [doubaoKey, setDoubaoKey] = useState('');
-  const [minimaxKey, setMinimaxKey] = useState('');
-  const [llmProvider, setLlmProvider] = useState<LLMProviderType>('deepseek');
+  const [multimodalKeys, setMultimodalKeys] = useState<Record<string, string>>({});
+  const [llmProvider, setLlmProvider] = useState<LLMProviderType>(DEFAULT_LLM_PROVIDER);
   const [llmApiKey, setLlmApiKey] = useState('');
   const [llmBaseUrl, setLlmBaseUrl] = useState('');
   const [llmModel, setLlmModel] = useState('');
@@ -32,16 +39,18 @@ export function IntegrationsSection() {
       }
 
       const local = getSettings();
-      setOpenaiKey(local.openaiApiKey ?? '');
-      setDoubaoKey(local.doubaoApiKey ?? '');
-      setMinimaxKey(local.minimaxApiKey ?? '');
+      const initialMultimodal: Record<string, string> = {};
+      for (const id of MULTIMODAL_PROVIDERS) {
+        initialMultimodal[id] = local[`${id}ApiKey`] ?? '';
+      }
+      setMultimodalKeys(initialMultimodal);
 
       const llm = getLLMSettings();
-      const provider = server && isValidProvider(server.llmProvider) ? server.llmProvider : llm.provider;
+      const provider = server && isValidLLMProvider(server.llmProvider) ? server.llmProvider : llm.provider;
       setLlmProvider(provider);
       setLlmApiKey(server?.llmApiKey ?? llm.apiKey);
-      setLlmBaseUrl(server?.llmBaseUrl ?? (llm.baseUrl || LLM_PROVIDER_DEFAULTS[provider].baseUrl));
-      setLlmModel(server?.llmModel ?? (llm.model || LLM_PROVIDER_DEFAULTS[provider].model));
+      setLlmBaseUrl(server?.llmBaseUrl ?? (llm.baseUrl || LLM_PROVIDER_REGISTRY[provider].baseUrl));
+      setLlmModel(server?.llmModel ?? (llm.model || LLM_PROVIDER_REGISTRY[provider].model));
 
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -54,8 +63,8 @@ export function IntegrationsSection() {
 
   const handleProviderChange = (provider: LLMProviderType) => {
     setLlmProvider(provider);
-    setLlmBaseUrl(LLM_PROVIDER_DEFAULTS[provider].baseUrl);
-    setLlmModel(LLM_PROVIDER_DEFAULTS[provider].model);
+    setLlmBaseUrl(LLM_PROVIDER_REGISTRY[provider].baseUrl);
+    setLlmModel(LLM_PROVIDER_REGISTRY[provider].model);
   };
 
   const handleSaveLanguageModel = async () => {
@@ -64,8 +73,8 @@ export function IntegrationsSection() {
     const settings = {
       provider,
       apiKey: llmApiKey.trim(),
-      baseUrl: llmBaseUrl.trim() || LLM_PROVIDER_DEFAULTS[provider].baseUrl,
-      model: llmModel.trim() || LLM_PROVIDER_DEFAULTS[provider].model,
+      baseUrl: llmBaseUrl.trim() || LLM_PROVIDER_REGISTRY[provider].baseUrl,
+      model: llmModel.trim() || LLM_PROVIDER_REGISTRY[provider].model,
     };
     const result = await updateSettings({
       llmProvider: settings.provider,
@@ -85,19 +94,23 @@ export function IntegrationsSection() {
 
   const handleSaveMultimodal = async () => {
     setMultimodalSaving(true);
-    const settings = {
-      openaiApiKey: openaiKey.trim(),
-      doubaoApiKey: doubaoKey.trim(),
-      minimaxApiKey: minimaxKey.trim(),
-    };
+    const settings: Partial<UserSettings> = {};
+    // Minimax is disabled/coming-soon, so exclude it from the save payload
+    // to avoid overwriting any existing server value.
+    for (const id of MULTIMODAL_PROVIDERS) {
+      if (id === 'minimax') continue;
+      settings[`${id}ApiKey` as keyof UserSettings] = multimodalKeys[id]?.trim() ?? '';
+    }
     const result = await updateSettings(settings);
     setMultimodalSaving(false);
     if (result.success && result.data) {
       await syncUserSettings(result.data);
       const local = getSettings();
-      setOpenaiKey(local.openaiApiKey ?? '');
-      setDoubaoKey(local.doubaoApiKey ?? '');
-      setMinimaxKey(local.minimaxApiKey ?? '');
+      const next: Record<string, string> = {};
+      for (const id of MULTIMODAL_PROVIDERS) {
+        next[id] = local[`${id}ApiKey`] ?? '';
+      }
+      setMultimodalKeys(next);
       showSaved(setMultimodalSaved);
     } else {
       setMultimodalError(true);
@@ -145,7 +158,7 @@ export function IntegrationsSection() {
             type="password"
             value={llmApiKey}
             onChange={(e) => setLlmApiKey(e.target.value)}
-            placeholder={LLM_PROVIDER_DEFAULTS[llmProvider].apiKeyPlaceholder}
+            placeholder={LLM_PROVIDER_REGISTRY[llmProvider].apiKeyPlaceholder}
             disabled={loading}
           />
         </div>
@@ -157,7 +170,7 @@ export function IntegrationsSection() {
           <Input
             value={llmBaseUrl}
             onChange={(e) => setLlmBaseUrl(e.target.value)}
-            placeholder={LLM_PROVIDER_DEFAULTS[llmProvider].baseUrl}
+            placeholder={LLM_PROVIDER_REGISTRY[llmProvider].baseUrl}
             disabled={loading}
           />
           <p className="mt-1 text-[10px] text-[var(--color-text-tertiary)]">
@@ -172,7 +185,7 @@ export function IntegrationsSection() {
           <Input
             value={llmModel}
             onChange={(e) => setLlmModel(e.target.value)}
-            placeholder={LLM_PROVIDER_DEFAULTS[llmProvider].model}
+            placeholder={LLM_PROVIDER_REGISTRY[llmProvider].model}
             disabled={loading}
           />
         </div>
@@ -193,50 +206,26 @@ export function IntegrationsSection() {
           <p className="text-sm text-[var(--color-text-secondary)]">{t('console.integrations.multimodalDescription')}</p>
         </div>
 
-        <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
-            {t('console.integrations.openaiKey')}
-          </label>
-          <Input
-            type="password"
-            value={openaiKey}
-            onChange={(e) => setOpenaiKey(e.target.value)}
-            placeholder="sk-..."
-            disabled={loading}
-          />
-          <p className="mt-1 text-[10px] text-[var(--color-text-tertiary)]">
-            {t('console.integrations.openaiHint')}
-          </p>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
-            {t('console.integrations.doubaoKey')}
-          </label>
-          <Input
-            type="password"
-            value={doubaoKey}
-            onChange={(e) => setDoubaoKey(e.target.value)}
-            placeholder="ark-..."
-            disabled={loading}
-          />
-          <p className="mt-1 text-[10px] text-[var(--color-text-tertiary)]">
-            {t('console.integrations.doubaoHint')}
-          </p>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
-            {t('console.integrations.minimaxKey')}
-          </label>
-          <Input
-            type="password"
-            value={minimaxKey}
-            onChange={(e) => setMinimaxKey(e.target.value)}
-            placeholder={t('console.integrations.minimaxPlaceholder')}
-            disabled
-          />
-        </div>
+        {MULTIMODAL_PROVIDERS.map((id) => {
+          const config = MULTIMODAL_PROVIDER_REGISTRY[id];
+          return (
+            <div key={id}>
+              <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
+                {t(config.labelKey)}
+              </label>
+              <Input
+                type="password"
+                value={multimodalKeys[id] ?? ''}
+                onChange={(e) => setMultimodalKeys((prev) => ({ ...prev, [id]: e.target.value }))}
+                placeholder={config.placeholderKey ? t(config.placeholderKey) : undefined}
+                disabled={id === 'minimax' || loading}
+              />
+              <p className="mt-1 text-[10px] text-[var(--color-text-tertiary)]">
+                {t(config.hintKey)}
+              </p>
+            </div>
+          );
+        })}
 
         {multimodalSaved && <p className="text-xs text-green-500">{t('console.integrations.saved')}</p>}
         {multimodalError && <p className="text-xs text-red-500">{t('console.integrations.saveError')}</p>}

@@ -111,8 +111,8 @@ export function IntegrationsSection() {
 
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{t('console.integrations.languageTitle')}</h3>
-          <p className="text-sm text-[var(--color-text-secondary)]">{t('console.integrations.languageDescription')}</p>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{t('console.integrations.languageModelTitle')}</h3>
+          <p className="text-sm text-[var(--color-text-secondary)]">{t('console.integrations.languageModelDescription')}</p>
         </div>
 
         <div>

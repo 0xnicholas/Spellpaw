@@ -35,6 +35,20 @@ export function setDoubaoApiKey(key: string): void {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
+export function getMinimaxApiKey(): string | null {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return JSON.parse(raw).minimaxApiKey ?? null;
+  } catch { /* ignore */ }
+  return null;
+}
+
+export function setMinimaxApiKey(key: string): void {
+  const settings = getSettings();
+  settings.minimaxApiKey = key;
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
 export function getSettings(): Record<string, string> {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);

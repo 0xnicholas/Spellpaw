@@ -4,6 +4,15 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { auth, getUserId } from '../middleware';
 
+const SUPPORTED_LLM_PROVIDERS = ['doubao', 'minimax', 'deepseek', 'openai'] as const;
+const DEFAULT_LLM_PROVIDER = 'deepseek';
+
+function normalizeLlmProvider(value: unknown): string {
+  return typeof value === 'string' && (SUPPORTED_LLM_PROVIDERS as readonly string[]).includes(value)
+    ? value
+    : DEFAULT_LLM_PROVIDER;
+}
+
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 export function authRoutes(prisma: PrismaClient): Router {
@@ -67,13 +76,14 @@ export function authRoutes(prisma: PrismaClient): Router {
     try {
       const user = await prisma.user.findUnique({
         where: { id: getUserId(req) },
-        select: { openaiApiKey: true, doubaoApiKey: true, llmProvider: true, llmApiKey: true, llmBaseUrl: true, llmModel: true },
+        select: { openaiApiKey: true, doubaoApiKey: true, minimaxApiKey: true, llmProvider: true, llmApiKey: true, llmBaseUrl: true, llmModel: true },
       });
       if (!user) { res.status(404).json({ error: 'Not found' }); return; }
       res.json({
         openaiApiKey: user.openaiApiKey ?? '',
         doubaoApiKey: user.doubaoApiKey ?? '',
-        llmProvider: user.llmProvider ?? 'spellpaw',
+        minimaxApiKey: user.minimaxApiKey ?? '',
+        llmProvider: normalizeLlmProvider(user.llmProvider),
         llmApiKey: user.llmApiKey ?? '',
         llmBaseUrl: user.llmBaseUrl ?? '',
         llmModel: user.llmModel ?? '',
@@ -85,11 +95,12 @@ export function authRoutes(prisma: PrismaClient): Router {
 
   router.patch('/settings', auth(prisma), async (req, res) => {
     try {
-      const { openaiApiKey, doubaoApiKey, llmProvider, llmApiKey, llmBaseUrl, llmModel } = req.body;
+      const { openaiApiKey, doubaoApiKey, minimaxApiKey, llmProvider, llmApiKey, llmBaseUrl, llmModel } = req.body;
       const data: Record<string, string | null> = {};
       if (openaiApiKey !== undefined) data.openaiApiKey = openaiApiKey || null;
       if (doubaoApiKey !== undefined) data.doubaoApiKey = doubaoApiKey || null;
-      if (llmProvider !== undefined) data.llmProvider = llmProvider || 'spellpaw';
+      if (minimaxApiKey !== undefined) data.minimaxApiKey = minimaxApiKey || null;
+      if (llmProvider !== undefined) data.llmProvider = normalizeLlmProvider(llmProvider);
       if (llmApiKey !== undefined) data.llmApiKey = llmApiKey || null;
       if (llmBaseUrl !== undefined) data.llmBaseUrl = llmBaseUrl || null;
       if (llmModel !== undefined) data.llmModel = llmModel || null;
@@ -97,12 +108,13 @@ export function authRoutes(prisma: PrismaClient): Router {
       const user = await prisma.user.update({
         where: { id: getUserId(req) },
         data,
-        select: { openaiApiKey: true, doubaoApiKey: true, llmProvider: true, llmApiKey: true, llmBaseUrl: true, llmModel: true },
+        select: { openaiApiKey: true, doubaoApiKey: true, minimaxApiKey: true, llmProvider: true, llmApiKey: true, llmBaseUrl: true, llmModel: true },
       });
       res.json({
         openaiApiKey: user.openaiApiKey ?? '',
         doubaoApiKey: user.doubaoApiKey ?? '',
-        llmProvider: user.llmProvider ?? 'spellpaw',
+        minimaxApiKey: user.minimaxApiKey ?? '',
+        llmProvider: normalizeLlmProvider(user.llmProvider),
         llmApiKey: user.llmApiKey ?? '',
         llmBaseUrl: user.llmBaseUrl ?? '',
         llmModel: user.llmModel ?? '',

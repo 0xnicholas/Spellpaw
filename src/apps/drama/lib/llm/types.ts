@@ -4,6 +4,8 @@
  * Spellpaw Server exposes the session/messages/events API consumed by the front-end.
  */
 
+import type { LLMProviderType } from '@shared/lib/providers';
+
 export interface ToolConfig {
   name: string;
   description: string;
@@ -46,4 +48,4 @@ export interface LLMProvider {
 
 // Supported back-end models. The front-end currently routes all of them through the
 // Spellpaw Server proxy (`spellpawProvider`).
-export type LLMProviderName = 'spellpaw' | 'doubao' | 'minimax' | 'deepseek' | 'openai';
+export type LLMProviderName = 'spellpaw' | LLMProviderType;

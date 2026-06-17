@@ -43,14 +43,14 @@ describe('consoleApi', () => {
   });
 
   it('fetchSettings returns server settings', async () => {
-    const settings = { openaiApiKey: 'sk-openai', llmProvider: 'deepseek', llmApiKey: 'sk-llm', llmBaseUrl: 'https://api.deepseek.com/v1', llmModel: 'deepseek-chat', minimaxApiKey: '' };
+    const settings = { openaiApiKey: 'sk-openai', doubaoApiKey: '', minimaxApiKey: '', llmProvider: 'deepseek', llmApiKey: 'sk-llm', llmBaseUrl: 'https://api.deepseek.com/v1', llmModel: 'deepseek-chat' };
     vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(settings), { status: 200 }));
     const result = await fetchSettings();
     expect(result).toEqual(settings);
   });
 
   it('updateSettings sends PATCH and returns updated data', async () => {
-    const updated = { openaiApiKey: 'sk-new', llmProvider: 'deepseek', llmApiKey: '', llmBaseUrl: '', llmModel: '', minimaxApiKey: '' };
+    const updated = { openaiApiKey: 'sk-new', doubaoApiKey: '', minimaxApiKey: '', llmProvider: 'deepseek', llmApiKey: '', llmBaseUrl: '', llmModel: '' };
     const fetchMock = vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(updated), { status: 200 }));
     const result = await updateSettings({ openaiApiKey: 'sk-new' });
     expect(result.success).toBe(true);

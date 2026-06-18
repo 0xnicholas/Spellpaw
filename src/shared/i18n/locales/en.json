@@ -68,6 +68,8 @@
       "llmBaseUrl": "Base URL",
       "llmBaseUrlHint": "Pre-filled for the selected provider; usually no need to change",
       "llmModel": "Model",
+      "llmModelDefault": "Default ({{model}})",
+      "llmModelCustom": "Custom...",
       "saveLanguageModel": "Save Language Model Settings",
       "saveMultimodal": "Save Multimodal Keys",
       "providers": {

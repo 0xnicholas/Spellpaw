@@ -1,9 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useProjectStore } from './projectStore';
 import { useCanvasStore } from './canvasStore';
+import { useCustomTemplateStore } from './customTemplateStore';
 import { toolRouter } from './toolRouter';
 import { providerRegistry, useTaskStore } from '@drama/lib/canvasToolkit';
 import type { GenerationProvider } from '@drama/lib/canvasToolkit';
+import type { NarrativeTemplate } from '@drama/types';
 
 // 准备一棵测试树（project → act → scene → shot）
 function seedTree(): string {
@@ -191,6 +193,62 @@ describe('toolRouter — 写入 tool', () => {
     expect(nodes[0].type).toBe('sceneCard');
     expect(nodes[0].data.title).toBe('雨夜重逢');
     expect(nodes[0].data.linkedTreeNodeId).toBe('scene-1');
+  });
+
+  it('add_canvas_card 自动从关联树节点填充 scene 元数据', async () => {
+    seedTree();
+    useProjectStore.getState().updateTreeNode('scene-1', {
+      metadata: {
+        duration: 45,
+        location: '咖啡厅',
+        timeOfDay: '早晨',
+        shotType: '特写',
+        cameraMovement: '推近',
+        dialogue: '你好。',
+        notes: '注意光影',
+      },
+    });
+    useCanvasStore.setState({ canvases: {} });
+
+    await toolRouter.add_canvas_card({
+      action: 'add_canvas_card',
+      cardType: 'script',
+      data: { title: '场景 1 剧本卡', linkedTreeNodeId: 'scene-1' },
+    });
+
+    const scriptCard = useCanvasStore.getState().getCurrentNodes()[0];
+    expect(scriptCard.data.duration).toBe(45);
+    expect(scriptCard.data.location).toBe('咖啡厅');
+    expect(scriptCard.data.timeOfDay).toBe('早晨');
+    expect(scriptCard.data.shotType).toBe('特写');
+    expect(scriptCard.data.cameraMovement).toBe('推近');
+    expect(scriptCard.data.dialogue).toBe('你好。');
+    expect(scriptCard.data.notes).toBe('注意光影');
+  });
+
+  it('add_canvas_card 自动从关联树节点生成 sceneCard 的 tags 和 prompt', async () => {
+    seedTree();
+    useProjectStore.getState().updateTreeNode('scene-1', {
+      metadata: {
+        location: '旧巷',
+        timeOfDay: '雨夜',
+        shotType: '中景',
+        description: '男女主角相遇',
+      },
+    });
+    useCanvasStore.setState({ canvases: {} });
+
+    await toolRouter.add_canvas_card({
+      action: 'add_canvas_card',
+      cardType: 'sceneCard',
+      data: { title: '雨夜重逢', linkedTreeNodeId: 'scene-1' },
+    });
+
+    const card = useCanvasStore.getState().getCurrentNodes()[0];
+    expect(card.data.tags).toEqual(expect.arrayContaining(['旧巷', '雨夜', '中景']));
+    expect(card.data.generatedPrompt).toContain('场景 1');
+    expect(card.data.generatedPrompt).toContain('旧巷');
+    expect(card.data.generatedPrompt).toContain('男女主角相遇');
   });
 
   it('update_canvas_card 更新已有卡片', async () => {
@@ -561,5 +619,117 @@ describe('toolRouter — generate_storyboard', () => {
         nodeId: 'scene-1',
       })
     ).rejects.toThrow(/mock failure/);
+  });
+});
+
+describe('toolRouter — apply_template / kickstart_project', () => {
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null });
+    useCanvasStore.setState({ canvases: {}, selectedCardId: null });
+    useCustomTemplateStore.setState({ templates: [] });
+
+    // Allow apply_template to resolve built-in templates from the public dir in tests.
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url.startsWith('/templates/') && url.endsWith('.spellpaw-template.json')) {
+        return new Response(JSON.stringify(makeTestTemplate()), { status: 200 });
+      }
+      return originalFetch(url);
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function makeTestTemplate(): NarrativeTemplate {
+    return {
+      id: 'test-suspense',
+      name: '测试悬疑',
+      category: 'suspense',
+      description: '用于测试的悬疑模板',
+      targetDuration: 60,
+      targetPlatform: 'portrait',
+      version: 1,
+      tags: ['test'],
+      stylePresets: {
+        colorPalette: ['#000'],
+        pacing: 'fast',
+        visualStyle: 'noir',
+      },
+      structure: {
+        acts: [
+          {
+            title: '第一幕',
+            description: '开端',
+            scenes: [
+              {
+                title: '日常场景',
+                description: '主角日常生活',
+                metadata: { duration: 15 },
+              },
+              {
+                title: '异常发生',
+                description: '发现异常',
+                metadata: { duration: 15 },
+                children: [
+                  { title: '特写镜头', description: '细节特写', metadata: { duration: 5 } },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+  }
+
+  it('apply_template 将模板 scene 创建为 scene 节点（而非 shot）', async () => {
+    useProjectStore.getState().createProject('test-proj', '', '#6366f1');
+    useCustomTemplateStore.getState().addTemplate(makeTestTemplate());
+
+    const result = await toolRouter.apply_template({
+      action: 'apply_template',
+      templateId: 'test-suspense',
+    });
+
+    expect(result).toContain('测试悬疑');
+
+    const tree = useProjectStore.getState().getCurrentTree();
+    const acts = tree?.children ?? [];
+    expect(acts).toHaveLength(1);
+
+    const scenes = acts[0]?.children ?? [];
+    expect(scenes).toHaveLength(2);
+    expect(scenes[0]?.type).toBe('scene');
+    expect(scenes[1]?.type).toBe('scene');
+
+    // Nested children of a scene should be shots.
+    const shots = scenes[1]?.children ?? [];
+    expect(shots).toHaveLength(1);
+    expect(shots[0]?.type).toBe('shot');
+  });
+
+  it('kickstart_project 会创建场景并生成 sceneCard', async () => {
+    useProjectStore.getState().createProject('kickstart-proj', '', '#6366f1');
+    useCustomTemplateStore.getState().addTemplate(makeTestTemplate());
+
+    const result = await toolRouter.kickstart_project({
+      action: 'kickstart_project',
+      theme: '测试主题',
+      genre: 'suspense',
+    });
+
+    expect(result).toContain('2 个场景');
+    expect(result).toContain('2 张场景卡');
+
+    const tree = useProjectStore.getState().getCurrentTree();
+    const scenes = tree?.children?.[0]?.children ?? [];
+    expect(scenes.length).toBe(2);
+
+    const cards = useCanvasStore.getState().getCurrentNodes();
+    expect(cards.length).toBe(2);
+    expect(cards[0].type).toBe('sceneCard');
+    expect(cards[0].data.linkedTreeNodeId).toBe(scenes[0].id);
   });
 });

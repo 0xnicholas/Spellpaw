@@ -42,7 +42,7 @@ export function llmRoutes(prisma: PrismaClient): Router {
     const session: SessionState = {
       id: uuidv4(),
       title: title || 'Untitled',
-      model: process.env.LLM_MODEL || 'gpt-4o-mini',
+      model: process.env.LLM_MODEL || 'gpt-5.4-mini',
       systemPrompt: system_prompt,
       tools,
       messages: [{ role: 'system', content: system_prompt }],
@@ -97,6 +97,13 @@ export function llmRoutes(prisma: PrismaClient): Router {
         baseUrl: req.headers['x-llm-base-url'] as string | undefined,
         model: req.headers['x-llm-model'] as string | undefined,
       };
+      console.log('[llm route] /events headers:', {
+        provider: context.provider,
+        hasApiKey: Boolean(context.apiKey),
+        apiKeyPreview: context.apiKey ? `${context.apiKey.slice(0, 6)}...` : '(missing)',
+        baseUrl: context.baseUrl,
+        model: context.model,
+      });
       for await (const event of streamChat({
         messages: session.messages,
         tools: session.tools,

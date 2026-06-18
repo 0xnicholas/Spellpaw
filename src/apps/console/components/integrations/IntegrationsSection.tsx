@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
+import { cn } from '@/shared/lib/utils';
 import { getSettings } from '@drama/lib/imageGen';
 import {
   DEFAULT_LLM_PROVIDER,
@@ -20,7 +21,7 @@ export function IntegrationsSection() {
   const { t } = useTranslation();
   const [multimodalKeys, setMultimodalKeys] = useState<Record<string, string>>({});
   const [llmProvider, setLlmProvider] = useState<LLMProviderType>(DEFAULT_LLM_PROVIDER);
-  const [llmApiKey, setLlmApiKey] = useState('');
+  const [llmApiKeys, setLlmApiKeys] = useState<Record<string, string>>({});
   const [llmBaseUrl, setLlmBaseUrl] = useState('');
   const [llmModel, setLlmModel] = useState('');
   const [languageSaved, setLanguageSaved] = useState(false);
@@ -47,8 +48,9 @@ export function IntegrationsSection() {
 
       const llm = getLLMSettings();
       const provider = server && isValidLLMProvider(server.llmProvider) ? server.llmProvider : llm.provider;
+      const mergedKeys = { ...llm.apiKeys, ...(server?.llmApiKeys ?? {}) };
       setLlmProvider(provider);
-      setLlmApiKey(server?.llmApiKey ?? llm.apiKey);
+      setLlmApiKeys(mergedKeys);
       setLlmBaseUrl(server?.llmBaseUrl ?? (llm.baseUrl || LLM_PROVIDER_REGISTRY[provider].baseUrl));
       setLlmModel(server?.llmModel ?? (llm.model || LLM_PROVIDER_REGISTRY[provider].model));
 
@@ -67,54 +69,73 @@ export function IntegrationsSection() {
     setLlmModel(LLM_PROVIDER_REGISTRY[provider].model);
   };
 
+  const currentLlmApiKey = llmApiKeys[llmProvider] ?? '';
+
+  const updateCurrentLlmApiKey = (value: string) => {
+    setLlmApiKeys((prev) => ({ ...prev, [llmProvider]: value }));
+  };
+
   const handleSaveLanguageModel = async () => {
     setLanguageSaving(true);
-    const provider = llmProvider;
-    const settings = {
-      provider,
-      apiKey: llmApiKey.trim(),
-      baseUrl: llmBaseUrl.trim() || LLM_PROVIDER_REGISTRY[provider].baseUrl,
-      model: llmModel.trim() || LLM_PROVIDER_REGISTRY[provider].model,
-    };
-    const result = await updateSettings({
-      llmProvider: settings.provider,
-      llmApiKey: settings.apiKey,
-      llmBaseUrl: settings.baseUrl,
-      llmModel: settings.model,
-    });
-    setLanguageSaving(false);
-    if (result.success) {
-      setLLMSettings(settings);
-      showSaved(setLanguageSaved);
-    } else {
+    setLanguageError(false);
+    try {
+      const provider = llmProvider;
+      const apiKey = currentLlmApiKey.trim();
+      const baseUrl = llmBaseUrl.trim() || LLM_PROVIDER_REGISTRY[provider].baseUrl;
+      const model = llmModel.trim() || LLM_PROVIDER_REGISTRY[provider].model;
+      const nextApiKeys = { ...llmApiKeys, [provider]: apiKey };
+      const result = await updateSettings({
+        llmProvider: provider,
+        llmApiKeys: nextApiKeys,
+        llmBaseUrl: baseUrl,
+        llmModel: model,
+      });
+      if (result.success) {
+        setLlmApiKeys(nextApiKeys);
+        setLLMSettings({ provider, apiKey, apiKeys: nextApiKeys, baseUrl, model });
+        showSaved(setLanguageSaved);
+      } else {
+        setLanguageError(true);
+        setTimeout(() => setLanguageError(false), 2000);
+      }
+    } catch {
       setLanguageError(true);
       setTimeout(() => setLanguageError(false), 2000);
+    } finally {
+      setLanguageSaving(false);
     }
   };
 
   const handleSaveMultimodal = async () => {
     setMultimodalSaving(true);
-    const settings: Partial<UserSettings> = {};
-    // Minimax is disabled/coming-soon, so exclude it from the save payload
-    // to avoid overwriting any existing server value.
-    for (const id of MULTIMODAL_PROVIDERS) {
-      if (id === 'minimax') continue;
-      settings[`${id}ApiKey` as keyof UserSettings] = multimodalKeys[id]?.trim() ?? '';
-    }
-    const result = await updateSettings(settings);
-    setMultimodalSaving(false);
-    if (result.success && result.data) {
-      await syncUserSettings(result.data);
-      const local = getSettings();
-      const next: Record<string, string> = {};
+    setMultimodalError(false);
+    try {
+      const settings: Partial<UserSettings> = {};
+      // Minimax is disabled/coming-soon, so exclude it from the save payload
+      // to avoid overwriting any existing server value.
       for (const id of MULTIMODAL_PROVIDERS) {
-        next[id] = local[`${id}ApiKey`] ?? '';
+        if (id === 'minimax') continue;
+        settings[`${id}ApiKey` as 'openaiApiKey' | 'doubaoApiKey' | 'minimaxApiKey'] = multimodalKeys[id]?.trim() ?? '';
       }
-      setMultimodalKeys(next);
-      showSaved(setMultimodalSaved);
-    } else {
+      const result = await updateSettings(settings);
+      if (result.success && result.data) {
+        await syncUserSettings(result.data);
+        const local = getSettings();
+        const next: Record<string, string> = {};
+        for (const id of MULTIMODAL_PROVIDERS) {
+          next[id] = local[`${id}ApiKey`] ?? '';
+        }
+        setMultimodalKeys(next);
+        showSaved(setMultimodalSaved);
+      } else {
+        setMultimodalError(true);
+        setTimeout(() => setMultimodalError(false), 2000);
+      }
+    } catch {
       setMultimodalError(true);
       setTimeout(() => setMultimodalError(false), 2000);
+    } finally {
+      setMultimodalSaving(false);
     }
   };
 
@@ -156,8 +177,8 @@ export function IntegrationsSection() {
           </label>
           <Input
             type="password"
-            value={llmApiKey}
-            onChange={(e) => setLlmApiKey(e.target.value)}
+            value={currentLlmApiKey}
+            onChange={(e) => updateCurrentLlmApiKey(e.target.value)}
             placeholder={LLM_PROVIDER_REGISTRY[llmProvider].apiKeyPlaceholder}
             disabled={loading}
           />
@@ -182,10 +203,10 @@ export function IntegrationsSection() {
           <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
             {t('console.integrations.llmModel')}
           </label>
-          <Input
-            value={llmModel}
-            onChange={(e) => setLlmModel(e.target.value)}
-            placeholder={LLM_PROVIDER_REGISTRY[llmProvider].model}
+          <ModelSelector
+            provider={llmProvider}
+            model={llmModel}
+            onChange={setLlmModel}
             disabled={loading}
           />
         </div>
@@ -237,5 +258,52 @@ export function IntegrationsSection() {
         </div>
       </div>
     </section>
+  );
+}
+
+interface ModelSelectorProps {
+  provider: LLMProviderType;
+  model: string;
+  onChange: (model: string) => void;
+  disabled?: boolean;
+}
+
+function ModelSelector({ provider, model, onChange, disabled }: ModelSelectorProps) {
+  const { t } = useTranslation();
+  const recommended = LLM_PROVIDER_REGISTRY[provider].models ?? [];
+  const isCustom = model !== '' && !recommended.includes(model);
+  const defaultModel = LLM_PROVIDER_REGISTRY[provider].model;
+
+  return (
+    <div className="space-y-2">
+      <select
+        value={isCustom ? 'custom' : model}
+        onChange={(e) => {
+          const value = e.target.value;
+          onChange(value === 'custom' ? '' : value);
+        }}
+        disabled={disabled}
+        className={cn(
+          'h-9 w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-3 text-sm text-[var(--color-text-primary)] focus:border-[var(--color-accent-500)] focus:outline-none focus:ring-[1.5px] focus:ring-[var(--color-accent-500)]',
+          disabled && 'opacity-50 cursor-not-allowed'
+        )}
+      >
+        <option value="">{t('console.integrations.llmModelDefault', { model: defaultModel })}</option>
+        {recommended.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+        <option value="custom">{t('console.integrations.llmModelCustom')}</option>
+      </select>
+      {isCustom && (
+        <Input
+          value={model}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={defaultModel}
+          disabled={disabled}
+        />
+      )}
+    </div>
   );
 }

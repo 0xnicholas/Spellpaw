@@ -4,8 +4,8 @@ import type { GenerationProvider, GenerationInput, GenerationTask, ProviderConfi
 const SETTINGS_KEY = 'spellpaw_settings';
 // Direct base URL (kept for reference): https://ark.cn-beijing.volces.com/api/v3
 const PROXY_BASE_URL = `${config.serverBase}/api/v1/proxy/doubao`;
-const DEFAULT_IMAGE_MODEL = 'doubao-seedream-4-0-250828';
-const DEFAULT_VIDEO_MODEL = 'doubao-seedance-1-5-pro';
+const DEFAULT_IMAGE_MODEL = 'doubao-seedream-4-5';
+const DEFAULT_VIDEO_MODEL = 'doubao-seedance-1-5-pro-251215';
 
 function readSettings(): Record<string, unknown> {
   try {

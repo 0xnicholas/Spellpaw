@@ -6,7 +6,7 @@ import { DEFAULT_LLM_PROVIDER, isSupportedLLMProvider, LLM_PROVIDER_DEFAULTS } f
  * Configured via environment variables:
  *   LLM_API_KEY   required
  *   LLM_BASE_URL  optional, defaults to OpenAI
- *   LLM_MODEL     optional, defaults to gpt-4o-mini
+ *   LLM_MODEL     optional, defaults to gpt-5.4-mini
  */
 
 export interface ToolConfig {
@@ -75,7 +75,10 @@ export async function* streamChat(
   const model = context.model || options.model || process.env.LLM_MODEL || defaults.model;
 
   if (!apiKey) {
-    yield { type: 'error', message: 'LLM_API_KEY not configured' };
+    yield {
+      type: 'error',
+      message: 'LLM_API_KEY not configured. Please set your LLM provider API key in Console > Integrations, or provide the X-LLM-API-Key header.',
+    };
     return;
   }
 

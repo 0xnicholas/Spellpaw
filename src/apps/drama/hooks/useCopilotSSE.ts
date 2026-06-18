@@ -25,6 +25,7 @@ export function useCopilotSSE() {
   const sessionRef = useRef<string | null>(null);
   const sseRef = useRef<{ close: () => void } | null>(null);
   const providerRef = useRef(getLLMProvider());
+  const creatingSessionRef = useRef(false);
   const toolCallStartedRef = useRef(false);
   const toolCallsInTurnRef = useRef<string[]>([]);
   const currentIntentRef = useRef<CanvasIntent | null>(null);
@@ -46,11 +47,13 @@ export function useCopilotSSE() {
     startStreaming, appendDelta, startToolCall, endToolCall, endStreaming, appendMessage,
   } = useChatStore();
 
+  const currentProjectId = useProjectStore((s) => s.currentProjectId);
+
   useEffect(() => {
     // Override sendMessage to use the configured LLM provider
     const originalSend = useChatStore.getState().sendMessage;
-    let initDone = false;
     const provider = providerRef.current;
+    const projectId = currentProjectId;
 
     const subscribeToSession = (sessionId: string) => {
       sseRef.current?.close();
@@ -76,7 +79,7 @@ export function useCopilotSSE() {
             endToolCall(event.call_id as string);
             break;
           case 'turn_end':
-            endStreaming(event.stop_reason as string);
+            endStreaming(projectId!, event.stop_reason as string);
             // Client guardrail: enforce the canvas intent even if the LLM only
             // called read-only/context tools (e.g. get_tree) or no tool at all.
             if (currentIntentRef.current && !canvasToolWasCalled()) {
@@ -87,7 +90,7 @@ export function useCopilotSSE() {
             break;
           case 'error':
             appendDelta(`\n\n❌ Error: ${event.message}`);
-            endStreaming('error');
+            endStreaming(projectId!, 'error');
             currentIntentRef.current = null;
             break;
         }
@@ -129,7 +132,7 @@ export function useCopilotSSE() {
           content: result.success ? result.message : `❌ ${result.message}`,
           type: 'action',
           timestamp: new Date().toISOString(),
-        });
+        }, projectId!);
       } catch (err) {
         console.error('[useCopilotSSE] guardrail failed:', err);
         appendMessage({
@@ -138,12 +141,17 @@ export function useCopilotSSE() {
           content: `❌ 自动执行失败: ${(err as Error).message}`,
           type: 'action',
           timestamp: new Date().toISOString(),
-        });
+        }, projectId!);
       }
     }
 
     useChatStore.setState({
-      sendMessage: async (content: string) => {
+      sendMessage: async (content: string, _projectId: string) => {
+        const projectId = currentProjectId;
+        if (!projectId) {
+          console.warn('[useCopilotSSE] sendMessage ignored: no project selected');
+          return;
+        }
         console.log('[useCopilotSSE] sendMessage called:', content.slice(0, 80));
         // Build node context for the message
         const projectStore = useProjectStore.getState();
@@ -205,11 +213,11 @@ export function useCopilotSSE() {
           timestamp: new Date().toISOString(),
           context: contextNodeId ? { nodeId: contextNodeId, nodeType: contextNodeType } : undefined,
         };
-        useChatStore.setState((s) => ({ messages: [...s.messages, userMsg] }));
+        appendMessage(userMsg, projectId);
 
         // Lazy init LLM session
-        if (!initDone) {
-          initDone = true;
+        if (!sessionRef.current && !creatingSessionRef.current) {
+          creatingSessionRef.current = true;
           try {
             const tree = useProjectStore.getState().getCurrentTree();
             const treeText = tree ? treeToPromptText(tree as { title: string; type: string; children?: Array<Record<string, unknown>> }) : '(空项目)';
@@ -229,9 +237,11 @@ export function useCopilotSSE() {
               content: `❌ 连接失败: ${(err as Error).message}`,
               type: 'text',
               timestamp: new Date().toISOString(),
-            });
-            endStreaming('error');
+            }, projectId);
+            endStreaming(projectId, 'error');
             return;
+          } finally {
+            creatingSessionRef.current = false;
           }
         }
 
@@ -251,8 +261,8 @@ export function useCopilotSSE() {
               content: `❌ 发送失败: ${(err as Error).message}`,
               type: 'text',
               timestamp: new Date().toISOString(),
-            });
-            endStreaming('error');
+            }, projectId);
+            endStreaming(projectId, 'error');
           }
         } else {
           console.error('[useCopilotSSE] no session available');
@@ -263,9 +273,11 @@ export function useCopilotSSE() {
     return () => {
       useChatStore.setState({ sendMessage: originalSend });
       sseRef.current?.close();
+      sessionRef.current = null;
+      creatingSessionRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentProjectId]);
 }
 
 /** Convert project tree to indented text for system_prompt */

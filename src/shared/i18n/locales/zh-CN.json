@@ -68,6 +68,8 @@
       "llmBaseUrl": "Base URL",
       "llmBaseUrlHint": "已根据 Provider 预设，通常无需修改",
       "llmModel": "模型",
+      "llmModelDefault": "默认（{{model}}）",
+      "llmModelCustom": "自定义...",
       "saveLanguageModel": "保存语言模型设置",
       "saveMultimodal": "保存多模态 Key",
       "providers": {

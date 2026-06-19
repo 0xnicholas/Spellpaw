@@ -1,8 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { ChatMessage } from '@drama/types';
 import { generateId } from '@/shared/lib/utils';
-import { createIDBStorage } from '@/shared/lib/idbStorage';
 import { authApi } from '@/shared/stores/authStore';
 
 interface InFlightToolCall {
@@ -23,19 +21,19 @@ interface ChatState {
   // Phase 3: node-scoped chat filtering
   filterNodeId: string | null;
 
-  loadChat: () => Promise<void>;
-  sendMessage: (content: string) => void;
+  loadChat: (projectId: string) => Promise<void>;
+  sendMessage: (content: string, projectId: string) => void;
   setInputValue: (value: string) => void;
-  appendMessage: (message: ChatMessage) => void;
+  appendMessage: (message: ChatMessage, projectId: string) => void;
   clearMessages: () => void;
   setFilterNodeId: (nodeId: string | null) => void;
 
-  // Phase 2: SSE actions
+  // Phase 2: SSE streaming actions
   startStreaming: (messageId: string) => void;
   appendDelta: (delta: string) => void;
   startToolCall: (callId: string, name: string) => void;
   endToolCall: (callId: string) => void;
-  endStreaming: (stopReason?: string) => void;
+  endStreaming: (projectId: string, stopReason?: string) => void;
 }
 
 function mockAgentReply(userContent: string): ChatMessage {
@@ -61,142 +59,130 @@ function mockAgentReply(userContent: string): ChatMessage {
   };
 }
 
-async function saveChatMessages(messages: ChatMessage[]): Promise<void> {
+async function saveChatMessages(messages: ChatMessage[], projectId: string): Promise<void> {
   try {
-    await authApi.apiCall('/api/chat', {
+    await authApi.apiCall(`/api/chat/${projectId}`, {
       method: 'PUT',
       body: JSON.stringify({ messages }),
     });
   } catch {
-    // offline / network errors are tolerated; local IndexedDB remains the cache
+    // offline / network errors are tolerated; local state remains usable
   }
 }
 
 export const useChatStore = create<ChatState>()(
-  persist(
-    (set) => ({
-      messages: [],
-      isLoading: false,
-      inputValue: '',
-      streamingMessage: null,
-      streamingMessageId: null,
-      toolCalls: [],
-      filterNodeId: null,
+  (set) => ({
+    messages: [],
+    isLoading: false,
+    inputValue: '',
+    streamingMessage: null,
+    streamingMessageId: null,
+    toolCalls: [],
+    filterNodeId: null,
 
-      loadChat: async () => {
-        try {
-          const res = await authApi.apiCall('/api/chat');
-          if (!res.ok) return;
-          const data = await res.json();
-          const remoteMessages = (Array.isArray(data.messages) ? data.messages : []) as ChatMessage[];
-          if (remoteMessages.length === 0) return;
-
-          // Merge remote messages into the local cache instead of overwriting it.
-          // This prevents an empty server chat from wiping locally-stored messages on refresh.
-          set((state) => {
-            const localIds = new Set(state.messages.map((m) => m.id));
-            const merged = [
-              ...state.messages,
-              ...remoteMessages.filter((m) => !localIds.has(m.id)),
-            ];
-            merged.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-            return { messages: merged };
-          });
-        } catch {
-          // keep local cache on error
+    loadChat: async (projectId: string) => {
+      if (!projectId) {
+        set({ messages: [] });
+        return;
+      }
+      try {
+        const res = await authApi.apiCall(`/api/chat/${projectId}`);
+        if (!res.ok) {
+          set({ messages: [] });
+          return;
         }
-      },
+        const data = await res.json();
+        const remoteMessages = (Array.isArray(data.messages) ? data.messages : []) as ChatMessage[];
+        set({ messages: remoteMessages });
+      } catch {
+        set({ messages: [] });
+      }
+    },
 
-      sendMessage: (content) => {
-        const userMsg: ChatMessage = {
-          id: generateId('msg_'),
-          role: 'user',
-          content,
+    sendMessage: (content, projectId) => {
+      if (!projectId) return;
+      const userMsg: ChatMessage = {
+        id: generateId('msg_'),
+        role: 'user',
+        content,
+        type: 'text',
+        timestamp: new Date().toISOString(),
+      };
+      set((state) => {
+        const messages = [...state.messages, userMsg];
+        void saveChatMessages(messages, projectId);
+        return { messages, isLoading: true };
+      });
+
+      setTimeout(() => {
+        const agentMsg = mockAgentReply(content);
+        set((state) => {
+          const messages = [...state.messages, agentMsg];
+          void saveChatMessages(messages, projectId);
+          return {
+            messages,
+            isLoading: false,
+          };
+        });
+      }, 1200);
+    },
+
+    setInputValue: (value) => set({ inputValue: value }),
+
+    appendMessage: (message, projectId) =>
+      set((state) => {
+        const messages = [...state.messages, message];
+        void saveChatMessages(messages, projectId);
+        return { messages };
+      }),
+
+    clearMessages: () => {
+      set({ messages: [] });
+    },
+    setFilterNodeId: (nodeId) => set({ filterNodeId: nodeId }),
+
+    // Phase 2: SSE streaming actions
+    startStreaming: (messageId) =>
+      set({ streamingMessageId: messageId, streamingMessage: '', isLoading: true }),
+
+    appendDelta: (delta) =>
+      set((state) => ({
+        streamingMessage: (state.streamingMessage ?? '') + delta,
+      })),
+
+    startToolCall: (callId, name) =>
+      set((state) => ({
+        toolCalls: [...state.toolCalls, { callId, name }],
+      })),
+
+    endToolCall: (callId) =>
+      set((state) => ({
+        toolCalls: state.toolCalls.filter((t) => t.callId !== callId),
+      })),
+
+    endStreaming: (projectId, _stopReason) => {
+      const state = useChatStore.getState();
+      if (state.streamingMessage && state.streamingMessageId) {
+        const finalMsg: ChatMessage = {
+          id: state.streamingMessageId,
+          role: 'agent',
+          content: state.streamingMessage,
           type: 'text',
           timestamp: new Date().toISOString(),
         };
-        set((state) => {
-          const messages = [...state.messages, userMsg];
-          void saveChatMessages(messages);
-          return { messages, isLoading: true };
-        });
-
-        setTimeout(() => {
-          const agentMsg = mockAgentReply(content);
-          set((state) => {
-            const messages = [...state.messages, agentMsg];
-            void saveChatMessages(messages);
-            return {
-              messages,
-              isLoading: false,
-            };
-          });
-        }, 1200);
-      },
-
-      setInputValue: (value) => set({ inputValue: value }),
-
-      appendMessage: (message) =>
-        set((state) => {
-          const messages = [...state.messages, message];
-          void saveChatMessages(messages);
-          return { messages };
-        }),
-
-      clearMessages: () => {
-        set({ messages: [] });
-        void saveChatMessages([]);
-      },
-      setFilterNodeId: (nodeId) => set({ filterNodeId: nodeId }),
-
-      // Phase 2: SSE streaming actions
-      startStreaming: (messageId) =>
-        set({ streamingMessageId: messageId, streamingMessage: '', isLoading: true }),
-
-      appendDelta: (delta) =>
-        set((state) => ({
-          streamingMessage: (state.streamingMessage ?? '') + delta,
-        })),
-
-      startToolCall: (callId, name) =>
-        set((state) => ({
-          toolCalls: [...state.toolCalls, { callId, name }],
-        })),
-
-      endToolCall: (callId) =>
-        set((state) => ({
-          toolCalls: state.toolCalls.filter((t) => t.callId !== callId),
-        })),
-
-      endStreaming: (_stopReason) => {
-        const state = useChatStore.getState();
-        if (state.streamingMessage && state.streamingMessageId) {
-          const finalMsg: ChatMessage = {
-            id: state.streamingMessageId,
-            role: 'agent',
-            content: state.streamingMessage,
-            type: 'text',
-            timestamp: new Date().toISOString(),
+        set((s) => {
+          const messages = [...s.messages, finalMsg];
+          void saveChatMessages(messages, projectId);
+          return {
+            messages,
+            streamingMessage: null,
+            streamingMessageId: null,
+            isLoading: false,
           };
-          set((s) => {
-            const messages = [...s.messages, finalMsg];
-            void saveChatMessages(messages);
-            return {
-              messages,
-              streamingMessage: null,
-              streamingMessageId: null,
-              isLoading: false,
-            };
-          });
-        } else {
-          set({ streamingMessage: null, streamingMessageId: null, isLoading: false });
-        }
-      },
-    }),
-    {
-      name: 'spellpaw_chat',
-      storage: createIDBStorage<ChatState>('chatStore'),
-      partialize: (state) => ({ messages: state.messages }) as unknown as ChatState,
-    }
-  )
+        });
+      } else {
+        set({ streamingMessage: null, streamingMessageId: null, isLoading: false });
+      }
+    },
+  })
 );

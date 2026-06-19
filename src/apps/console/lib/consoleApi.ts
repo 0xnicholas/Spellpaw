@@ -7,6 +7,7 @@ export interface UserSettings {
   minimaxApiKey: string;
   llmProvider: string;
   llmApiKey: string;
+  llmApiKeys: Record<string, string>;
   llmBaseUrl: string;
   llmModel: string;
 }

@@ -15,6 +15,7 @@ export interface TreeNode {
     cameraMovement?: 'static' | 'pan' | 'tilt' | 'dolly' | 'handheld';
     dialogue?: string;
     notes?: string;
+    visualStyle?: string;
     createdAt: string;
     updatedAt: string;
     lockedStylePrompt?: string | null;

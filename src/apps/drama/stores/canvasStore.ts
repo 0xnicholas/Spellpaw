@@ -56,6 +56,12 @@ function ensureEntry(state: CanvasState): CanvasEntry {
   return state.canvases[projectId];
 }
 
+function bumpProjectUpdatedAt(): void {
+  const projectId = useProjectStore.getState().currentProjectId;
+  if (!projectId) return;
+  useProjectStore.getState().updateProject(projectId, { updatedAt: new Date().toISOString() });
+}
+
 export const useCanvasStore = create<CanvasState>()(
   persist(
     (set, get) => ({
@@ -118,6 +124,7 @@ export const useCanvasStore = create<CanvasState>()(
 
       addNode: (node) =>
         set((state) => {
+          bumpProjectUpdatedAt();
           const projectId = useProjectStore.getState().currentProjectId;
           if (!projectId) return state;
           const entry = state.canvases[projectId]
@@ -133,6 +140,7 @@ export const useCanvasStore = create<CanvasState>()(
 
       removeNode: (id) =>
         set((state) => {
+          bumpProjectUpdatedAt();
           const projectId = useProjectStore.getState().currentProjectId;
           if (!projectId) return state;
           const entry = state.canvases[projectId];
@@ -165,6 +173,7 @@ export const useCanvasStore = create<CanvasState>()(
 
       updateNodeData: (id, data) =>
         set((state) => {
+          bumpProjectUpdatedAt();
           const projectId = useProjectStore.getState().currentProjectId;
           if (!projectId) return state;
           const entry = state.canvases[projectId];
@@ -189,6 +198,7 @@ export const useCanvasStore = create<CanvasState>()(
 
       addEdge: (edge) =>
         set((state) => {
+          bumpProjectUpdatedAt();
           const projectId = useProjectStore.getState().currentProjectId;
           if (!projectId) return state;
           const entry = ensureEntry(state);
@@ -202,6 +212,7 @@ export const useCanvasStore = create<CanvasState>()(
 
       removeEdge: (id) =>
         set((state) => {
+          bumpProjectUpdatedAt();
           const projectId = useProjectStore.getState().currentProjectId;
           if (!projectId) return state;
           const entry = state.canvases[projectId];

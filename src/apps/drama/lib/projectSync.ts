@@ -71,11 +71,12 @@ export async function pushProject(projectId: string): Promise<PushResult> {
           coverColor: project.coverColor,
           data,
           version,
+          updatedAt: project.updatedAt,
         }),
       });
 
       if (res.status === 409) {
-        // Cloud-wins mode: local version is stale. Pull the server state and overwrite local.
+        // Server has a newer version. Pull the server state and overwrite local.
         const pulled = await pullProject(projectId);
         return { success: pulled.success, error: pulled.error };
       }
@@ -135,14 +136,28 @@ export async function pushAll(): Promise<PushAllResult> {
   return result;
 }
 
-/** Pull a single project from server and overwrite local data. */
-export async function pullProject(projectId: string): Promise<{ success: boolean; error?: string }> {
+/** Pull a single project from server; only overwrite local if server is newer. */
+export async function pullProject(projectId: string): Promise<{ success: boolean; skipped?: boolean; error?: string }> {
   try {
     const res = await authApi.apiCall(`/api/projects/${projectId}`);
     if (!res.ok) return { success: false, error: `HTTP ${res.status}` };
 
     const sp: ServerProject = await res.json();
     const parsed = JSON.parse(sp.data || '{}');
+
+    const local = useProjectStore.getState().projects.find((p) => p.id === projectId);
+    const serverTime = new Date(sp.updatedAt).getTime();
+    const localTime = local?.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+
+    // Local is newer or equal: keep local, but still refresh metadata like version.
+    if (local && localTime >= serverTime) {
+      useProjectStore.setState((s) => ({
+        projects: s.projects.map((p) =>
+          p.id === projectId ? { ...p, version: sp.version } : p
+        ),
+      }));
+      return { success: true, skipped: true };
+    }
 
     useProjectStore.setState((s) => {
       const exists = s.projects.find((p) => p.id === sp.id);
@@ -220,10 +235,14 @@ export async function pullAll(): Promise<PullResult> {
       }));
       result.imported++;
     } else {
-      // Cloud-wins mode: always pull the server copy for existing projects.
+      // Last-write-wins: pullProject only overwrites local when server is newer.
       const pr = await pullProject(sp.id);
-      if (pr.success) result.updated++;
-      else result.errors.push(`${sp.title}: ${pr.error}`);
+      if (pr.success) {
+        if (pr.skipped) result.errors.push(`${sp.title}: local is newer, skipped pull`);
+        else result.updated++;
+      } else {
+        result.errors.push(`${sp.title}: ${pr.error}`);
+      }
     }
   }
 

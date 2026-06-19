@@ -20,13 +20,14 @@ model User {
   doubaoApiKey  String?
   minimaxApiKey String?
   llmProvider   String    @default("deepseek")
-  llmApiKey    String?
-  llmBaseUrl   String?
-  llmModel     String?
+  llmApiKey     String?   // deprecated: kept for migration/cache
+  llmApiKeys    String?   // JSON { deepseek?: string; openai?: string; doubao?: string; minimax?: string }
+  llmBaseUrl    String?
+  llmModel      String?
 
   projects  Project[]
   tasks     Task[]
-  chat      Chat?
+  chats     Chat[]
 }
 
 model Task {
@@ -47,12 +48,15 @@ model Task {
 
 model Chat {
   id        String   @id @default(uuid())
-  userId    String   @unique
+  userId    String
+  projectId String
   messages  String   @default("[]")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
 }
 
 model Project {

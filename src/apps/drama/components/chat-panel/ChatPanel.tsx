@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { TabBar } from '@/shared/components/ui/TabBar';
 import { TabPanel } from '@/shared/components/ui/TabPanel';
 import { DetailPanel } from '@drama/components/detail-panel/DetailPanel';
@@ -23,19 +23,39 @@ export function ChatPanel() {
   const isLoading = useChatStore((s) => s.isLoading);
   const filterNodeId = useChatStore((s) => s.filterNodeId);
   const setFilterNodeId = useChatStore((s) => s.setFilterNodeId);
+  const loadChat = useChatStore((s) => s.loadChat);
 
   const activeTab = useDetailStore((s) => s.activeTab);
   const setActiveTab = useDetailStore((s) => s.setActiveTab);
   const selectedNodeId = useProjectStore((s) => s.selectedNodeId);
+  const currentProjectId = useProjectStore((s) => s.currentProjectId);
   const tree = useProjectStore((s) => s.getCurrentTree());
   const addTreeNode = useProjectStore((s) => s.addTreeNode);
 
   // Phase 2: connect to LLM provider for real-time AI collaboration
   useCopilotSSE();
 
+  // Load project-scoped chat history when the active project changes.
+  useEffect(() => {
+    if (currentProjectId) {
+      void loadChat(currentProjectId);
+    } else {
+      useChatStore.setState({ messages: [] });
+    }
+  }, [currentProjectId, loadChat]);
+
   const filteredMessages = filterNodeId
     ? messages.filter((m) => m.context?.nodeId === filterNodeId || m.role === 'agent')
     : messages;
+
+  const handleSendMessage = useCallback(
+    (content: string) => {
+      if (currentProjectId) {
+        sendMessage(content, currentProjectId);
+      }
+    },
+    [currentProjectId, sendMessage]
+  );
 
   const handleActionClick = useCallback(
     (action: ChatAction) => {
@@ -44,7 +64,7 @@ export function ChatPanel() {
       switch (action.type) {
         case 'generate_storyboard': {
           if (!selectedNodeId) {
-            sendMessage('请帮我为当前场景生成分镜图');
+            handleSendMessage('请帮我为当前场景生成分镜图');
             return;
           }
           void toolRouter.generate_storyboard({
@@ -76,15 +96,15 @@ export function ChatPanel() {
         }
         case 'custom': {
           if (action.payload?.followUp) {
-            sendMessage(action.payload.followUp as string);
+            handleSendMessage(action.payload.followUp as string);
           } else {
-            sendMessage(action.label);
+            handleSendMessage(action.label);
           }
           break;
         }
       }
     },
-    [selectedNodeId, tree, sendMessage, addTreeNode, setActiveTab]
+    [selectedNodeId, tree, handleSendMessage, addTreeNode, setActiveTab]
   );
 
   const showDetailsTab = !!selectedNodeId;
@@ -110,13 +130,13 @@ export function ChatPanel() {
           <ContextBar
             onClick={() => selectedNodeId && setFilterNodeId(selectedNodeId)}
           />
-          <QuickActions onAction={(label) => sendMessage(label)} />
+          <QuickActions onAction={handleSendMessage} />
           <CopilotChat
             messages={filteredMessages}
             streamingText={streamingMessage}
             toolCalls={toolCalls}
             isLoading={isLoading}
-            onSend={sendMessage}
+            onSend={handleSendMessage}
             onActionClick={handleActionClick}
             placeholder="输入创作想法…"
             emptyState={<WorkflowGuide />}

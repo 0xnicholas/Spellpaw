@@ -30,6 +30,15 @@ interface ProjectState {
   deduplicateProjects: () => void;
 }
 
+function bumpProjectUpdatedAt(state: ProjectState): void {
+  const id = state.currentProjectId;
+  if (!id) return;
+  const idx = state.projects.findIndex((p) => p.id === id);
+  if (idx !== -1) {
+    state.projects[idx] = { ...state.projects[idx], updatedAt: new Date().toISOString() };
+  }
+}
+
 function findNodePath(node: TreeNode | null, targetId: string, path: string[] = []): string[] | null {
   if (!node) return null;
   if (node.id === targetId) return [...path, node.title];
@@ -148,6 +157,7 @@ export const useProjectStore = create<ProjectState>()(
           produce((state: ProjectState) => {
             const tree = state.trees[state.currentProjectId!];
             if (!tree) return;
+            bumpProjectUpdatedAt(state);
             function walk(node: TreeNode) {
               if (node.id === nodeId) {
                 if (updates.metadata && node.metadata) {
@@ -173,6 +183,7 @@ export const useProjectStore = create<ProjectState>()(
           produce((state: ProjectState) => {
             const tree = state.trees[state.currentProjectId!];
             if (!tree) return;
+            bumpProjectUpdatedAt(state);
             const now = new Date().toISOString();
             const newNode = {
               ...node,
@@ -206,6 +217,7 @@ export const useProjectStore = create<ProjectState>()(
           produce((state: ProjectState) => {
             const tree = state.trees[state.currentProjectId!];
             if (!tree) return;
+            bumpProjectUpdatedAt(state);
             function walk(n: TreeNode): boolean {
               if (!n.children) return false;
               const idx = n.children.findIndex((c) => c.id === nodeId);
@@ -230,6 +242,7 @@ export const useProjectStore = create<ProjectState>()(
           produce((state: ProjectState) => {
             const tree = state.trees[state.currentProjectId!];
             if (!tree) return;
+            bumpProjectUpdatedAt(state);
             function walk(n: TreeNode): boolean {
               if (!n.children) return false;
               const idx = n.children.findIndex((c) => c.id === nodeId);

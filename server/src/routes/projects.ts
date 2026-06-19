@@ -32,11 +32,19 @@ export function projectRoutes(prisma: PrismaClient): Router {
   router.put('/:id', async (req, res) => {
     const existing = await prisma.project.findFirst({ where: { id: req.params.id, userId: getUserId(req) } });
     if (!existing) { res.status(404).json({ error: 'Not found' }); return; }
-    const { title, description, coverColor, data, version } = req.body;
-    // Cloud-wins mode: reject stale local writes so the client can pull the latest server state.
-    if (version !== undefined && existing.version !== version) {
-      res.status(409).json({ error: 'Conflict', serverVersion: existing.version }); return;
+    const { title, description, coverColor, data, version, updatedAt } = req.body;
+
+    // Last-write-wins: accept the incoming change if it is at least as fresh as the server copy.
+    // We compare the client-supplied updatedAt timestamp first; if missing, fall back to version matching.
+    const serverTime = existing.updatedAt.getTime();
+    const clientTime = typeof updatedAt === 'string' ? new Date(updatedAt).getTime() : NaN;
+    const clientIsNewer = !Number.isNaN(clientTime) && clientTime >= serverTime;
+    const versionMatches = version !== undefined && existing.version === version;
+
+    if (!clientIsNewer && !versionMatches) {
+      res.status(409).json({ error: 'Conflict', serverVersion: existing.version, serverUpdatedAt: existing.updatedAt.toISOString() }); return;
     }
+
     const project = await prisma.project.update({
       where: { id: req.params.id },
       data: {

@@ -3,10 +3,32 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { auth, getUserId } from '../middleware';
-import { DEFAULT_LLM_PROVIDER, isSupportedLLMProvider } from '../lib/providers';
+import { DEFAULT_LLM_PROVIDER, isSupportedLLMProvider, SUPPORTED_LLM_PROVIDERS, type SupportedLLMProvider } from '../lib/providers';
 
-function normalizeLlmProvider(value: unknown): string {
+function normalizeLlmProvider(value: unknown): SupportedLLMProvider {
   return isSupportedLLMProvider(value) ? value : DEFAULT_LLM_PROVIDER;
+}
+
+type LlmApiKeys = Partial<Record<SupportedLLMProvider, string>>;
+
+function parseLlmApiKeys(raw: string | null): LlmApiKeys {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {};
+    const keys: LlmApiKeys = {};
+    for (const provider of SUPPORTED_LLM_PROVIDERS) {
+      const value = parsed[provider];
+      if (typeof value === 'string') keys[provider] = value;
+    }
+    return keys;
+  } catch {
+    return {};
+  }
+}
+
+function serializeLlmApiKeys(keys: LlmApiKeys): string {
+  return JSON.stringify(keys);
 }
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -72,15 +94,29 @@ export function authRoutes(prisma: PrismaClient): Router {
     try {
       const user = await prisma.user.findUnique({
         where: { id: getUserId(req) },
-        select: { openaiApiKey: true, doubaoApiKey: true, minimaxApiKey: true, llmProvider: true, llmApiKey: true, llmBaseUrl: true, llmModel: true },
+        select: { openaiApiKey: true, doubaoApiKey: true, minimaxApiKey: true, llmProvider: true, llmApiKey: true, llmApiKeys: true, llmBaseUrl: true, llmModel: true },
       });
       if (!user) { res.status(404).json({ error: 'Not found' }); return; }
+
+      const provider = normalizeLlmProvider(user.llmProvider);
+      let llmApiKeys = parseLlmApiKeys(user.llmApiKeys);
+
+      // Migration: migrate legacy single llmApiKey into per-provider map.
+      if (Object.keys(llmApiKeys).length === 0 && user.llmApiKey) {
+        llmApiKeys = { [provider]: user.llmApiKey };
+        await prisma.user.update({
+          where: { id: getUserId(req) },
+          data: { llmApiKeys: serializeLlmApiKeys(llmApiKeys) },
+        });
+      }
+
       res.json({
         openaiApiKey: user.openaiApiKey ?? '',
         doubaoApiKey: user.doubaoApiKey ?? '',
         minimaxApiKey: user.minimaxApiKey ?? '',
-        llmProvider: normalizeLlmProvider(user.llmProvider),
-        llmApiKey: user.llmApiKey ?? '',
+        llmProvider: provider,
+        llmApiKey: llmApiKeys[provider] ?? '',
+        llmApiKeys,
         llmBaseUrl: user.llmBaseUrl ?? '',
         llmModel: user.llmModel ?? '',
       });
@@ -91,27 +127,68 @@ export function authRoutes(prisma: PrismaClient): Router {
 
   router.patch('/settings', auth(prisma), async (req, res) => {
     try {
-      const { openaiApiKey, doubaoApiKey, minimaxApiKey, llmProvider, llmApiKey, llmBaseUrl, llmModel } = req.body;
-      const data: Record<string, string | null> = {};
-      if (openaiApiKey !== undefined) data.openaiApiKey = openaiApiKey || null;
-      if (doubaoApiKey !== undefined) data.doubaoApiKey = doubaoApiKey || null;
-      if (minimaxApiKey !== undefined) data.minimaxApiKey = minimaxApiKey || null;
-      if (llmProvider !== undefined) data.llmProvider = normalizeLlmProvider(llmProvider);
-      if (llmApiKey !== undefined) data.llmApiKey = llmApiKey || null;
-      if (llmBaseUrl !== undefined) data.llmBaseUrl = llmBaseUrl || null;
-      if (llmModel !== undefined) data.llmModel = llmModel || null;
+      const { openaiApiKey, doubaoApiKey, minimaxApiKey, llmProvider, llmApiKey, llmApiKeys, llmBaseUrl, llmModel } = req.body;
+      const updateData: Record<string, string | null> = {};
+      if (openaiApiKey !== undefined) updateData.openaiApiKey = openaiApiKey || null;
+      if (doubaoApiKey !== undefined) updateData.doubaoApiKey = doubaoApiKey || null;
+      if (minimaxApiKey !== undefined) updateData.minimaxApiKey = minimaxApiKey || null;
+      if (llmProvider !== undefined) updateData.llmProvider = normalizeLlmProvider(llmProvider);
+      if (llmBaseUrl !== undefined) updateData.llmBaseUrl = llmBaseUrl || null;
+      if (llmModel !== undefined) updateData.llmModel = llmModel || null;
+
+      // Always read the current row to merge llmApiKeys correctly.
+      const existingUser = await prisma.user.findUnique({
+        where: { id: getUserId(req) },
+        select: { llmProvider: true, llmApiKey: true, llmApiKeys: true },
+      });
+      if (!existingUser) { res.status(404).json({ error: 'Not found' }); return; }
+
+      const currentProvider = normalizeLlmProvider(existingUser.llmProvider);
+      const targetProvider = typeof llmProvider === 'string' ? normalizeLlmProvider(llmProvider) : currentProvider;
+
+      let currentKeys = parseLlmApiKeys(existingUser.llmApiKeys);
+      // Migration safety: if the map is empty but the legacy field has a value, seed the map.
+      if (Object.keys(currentKeys).length === 0 && existingUser.llmApiKey) {
+        currentKeys = { [currentProvider]: existingUser.llmApiKey };
+      }
+
+      // Merge per-provider keys. Supports either the new llmApiKeys object or the legacy llmApiKey string.
+      const mergedKeys: LlmApiKeys = { ...currentKeys };
+      if (llmApiKeys !== undefined && typeof llmApiKeys === 'object' && llmApiKeys !== null) {
+        for (const provider of SUPPORTED_LLM_PROVIDERS) {
+          const value = (llmApiKeys as Record<string, unknown>)[provider];
+          if (value === '') {
+            delete mergedKeys[provider];
+          } else if (typeof value === 'string') {
+            mergedKeys[provider] = value;
+          }
+        }
+      }
+      if (llmApiKey !== undefined) {
+        if (llmApiKey) {
+          mergedKeys[targetProvider] = llmApiKey;
+        } else {
+          delete mergedKeys[targetProvider];
+        }
+      }
+
+      updateData.llmApiKeys = serializeLlmApiKeys(mergedKeys);
+      updateData.llmApiKey = mergedKeys[targetProvider] ?? null;
 
       const user = await prisma.user.update({
         where: { id: getUserId(req) },
-        data,
-        select: { openaiApiKey: true, doubaoApiKey: true, minimaxApiKey: true, llmProvider: true, llmApiKey: true, llmBaseUrl: true, llmModel: true },
+        data: updateData,
+        select: { openaiApiKey: true, doubaoApiKey: true, minimaxApiKey: true, llmProvider: true, llmApiKey: true, llmApiKeys: true, llmBaseUrl: true, llmModel: true },
       });
+      const normalizedProvider = normalizeLlmProvider(user.llmProvider);
+      const finalKeys = parseLlmApiKeys(user.llmApiKeys);
       res.json({
         openaiApiKey: user.openaiApiKey ?? '',
         doubaoApiKey: user.doubaoApiKey ?? '',
         minimaxApiKey: user.minimaxApiKey ?? '',
-        llmProvider: normalizeLlmProvider(user.llmProvider),
-        llmApiKey: user.llmApiKey ?? '',
+        llmProvider: normalizedProvider,
+        llmApiKey: finalKeys[normalizedProvider] ?? '',
+        llmApiKeys: finalKeys,
         llmBaseUrl: user.llmBaseUrl ?? '',
         llmModel: user.llmModel ?? '',
       });

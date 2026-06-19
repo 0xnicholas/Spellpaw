@@ -25,6 +25,13 @@ function authHeaders(toolChoice?: ToolChoice): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   const settings = getLLMSettings();
+  console.log('[spellpawProvider] getLLMSettings:', {
+    provider: settings.provider,
+    hasApiKey: Boolean(settings.apiKey),
+    apiKeyPreview: settings.apiKey ? `${settings.apiKey.slice(0, 6)}...` : '(empty)',
+    baseUrl: settings.baseUrl,
+    model: settings.model,
+  });
   headers['X-LLM-Provider'] = settings.provider;
   if (settings.apiKey) headers['X-LLM-API-Key'] = settings.apiKey;
   if (settings.baseUrl) headers['X-LLM-Base-URL'] = settings.baseUrl;
@@ -76,13 +83,10 @@ export const spellpawProvider: LLMProvider = {
 
     (async () => {
       try {
-        const headers: Record<string, string> = {};
-        const token = useAuthStore.getState().token;
-        if (token) headers.Authorization = `Bearer ${token}`;
         if (aborted) return;
 
         const res = await fetch(`${BASE_URL}/sessions/${sessionId}/events`, {
-          headers,
+          headers: authHeaders(),
           signal: controller.signal,
         });
 

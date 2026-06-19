@@ -20,6 +20,7 @@ export async function syncUserSettings(server?: UserSettings | null): Promise<vo
   setLLMSettings({
     provider: isValidProvider(settings.llmProvider) ? settings.llmProvider : DEFAULT_PROVIDER,
     apiKey: settings.llmApiKey ?? '',
+    apiKeys: settings.llmApiKeys ?? {},
     baseUrl: settings.llmBaseUrl ?? '',
     model: settings.llmModel ?? '',
   });

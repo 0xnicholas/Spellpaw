@@ -87,6 +87,76 @@ function collectScenes(node: TreeNode): TreeNode[] {
   return scenes;
 }
 
+function buildScenePrompt(title: string, meta: Record<string, unknown>): string {
+  const parts: string[] = [title];
+  if (meta.location) parts.push(`Location: ${meta.location}`);
+  if (meta.timeOfDay) parts.push(`Time: ${meta.timeOfDay}`);
+  if (meta.shotType) parts.push(`Shot: ${meta.shotType}`);
+  if (meta.description) parts.push(String(meta.description));
+  return parts.join('. ');
+}
+
+function enrichCardDataFromTreeNode(
+  cardType: import('@drama/types').CanvasNodeType,
+  rawData: Record<string, unknown>
+): Record<string, unknown> {
+  const linkedId = rawData.linkedTreeNodeId;
+  if (typeof linkedId !== 'string') return rawData;
+
+  const tree = useProjectStore.getState().getCurrentTree();
+  if (!tree) return rawData;
+
+  const node = findNode(tree, linkedId);
+  if (!node) return rawData;
+
+  const meta = node.metadata ?? {};
+  const enriched: Record<string, unknown> = { ...rawData };
+
+  if (cardType === 'script') {
+    if (enriched.duration === undefined && typeof meta.duration === 'number') {
+      enriched.duration = meta.duration;
+    }
+    if (enriched.location === undefined && typeof meta.location === 'string') {
+      enriched.location = meta.location;
+    }
+    if (enriched.timeOfDay === undefined && typeof meta.timeOfDay === 'string') {
+      enriched.timeOfDay = meta.timeOfDay;
+    }
+    if (enriched.shotType === undefined && typeof meta.shotType === 'string') {
+      enriched.shotType = meta.shotType;
+    }
+    if (enriched.cameraMovement === undefined && typeof meta.cameraMovement === 'string') {
+      enriched.cameraMovement = meta.cameraMovement;
+    }
+    if (enriched.dialogue === undefined && typeof meta.dialogue === 'string') {
+      enriched.dialogue = meta.dialogue;
+    }
+    if (enriched.notes === undefined && typeof meta.notes === 'string') {
+      enriched.notes = meta.notes;
+    }
+  } else if (cardType === 'sceneCard' || cardType === 'art') {
+    const tags: string[] = Array.isArray(enriched.tags)
+      ? enriched.tags.filter((t): t is string => typeof t === 'string')
+      : [];
+    if (meta.location && typeof meta.location === 'string' && !tags.includes(meta.location)) {
+      tags.push(meta.location);
+    }
+    if (meta.timeOfDay && typeof meta.timeOfDay === 'string' && !tags.includes(meta.timeOfDay)) {
+      tags.push(meta.timeOfDay);
+    }
+    if (meta.shotType && typeof meta.shotType === 'string' && !tags.includes(meta.shotType)) {
+      tags.push(meta.shotType);
+    }
+    if (tags.length > 0) enriched.tags = tags;
+
+    if (enriched.generatedPrompt === undefined && enriched.prompt === undefined) {
+      enriched.generatedPrompt = buildScenePrompt(node.title, meta);
+    }
+  }
+
+  return enriched;
+}
+
 export const toolRouter: ToolRouter = {
   get_tree: async (_params) => {
     const tree = useProjectStore.getState().getCurrentTree();
@@ -166,7 +236,7 @@ export const toolRouter: ToolRouter = {
       const store = useProjectStore.getState();
       let nodeCount = 0;
 
-      function templateSceneToNode(scene: TemplateScene): Record<string, unknown> {
+      function templateSceneToNode(scene: TemplateScene, isShot = false): Record<string, unknown> {
         const metadata: Record<string, unknown> = {
           description: scene.description,
           ...(scene.metadata ?? {}),
@@ -178,12 +248,12 @@ export const toolRouter: ToolRouter = {
           metadata.cameraMovement = scene.suggestedCameraMovement;
         }
         const node: Record<string, unknown> = {
-          type: scene.children && scene.children.length > 0 ? 'scene' : 'shot',
+          type: isShot ? 'shot' : 'scene',
           title: scene.title,
           metadata,
         };
         if (scene.children && scene.children.length > 0) {
-          node.children = scene.children.map((c) => templateSceneToNode(c));
+          node.children = scene.children.map((c) => templateSceneToNode(c, true));
         }
         return node;
       }
@@ -580,7 +650,8 @@ export const toolRouter: ToolRouter = {
     const rawData = (params.data as Record<string, unknown>) ?? {};
     const position = params.position as { x: number; y: number } | undefined;
 
-    const normalizedData = normalizeCardData(cardType, rawData);
+    const enrichedData = enrichCardDataFromTreeNode(cardType, rawData);
+    const normalizedData = normalizeCardData(cardType, enrichedData);
     await addCanvasCardHandler(cardType, normalizedData as Record<string, unknown>, {
       position,
     });
@@ -658,15 +729,43 @@ export const toolRouter: ToolRouter = {
     // 4. Create a canvas card for each scene
     let cardCount = 0;
     for (const scene of scenes) {
-      const description = scene.metadata?.description as string | undefined;
+      const meta = scene.metadata ?? {};
+      const description = (meta.description as string | undefined) ?? '';
+      const duration = typeof meta.duration === 'number' ? meta.duration : undefined;
+      const location = (meta.location as string | undefined) ?? '';
+      const timeOfDay = (meta.timeOfDay as string | undefined) ?? '';
+      const shotType = (meta.shotType as string | undefined) ?? '';
+      const cameraMovement = (meta.cameraMovement as string | undefined) ?? '';
+      const dialogue = (meta.dialogue as string | undefined) ?? '';
+      const notes = (meta.notes as string | undefined) ?? '';
+
+      const tags = [location, timeOfDay, shotType].filter(Boolean);
+      const generatedPrompt = buildScenePrompt(scene.title, meta);
+
+      const baseData: Record<string, unknown> = {
+        title: scene.title,
+        description,
+        linkedTreeNodeId: scene.id,
+      };
+
+      if (cardType === 'script') {
+        baseData.duration = duration;
+        if (location) baseData.location = location;
+        if (timeOfDay) baseData.timeOfDay = timeOfDay;
+        if (shotType) baseData.shotType = shotType;
+        if (cameraMovement) baseData.cameraMovement = cameraMovement;
+        if (dialogue) baseData.dialogue = dialogue;
+        if (notes) baseData.notes = notes;
+      } else {
+        // sceneCard / art / character / deliverable all benefit from visual metadata
+        if (tags.length > 0) baseData.tags = tags;
+        baseData.generatedPrompt = generatedPrompt;
+      }
+
       await toolRouter.add_canvas_card({
         action: 'add_canvas_card',
         cardType,
-        data: {
-          title: scene.title,
-          description: description ?? '',
-          linkedTreeNodeId: scene.id,
-        },
+        data: baseData,
       });
       cardCount++;
     }

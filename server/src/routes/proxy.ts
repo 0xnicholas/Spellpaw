@@ -30,12 +30,13 @@ export function proxyRoutes(prisma: PrismaClient): Router {
   const router = Router();
   router.use(auth(prisma));
 
-  router.all('/:provider/*', async (req: Request, res: Response) => {
+  router.all('/:provider/{*splat}', async (req: Request, res: Response) => {
     const userId = getUserId(req);
     if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
 
     const provider = req.params.provider as string;
-    const wildcard = req.params[0] as string;
+    const rawSplat = req.params.splat;
+    const wildcard = Array.isArray(rawSplat) ? rawSplat.join('/') : (rawSplat as string | undefined) ?? '';
     const targetUrl = providerUrl(provider, wildcard);
     if (!targetUrl) {
       res.status(400).json({ error: `Unknown provider: ${provider}` });

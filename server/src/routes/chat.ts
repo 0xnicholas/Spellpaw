@@ -6,9 +6,10 @@ export function chatRoutes(prisma: PrismaClient): Router {
   const router = Router();
   router.use(auth(prisma));
 
-  router.get('/', async (_req: Request, res: Response) => {
-    const userId = getUserId(_req);
-    const chat = await prisma.chat.findUnique({ where: { userId } });
+  router.get('/:projectId', async (req: Request, res: Response) => {
+    const userId = getUserId(req);
+    const projectId = Array.isArray(req.params.projectId) ? req.params.projectId[0] : req.params.projectId;
+    const chat = await prisma.chat.findUnique({ where: { userId_projectId: { userId, projectId } } });
     if (!chat) {
       res.json({ messages: [] });
       return;
@@ -21,12 +22,13 @@ export function chatRoutes(prisma: PrismaClient): Router {
     });
   });
 
-  router.put('/', async (req: Request, res: Response) => {
+  router.put('/:projectId', async (req: Request, res: Response) => {
     const userId = getUserId(req);
+    const projectId = Array.isArray(req.params.projectId) ? req.params.projectId[0] : req.params.projectId;
     const { messages } = req.body;
     const chat = await prisma.chat.upsert({
-      where: { userId },
-      create: { userId, messages: JSON.stringify(messages || []) },
+      where: { userId_projectId: { userId, projectId } },
+      create: { userId, projectId, messages: JSON.stringify(messages || []) },
       update: { messages: JSON.stringify(messages || []) },
     });
     res.json({

@@ -188,6 +188,10 @@ export function normalizeCardData(
       if (typeof raw.dialogue === 'string') data.dialogue = raw.dialogue;
       if (typeof raw.notes === 'string') data.notes = raw.notes;
       if (typeof raw.duration === 'number') data.duration = raw.duration;
+      if (typeof raw.location === 'string') data.location = raw.location;
+      if (typeof raw.timeOfDay === 'string') data.timeOfDay = raw.timeOfDay;
+      if (typeof raw.shotType === 'string') data.shotType = raw.shotType;
+      if (typeof raw.cameraMovement === 'string') data.cameraMovement = raw.cameraMovement;
       return data;
     }
     case 'art': {

@@ -103,7 +103,10 @@ async function performPull() {
 
   try {
     await pullAll();
-    await useChatStore.getState().loadChat();
+    const currentProjectId = useProjectStore.getState().currentProjectId;
+    if (currentProjectId) {
+      await useChatStore.getState().loadChat(currentProjectId);
+    }
     setState({
       state: 'synced',
       pendingCount: 0,

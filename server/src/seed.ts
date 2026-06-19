@@ -35,14 +35,22 @@ export async function seedUser(prisma: PrismaClient, userId: string): Promise<vo
     });
   }
 
-  // Seed global chat only if missing
-  const existingChat = await prisma.chat.findFirst({ where: { userId } });
-  if (!existingChat) {
-    await prisma.chat.create({
-      data: {
-        userId,
-        messages: JSON.stringify(seedChatMessages),
-      },
+  // Seed project-scoped chat histories
+  for (const project of seedProjects) {
+    const existingChat = await prisma.chat.findUnique({
+      where: { userId_projectId: { userId, projectId: project.id } },
     });
+    if (!existingChat) {
+      await prisma.chat.create({
+        data: {
+          userId,
+          projectId: project.id,
+          messages:
+            project.id === 'proj_1'
+              ? JSON.stringify(seedChatMessages)
+              : JSON.stringify([]),
+        },
+      });
+    }
   }
 }

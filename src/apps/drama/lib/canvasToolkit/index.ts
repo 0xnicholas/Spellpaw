@@ -17,6 +17,7 @@ export {
 	listProviderIds,
 	listProviders,
 } from "./shared";
+export { formatBytes } from "./resultMetadata";
 export { generateAsset } from "./actions/generateAsset";
 export { generateVariants } from "./actions/generateVariants";
 export { editAsset } from "./actions/editAsset";

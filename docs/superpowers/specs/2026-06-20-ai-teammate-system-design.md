@@ -1,6 +1,6 @@
 # AI 队友系统设计 Spec
 
-**Status**: Draft (pending review)
+**Status**: Draft v2 (post-review fixes applied)
 **Date**: 2026-06-20
 **Author**: Nicholas L. + brainstorming session
 **Spec scope**: Unified spec — AI 队友系统（3 子能力合并）
@@ -48,7 +48,7 @@ Spellpaw 当前的 Copilot 是"被动工具"——用户问，AI 答。本 spec 
 | 召唤后交互 | **Hybrid 上下文感知** | 入口决定 UI，上下文自动传递 |
 | Timeline 切换 UX | **Tab 主切换 + minimap** | 可专注也可概览 |
 | Paw 视觉范围 | **选中节点 + 树结构** | 复用现有 systemPrompt 两层策略 |
-| Paw 记忆 | **无记忆** | V1 简化，V2 再加项目级记忆 |
+| Paw 记忆 | **无记忆（session-scoped）** | V1 简化，V2 再加项目级记忆 |
 
 ---
 
@@ -398,12 +398,12 @@ export const pawTools: ToolDefinition[] = [
 ];
 ```
 
-### 6.5 Tool Router L1 白名单
+### 6.5 Paw Executor L1 白名单
 
-在 `toolRouter.ts` 的路由表中：
+**位置**：在 `src/apps/drama/stores/paw/index.ts` 的 `pawExecutor` 中（不是现有 `toolRouter.ts`）。
 
 ```typescript
-const L1_TOOL_WHITELIST = new Set([
+const L1_PAW_TOOL_WHITELIST = new Set([
   'paw_highlight_node',
   'paw_clear_highlights',
   'paw_add_annotation',
@@ -412,15 +412,90 @@ const L1_TOOL_WHITELIST = new Set([
   'paw_set_focus',
 ]);
 
-// LLM 调白名单外工具 → 拒绝
-if (!L1_TOOL_WHITELIST.has(toolName)) {
-  return {
-    error: 'tool_not_permitted',
-    tool: toolName,
-    message: `L1 观察者模式：你不能调用 ${toolName}。请用 paw_* 工具或告诉用户你的建议。`,
-  };
+// pawExecutor 入口校验
+export function pawExecutor(toolName: string, params: any, ctx: PawToolContext) {
+  if (!L1_PAW_TOOL_WHITELIST.has(toolName)) {
+    return {
+      error: 'tool_not_permitted',
+      tool: toolName,
+      message: `L1 观察者模式：你不能调用 ${toolName}。请用 paw_* 工具或告诉用户你的建议。`,
+    };
+  }
+  // 路由到具体工具 execute
+  const tool = pawTools.find(t => t.name === toolName);
+  if (!tool) return { error: 'tool_not_found', tool: toolName };
+  try {
+    const parsed = tool.inputSchema.parse(params);  // zod 校验
+    return tool.execute(parsed, ctx);
+  } catch (e) {
+    if (e instanceof z.ZodError) {
+      return { error: 'invalid_input', details: e.errors };
+    }
+    return { error: 'execution_failed', message: String(e) };
+  }
 }
 ```
+
+**关键**：白名单不修改现有 `toolRouter.ts`。paw 路径与现有路径完全独立。
+
+### 6.6 Session Lifecycle
+
+明确 sessionId 何时变化、何时清空：
+
+| 触发事件 | sessionId | highlights | annotations |
+|---------|-----------|------------|-------------|
+| 用户首次进入项目 | 新生成 | 清空 | 清空（项目级，不跨项目）|
+| 用户切换项目 | 新生成 | 清空 | 清空（annotations 绑定当前项目 ID）|
+| 页面刷新 / 关闭重开 | 新生成 | 清空 | 从 IDB 恢复当前项目的 |
+| ⌘K / Toolbar / Canvas 浮层召唤 | 保持 | 保留 | 保留 |
+| 用户对话继续（同 session 内）| 保持 | 保留 | 保留 |
+
+**实现细节**：
+- `agentPresenceStore.startNewSession(projectId)` 在 `WorkspacePage` mount + 切换项目时调用
+- `endSession()` 在 `WorkspacePage` unmount 时调用
+- annotations 按 `projectId` 命名空间分桶，IDB schema：`presence/${projectId}/annotations[]`
+- highlights 不分桶（永远是 session-scoped）
+
+### 6.7 Canvas 浮层 Chip 规则
+
+`PawFloatingInput` 的 chip 预设问题按节点类型硬编码：
+
+```typescript
+// src/apps/drama/lib/pawFloatingInputChips.ts
+export const PAW_CHIPS_BY_NODE_TYPE: Record<TreeNodeType, string[]> = {
+  project: ['整体节奏如何', '结构完整性', '推荐模板'],
+  act: ['结构补全', '节奏优化', '类型匹配'],
+  scene: ['节奏偏快', '补镜头', '改对白', '环境描写'],
+  shot: ['拉长时长', '调整机位', '改运镜', '补特写'],
+};
+
+export function getChipsForNode(node: TreeNode | null): string[] {
+  if (!node) return [];
+  return PAW_CHIPS_BY_NODE_TYPE[node.type] ?? [];
+}
+```
+
+- 节点未选中 → 空数组（只显示纯输入框）
+- LLM-suggested chips 留 V2+（需要额外的 LLM 调用成本）
+
+### 6.8 Canvas 节点归属决策
+
+本 spec 中，所有新增组件均放置在 `src/apps/drama/components/` 下（与现有 `FlowCanvasPanel.tsx` 同位置），**不引入** `src/apps/canvas/` 下的新组件。理由：
+
+- `src/apps/canvas/pages/CanvasPage.tsx` 是孤立副本（与 `WorkspacePage.tsx` 内容相同），未接入路由
+- `apps/canvas/` 独立重构超出本 spec 范围（需另行规划）
+- 后续 canvas app 拆分时，本 spec 的组件可直接迁移
+
+涉及组件归属：
+
+| 组件 | 路径 |
+|------|------|
+| `CanvasPresenceLayer` | `src/apps/drama/components/flow-canvas/CanvasPresenceLayer.tsx` |
+| `TimelinePanel` | `src/apps/drama/components/timeline/TimelinePanel.tsx` |
+| `TimelineMinimap` | `src/apps/drama/components/timeline/TimelineMinimap.tsx` |
+| `TimelineTabBar` | `src/apps/drama/components/timeline/TimelineTabBar.tsx` |
+| `CommandPalette` | `src/apps/drama/components/chat-panel/CommandPalette.tsx` |
+| `PawFloatingInput` | `src/apps/drama/components/chat-panel/PawFloatingInput.tsx` |
 
 ---
 
@@ -433,7 +508,7 @@ if (!L1_TOOL_WHITELIST.has(toolName)) {
 | Tool input 校验失败 | toolRouter 返回 `{ error: 'invalid_input', details }`，LLM 重新表达 |
 | Tool 执行失败（nodeId 不存在）| 返回 `{ success: false, error: 'node_not_found' }` |
 | 用户离线（无 LLM 配置）| Paw 按钮灰显 + tooltip "Paw 需要 LLM 提供商才能工作" |
-| agentPresenceStore 与画布脱钩（节点被删）| CanvasPresenceLayer 检测后自动 `removeHighlight(nodeId)` |
+| agentPresenceStore 与画布脱钩（节点被删）| agentPresenceStore 订阅 `projectStore` 节点删除事件 → 级联 `removeHighlight(nodeId)` + `removeAnnotationByNode(nodeId)`（避免 IDB orphan） |
 
 ---
 
@@ -504,15 +579,16 @@ Phase 4: 端到端测试 + 视觉回归 (1 天)
 
 - `src/apps/drama/stores/agentPresenceStore.ts`
 - `src/apps/drama/stores/agentPresenceStore.test.ts`
-- `src/apps/drama/stores/toolRouter/pawTools.ts`
-- `src/apps/drama/stores/toolRouter/pawTools.test.ts`
+- `src/apps/drama/stores/paw/index.ts`（pawTools 注册表 + pawExecutor 调度）
+- `src/apps/drama/stores/paw/pawTools.test.ts`
 - `src/apps/drama/lib/pawPersona.ts`
 - `src/apps/drama/lib/pawPersona.test.ts`
-- `src/apps/canvas/components/flow-canvas/CanvasPresenceLayer.tsx`
-- `src/apps/canvas/components/flow-canvas/CanvasPresenceLayer.test.tsx`
-- `src/apps/canvas/components/timeline/TimelinePanel.tsx`
-- `src/apps/canvas/components/timeline/TimelineMinimap.tsx`
-- `src/apps/canvas/components/timeline/TimelineTabBar.tsx`
+- `src/apps/drama/lib/pawFloatingInputChips.ts`
+- `src/apps/drama/components/flow-canvas/CanvasPresenceLayer.tsx`
+- `src/apps/drama/components/flow-canvas/CanvasPresenceLayer.test.tsx`
+- `src/apps/drama/components/timeline/TimelinePanel.tsx`
+- `src/apps/drama/components/timeline/TimelineMinimap.tsx`
+- `src/apps/drama/components/timeline/TimelineTabBar.tsx`
 - `src/apps/drama/components/chat-panel/CommandPalette.tsx`
 - `src/apps/drama/components/chat-panel/CommandPalette.test.tsx`
 - `src/apps/drama/components/chat-panel/PawFloatingInput.tsx`
@@ -520,13 +596,13 @@ Phase 4: 端到端测试 + 视觉回归 (1 天)
 
 修改：
 
-- `src/apps/drama/stores/toolRouter.ts`（增加 L1 白名单校验）
-- `src/apps/drama/lib/systemPrompt.ts`（注入 PAW_SYSTEM_PROMPT_BLOCK）
+- `src/apps/drama/lib/systemPrompt.ts`（注入 PAW_SYSTEM_PROMPT_BLOCK + 工具子集）
 - `src/apps/drama/stores/chatStore.ts`（sendMessageWithContext 扩展）
-- `src/apps/drama/layouts/Navbar.tsx`（Toolbar "Ask Paw" 按钮）
-- `src/apps/canvas/components/flow-canvas/FlowCanvasPanel.tsx`（挂载 PresenceLayer）
+- `src/apps/drama/layouts/Navbar.tsx`（Navbar 顶部增加 "Ask Paw" 按钮 + ⌘K 快捷键）
+- `src/apps/drama/components/flow-canvas/FlowCanvasPanel.tsx`（挂载 CanvasPresenceLayer）
 - `src/apps/drama/components/chat-panel/ChatPanel.tsx`（集成 Command Palette / Floating Input）
-- `src/apps/drama/pages/WorkspacePage.tsx`（接入 TimelineTabBar + TimelineMinimap）
+- `src/apps/drama/pages/WorkspacePage.tsx`（接入 TimelineTabBar + TimelineMinimap + agentPresenceStore.startNewSession）
+- `src/apps/drama/hooks/useCopilotSSE.ts`（扩展 dispatchTool 支持 paw_* 前缀）
 
 ---
 

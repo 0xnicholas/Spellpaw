@@ -2,6 +2,7 @@ import type { TreeNode } from "@drama/types";
 import { useTaskStore } from "./taskStore";
 import { providerRegistry } from "./registry";
 import type { GenerationProvider } from "./types";
+import { extractResultMetadata } from "./resultMetadata";
 
 /** Get all registered provider ids. Use this for dynamic enum/list generation in toolConfigs and systemPrompt. */
 export function listProviderIds(): string[] {
@@ -30,9 +31,28 @@ export function buildDefaultPrompt(node: TreeNode): string {
 	return parts.join(" ");
 }
 
-export function updateCardThumbnail(cardId: string, url: string) {
-	import("@drama/stores/canvasStore").then(({ useCanvasStore }) => {
+export function updateCardThumbnail(
+	cardId: string,
+	url: string,
+	mediaType: "image" | "video" = "image",
+) {
+	import("@drama/stores/canvasStore").then(async ({ useCanvasStore }) => {
 		useCanvasStore.getState().updateNodeData(cardId, { thumbnail: url });
+		// Best-effort: also populate resolution / fileSize / duration so the UI can
+		// show "1920x1080 · 4.2 MB" style transparency per the Buzzy competitive
+		// analysis (docs/competitive-analysis-buzzy-now.md section 2.5).
+		try {
+			const meta = await extractResultMetadata(url, mediaType);
+			if (
+				meta.resolution ||
+				meta.fileSize !== undefined ||
+				meta.duration !== undefined
+			) {
+				useCanvasStore.getState().updateNodeData(cardId, meta);
+			}
+		} catch {
+			/* ignore metadata extraction errors */
+		}
 	});
 }
 
@@ -49,7 +69,7 @@ export function startPolling(
 		try {
 			const task = await provider.poll!(taskId);
 			if (task.status === "done" && task.resultUrl) {
-				updateCardThumbnail(cardId, task.resultUrl);
+				updateCardThumbnail(cardId, task.resultUrl, "video");
 				useTaskStore.getState().removeTask(taskId);
 				clearInterval(interval);
 			} else if (task.status === "failed") {

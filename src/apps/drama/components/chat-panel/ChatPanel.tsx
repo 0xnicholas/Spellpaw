@@ -24,6 +24,7 @@ export function ChatPanel() {
   const filterNodeId = useChatStore((s) => s.filterNodeId);
   const setFilterNodeId = useChatStore((s) => s.setFilterNodeId);
   const loadChat = useChatStore((s) => s.loadChat);
+  const pushProactiveInsights = useChatStore((s) => s.pushProactiveInsights);
 
   const activeTab = useDetailStore((s) => s.activeTab);
   const setActiveTab = useDetailStore((s) => s.setActiveTab);
@@ -43,6 +44,26 @@ export function ChatPanel() {
       useChatStore.setState({ messages: [] });
     }
   }, [currentProjectId, loadChat]);
+
+  // Proactive insights: when a project is loaded with no prior chat history,
+  // scan the tree and post a "💡 Agent Suggestion" message if anything needs
+  // attention. Throttled to once per project per session.
+  useEffect(() => {
+    if (!currentProjectId) return;
+    const sessionKey = `proactive:${currentProjectId}`;
+    if (sessionStorage.getItem(sessionKey)) return;
+    // Wait a tick for loadChat to settle so we can check if messages are empty.
+    const timer = setTimeout(() => {
+      const state = useChatStore.getState();
+      if (state.messages.length === 0 && state.streamingMessage == null) {
+        const insights = state.pushProactiveInsights(currentProjectId);
+        if (insights.length > 0) {
+          sessionStorage.setItem(sessionKey, String(Date.now()));
+        }
+      }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [currentProjectId, pushProactiveInsights]);
 
   const filteredMessages = filterNodeId
     ? messages.filter((m) => m.context?.nodeId === filterNodeId || m.role === 'agent')

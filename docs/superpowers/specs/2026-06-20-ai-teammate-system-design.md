@@ -75,7 +75,12 @@ Spellpaw 当前的 Copilot 是"被动工具"——用户问，AI 答。本 spec 
               └───────────────────────────────────┘
                               ↕ 写入
               ┌───────────────────────────────────┐
-              │   toolRouter (现有 + 6 新工具)   │
+              │   toolRouter (现有, 不修改)      │
+              │   add_node / update_node / ...    │
+              └───────────────────────────────────┘
+
+              ┌───────────────────────────────────┐
+              │   pawExecutor (新增)              │
               │   paw_highlight_node             │
               │   paw_clear_highlights           │
               │   paw_add_annotation             │
@@ -83,17 +88,23 @@ Spellpaw 当前的 Copilot 是"被动工具"——用户问，AI 答。本 spec 
               │   paw_move_cursor_to             │
               │   paw_set_focus                  │
               └───────────────────────────────────┘
-                              ↑  LLM tool_call
+                              ↑  LLM tool_call (SSE)
               ┌───────────────────────────────────┐
               │   Spellpaw Server (现有 SSE)     │
               └───────────────────────────────────┘
+
+**调度逻辑** (useCopilotSSE.ts 中):
+- toolName 以 `paw_` 开头 → pawExecutor
+- 其他 → toolRouter (现有路径, 零修改)
 ```
 
 ### 3.1 关键不变量
 
-- **agentPresenceStore 不写入** projectStore / canvasStore / chatStore（除 PawFloatingInput 临时上下文外）
-- L1 工具白名单：toolRouter 在执行前校验，非白名单工具（如 add_node）一律拒绝并返回错误给 LLM
-- sessionId 改变时（用户切换项目 / 新召唤）→ 自动 `clearAll()`
+- **agentPresenceStore 不写入** projectStore / canvasStore / chatStore（结构性数据）
+- **唯一例外 carve-out**：`paw_set_focus` 工具是唯一允许调用 `useProjectStore.getState().selectNode()` 的路径，因为这是 UI 焦点投影，不是结构变更（详见 §6.4 的 `paw_set_focus.execute`）
+- L1 工具白名单由 **pawExecutor** 在执行前校验，非白名单 paw_* 工具一律拒绝并返回错误给 LLM；toolRouter 路径完全不变
+- sessionId 在「用户首次进入项目」/「用户切换项目」/「页面刷新」时重置并清空 highlights（session-scoped）；召唤动作本身（⌘K / Toolbar / Canvas 浮层）保持 sessionId 不变（详见 §6.6 lifecycle table）
+- annotations 按 `projectId` 分桶存 IDB，节点删除时级联清除（详见 §7）
 - 所有 paw_* 工具失败不抛异常，只返回结构化错误对象
 
 ---
@@ -313,6 +324,36 @@ export const PAW_GREETINGS = {
 };
 ```
 
+### 6.3.1 LLM 工具 manifest 策略
+
+**关键决策**：Paw 召唤时传给 LLM 的工具 manifest **只包含 6 个 paw_* 工具**，完全隐藏现有 toolRouter 的工具名单。
+
+```typescript
+// src/apps/drama/lib/systemPrompt.ts（修改点）
+export function getPawToolManifest() {
+  return [
+    paw_highlight_node.manifest,
+    paw_clear_highlights.manifest,
+    paw_add_annotation.manifest,
+    paw_remove_annotation.manifest,
+    paw_move_cursor_to.manifest,
+    paw_set_focus.manifest,
+  ];
+}
+
+// useCopilotSSE.ts: Paw 召唤时覆盖现有 toolManifest
+if (invocationSource === 'paw') {
+  payload.tools = getPawToolManifest();
+}
+```
+
+**双层防御**：
+- L1 软边界：system prompt 文字提示「你不能调用 add_node 等」
+- L1 硬边界：LLM 物理上看不到这些工具（manifest 不发送），即使想调也调不出来
+- L1 补充防御：即使 LLM 幻觉出 tool call，pawExecutor 白名单拦截返回 tool_not_permitted
+
+这样不需要修改现有 toolRouter.ts，但 LLM 完全在 paw 安全沙盒内运转。
+
 ### 6.4 6 个 L1 工具定义
 
 文件：`src/apps/drama/stores/toolRouter/pawTools.ts`
@@ -462,7 +503,10 @@ export function pawExecutor(toolName: string, params: any, ctx: PawToolContext) 
 
 ```typescript
 // src/apps/drama/lib/pawFloatingInputChips.ts
-export const PAW_CHIPS_BY_NODE_TYPE: Record<TreeNodeType, string[]> = {
+// TreeNode['type'] union: 'project' | 'act' | 'scene' | 'shot'
+type PawChipNodeType = TreeNode['type'];
+
+export const PAW_CHIPS_BY_NODE_TYPE: Record<PawChipNodeType, string[]> = {
   project: ['整体节奏如何', '结构完整性', '推荐模板'],
   act: ['结构补全', '节奏优化', '类型匹配'],
   scene: ['节奏偏快', '补镜头', '改对白', '环境描写'],
@@ -596,7 +640,7 @@ Phase 4: 端到端测试 + 视觉回归 (1 天)
 
 修改：
 
-- `src/apps/drama/lib/systemPrompt.ts`（注入 PAW_SYSTEM_PROMPT_BLOCK + 工具子集）
+- `src/apps/drama/lib/systemPrompt.ts`（注入 PAW_SYSTEM_PROMPT_BLOCK + **仅广告 6 个 paw_* 工具给 LLM**，完全隐藏现有 toolRouter 的工具名单，使 LLM 物理上无法调用 add_node 等）
 - `src/apps/drama/stores/chatStore.ts`（sendMessageWithContext 扩展）
 - `src/apps/drama/layouts/Navbar.tsx`（Navbar 顶部增加 "Ask Paw" 按钮 + ⌘K 快捷键）
 - `src/apps/drama/components/flow-canvas/FlowCanvasPanel.tsx`（挂载 CanvasPresenceLayer）

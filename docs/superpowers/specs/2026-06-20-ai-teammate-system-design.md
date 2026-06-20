@@ -94,8 +94,20 @@ Spellpaw 当前的 Copilot 是"被动工具"——用户问，AI 答。本 spec 
               └───────────────────────────────────┘
 
 **调度逻辑** (useCopilotSSE.ts 中):
-- toolName 以 `paw_` 开头 → pawExecutor
-- 其他 → toolRouter (现有路径, 零修改)
+- `invocationSource === 'paw'` 时，只允许 `paw_*` 工具，碰到非 paw_* tool call → 返回 `tool_not_permitted` 并不发往 toolRouter
+- `invocationSource === 'normal'` 时 → toolRouter (现有路径, 零修改)
+
+```typescript
+function dispatchTool(toolName, params, invocationSource) {
+  if (invocationSource === 'paw') {
+    if (!toolName.startsWith('paw_')) {
+      return { error: 'tool_not_permitted', tool: toolName,
+        message: 'Paw 只能调用 paw_* 工具' };
+    }
+    return pawExecutor(toolName, params, presenceCtx);
+  }
+  return toolRouter[toolName]?.(params);  // 现有路径
+}
 ```
 
 ### 3.1 关键不变量
@@ -180,9 +192,9 @@ interface AnnotationEntry {
 
 | 组件 | 路径 | 职责 |
 |------|------|------|
-| `TimelinePanel` | `src/apps/canvas/components/timeline/TimelinePanel.tsx` | 主视图（horizontal 布局的 FlowCanvas 复用） |
-| `TimelineMinimap` | `src/apps/canvas/components/timeline/TimelineMinimap.tsx` | 底部固定 46px 全局概览 |
-| `TimelineTabBar` | `src/apps/canvas/components/timeline/TimelineTabBar.tsx` | ⌘1/⌘2 切换 |
+| `TimelinePanel` | `src/apps/drama/components/timeline/TimelinePanel.tsx` | 主视图（horizontal 布局的 FlowCanvas 复用） |
+| `TimelineMinimap` | `src/apps/drama/components/timeline/TimelineMinimap.tsx` | 底部固定 46px 全局概览 |
+| `TimelineTabBar` | `src/apps/drama/components/timeline/TimelineTabBar.tsx` | ⌘1/⌘2 切换 |
 
 ### 5.2 Timeline 视图布局
 
@@ -356,7 +368,7 @@ if (invocationSource === 'paw') {
 
 ### 6.4 6 个 L1 工具定义
 
-文件：`src/apps/drama/stores/toolRouter/pawTools.ts`
+文件：`src/apps/drama/stores/paw/index.ts`（参见 §6.5 说明）
 
 ```typescript
 export const pawTools: ToolDefinition[] = [

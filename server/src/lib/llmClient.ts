@@ -1,4 +1,5 @@
 import { DEFAULT_LLM_PROVIDER, isSupportedLLMProvider, LLM_PROVIDER_DEFAULTS } from './providers';
+import { logger } from './logger';
 
 /**
  * LLM Client — OpenAI-compatible chat completions with streaming.
@@ -88,12 +89,12 @@ export async function* streamChat(
   const tools = options.tools && options.tools.length > 0 ? options.tools : undefined;
   const maxIterations = 5;
 
-  console.log(`[llmClient] streamChat start: model=${model}, tools=${tools?.length ?? 0}, messages=${messages.length}`);
+  logger.log(`[llmClient] streamChat start: model=${model}, tools=${tools?.length ?? 0}, messages=${messages.length}`);
 
   yield { type: 'message_start' };
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
-    console.log(`[llmClient] LLM iteration ${iteration + 1}/${maxIterations}`);
+    logger.log(`[llmClient] LLM iteration ${iteration + 1}/${maxIterations}`);
     const body: Record<string, unknown> = {
       model,
       messages,
@@ -126,12 +127,12 @@ export async function* streamChat(
 
     if (!res.ok || !res.body) {
       const text = await res.text().catch(() => 'unknown error');
-      console.error(`[llmClient] LLM request failed: ${res.status} ${text}`);
+      logger.error(`[llmClient] LLM request failed: ${res.status} ${text}`);
       yield { type: 'error', message: `LLM request failed: ${res.status} ${text}` };
       return;
     }
 
-    console.log('[llmClient] LLM response streaming');
+    logger.log('[llmClient] LLM response streaming');
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -203,24 +204,24 @@ export async function* streamChat(
       }));
 
     messages.push({ role: 'assistant', content: assistantText, tool_calls: toolCalls });
-    console.log(`[llmClient] assistant requested ${toolCalls.length} tool call(s):`, toolCalls.map((tc) => tc.function.name));
+    logger.log(`[llmClient] assistant requested ${toolCalls.length} tool call(s):`, toolCalls.map((tc) => tc.function.name));
 
     // Execute each tool call and append tool-role messages for the next LLM turn.
     for (const tc of toolCalls) {
       yield { type: 'tool_call_started', call_id: tc.id, name: tc.function.name };
-      console.log(`[llmClient] executing tool ${tc.function.name} -> ${resolveToolEndpoint(tc.function.name)}`);
+      logger.log(`[llmClient] executing tool ${tc.function.name} -> ${resolveToolEndpoint(tc.function.name)}`);
 
       let resultText: string;
       let isError = false;
       try {
         const toolEndpoint = resolveToolEndpoint(tc.function.name);
         resultText = await callToolEndpoint(toolEndpoint, tc.function.name, tc.function.arguments, tc.id);
-        console.log(`[llmClient] tool ${tc.function.name} result:`, resultText.slice(0, 120));
+        logger.log(`[llmClient] tool ${tc.function.name} result:`, resultText.slice(0, 120));
         yield { type: 'text_delta', delta: `\n\n[Tool result: ${resultText}]\n\n` };
       } catch (err) {
         resultText = (err as Error).message;
         isError = true;
-        console.error(`[llmClient] tool ${tc.function.name} error:`, resultText);
+        logger.error(`[llmClient] tool ${tc.function.name} error:`, resultText);
         yield { type: 'text_delta', delta: `\n\n[Tool error: ${resultText}]\n\n` };
       }
 

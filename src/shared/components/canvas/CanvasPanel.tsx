@@ -97,7 +97,7 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
   }, [currentProjectId]);
 
   const highlightCardIds = useCanvasStore((s) => s.highlightCardIds);
-  const highlightSet = new Set(highlightCardIds);
+  const highlightSet = useMemo(() => new Set(highlightCardIds), [highlightCardIds]);
   const focusCardId = useCanvasStore((s) => s.focusCardId);
 
   // Auto-pan to focused card

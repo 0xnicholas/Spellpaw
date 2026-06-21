@@ -10,6 +10,7 @@ import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { exportProjectToJSON, importProjectFromJSON } from '@drama/lib/exportImport';
+import { logger } from '@shared/lib/logger';
 import { treeToTemplate, downloadTemplateFile } from '@drama/lib/templateExportImport';
 import { pushAll, pullAll } from '@drama/lib/projectSync';
 import { exportStoryboardPDF, exportDialogueScript } from '@drama/lib/exportPrint';
@@ -50,7 +51,7 @@ export function ProjectListPage() {
       setCurrentProject(projectId);
       navigate(`/project/${projectId}`);
     } catch (err) {
-      console.error('Template application failed:', err);
+      logger.error('Template application failed:', err);
     }
   };
 

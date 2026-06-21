@@ -1,6 +1,7 @@
 import { useProjectStore } from './projectStore';
 import { useCanvasStore } from './canvasStore';
 import { useCustomTemplateStore } from './customTemplateStore';
+import { logger } from '@shared/lib/logger';
 import type { ToolRouter, TreeNode, NarrativeTemplate, TemplateAct, TemplateScene } from '@drama/types';
 import { analyzePacing, suggestCompletions, generatePacingReport } from '@drama/lib/projectAnalysis';
 import { createNodeHandler, updateNodeHandler, deleteNodeHandler, addCanvasCardHandler } from '@drama/lib/builderHandlers';
@@ -917,7 +918,7 @@ export const toolRouter: ToolRouter = {
       await triggerPushNow();
     } catch (err) {
       // Even if the push fails, the local state is already cleared.
-      console.warn('[clear_canvas] force push failed:', err);
+      logger.warn('[clear_canvas] force push failed:', err);
     }
 
     const scope = cardType ?? status ?? titleContains ? '（按条件）' : '';

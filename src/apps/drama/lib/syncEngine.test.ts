@@ -15,6 +15,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useAuthStore } from '@/shared/stores/authStore';
+import type { User } from '@shared/types';
 
 // Mock projectSync so we control pushProject timing without hitting the network
 vi.mock('@drama/lib/projectSync', () => ({
@@ -24,6 +25,7 @@ vi.mock('@drama/lib/projectSync', () => ({
 }));
 
 import * as projectSync from '@drama/lib/projectSync';
+import type { PushResult } from '@drama/lib/projectSync';
 import { triggerPushNow } from '@drama/lib/syncEngine';
 
 const mockedPushProject = vi.mocked(projectSync.pushProject);
@@ -46,7 +48,7 @@ describe('triggerPushNow — race condition fix', () => {
       selectedNodeId: null,
     });
     useCanvasStore.setState({ canvases: { proj_race: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } } }, selectedCardId: null });
-    useAuthStore.setState({ token: 'test-token', isAuthenticated: true, user: { id: 'u1' } as any });
+    useAuthStore.setState({ token: 'test-token', isAuthenticated: true, user: { id: 'u1', name: 'Test', email: 't@x' } satisfies User });
     mockedPushProject.mockReset();
   });
 
@@ -56,15 +58,15 @@ describe('triggerPushNow — race condition fix', () => {
 
   it('waits for an in-flight debounced push before its own push', async () => {
     // First push: slow (150ms). Second push: fast. Verify timing.
-    const slowPush = new Promise<{ success: boolean; conflict?: boolean; error?: string }>((resolve) => {
+    const slowPush = new Promise<PushResult>((resolve) => {
       setTimeout(() => resolve({ success: true }), 150);
     });
-    const fastPush = Promise.resolve({ success: true });
+    const fastPush: Promise<PushResult> = Promise.resolve({ success: true });
 
     // Queue: first call returns slow, second returns fast
     mockedPushProject
-      .mockReturnValueOnce(slowPush as any)
-      .mockReturnValueOnce(fastPush as any);
+      .mockReturnValueOnce(slowPush)
+      .mockReturnValueOnce(fastPush);
 
     // Start a debounced push indirectly by calling triggerPushNow first.
     // Actually we need a slow in-flight push BEFORE calling triggerPushNow.
@@ -121,7 +123,7 @@ describe('triggerPushNow — race condition fix', () => {
   });
 
   it('returns early when not authenticated', async () => {
-    useAuthStore.setState({ token: '', isAuthenticated: false, user: null as any });
+    useAuthStore.setState({ token: '', isAuthenticated: false, user: null });
     await triggerPushNow();
     expect(mockedPushProject).not.toHaveBeenCalled();
   });

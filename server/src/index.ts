@@ -7,6 +7,7 @@ import { projectRoutes } from './routes/projects';
 import { chatRoutes } from './routes/chat';
 import { llmRoutes } from './routes/llm';
 import { proxyRoutes } from './routes/proxy';
+import { logger } from './lib/logger';
 
 config(); // Load .env
 
@@ -14,12 +15,12 @@ const prisma = new PrismaClient();
 const app = express();
 
 if (!process.env.JWT_SECRET) {
-  console.error('JWT_SECRET environment variable is required');
+  logger.error('JWT_SECRET environment variable is required');
   process.exit(1);
 }
 
 if (!process.env.PORT) {
-  console.error('PORT environment variable is required (e.g. PORT=3002)');
+  logger.error('PORT environment variable is required (e.g. PORT=3002)');
   process.exit(1);
 }
 
@@ -50,8 +51,8 @@ app.use('/api/v1/proxy', proxyRoutes(prisma));
 async function main() {
   await prisma.$connect();
   app.listen(PORT, () => {
-    console.log(`🧙 Spellpaw Server running on http://localhost:${PORT}`);
+    logger.log(`🧙 Spellpaw Server running on http://localhost:${PORT}`);
   });
 }
 
-main().catch(console.error);
+main().catch((err) => logger.error(err));

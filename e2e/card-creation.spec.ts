@@ -7,7 +7,7 @@
  *   3. UI verification: A new card appears on the canvas in the browser
  *   4. Mock mode test: chatStore.sendMessage creates cards without LLM
  */
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const DEMO_EMAIL = 'demo@spellpaw.xyz';
 const DEMO_PASSWORD = 'password123';
@@ -15,7 +15,7 @@ const DEMO_PROJECT_ID = 'proj_1';
 const FRONTEND_URL = 'http://localhost:5173';
 const TOOL_ENDPOINT = `${FRONTEND_URL}/tool`;
 
-async function loginAsDemo(page: any) {
+async function loginAsDemo(page: Page) {
   await page.goto('/login');
   await page.fill('input[type="email"]', DEMO_EMAIL);
   await page.fill('input[type="password"]', DEMO_PASSWORD);
@@ -23,7 +23,7 @@ async function loginAsDemo(page: any) {
   await page.waitForURL(/\/projects$/, { timeout: 15_000 });
 }
 
-async function openProject(page: any) {
+async function openProject(page: Page) {
   await page.goto(`/project/${DEMO_PROJECT_ID}`);
   await page.waitForSelector('.react-flow', { timeout: 15_000 });
   // Wait for Tool Bridge WebSocket to be established

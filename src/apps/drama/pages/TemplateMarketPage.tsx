@@ -19,6 +19,7 @@ import { useCustomTemplateStore } from '@drama/stores/customTemplateStore';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { downloadTemplateFile } from '@drama/lib/templateExportImport';
 import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
+import { logger } from '@shared/lib/logger';
 
 const CATEGORY_LABELS: Record<string, string> = {
   suspense: '悬疑',
@@ -128,7 +129,7 @@ export function TemplateMarketPage() {
       setCurrentProject(projectId);
       navigate(`/project/${projectId}`);
     } catch (err) {
-      console.error('Template application failed:', err);
+      logger.error('Template application failed:', err);
     }
   };
 

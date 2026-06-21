@@ -11,6 +11,7 @@ import type { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { auth, getUserId } from '../middleware';
 import { streamChat, type ToolConfig, type LLMMessage } from '../lib/llmClient';
+import { logger } from '../lib/logger';
 
 interface SessionState {
   id: string;
@@ -65,7 +66,7 @@ export function llmRoutes(prisma: PrismaClient): Router {
     if (!content || !Array.isArray(content)) { res.status(400).json({ error: 'content required' }); return; }
 
     const text = content.map((c: { type: string; text?: string }) => c.text).filter(Boolean).join('\n');
-    console.log(`[llm route] message received for session ${req.params.id}:`, text.slice(0, 120));
+    logger.log(`[llm route] message received for session ${req.params.id}:`, text.slice(0, 120));
     session.messages.push({ role: 'user', content: text });
 
     res.status(202).end();
@@ -97,7 +98,7 @@ export function llmRoutes(prisma: PrismaClient): Router {
         baseUrl: req.headers['x-llm-base-url'] as string | undefined,
         model: req.headers['x-llm-model'] as string | undefined,
       };
-      console.log('[llm route] /events headers:', {
+      logger.log('[llm route] /events headers:', {
         provider: context.provider,
         hasApiKey: Boolean(context.apiKey),
         apiKeyPreview: context.apiKey ? `${context.apiKey.slice(0, 6)}...` : '(missing)',

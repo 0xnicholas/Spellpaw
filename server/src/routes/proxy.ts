@@ -12,6 +12,7 @@
 import { Router, type Request, type Response } from 'express';
 import type { PrismaClient } from '@prisma/client';
 import { auth, getUserId } from '../middleware';
+import { logger } from '../lib/logger';
 
 const PROVIDER_BASE_URLS: Record<string, string> = {
   openai: 'https://api.openai.com/v1',
@@ -83,7 +84,7 @@ export function proxyRoutes(prisma: PrismaClient): Router {
       const data = (await response.json()) as unknown;
       res.json(data);
     } catch (err) {
-      console.error(`[proxy] ${provider} ${wildcard} error:`, err);
+      logger.error(`[proxy] ${provider} ${wildcard} error:`, err);
       res.status(502).json({ error: `Proxy error: ${(err as Error).message}` });
     }
   });

@@ -11,6 +11,7 @@ import { parseAndValidate } from '@shared/lib/builderSchema';
 import { getTotalSteps } from '@shared/components/builder/registry';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { collectNodeIds } from '@drama/lib/treeUtils';
+import { logger } from '@shared/lib/logger';
 
 interface ToolCallMessage {
   type: 'tool_call';
@@ -34,15 +35,15 @@ function connect(
 ) {
   const url = urls[urlIndex];
   if (!url) {
-    console.error('[useToolBridge] exhausted all candidate URLs', urls);
+    logger.error('[useToolBridge] exhausted all candidate URLs', urls);
     return;
   }
 
-  console.log(`[useToolBridge] trying ${url} (attempt ${retries + 1})`);
+  logger.log(`[useToolBridge] trying ${url} (attempt ${retries + 1})`);
   const ws = new WebSocket(url);
 
   ws.onopen = () => {
-    console.log(`[useToolBridge] connected to ${url}`);
+    logger.log(`[useToolBridge] connected to ${url}`);
   };
 
   ws.onmessage = async (event) => {
@@ -116,7 +117,7 @@ function connect(
     // React StrictMode double mount/unmount). Don't retry.
     if (wsRef.current !== ws) return;
 
-    console.warn(`[useToolBridge] closed ${url} code=${event.code} reason=${event.reason}`);
+    logger.warn(`[useToolBridge] closed ${url} code=${event.code} reason=${event.reason}`);
     wsRef.current = null;
 
     // Try next URL after a few retries on the current one
@@ -125,17 +126,17 @@ function connect(
       const delay = Math.pow(2, retries) * 1000;
       setTimeout(() => connect(wsRef, urls, urlIndex, retries + 1), delay);
     } else if (urlIndex < urls.length - 1) {
-      console.warn(`[useToolBridge] switching to fallback URL`);
+      logger.warn(`[useToolBridge] switching to fallback URL`);
       setTimeout(() => connect(wsRef, urls, urlIndex + 1, 0), 500);
     } else {
-      console.error('[useToolBridge] all WebSocket connection attempts failed');
+      logger.error('[useToolBridge] all WebSocket connection attempts failed');
     }
   };
 
   ws.onerror = (event) => {
     // Ignore errors from sockets that have already been replaced by cleanup.
     if (wsRef.current !== ws) return;
-    console.error(`[useToolBridge] error on ${url}`, event);
+    logger.error(`[useToolBridge] error on ${url}`, event);
   };
 
   wsRef.current = ws;

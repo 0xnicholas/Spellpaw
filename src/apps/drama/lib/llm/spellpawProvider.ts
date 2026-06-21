@@ -6,6 +6,7 @@
 import { config } from '@/shared/config';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { getLLMSettings } from '@console/lib/llmSettings';
+import { logger } from '@shared/lib/logger';
 import type { LLMProvider, Session, SSESubscription, ToolConfig, SSEEvent, ToolChoice } from './types';
 
 const BASE_URL = config.llmBase || `${config.serverBase}/api/v1`;
@@ -25,7 +26,7 @@ function authHeaders(toolChoice?: ToolChoice): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   const settings = getLLMSettings();
-  console.log('[spellpawProvider] getLLMSettings:', {
+  logger.log('[spellpawProvider] getLLMSettings:', {
     provider: settings.provider,
     hasApiKey: Boolean(settings.apiKey),
     apiKeyPreview: settings.apiKey ? `${settings.apiKey.slice(0, 6)}...` : '(empty)',
@@ -118,7 +119,7 @@ export const spellpawProvider: LLMProvider = {
         // AbortError is expected when the subscription is explicitly closed.
         const isAbort = err instanceof Error && (err.name === 'AbortError' || err.message?.includes('aborted'));
         if (!isAbort) {
-          console.error('[spellpawProvider] SSE error:', err);
+          logger.error('[spellpawProvider] SSE error:', err);
         }
       }
     })();

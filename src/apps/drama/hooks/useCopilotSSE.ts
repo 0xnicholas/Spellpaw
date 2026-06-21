@@ -18,6 +18,7 @@ import {
   applyStyle,
   batchApplyStyle,
 } from '@drama/lib/canvasToolkit';
+import { logger } from '@shared/lib/logger';
 import type { CanvasIntent } from '@drama/lib/intentRouter';
 
 export function useCopilotSSE() {
@@ -59,7 +60,7 @@ export function useCopilotSSE() {
       toolCallStartedRef.current = false;
       toolCallsInTurnRef.current = [];
       sseRef.current = provider.subscribeSSE(sessionId, (event) => {
-        console.log('[useCopilotSSE] SSE event:', event.type, event);
+        logger.log('[useCopilotSSE] SSE event:', event.type, event);
         switch (event.type) {
           case 'message_start':
             toolCallStartedRef.current = false;
@@ -89,7 +90,7 @@ export function useCopilotSSE() {
             // Client guardrail: enforce the canvas intent even if the LLM only
             // called read-only/context tools (e.g. get_tree) or no tool at all.
             if (currentIntentRef.current && !canvasToolWasCalled()) {
-              console.log('[useCopilotSSE] guardrail triggered for intent:', currentIntentRef.current.type);
+              logger.log('[useCopilotSSE] guardrail triggered for intent:', currentIntentRef.current.type);
               void runGuardrail(currentIntentRef.current);
             }
             currentIntentRef.current = null;
@@ -109,7 +110,7 @@ export function useCopilotSSE() {
 
     async function runGuardrail(intent: CanvasIntent) {
       if (intent.type === 'unknown') return;
-      console.log('[useCopilotSSE] running guardrail for', intent.type, 'with payload:', intent.payload);
+      logger.log('[useCopilotSSE] running guardrail for', intent.type, 'with payload:', intent.payload);
       try {
         let result: { success: boolean; message: string };
         switch (intent.type) {
@@ -131,7 +132,7 @@ export function useCopilotSSE() {
           default:
             return;
         }
-        console.log('[useCopilotSSE] guardrail result:', result);
+        logger.log('[useCopilotSSE] guardrail result:', result);
         appendMessage({
           id: crypto.randomUUID(),
           role: 'agent',
@@ -140,7 +141,7 @@ export function useCopilotSSE() {
           timestamp: new Date().toISOString(),
         }, projectId!);
       } catch (err) {
-        console.error('[useCopilotSSE] guardrail failed:', err);
+        logger.error('[useCopilotSSE] guardrail failed:', err);
         appendMessage({
           id: crypto.randomUUID(),
           role: 'agent',
@@ -155,10 +156,10 @@ export function useCopilotSSE() {
       sendMessage: async (content: string, _projectId: string) => {
         const projectId = currentProjectId;
         if (!projectId) {
-          console.warn('[useCopilotSSE] sendMessage ignored: no project selected');
+          logger.warn('[useCopilotSSE] sendMessage ignored: no project selected');
           return;
         }
-        console.log('[useCopilotSSE] sendMessage called:', content.slice(0, 80));
+        logger.log('[useCopilotSSE] sendMessage called:', content.slice(0, 80));
         // Build card context for the message
         let enrichedContent = content;
         let contextCardId: string | undefined;
@@ -188,9 +189,9 @@ export function useCopilotSSE() {
           ? intentToToolChoice(intentResult.intent)
           : undefined;
         if (toolChoice) {
-          console.log('[useCopilotSSE] forcing tool choice:', toolChoice.function.name);
+          logger.log('[useCopilotSSE] forcing tool choice:', toolChoice.function.name);
         } else if (intentResult.confidence === 'high') {
-          console.log('[useCopilotSSE] high-confidence intent without toolChoice:', intentResult.intent.type);
+          logger.log('[useCopilotSSE] high-confidence intent without toolChoice:', intentResult.intent.type);
         }
 
         // Add user message
@@ -212,13 +213,13 @@ export function useCopilotSSE() {
             const projectTitle = useProjectStore.getState()
               .projects.find(p => p.id === useProjectStore.getState().currentProjectId)?.title ?? 'Untitled';
             const prompt = buildSystemPrompt(projectTitle, canvasText);
-            console.log('[useCopilotSSE] creating session with', SPELLPAW_TOOL_CONFIGS.length, 'tools');
+            logger.log('[useCopilotSSE] creating session with', SPELLPAW_TOOL_CONFIGS.length, 'tools');
             const session = await provider.createSession(projectTitle, prompt, SPELLPAW_TOOL_CONFIGS, toolChoice);
             sessionRef.current = session.id;
-            console.log('[useCopilotSSE] session created:', session.id);
+            logger.log('[useCopilotSSE] session created:', session.id);
             subscribeToSession(session.id);
           } catch (err) {
-            console.error('[useCopilotSSE] session init failed:', err);
+            logger.error('[useCopilotSSE] session init failed:', err);
             appendMessage({
               id: crypto.randomUUID(),
               role: 'agent',
@@ -235,14 +236,14 @@ export function useCopilotSSE() {
 
         // Send message
         if (sessionRef.current) {
-          console.log('[useCopilotSSE] sending message to session', sessionRef.current);
+          logger.log('[useCopilotSSE] sending message to session', sessionRef.current);
           try {
             // Re-subscribe before each turn: some backends close the SSE stream after turn_end.
             subscribeToSession(sessionRef.current);
             await provider.sendMessage(sessionRef.current, enrichedContent, toolChoice);
-            console.log('[useCopilotSSE] message sent');
+            logger.log('[useCopilotSSE] message sent');
           } catch (err) {
-            console.error('[useCopilotSSE] sendMessage failed:', err);
+            logger.error('[useCopilotSSE] sendMessage failed:', err);
             appendMessage({
               id: crypto.randomUUID(),
               role: 'agent',
@@ -253,7 +254,7 @@ export function useCopilotSSE() {
             endStreaming(projectId, 'error');
           }
         } else {
-          console.error('[useCopilotSSE] no session available');
+          logger.error('[useCopilotSSE] no session available');
         }
       },
     });

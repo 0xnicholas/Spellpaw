@@ -201,11 +201,13 @@ describe('toolRouter — 写入 tool', () => {
       metadata: {
         duration: 45,
         location: '咖啡厅',
-        timeOfDay: '早晨',
-        shotType: '特写',
-        cameraMovement: '推近',
+        timeOfDay: 'morning',
+        shotType: 'close-up',
+        cameraMovement: 'dolly',
         dialogue: '你好。',
         notes: '注意光影',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
     });
     useCanvasStore.setState({ canvases: {} });
@@ -219,9 +221,9 @@ describe('toolRouter — 写入 tool', () => {
     const scriptCard = useCanvasStore.getState().getCurrentNodes()[0];
     expect(scriptCard.data.duration).toBe(45);
     expect(scriptCard.data.location).toBe('咖啡厅');
-    expect(scriptCard.data.timeOfDay).toBe('早晨');
-    expect(scriptCard.data.shotType).toBe('特写');
-    expect(scriptCard.data.cameraMovement).toBe('推近');
+    expect(scriptCard.data.timeOfDay).toBe('morning');
+    expect(scriptCard.data.shotType).toBe('close-up');
+    expect(scriptCard.data.cameraMovement).toBe('dolly');
     expect(scriptCard.data.dialogue).toBe('你好。');
     expect(scriptCard.data.notes).toBe('注意光影');
   });
@@ -231,9 +233,11 @@ describe('toolRouter — 写入 tool', () => {
     useProjectStore.getState().updateTreeNode('scene-1', {
       metadata: {
         location: '旧巷',
-        timeOfDay: '雨夜',
-        shotType: '中景',
+        timeOfDay: 'night',
+        shotType: 'medium',
         description: '男女主角相遇',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
     });
     useCanvasStore.setState({ canvases: {} });
@@ -245,7 +249,7 @@ describe('toolRouter — 写入 tool', () => {
     });
 
     const card = useCanvasStore.getState().getCurrentNodes()[0];
-    expect(card.data.tags).toEqual(expect.arrayContaining(['旧巷', '雨夜', '中景']));
+    expect(card.data.tags).toEqual(expect.arrayContaining(['旧巷', 'night', 'medium']));
     expect(card.data.generatedPrompt).toContain('场景 1');
     expect(card.data.generatedPrompt).toContain('旧巷');
     expect(card.data.generatedPrompt).toContain('男女主角相遇');

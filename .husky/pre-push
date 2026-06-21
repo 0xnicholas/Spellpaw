@@ -1,0 +1,6 @@
+# Pre-push gate: slow checks that are too expensive for every commit.
+# eslint --fix + vitest related run on staged files via the pre-commit
+# hook; this hook does the full tsc + full test suite.
+npm run lint
+npx tsc -b
+npm test

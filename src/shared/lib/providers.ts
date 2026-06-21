@@ -18,15 +18,14 @@ export const LLM_PROVIDER_REGISTRY: Record<LLMProviderType, LLMProviderConfig> =
       'doubao-seed-2-0-pro',
       'doubao-seed-2-0-lite',
       'doubao-seed-2-0-mini',
-      'doubao-1-5-pro-32k',
-      'doubao-1-5-lite-32k',
+      'doubao-seed-2-0-code',
     ],
   },
   minimax: {
     baseUrl: 'https://api.minimax.chat/v1',
-    model: 'MiniMax-Text-01',
+    model: 'MiniMax-M3',
     apiKeyPlaceholder: 'eyJ...',
-    models: ['MiniMax-Text-01', 'MiniMax-M1', 'abab6.5s-chat'],
+    models: ['MiniMax-M3', 'MiniMax-M2.7-highspeed', 'MiniMax-M2.5'],
   },
   deepseek: {
     baseUrl: 'https://api.deepseek.com/v1',
@@ -36,9 +35,9 @@ export const LLM_PROVIDER_REGISTRY: Record<LLMProviderType, LLMProviderConfig> =
   },
   openai: {
     baseUrl: 'https://api.openai.com/v1',
-    model: 'gpt-5.4-mini',
+    model: 'gpt-5.5',
     apiKeyPlaceholder: 'sk-...',
-    models: ['gpt-5.4-mini', 'gpt-5.4', 'gpt-5.5', 'gpt-4o-mini'],
+    models: ['gpt-5.5', 'gpt-5.5-pro', 'gpt-5.5-instant'],
   },
 };
 

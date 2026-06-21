@@ -4,7 +4,7 @@ import type { GenerationProvider, GenerationInput, GenerationTask, ProviderConfi
 
 const SETTINGS_KEY = 'spellpaw_settings';
 const PROXY_BASE_URL = `${config.serverBase}/api/v1/proxy/siliconflow`;
-const DEFAULT_IMAGE_MODEL = 'black-forest-labs/FLUX.1-schnell';
+const DEFAULT_IMAGE_MODEL = 'black-forest-labs/FLUX.2-pro';
 
 function readSettings(): Record<string, unknown> {
   try {

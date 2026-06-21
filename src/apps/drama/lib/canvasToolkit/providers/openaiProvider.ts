@@ -19,7 +19,7 @@ export function createOpenAIProvider(): GenerationProvider {
 
   return {
     id: 'openai',
-    name: 'OpenAI / DALL·E 3',
+    name: 'OpenAI / GPT Image 2',
     supportedMedia: ['image'],
     capabilities: ['text2image'],
     requiredConfigKeys: ['openaiApiKey'],
@@ -51,21 +51,29 @@ export function createOpenAIProvider(): GenerationProvider {
       }
 
       const openai = new OpenAI({ apiKey, baseURL: PROXY_BASE_URL, dangerouslyAllowBrowser: true });
-      const size = (input.options?.size as '1024x1024' | '1792x1024' | '1024x1792') ?? '1024x1024';
+      // gpt-image-2 supports flexible sizes; fall back to the gpt-image-1 defaults
+      // (1024x1024 / 1024x1536 / 1536x1024) which are also valid for gpt-image-2.
+      const size = (input.options?.size as string | undefined) ?? '1024x1024';
 
       try {
         const response = await openai.images.generate({
-          model: 'dall-e-3',
+          model: 'gpt-image-2',
           prompt: input.prompt,
           n: 1,
           size,
-          style: 'vivid',
+          // gpt-image-2 does not support the DALL-E 3 `style` parameter — removed.
+          // Default response_format is b64_json for gpt-image models; force URL to
+          // keep the existing data flow (resultUrl expected by callers).
+          response_format: 'url',
         });
-        const url = response.data?.[0]?.url;
-        if (!url) {
-          return { taskId: '', status: 'failed', error: 'No image URL in OpenAI response' };
+        const first = response.data?.[0];
+        // Prefer url; fall back to b64_json (returned as data URL) if the server
+        // ignores response_format or returns base64 anyway.
+        const resultUrl = first?.url ?? (first?.b64_json ? `data:image/png;base64,${first.b64_json}` : undefined);
+        if (!resultUrl) {
+          return { taskId: '', status: 'failed', error: 'No image data in OpenAI response' };
         }
-        return { taskId: `openai_${Date.now()}`, status: 'done', resultUrl: url };
+        return { taskId: `openai_${Date.now()}`, status: 'done', resultUrl };
       } catch (err) {
         return { taskId: '', status: 'failed', error: (err as Error).message };
       }

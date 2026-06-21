@@ -109,7 +109,7 @@ function enrichCardDataFromTreeNode(
   const node = findNode(tree, linkedId);
   if (!node) return rawData;
 
-  const meta = node.metadata ?? {};
+  const meta = (node.metadata ?? {}) as NonNullable<TreeNode['metadata']>;
   const enriched: Record<string, unknown> = { ...rawData };
 
   if (cardType === 'script') {
@@ -718,18 +718,23 @@ export const toolRouter: ToolRouter = {
     const best = findBestTemplate(theme, genre);
     if (!best) throw new Error('未找到合适的叙事模板');
 
-    // 2. Apply the template under the current project root
+    // 2. Snapshot existing scene IDs so we only create cards for the
+    //    scenes that were just added by this kickstart (avoids creating
+    //    duplicate cards for scenes added by previous kickstarts).
+    const existingSceneIds = new Set(collectScenes(tree).map((s) => s.id));
+
+    // 3. Apply the template under the current project root
     await toolRouter.apply_template({ action: 'apply_template', templateId: best.id, parentId: tree.id });
 
-    // 3. Refresh tree and collect scenes
+    // 4. Refresh tree and collect only the newly added scenes
     const freshTree = store.getCurrentTree();
     if (!freshTree) throw new Error('套用模板后无法获取项目树');
-    const scenes = collectScenes(freshTree);
+    const scenes = collectScenes(freshTree).filter((s) => !existingSceneIds.has(s.id));
 
-    // 4. Create a canvas card for each scene
+    // 5. Create a canvas card for each new scene
     let cardCount = 0;
     for (const scene of scenes) {
-      const meta = scene.metadata ?? {};
+      const meta = (scene.metadata ?? {}) as NonNullable<TreeNode['metadata']>;
       const description = (meta.description as string | undefined) ?? '';
       const duration = typeof meta.duration === 'number' ? meta.duration : undefined;
       const location = (meta.location as string | undefined) ?? '';
@@ -818,7 +823,6 @@ export const toolRouter: ToolRouter = {
 
     // Override position (addCanvasCardHandler places at origin)
     useCanvasStore.getState().updateNodeData(card.id, {} as never);
-    const nodes = useCanvasStore.getState().getCurrentNodes();
     // Directly reposition via store internals
     useCanvasStore.setState((state) => {
       const pid = useProjectStore.getState().currentProjectId;
@@ -856,5 +860,67 @@ export const toolRouter: ToolRouter = {
     const card = nodes.find((n) => n.id === cardId);
     useCanvasStore.getState().removeNode(cardId);
     return `已删除卡片「${card?.data.title ?? cardId}」`;
+  },
+
+  /**
+   * Atomically clear canvas cards for the current project. Use this for
+   * "delete all" / "清空画布" requests — it bypasses the iteration-deletion
+   * race (refresh during debounced push can revert state from server) by
+   * removing nodes in a single store update and triggering an immediate
+   * force push.
+   *
+   * Optional `filter`: { type?, status?, titleContains? } to remove only
+   * matching cards. Omit filter to remove everything.
+   */
+  clear_canvas: async (params) => {
+    const filter = (params.filter as Record<string, unknown> | undefined) ?? {};
+    const cardType = filter.type as import('@drama/types').CanvasNodeType | undefined;
+    const status = filter.status as string | undefined;
+    const titleContains = filter.titleContains as string | undefined;
+
+    const allNodes = useCanvasStore.getState().getCurrentNodes();
+    const matched = allNodes.filter((n) => {
+      if (cardType && n.type !== cardType) return false;
+      if (status && (n.data as { status?: string }).status !== status) return false;
+      if (titleContains && !((n.data as { title?: string }).title ?? '').includes(titleContains)) return false;
+      return true;
+    });
+
+    if (matched.length === 0) {
+      return '画布已为空，无需清理。';
+    }
+
+    // Remove in a single store update so subscribers see one atomic change.
+    const idsToRemove = new Set(matched.map((n) => n.id));
+    useCanvasStore.setState((state) => {
+      const projectId = useProjectStore.getState().currentProjectId;
+      if (!projectId) return state;
+      const entry = state.canvases[projectId];
+      if (!entry) return state;
+      return {
+        canvases: {
+          ...state.canvases,
+          [projectId]: {
+            ...entry,
+            nodes: entry.nodes.filter((n) => !idsToRemove.has(n.id)),
+            edges: entry.edges.filter((e) => !idsToRemove.has(e.source) && !idsToRemove.has(e.target)),
+          },
+        },
+        ...(state.selectedCardId && idsToRemove.has(state.selectedCardId) ? { selectedCardId: null } : {}),
+      };
+    });
+
+    // Force-push to server immediately so a subsequent refresh doesn't
+    // restore the cards from the previous server state.
+    try {
+      const { triggerPushNow } = await import('@drama/lib/syncEngine');
+      await triggerPushNow();
+    } catch (err) {
+      // Even if the push fails, the local state is already cleared.
+      console.warn('[clear_canvas] force push failed:', err);
+    }
+
+    const scope = cardType ?? status ?? titleContains ? '（按条件）' : '';
+    return `已清空画布${scope}：共删除 ${matched.length} 张卡片。`;
   },
 };

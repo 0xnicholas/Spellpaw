@@ -144,6 +144,22 @@ export function triggerPush(): void {
   if (id) schedulePush(id);
 }
 
+/**
+ * Force an immediate push, bypassing the 500ms debounce. Resolves when the
+ * push completes (success or failure). Use after destructive operations
+ * (e.g. clear_canvas) where a refresh during the debounce window would
+ * otherwise restore stale state from the server.
+ */
+export async function triggerPushNow(): Promise<void> {
+  const id = useProjectStore.getState().currentProjectId;
+  if (!id) return;
+  if (pushTimer) {
+    clearTimeout(pushTimer);
+    pushTimer = null;
+  }
+  await performPush(id);
+}
+
 /** Manually trigger a pull. */
 export function triggerPull(): void {
   void performPull();

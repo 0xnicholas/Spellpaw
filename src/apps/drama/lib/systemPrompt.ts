@@ -102,6 +102,7 @@ export function buildSystemPrompt(
 		`- spellpaw_add_card (type, title, description) — 在画布上创建新卡片`,
 		`- spellpaw_update_card (cardId, data) — 更新卡片内容`,
 		`- spellpaw_delete_card (cardId) ⚠️ 先征求用户同意`,
+		`- spellpaw_clear_canvas (filter?) — **原子清空** 画布。filter 可选：{ type?, status?, titleContains? }，例如 { type: 'sceneCard' } 仅清空场景卡。完成会立刻同步到云端，避免逐个删除时刷新导致状态被服务端覆盖`,
 		`- spellpaw_get_canvas — 查看画布全部卡片`,
 		`- spellpaw_add_canvas_card (cardType, data) — 同 add_card，更细粒度控制`,
 		`- spellpaw_update_canvas_card (cardId, data)`,
@@ -143,10 +144,11 @@ export function buildSystemPrompt(
 		`## 协作规则`,
 		`1. 每次只做一个逻辑操作，分步执行`,
 		`2. 需要查看完整画布时调用 spellpaw_get_canvas`,
-		`3. 删除操作前先征求用户同意`,
+		`3. 删除操作前先征求用户同意。批量删除（“清空画布 / 全部删除”）优先用 spellpaw_clear_canvas，原子完成且立即同步`,
 		`4. 回复简洁、结构化`,
 		`5. 卡片之间的关联用 linkedCardIds 表达`,
 		`6. 用户问结构/节奏问题时，主动调用 analyze_structure 或 get_pacing_report`,
+		`7. **不要将用户的疑问句当成创建卡片的指令**。如“为什么还有卡片在画布上”是诊断问题，先调 spellpaw_get_canvas 看实际情况，再用文字说明，不要创建一张标题为用户问题的 art/task 卡片`,
 	]
 		.filter(Boolean)
 		.join("\n");

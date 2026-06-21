@@ -8,6 +8,7 @@ import {
 	type ProactiveInsight,
 } from "@drama/lib/proactiveInsights";
 import { useProjectStore } from "./projectStore";
+import { useCanvasStore } from "./canvasStore";
 
 interface InFlightToolCall {
 	callId: string;
@@ -45,7 +46,32 @@ interface ChatState {
 	endStreaming: (projectId: string, stopReason?: string) => void;
 }
 
-function mockAgentReply(userContent: string): ChatMessage {
+function detectCardIntent(text: string): { type: string; title: string } | null {
+	const t = text.trim();
+	// Pattern: "创建/添加/新建 [类型] 卡片，标题 X" or "添加 X"
+	const cardTypeMatch = t.match(/(?:创建|添加|新建|加)(一个|一张)?\s*(storyline|故事线|moodboard|情绪板|videoClip|视频|asset|素材|task|任务|art|美术|character|角色|script|剧本)\s*(?:卡片)?[\s，,:。]*(?:标题[：:为]?|叫做?|叫)?\s*([^，,。\n]+)?/i);
+	if (cardTypeMatch) {
+		const cnToType: Record<string, string> = {
+			故事线: 'storyline', 情绪板: 'moodboard', 视频: 'videoClip',
+			素材: 'asset', 任务: 'task', 美术: 'art', 角色: 'character', 剧本: 'script',
+		};
+		const rawType = cardTypeMatch[2].toLowerCase();
+		const type = cnToType[rawType] ?? rawType;
+		const title = cardTypeMatch[3]?.trim() || `新${rawType}`;
+		return { type, title };
+	}
+	// Simpler: "加一张卡片 X"
+	const simpleMatch = t.match(/(?:加|创建|添加|新建)(?:一张|一个)?(.+?)(?:卡片|card)/i);
+	if (simpleMatch && simpleMatch[1].trim().length > 0) {
+		const title = simpleMatch[1].trim();
+		if (title.length > 0 && title.length < 50) {
+			return { type: 'storyline', title };
+		}
+	}
+	return null;
+}
+
+function mockAgentReply(userContent: string, _projectId?: string): ChatMessage {
 	const replies: Record<string, string> = {
 		"🚀 Kickstart：快速生成初稿":
 			"好的，我来为你设计故事框架。首先从三幕结构开始构建：\n\n**第一幕：开端** — 建立角色和世界\n**第二幕：冲突** — 剧情推进和角色成长\n**第三幕：结局** — 高潮与解决\n\n需要我套用叙事模板快速生成初稿吗？",
@@ -54,24 +80,47 @@ function mockAgentReply(userContent: string): ChatMessage {
 		"✨ Enhance：生成视觉风格": "正在为你的故事匹配合适的视觉风格参考…",
 	};
 
-	const content =
-		replies[userContent] ??
-		"收到！我来为你处理。正在分析项目结构并制定最佳方案…";
+	// Detect card creation intent
+	const cardIntent = detectCardIntent(userContent);
+	let content: string;
+	let actions: ChatMessage['actions'];
+
+	if (cardIntent) {
+		// Actually create the card locally
+		const existing = useCanvasStore.getState().getCurrentNodes();
+		const lastY = existing.length > 0 ? Math.max(...existing.map(n => n.position.y)) + 220 : 50;
+		const cardId = generateId('canvas_');
+		useCanvasStore.getState().addNode({
+			id: cardId,
+			type: cardIntent.type as 'storyline',
+			position: { x: 50 + (existing.length % 3) * 420, y: lastY },
+			data: { title: cardIntent.title, status: 'draft' },
+		});
+
+		// Trigger highlight + focus
+		setTimeout(() => useCanvasStore.getState().triggerHighlight([cardId]), 50);
+		setTimeout(() => useCanvasStore.getState().triggerFocusCard(cardId), 300);
+
+		content = `已创建 ${cardIntent.type}「${cardIntent.title}」并定位到画布。\n\n💡 试试选中卡片后说「添加描述」「加镜头列表」继续完善。`;
+		actions = [
+			{ id: generateId('act_'), label: '生成分镜图', type: 'generate_storyboard' },
+			{ id: generateId('act_'), label: '编辑详情', type: 'modify_script' },
+		];
+	} else {
+		content = replies[userContent] ?? "收到！我来为你处理。正在分析项目结构并制定最佳方案…";
+		actions = [
+			{ id: generateId('act_'), label: '生成分镜', type: 'generate_storyboard' },
+			{ id: generateId('act_'), label: '撰写对白', type: 'modify_script' },
+		];
+	}
 
 	return {
-		id: generateId("msg_"),
-		role: "agent",
+		id: generateId('msg_'),
+		role: 'agent',
 		content,
-		type: "text",
+		type: 'text',
 		timestamp: new Date().toISOString(),
-		actions: [
-			{
-				id: generateId("act_"),
-				label: "生成分镜",
-				type: "generate_storyboard",
-			},
-			{ id: generateId("act_"), label: "撰写对白", type: "modify_script" },
-		],
+		actions,
 	};
 }
 
@@ -135,7 +184,7 @@ export const useChatStore = create<ChatState>()((set) => ({
 		});
 
 		setTimeout(() => {
-			const agentMsg = mockAgentReply(content);
+			const agentMsg = mockAgentReply(content, projectId);
 			set((state) => {
 				const messages = [...state.messages, agentMsg];
 				void saveChatMessages(messages, projectId);

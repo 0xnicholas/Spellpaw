@@ -36,6 +36,9 @@ function setState(patch: Partial<SyncEngineState>) {
 let isRunning = false;
 let pendingPush = false;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
+// Promise of the in-flight push, so callers like triggerPushNow can
+// await it instead of racing with the debounce timer.
+let currentPushPromise: Promise<void> | null = null;
 
 /**
  * Push current project to server immediately.
@@ -53,43 +56,52 @@ async function performPush(projectId: string) {
   isRunning = true;
   setState({ state: 'syncing' });
 
-  try {
-    const result = await pushProject(projectId);
+  // Wrap the actual push so we can expose the in-flight promise to
+  // triggerPushNow (and any other future caller that needs to wait).
+  currentPushPromise = (async () => {
+    try {
+      const result = await pushProject(projectId);
 
-    if (result.conflict) {
-      // Server is newer: pull and overwrite local
-      const pullResult = await pullProject(projectId);
-      if (pullResult.success) {
+      if (result.conflict) {
+        // Server is newer: pull and overwrite local
+        const pullResult = await pullProject(projectId);
+        if (pullResult.success) {
+          setState({ state: 'synced', lastSyncAt: Date.now(), error: null });
+          // Toast: server version was applied
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('spellpaw:toast', {
+              detail: { message: '已同步至云端最新版本', type: 'info' },
+            }));
+          }
+        } else {
+          setState({ state: 'error', error: pullResult.error ?? '拉取失败' });
+        }
+      } else if (result.success) {
         setState({ state: 'synced', lastSyncAt: Date.now(), error: null });
-        // Toast: server version was applied
+      } else if (result.error) {
+        setState({ state: 'error', error: result.error });
+        // Toast non-critical errors
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('spellpaw:toast', {
-            detail: { message: '已同步至云端最新版本', type: 'info' },
+            detail: { message: `同步失败: ${result.error}`, type: 'error' },
           }));
         }
-      } else {
-        setState({ state: 'error', error: pullResult.error ?? '拉取失败' });
       }
-    } else if (result.success) {
-      setState({ state: 'synced', lastSyncAt: Date.now(), error: null });
-    } else if (result.error) {
-      setState({ state: 'error', error: result.error });
-      // Toast non-critical errors
+    } catch (err) {
+      setState({ state: 'error', error: (err as Error).message });
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('spellpaw:toast', {
-          detail: { message: `同步失败: ${result.error}`, type: 'error' },
+          detail: { message: '网络异常，修改将稍后同步', type: 'warning' },
         }));
       }
     }
-  } catch (err) {
-    setState({ state: 'error', error: (err as Error).message });
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('spellpaw:toast', {
-        detail: { message: '网络异常，修改将稍后同步', type: 'warning' },
-      }));
-    }
+  })();
+
+  try {
+    await currentPushPromise;
   } finally {
     isRunning = false;
+    currentPushPromise = null;
     // If another change came in while we were pushing, push again
     if (pendingPush) {
       pendingPush = false;
@@ -145,18 +157,42 @@ export function triggerPush(): void {
 }
 
 /**
- * Force an immediate push, bypassing the 500ms debounce. Resolves when the
- * push completes (success or failure). Use after destructive operations
- * (e.g. clear_canvas) where a refresh during the debounce window would
- * otherwise restore stale state from the server.
+ * Force an immediate push, bypassing the 500ms debounce. Resolves ONLY
+ * when the push (and any follow-up push needed to capture state changes
+ * that happened during it) has actually completed on the server.
+ *
+ * Use after destructive operations (e.g. clear_canvas) where a refresh
+ * during the debounce window would otherwise restore stale state from
+ * the server.
+ *
+ * Without this contract, the previous behavior was:
+ *   - debounced push A is in-flight
+ *   - clear_canvas → triggerPushNow() → performPush() (early-returns
+ *     because isRunning is true) → triggerPushNow resolves immediately
+ *   - clear_canvas returns success
+ *   - user refreshes, but server still has pre-clear state from push A
+ *     that hasn't finished yet → pullAll restores the old state
  */
 export async function triggerPushNow(): Promise<void> {
   const id = useProjectStore.getState().currentProjectId;
   if (!id) return;
+  if (!useAuthStore.getState().isAuthenticated) return;
   if (pushTimer) {
     clearTimeout(pushTimer);
     pushTimer = null;
   }
+
+  // If a debounced push is already in-flight, wait for it to land before
+  // we do our own. Otherwise our performPush below would early-return
+  // (isRunning=true), set pendingPush, and resolve triggerPushNow before
+  // the server actually has any data from this call.
+  if (currentPushPromise) {
+    await currentPushPromise;
+  }
+
+  // Do a fresh push with the current local state. This captures any
+  // state changes that happened between when the in-flight push was
+  // scheduled and now (e.g. clear_canvas's store update).
   await performPush(id);
 }
 

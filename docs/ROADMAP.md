@@ -42,7 +42,7 @@
 2. **强化可编辑性** — 这是 Drama Studio 无法提供的核心价值
 3. **多语言加速** — 从 Phase 4 提升至 Phase 2.5（英文 MVP）
 4. **模板翻倍** — 从 5 个内置模板扩展到 15+（社区贡献 + AI 生成）
-5. **保持离线优先** — 这是 Topview 永远无法复制的架构优势
+5. **云端为主存储** — Server 为权威数据源，跨设备无缝同步
 
 ---
 
@@ -876,22 +876,19 @@ test('full turn: message → agent → tool → store', async () => {
 
 ---
 
-## Phase 3：云端协作与内容生态（约 5 周）
+## Phase 3：云端存储（Server 权威数据源）（约 5 周）
 
-> **核心命题：从"单人本地工具"升级为"可协作、可分享的平台"**  
-> **竞品借鉴：** Higgsfield Community 画廊 + Higgsfield Collab（简化版）  
-> **协作策略：** 异步 push/pull（Git-like），不做 CRDT 实时协作。短剧团队 2-5 人，冲突概率低，没必要为 5% 场景引入 CRDT 复杂度
+> **核心命题：将存储模型从"本地优先"切换为"云端为主"——Server 是唯一权威数据源，本地仅为只读缓存**  
+> **协作策略：** 无离线编辑模式。编辑即时推送 server（500ms debounce），server 永远是正确答案。不做 CRDT 实时协作。
 
 ### 3.1 目标与成功标准
 
 | # | 目标 | 成功标准 |
 |---|------|---------|
-| 1 | 云端同步 | 用户登录后可跨设备推送/拉取项目，冲突时展示 diff 供手动选择 |
-| 2 | 团队协作 | 多人可异步编辑同一项目（push/pull 模式），非同时编辑 |
-| 3 | 模板市场 | 用户可上传/下载模板，形成内容飞轮 |
-| 4 | 🆕 多语言扩展 | 英文 UI 完善 + 新增 2 语言（日/韩），Agent 对话支持多语言理解 |
-
-> **注：** 英文 MVP 已在 Phase 2.5 完成。Phase 3 扩展至日/韩，并让 Agent 支持多语言对话。
+| 1 | 云端为主存储 | Server 为唯一权威数据源，编辑即时推送，IndexedDB 仅做只读缓存 |
+| 2 | 即时同步 | 500ms debounce 自动 push；409 冲突时 server wins 覆盖本地 |
+| 3 | 模板市场（本地版） | 用户可本地管理自定义模板（导入/导出/编辑/删除） |
+| 4 | 快照与回滚 | 手动保存项目快照，支持版本对比和回滚 |
 
 ### 3.2 Phase 3 功能规划
 
@@ -900,90 +897,56 @@ Phase 3 功能全景
 ┌──────────────────────────────────────────────────────────────────────┐
 │                                                                      │
 │  ┌─────────────────┐   ┌──────────────────┐   ┌────────────────┐   │
-│  │ 云端基础设施      │   │ 异步协作（Git-like）│   │ 内容生态        │   │
+│  │ 云端基础设施      │   │ 即时同步           │   │ 版本管理        │   │
 │  │                 │   │                  │   │                │   │
-│  │ 用户认证        │   │ push / pull      │   │ 模板市场        │   │
-│  │ 项目云存储      │   │ 冲突检测 + diff   │   │ 项目分享画廊    │   │
-│  │ IndexedDB 本地  │   │ 手动合并冲突      │   │ 模板评价/下载   │   │
-│  │ 多端同步        │   │ 协作状态指示      │   │ Trending 算法   │   │
+│  │ 用户认证        │   │ 500ms debounce   │   │ 手动快照保存     │   │
+│  │ Server 项目存储 │   │ 自动 push        │   │ 快照对比 diff    │   │
+│  │ IndexedDB 缓存  │   │ 409 server wins  │   │ 一键回滚        │   │
+│  │ 迁移脚本        │   │ 网络错误 toast    │   │                │   │
 │  └─────────────────┘   └──────────────────┘   └────────────────┘   │
 │                                                                      │
 │  ┌─────────────────┐   ┌──────────────────┐                        │
-│  │ 版本管理          │   │ 🆕 多语言扩展       │                        │
+│  │ 模板管理（本地）   │   │ 认证              │                        │
 │  │                 │   │                  │                        │
-│  │ 自动版本快照     │   │ 日/韩 UI 语言     │                        │
-│  │ 版本对比/回滚    │   │ Agent 多语言对话   │                        │
-│  │                 │   │ 模板本地化        │                        │
+│  │ 自定义模板       │   │ Email 注册/登录   │                        │
+│  │ 导入/导出 JSON  │   │ JWT token        │                        │
+│  │ 模板市场页面     │   │ Demo 账户         │                        │
 │  └─────────────────┘   └──────────────────┘                        │
 │                                                                      │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-#### 3.2.1 云端基础设施
+#### 3.2.1 云端为主架构
 
-- **后端选型：** Node.js + PostgreSQL（或 Supabase 快速上线）
-- **认证：** Email + Google OAuth（初期可选）
-- **存储迁移：** localStorage → IndexedDB（本地缓存） + 云端同步
-- **同步策略：** 离线优先（本地编辑 → 手动推送），本地永远是主版本
-
-#### 3.2.2 异步协作设计（Git-like）
-
-**为什么不用 CRDT：** Spellpaw 的协作场景与 Figma/Notion 不同——团队 2-5 人，工作流是「编剧写完一幕 → 导演 review → 摄影指导加镜头」，天然串行。异步 push/pull 覆盖 90% 需求，CRDT 为 10% 的场景增加数周复杂度。
-
-**协作模型：**
+- **权威数据源：** Spellpaw Server（Node.js + PostgreSQL + Prisma）
+- **本地角色：** Zustand store 为运行时状态，IndexedDB 为只读缓存（加速二次打开时秒现）
+- **同步方向：** 编辑 → store 乐观更新 → 500ms debounce → push server；打开项目 → IndexedDB 缓存秒开 → 后台拉 server 覆盖
 
 ```
-用户 A                             云端                              用户 B
-─────                             ────                              ─────
-编辑项目
-  │
-  ├─ push ──────────────────────→ 存储版本 v1
-  │                                │
-  │                                ←──── pull ───────────────────────┤
-  │                                                                   编辑项目
-  │                                                                     │
-  ├─ push ──────────────────────→ 存储版本 v2 ←── 冲突！──────┤
-  │                                节点 s1-1 被 A 和 B 都改了            │
-  │                                                                    │
-  │                                ←──── pull ───────────────────────┤
-  │                                收到冲突提示                       收到 diff：
-  │                                │                                  s1-1 有两个版本
-  │                                │                                  [用 A 的] [用 B 的] [手动合并]
+编辑操作 → Zustand（乐观更新）→ 500ms debounce → POST/PUT /api/projects
+                         ├── 成功：更新 server version
+                         └── 409 冲突：server 版本更新 → 拉取覆盖本地（toast 通知）
+
+打开项目 → IndexedDB 读缓存（秒开）→ GET /api/projects（后台覆盖）
 ```
 
-**冲突检测粒度：节点级（非字符级）**
+#### 3.2.2 同步引擎
 
-```typescript
-interface ConflictResult {
-  nodeId: string;
-  nodePath: string;                 // "第一幕 > 场景 1-1"
-  localVersion: Partial<TreeNode>;  // 你的修改
-  remoteVersion: Partial<TreeNode>; // 云端的修改
-  conflictingFields: string[];      // ["title", "description", "duration"]
-}
-```
+**syncEngine.ts** 监听 Zustand store 变更，自动推送至 server：
+- 500ms debounce 合并快速连续编辑（如 detail panel 打字）
+- push 失败时 toast 提示，下轮编辑自动重试
+- server 返回 409（冲突）时自动拉取最新数据覆盖本地
+- 应用启动时自动 pull 所有项目
+- 登录时自动 pull
 
-**diff 对比 UI（已落地）：**
+**server projects API：**
+- `GET /api/projects` — 列出用户所有项目
+- `POST /api/projects` — 创建新项目
+- `GET /api/projects/:id` — 获取项目详情（含 tree + canvas JSON）
+- `PUT /api/projects/:id` — 更新项目（timestamp + version 双重冲突检测，冲突返回 409）
+- `DELETE /api/projects/:id` — 删除项目
 
-```
-┌─────────────────────────────────────────────────────┐
-│ ⚠️ 冲突：场景 1-1「醒来」                             │
-│                                                     │
-│  你的版本            │  云端版本（@director_lee）     │
-│  ───────────────────│────────────────────           │
-│  标题：昏迷苏醒       │  标题：醒来                    │
-│  时长：25s           │  时长：30s                     │
-│  描述：主角缓缓睁眼...│  描述：主角从昏迷中醒来...       │
-│                                                     │
-│  [使用我的]  [使用云端的]  [逐字段选择]               │
-└─────────────────────────────────────────────────────┘
-```
-
-> ✅ 已实现：`src/lib/treeDiff.ts`（`diffTrees` + `mergeTrees`）+ `src/components/modals/ConflictResolverModal.tsx`（逐节点选择 local/remote + 批量快捷键）+ `src/lib/projectSync.ts`（`resolveConflictWithMerge`）。
-
-**同步协议：** 每个节点有 `version` 字段。push 时比较本地 version 和云端 version：
-- 相同 → 直接覆盖
-- 云端更高 → 冲突，展示 diff
+**冲突策略：** Server wins。PUT 时若 client timestamp < server timestamp 且 version 不匹配，返回 409。syncEngine 自动拉取 server 数据覆盖本地。
 
 #### 3.2.3 模板市场（已砍掉云端版）
 
@@ -999,25 +962,29 @@ interface ConflictResult {
 >
 > 后端 `/api/gallery` 路由和 `GalleryItem` Prisma 模型已移除。
 
-### 3.3 Phase 3 里程碑
+### 3.3 Phase 3 里程碑（已全部完成 ✅）
 
 ```
-Week 1-2:   云端基础设施
-            ├── 用户认证（Email + OAuth）
-            ├── 项目云存储 + IndexedDB 本地缓存层        ✅ 已完成
-            └── 数据迁移脚本（localStorage → IndexedDB + 云端）
+Week 1-2:   云端基础设施                              ✅ 已完成
+            ├── 用户认证（Email 注册/登录 + JWT + Demo 账户）
+            ├── Server 项目存储（Prisma + PostgreSQL）
+            ├── IndexedDB 缓存层（idbStorage.ts）
+            └── 数据迁移脚本（localStorage → IndexedDB）
 
-Week 3-4:   异步协作
-            ├── push / pull 协议 + 节点级 version 管理
-            ├── 冲突检测 + diff 对比 UI                  ✅ 前端已就绪（treeDiff + ConflictResolverModal）
-            └── 协作状态指示（队友在线 / 最后推送时间）
+Week 3-4:   即时同步引擎                               ✅ 已完成
+            ├── 500ms debounce 自动 push（syncEngine.ts）
+            ├── push/pull 协议 + version 管理（projectSync.ts）
+            ├── 冲突检测引擎（treeDiff.ts：diffTrees + mergeTrees）
+            └── 409 server-wins 自动覆盖 + toast 通知
 
-Week 5:     ~~模板市场~~（已砍掉云端版，仅保留本地模板管理）
+Week 5:     模板市场（本地版）                          ✅ 已完成
+            └── customTemplateStore + TemplateMarketPage
 
-Week 6:     画廊 + 版本管理 + 集成
-            ├── 项目分镜集公开分享
-            ├── 自动版本快照 + 版本对比 / 回滚
-            └── 集成测试
+Week 6:     快照系统 + 集成                             ✅ 已完成
+            ├── 手动快照（projectSnapshot.ts）
+            ├── 快照对比 + 回滚 UI（SnapshotModal.tsx）
+            ├── 删除离线组件（OfflineBanner, SyncStatusIndicator, stores/sync.ts）
+            └── 292 tests passing / 36 files
 ```
 
 ---
@@ -1026,7 +993,7 @@ Week 6:     画廊 + 版本管理 + 集成
 
 > **核心命题：从"封闭平台"升级为"协议级基础设施"**  
 > **竞品借鉴：** Higgsfield MCP 协议 + Topview 全面多语言  
-> **Phase 3 后移项：** CRDT 实时协作（按需从异步升级）
+> **Phase 3 后移项：** CRDT 实时协作（已砍掉——server 权威模型下无需求）
 
 > **注：** 国际化已在 Phase 2.5（英文 MVP）+ Phase 3（日/韩）启动，Phase 4 完成剩余语言。
 
@@ -1038,7 +1005,7 @@ Week 6:     画廊 + 版本管理 + 集成
 | 2 | 第三方集成 | ≥1 个外部应用接入（如 Claude 直接操作 Spellpaw 项目） |
 | 3 | 全面国际化 | 支持 ≥5 种语言（中/英/日/韩/西），含 prompt 级别多语言生成 |
 | 4 | API 文档 | 完整的 REST API + MCP 文档，开发者可自行集成 |
-| 5 | 实时协作升级（可选） | 若异步 push/pull 不够用，升级为 CRDT 实时协作 |
+| 5 | — | — |
 
 > **注：** 英文 MVP（Phase 2.5）+ 日/韩（Phase 3）已完成，Phase 4 补齐西语 + prompt 多语言生成。
 
@@ -1166,8 +1133,8 @@ Month 5            Month 6            Month 7            Month 8
 │  对照导出          │                                      │
 ├───────────────────┤                                      │
 │ ├──────── Phase 3 ────────────────────┤                  │
-│ │ 云端协作 + 内容生态                   │                  │
-│ │  异步push/pull · 模板市场 · 多语言    │                  │
+│ │ 云端为主存储 + 版本管理                │                  │
+│ │  即时同步 · 快照 · 本地模板            │                  │
 │ │                                      ├─ Phase 4 ──────┤
 │ │                                      │ 开放生态         │
 │ │                                      │  MCP · i18n    │
@@ -1186,8 +1153,8 @@ Month 5            Month 6            Month 7            Month 8
 | Topview Agent 对话 | 分步确认式 Agent 协作 | Phase 2 | 🔴 高 | Spellpaw Server + Tool Server + SSE |
 | Higgsfield 文生图 | AI 分镜画面生成 | Phase 2 | 🟡 中 | 先接入第三方 API |
 | 🆕 Topview API 聚合 | **Topview API 桥接（不自研模型）** | Phase 2 | 🔴 高 | 可插拔 provider 模式 |
-| Higgsfield Community | 模板市场 + 项目分享画廊 | Phase 3 | 🟡 中 | 云端平台 + trending 算法 |
-| Higgsfield Collab | 异步 push/pull 协作（Git-like） | Phase 3 | 🟡 中 | 节点级 version + diff 对比 UI |
+| — | 云端为主存储（Server 权威数据源） | Phase 3 | 🔴 高 | syncEngine 500ms debounce push + 409 server-wins |
+| — | 项目快照系统 | Phase 3 | 🟡 中 | IndexedDB 快照 + diffTrees + SnapshotModal |
 | 🆕 Topview 多语言 | **多语言 MVP（英文 Phase 2.5 + 日/韩 Phase 3）** | Phase 2.5+3 | 🔴 高 | i18n 框架 + 翻译表 |
 | Topview Drama Studio 警示 | **Drama Studio 对照导出 + 可编辑性强化** | Phase 2.5 | 🔴 高 | Markdown/PDF 对比报告 |
 | Higgsfield MCP | MCP Server（互补模式 A）+ REST API | Phase 4 | 🟢→🟡 | 复用 Phase 2 AgentAction 映射为 MCP Tools |
@@ -1205,14 +1172,14 @@ Month 5            Month 6            Month 7            Month 8
 | system_prompt token 膨胀 | Phase 2 | 🟡 中 | 两层上下文（大纲层 ~500 token + 细节层 tool 按需获取） |
 | Spellpaw Server 版本不兼容 | Phase 2 | 🟡 中 | 固定 API 版本号；启动时兼容性检查 |
 | 🆕 Drama Studio 用户心智占领 | Phase 2.5 | 🔴 高 | 加速上线 + 对照导出展示差异化 + 英文 MVP 抢海外市场 |
-| IndexedDB 迁移 | Phase 3 | 🟡 中 | 渐进迁移（先做可选同步）；迁移脚本 + 回滚能力 |
-| 异步协作冲突频率高于预期 | Phase 3 | 🟡 中 | diff UI 已覆盖；若冲突 > 10% 的 push，升级到 Phase 4 CRDT |
+| IndexedDB 迁移 | Phase 3 | 🟡 中 | 迁移脚本 migrateToIDB.ts + localStorage 标记；已完成 ✅ |
+| Server 不可用 | Phase 3 | 🟡 中 | IndexedDB 缓存兜底读取；编辑 toast 提示网络异常，连接恢复后重试 |
 | MCP 协议生态未成熟 | Phase 4 | 🟢 低 | Phase 4 距离较远；备选：自有 REST API + Webhook |
 
 ---
 
-*文档版本：v1.2*  
-*更新日期：2026-05-31（重大调整：Topview Drama Studio 竞争响应）*  
-*上次版本：v1.1（2026-05-30）*  
-*下次审视：Phase 2 完成时，或 Topview 重大产品发布后*  
+*文档版本：v1.3*  
+*更新日期：2026-06-20（Phase 3 完成：云端为主架构落地，去除离线/异步协作模式）*  
+*上次版本：v1.2（2026-05-31）*  
+*下次审视：Phase 4 启动前*  
 *关联文档：`docs/topview-analysis-report.md` · `docs/competitive-analysis-higgsfield-topview.md`*

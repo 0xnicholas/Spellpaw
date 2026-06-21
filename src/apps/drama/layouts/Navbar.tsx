@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Bell, Command, ChevronRight, Pencil, Download } from 'lucide-react';
 import { IconButton } from '@/shared/components/ui/IconButton';
 import { ProjectSettingsModal } from '@drama/components/modals/ProjectSettingsModal';
-import { SyncStatusIndicator } from '@drama/components/sync/SyncStatusIndicator';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { exportStoryboardPDF } from '@drama/lib/exportPDF';
@@ -83,7 +82,6 @@ export function Navbar() {
         )}
       </div>
       <div className="flex items-center gap-1">
-        <SyncStatusIndicator />
         <IconButton icon={<Command className="h-4 w-4" />} label="命令面板" size="sm" />
         <IconButton icon={<Bell className="h-4 w-4" />} label="通知" size="sm" />
         <button

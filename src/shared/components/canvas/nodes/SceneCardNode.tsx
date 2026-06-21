@@ -3,6 +3,7 @@ import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { ImageOff, Lock } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/Badge';
 import { Lightbox } from '@/shared/components/ui/Lightbox';
+import { NodeAIActions, getCardAIActions } from '../NodeAIActions';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useProjectStore } from '@drama/stores/projectStore';
 import type { CanvasNodeData } from '@drama/types';
@@ -15,6 +16,7 @@ const statusMap: Record<string, { label: string; variant: 'default' | 'accent' |
 };
 
 export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeData>>) {
+  const highlighted = (data as Record<string, unknown>)._highlighted as boolean | undefined;
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(data.title);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -50,11 +52,15 @@ export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
   return (
     <>
       <div
-        className={`w-[240px] rounded-[var(--radius-base)] border bg-[var(--color-bg-secondary)] shadow-sm transition-shadow ${
+        className={`group w-[240px] rounded-[var(--radius-base)] border bg-[var(--color-bg-secondary)] shadow-sm transition-shadow ${
           selected
             ? 'border-[var(--color-accent-500)] shadow-md'
             : 'border-[var(--color-border-default)]'
-        }`}
+        } ${highlighted ? 'animate-card-pulse' : ''}`}
+        style={highlighted ? {
+          animation: 'cardPulse 0.6s ease-in-out 3',
+          borderColor: 'var(--color-accent-500)',
+        } : undefined}
       >
         <Handle type="target" position={Position.Left} className="!bg-[var(--color-accent-500)]" />
 
@@ -134,6 +140,10 @@ export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
               </h4>
             )}
             {status && <Badge variant={status.variant}>{status.label}</Badge>}
+            <NodeAIActions
+              actions={getCardAIActions('sceneCard', data.title)}
+              onAction={(prompt) => { const fn = (data as Record<string, unknown>)._onAIAction as ((p: string) => void) | undefined; fn?.(prompt); }}
+            />
           </div>
           {data.description && (
             <p className="text-xs text-[var(--color-text-tertiary)] line-clamp-2">{data.description}</p>

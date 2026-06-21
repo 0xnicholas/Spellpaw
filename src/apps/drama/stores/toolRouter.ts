@@ -772,4 +772,89 @@ export const toolRouter: ToolRouter = {
 
     return `已基于「${best.name}」模板创建项目结构：共 ${scenes.length} 个场景，并生成 ${cardCount} 张${cardType === 'sceneCard' ? '场景卡' : '剧本卡'}。`;
   },
+
+  // ── Card-based tools (no-tree architecture) ──
+
+  /** Enumerate all canvas cards as indented text for Copilot context */
+  get_canvas: async () => {
+    const cards = useCanvasStore.getState().getCurrentNodes();
+    if (cards.length === 0) return '(画布为空)';
+    const lines: string[] = [`画布共 ${cards.length} 张卡片：`];
+    for (const c of cards) {
+      const typeIcon = { storyline: '📖', moodboard: '🎨', videoClip: '🎬', asset: '📦', task: '📋', art: '🖼️', character: '👤', script: '📝', deliverable: '📦', sceneCard: '🎬' }[c.type] ?? '📄';
+      const statusMark = c.data.status === 'done' ? '✅' : c.data.status === 'in_progress' ? '🔄' : '';
+      lines.push(`  ${typeIcon} ${c.type}「${c.data.title}」${statusMark} (${c.id})`);
+      if (c.data.description) lines.push(`    描述：${c.data.description.slice(0, 80)}`);
+      if (c.data.children?.length) {
+        for (const ch of c.data.children) {
+          lines.push(`    └─ ${ch.type}「${ch.title}」`);
+        }
+      }
+      if (c.data.linkedCardIds?.length) {
+        lines.push(`    关联：${c.data.linkedCardIds.join(', ')}`);
+      }
+    }
+    return lines.join('\n');
+  },
+
+  /** Add a new card to the canvas */
+  add_card: async (params) => {
+    const type = (params.type as string) || 'storyline';
+    const title = (params.title as string) || '新卡片';
+    const description = params.description as string | undefined;
+    const cardType = (['storyline', 'moodboard', 'videoClip', 'asset', 'task', 'art', 'character'] as const).includes(type as never) ? type as import('@drama/types').CanvasNodeType : 'storyline';
+
+    // Auto-position: stack below existing cards with some offset
+    const existing = useCanvasStore.getState().getCurrentNodes();
+    const lastY = existing.length > 0
+      ? Math.max(...existing.map((n) => n.position.y)) + 220
+      : 50;
+
+    const card = await addCanvasCardHandler(cardType, {
+      title,
+      description,
+      status: 'draft',
+    });
+
+    // Override position (addCanvasCardHandler places at origin)
+    useCanvasStore.getState().updateNodeData(card.id, {} as never);
+    const nodes = useCanvasStore.getState().getCurrentNodes();
+    // Directly reposition via store internals
+    useCanvasStore.setState((state) => {
+      const pid = useProjectStore.getState().currentProjectId;
+      if (!pid) return state;
+      const entry = state.canvases[pid];
+      if (!entry) return state;
+      return {
+        canvases: {
+          ...state.canvases,
+          [pid]: {
+            ...entry,
+            nodes: entry.nodes.map((n) =>
+              n.id === card.id ? { ...n, position: { x: 50 + (existing.length % 3) * 400, y: lastY } } : n
+            ),
+          },
+        },
+      };
+    });
+
+    return `已添加 ${cardType}「${title}」(id: ${card.id})`;
+  },
+
+  /** Update a card's data or children */
+  update_card: async (params) => {
+    const cardId = params.cardId as string;
+    const updates = (params.updates || params.data || {}) as Record<string, unknown>;
+    useCanvasStore.getState().updateNodeData(cardId, updates as Partial<import('@drama/types').CanvasNodeData>);
+    return `已更新卡片 ${cardId}`;
+  },
+
+  /** Delete a card from canvas */
+  delete_card: async (params) => {
+    const cardId = params.cardId as string;
+    const nodes = useCanvasStore.getState().getCurrentNodes();
+    const card = nodes.find((n) => n.id === cardId);
+    useCanvasStore.getState().removeNode(cardId);
+    return `已删除卡片「${card?.data.title ?? cardId}」`;
+  },
 };

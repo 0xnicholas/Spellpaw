@@ -12,7 +12,9 @@
       "@/*": ["src/*"],
       "@shared/*": ["src/shared/*"],
       "@drama/*": ["src/apps/drama/*"],
-      "@console/*": ["src/apps/console/*"]
+      "@console/*": ["src/apps/console/*"],
+      "@canvas/*": ["src/shared/components/canvas/*"],
+      "@chat/*": ["src/shared/components/chat-panel/*"]
     },
 
     /* Bundler mode */

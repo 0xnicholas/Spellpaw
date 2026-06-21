@@ -9,7 +9,6 @@ import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { buildSystemPrompt } from '@drama/lib/systemPrompt';
 import { getLLMProvider } from '@drama/lib/llm';
-import { findNode } from '@drama/lib/treeUtils';
 import { SPELLPAW_TOOL_CONFIGS } from '@drama/lib/toolConfigs';
 import { detectIntent, intentToToolChoice } from '@drama/lib/intentRouter';
 import {
@@ -77,6 +76,13 @@ export function useCopilotSSE() {
             break;
           case 'tool_call_done':
             endToolCall(event.call_id as string);
+            // Highlight affected canvas cards for visual feedback
+            if (CANVAS_TOOL_NAMES.has(String(event.name))) {
+              const cards = useCanvasStore.getState().getCurrentNodes();
+              if (cards.length > 0) {
+                useCanvasStore.getState().triggerHighlight(cards.slice(-3).map((c) => c.id));
+              }
+            }
             break;
           case 'turn_end':
             endStreaming(projectId!, event.stop_reason as string);
@@ -153,36 +159,19 @@ export function useCopilotSSE() {
           return;
         }
         console.log('[useCopilotSSE] sendMessage called:', content.slice(0, 80));
-        // Build node context for the message
-        const projectStore = useProjectStore.getState();
-        const tree = projectStore.getCurrentTree();
-        const selectedNodeId = projectStore.selectedNodeId;
+        // Build card context for the message
         let enrichedContent = content;
-        let contextNodeId: string | undefined;
-        let contextNodeType: string | undefined;
+        let contextCardId: string | undefined;
         const contextParts: string[] = [];
-
-        if (selectedNodeId && tree) {
-          const node = findNode(tree, selectedNodeId);
-          if (node) {
-            contextNodeId = node.id;
-            contextNodeType = node.type;
-            const path = projectStore.getSelectedNodePath();
-            const metaParts: string[] = [];
-            if (node.metadata?.description) metaParts.push(`描述：${node.metadata.description}`);
-            if (node.metadata?.duration) metaParts.push(`时长：${node.metadata.duration}秒`);
-            if (node.metadata?.location) metaParts.push(`地点：${node.metadata.location}`);
-            contextParts.push(`当前节点：${path.join(' > ')}${metaParts.length > 0 ? ' · ' + metaParts.join(' · ') : ''}`);
-          }
-        }
 
         const selectedCard = useCanvasStore.getState().getSelectedCard();
         if (selectedCard) {
-          const cardMeta = [`类型：${selectedCard.type}`, `标题：${selectedCard.data.title}`];
-          if (selectedCard.data.linkedTreeNodeId) {
-            cardMeta.push(`关联节点：${selectedCard.data.linkedTreeNodeId}`);
-          }
-          contextParts.push(`当前画布卡片：${cardMeta.join(' · ')}`);
+          contextCardId = selectedCard.id;
+          const metaParts: string[] = [`类型：${selectedCard.type}`, `标题：${selectedCard.data.title}`];
+          if (selectedCard.data.description) metaParts.push(`描述：${selectedCard.data.description}`);
+          if (selectedCard.data.location) metaParts.push(`地点：${selectedCard.data.location}`);
+          if (selectedCard.data.duration) metaParts.push(`时长：${selectedCard.data.duration}s`);
+          contextParts.push(`当前卡片：${metaParts.join(' · ')}`);
         }
 
         if (contextParts.length > 0) {
@@ -191,7 +180,7 @@ export function useCopilotSSE() {
 
         // Detect canvas toolkit intent and decide whether to force a tool choice.
         const intentResult = detectIntent(content, {
-          selectedNodeId,
+          selectedNodeId: contextCardId,
           selectedCard: useCanvasStore.getState().getSelectedCard(),
         });
         currentIntentRef.current = intentResult.confidence === 'high' ? intentResult.intent : null;
@@ -211,7 +200,7 @@ export function useCopilotSSE() {
           content,
           type: 'text' as const,
           timestamp: new Date().toISOString(),
-          context: contextNodeId ? { nodeId: contextNodeId, nodeType: contextNodeType } : undefined,
+          context: contextCardId ? { nodeId: contextCardId, nodeType: selectedCard?.type } : undefined,
         };
         appendMessage(userMsg, projectId);
 
@@ -219,11 +208,10 @@ export function useCopilotSSE() {
         if (!sessionRef.current && !creatingSessionRef.current) {
           creatingSessionRef.current = true;
           try {
-            const tree = useProjectStore.getState().getCurrentTree();
-            const treeText = tree ? treeToPromptText(tree as { title: string; type: string; children?: Array<Record<string, unknown>> }) : '(空项目)';
+            const canvasText = canvasToPromptText();
             const projectTitle = useProjectStore.getState()
               .projects.find(p => p.id === useProjectStore.getState().currentProjectId)?.title ?? 'Untitled';
-            const prompt = buildSystemPrompt(projectTitle, treeText);
+            const prompt = buildSystemPrompt(projectTitle, canvasText);
             console.log('[useCopilotSSE] creating session with', SPELLPAW_TOOL_CONFIGS.length, 'tools');
             const session = await provider.createSession(projectTitle, prompt, SPELLPAW_TOOL_CONFIGS, toolChoice);
             sessionRef.current = session.id;
@@ -281,13 +269,17 @@ export function useCopilotSSE() {
 }
 
 /** Convert project tree to indented text for system_prompt */
-function treeToPromptText(node: { title: string; type: string; children?: Array<Record<string, unknown>> }, depth = 0): string {
-  const indent = '  '.repeat(depth);
-  let text = `${indent}${node.type}「${node.title}」`;
-  if (node.children) {
-    for (const child of node.children) {
-      text += '\n' + treeToPromptText(child as { title: string; type: string; children?: Array<Record<string, unknown>> }, depth + 1);
+function canvasToPromptText(): string {
+  const cards = useCanvasStore.getState().getCurrentNodes();
+  if (cards.length === 0) return '(画布为空)';
+  const lines: string[] = [`画布共 ${cards.length} 张卡片：`];
+  for (const c of cards) {
+    const icon = { storyline: '📖', moodboard: '🎨', videoClip: '🎬', asset: '📦', task: '📋', art: '🖼️', character: '👤', script: '📝', deliverable: '📦', sceneCard: '🎬' }[c.type] ?? '📄';
+    lines.push(`  ${icon} ${c.type}「${c.data.title}」(id: ${c.id})`);
+    if (c.data.description) lines.push(`    描述：${c.data.description.slice(0, 80)}`);
+    if (c.data.children?.length) {
+      for (const ch of c.data.children) lines.push(`    └─ ${ch.type}「${ch.title}」`);
     }
   }
-  return text;
+  return lines.join('\n');
 }

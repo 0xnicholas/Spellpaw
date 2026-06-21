@@ -24,6 +24,7 @@ interface ServerProject {
 
 export interface PushResult {
   success: boolean;
+  conflict?: boolean;
   error?: string;
 }
 
@@ -76,9 +77,8 @@ export async function pushProject(projectId: string): Promise<PushResult> {
       });
 
       if (res.status === 409) {
-        // Server has a newer version. Pull the server state and overwrite local.
-        const pulled = await pullProject(projectId);
-        return { success: pulled.success, error: pulled.error };
+        // Server has a newer version — signal conflict so caller can pull
+        return { success: false, conflict: true, error: 'Server version is newer' };
       }
 
       if (!res.ok) {

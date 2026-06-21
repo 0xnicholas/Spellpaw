@@ -7,12 +7,14 @@ interface MessageInputProps {
   onSend: (content: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  contextChip?: { label: string; onClear: () => void } | null;
 }
 
 export function MessageInput({
   onSend,
   disabled = false,
   placeholder = '输入消息…（Enter 发送，Shift + Enter 换行）',
+  contextChip,
 }: MessageInputProps) {
   const [value, setValue] = useState('');
 
@@ -31,6 +33,20 @@ export function MessageInput({
 
   return (
     <div className="border-t border-[var(--color-border-default)] bg-[var(--color-bg-primary)] p-3">
+      {contextChip && (
+        <div className="mb-2 flex items-center">
+          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-accent-300)] bg-[var(--color-accent-50)] px-2.5 py-0.5 text-[11px] text-[var(--color-accent-600)]">
+            🎬 {contextChip.label}
+            <button
+              onClick={contextChip.onClear}
+              className="ml-0.5 rounded-full p-0.5 hover:bg-[var(--color-accent-100)]"
+              aria-label="取消上下文"
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      )}
       <div className="relative">
         <Textarea
           placeholder={placeholder}

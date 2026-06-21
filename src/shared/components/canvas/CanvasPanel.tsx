@@ -19,6 +19,7 @@ import { useProjectStore } from '@drama/stores/projectStore';
 import { computeDisplayNumbers } from '@drama/lib/numbering';
 import type { CanvasNode, CanvasEdge } from '@drama/types';
 import { ScriptCardNode, ArtCardNode, CharacterCardNode, DeliverableCardNode, SceneCardNode } from './nodes';
+import { GenericCardNode } from './nodes/GenericCardNode';
 import { CardDetailDrawer } from './CardDetailDrawer';
 import { generateId } from '@/shared/lib/utils';
 
@@ -28,6 +29,11 @@ const nodeTypes: NodeTypes = {
   character: CharacterCardNode,
   deliverable: DeliverableCardNode,
   sceneCard: SceneCardNode,
+  storyline: GenericCardNode,
+  moodboard: GenericCardNode,
+  videoClip: GenericCardNode,
+  asset: GenericCardNode,
+  task: GenericCardNode,
 };
 
 interface ContextMenuState {
@@ -37,7 +43,11 @@ interface ContextMenuState {
   data: Record<string, unknown>;
 }
 
-export function FlowCanvasPanel() {
+interface CanvasPanelProps {
+  onAIAction?: (prompt: string) => void;
+}
+
+export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
   const getCurrentNodes = useCanvasStore((s) => s.getCurrentNodes);
   const getCurrentEdges = useCanvasStore((s) => s.getCurrentEdges);
   const syncNodes = useCanvasStore((s) => s.syncNodes);
@@ -86,13 +96,27 @@ export function FlowCanvasPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProjectId]);
 
+  const highlightCardIds = useCanvasStore((s) => s.highlightCardIds);
+  const highlightSet = new Set(highlightCardIds);
+  const focusCardId = useCanvasStore((s) => s.focusCardId);
+
+  // Auto-pan to focused card
+  useEffect(() => {
+    if (!focusCardId || !reactFlowRef.current) return;
+    const node = nodes.find((n) => n.id === focusCardId);
+    if (node) {
+      reactFlowRef.current.setCenter(node.position.x + 120, node.position.y + 100, { zoom: 1, duration: 400 });
+    }
+    useCanvasStore.getState().clearFocusCard();
+  }, [focusCardId, nodes]);
+
   const nodesWithDisplay = useMemo(() => {
     const map = computeDisplayNumbers(currentTree, getCurrentNodes());
     return nodes.map((n) => ({
       ...n,
-      data: { ...n.data, _displayNumber: map.get(n.id) ?? '' },
+      data: { ...n.data, _displayNumber: map.get(n.id) ?? '', _highlighted: highlightSet.has(n.id), _onAIAction: onAIAction },
     }));
-  }, [nodes, currentTree, getCurrentNodes]);
+  }, [nodes, currentTree, getCurrentNodes, highlightSet, onAIAction]);
 
   const onConnect = useCallback(
     (connection: Connection) => {

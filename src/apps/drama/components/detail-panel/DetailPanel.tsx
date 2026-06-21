@@ -1,86 +1,44 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Save, RotateCcw } from 'lucide-react';
-import { findNode } from '@drama/lib/treeUtils';
-import { useProjectStore } from '@drama/stores/projectStore';
+import { Save, RotateCcw, ExternalLink } from 'lucide-react';
 import { useCanvasStore } from '@drama/stores/canvasStore';
-import { useDetailStore } from '@drama/stores/detailStore';
-import type { TreeNode } from '@drama/types';
-import { SceneDetailForm } from './SceneDetailForm';
-import { ShotDetailForm } from './ShotDetailForm';
-import { ProjectActDetailForm } from './ProjectActDetailForm';
-import { AnalysisReport } from './AnalysisReport';
-import { generateId } from '@/shared/lib/utils';
+import type { CanvasNodeData } from '@drama/types';
 
 export function DetailPanel() {
-  const selectedNodeId = useProjectStore((s) => s.selectedNodeId);
-  const tree = useProjectStore((s) => s.getCurrentTree());
-  const updateTreeNode = useProjectStore((s) => s.updateTreeNode);
-  const requestFocusCanvas = useDetailStore((s) => s.requestFocusCanvas);
-  const getCurrentNodes = useCanvasStore((s) => s.getCurrentNodes);
-  const addNode = useCanvasStore((s) => s.addNode);
-
-  const node = selectedNodeId && tree ? findNode(tree, selectedNodeId) : null;
+  const selectedCard = useCanvasStore((s) => s.getSelectedCard());
+  const updateNodeData = useCanvasStore((s) => s.updateNodeData);
+  const triggerFocusCard = useCanvasStore((s) => s.triggerFocusCard);
 
   // Draft state
-  const [draft, setDraft] = useState<Partial<TreeNode>>({});
+  const [draft, setDraft] = useState<Partial<CanvasNodeData>>({});
   const [dirty, setDirty] = useState(false);
   const [formKey, setFormKey] = useState(0);
 
-  // Reset draft when node changes
   useEffect(() => {
     setDraft({});
     setDirty(false);
     setFormKey((k) => k + 1);
-  }, [node?.id]);
+  }, [selectedCard?.id]);
 
-  const handleDraftChange = useCallback((updates: Partial<TreeNode>) => {
-    setDraft((prev) => {
-      const next = { ...prev };
-      if ('title' in updates) next.title = updates.title;
-      if ('status' in updates) next.status = updates.status;
-      if (updates.metadata) {
-        next.metadata = { ...(prev.metadata ?? {}), ...updates.metadata };
-      }
-      return next;
-    });
+  const handleFieldChange = useCallback((field: string, value: unknown) => {
+    setDraft((prev) => ({ ...prev, [field]: value }));
     setDirty(true);
   }, []);
 
   const handleSave = useCallback(() => {
-    if (!node || !dirty) return;
-    const updates: Partial<TreeNode> = {};
-    if (draft.title !== undefined && draft.title !== node.title) {
-      updates.title = draft.title;
-    }
-    if (draft.status !== undefined && draft.status !== node.status) {
-      updates.status = draft.status;
-    }
-    if (draft.metadata) {
-      const metaUpdates: Record<string, unknown> = {};
-      const fields = ['description', 'duration', 'location', 'timeOfDay', 'shotType', 'cameraMovement', 'dialogue', 'notes'];
-      for (const field of fields) {
-        const draftVal = (draft.metadata as Record<string, unknown> | undefined)?.[field];
-        const nodeVal = (node.metadata as Record<string, unknown> | undefined)?.[field];
-        if (draftVal !== nodeVal) {
-          metaUpdates[field] = draftVal;
-        }
-      }
-      if (Object.keys(metaUpdates).length > 0) {
-        updates.metadata = {
-          ...node.metadata,
-          ...metaUpdates,
-          createdAt: node.metadata?.createdAt ?? '',
-          updatedAt: new Date().toISOString(),
-        } as TreeNode['metadata'];
+    if (!selectedCard || !dirty) return;
+    const updates: Partial<CanvasNodeData> = {};
+    for (const [key, val] of Object.entries(draft)) {
+      if (val !== undefined && val !== (selectedCard.data as Record<string, unknown>)[key]) {
+        (updates as Record<string, unknown>)[key] = val;
       }
     }
     if (Object.keys(updates).length > 0) {
-      updateTreeNode(node.id, updates);
+      updateNodeData(selectedCard.id, updates);
     }
     setDraft({});
     setDirty(false);
     setFormKey((k) => k + 1);
-  }, [node, draft, dirty, updateTreeNode]);
+  }, [selectedCard, draft, dirty, updateNodeData]);
 
   const handleDiscard = useCallback(() => {
     setDraft({});
@@ -88,87 +46,131 @@ export function DetailPanel() {
     setFormKey((k) => k + 1);
   }, []);
 
-  const canvasNodes = getCurrentNodes();
-  const hasLinkedCard = node ? canvasNodes.some((n) => n.data.linkedTreeNodeId === node.id) : false;
-
-  if (!node) {
+  if (!selectedCard) {
     return (
-      <div className="flex h-full items-center justify-center p-4 text-xs text-[var(--color-text-tertiary)]">
-        选择一个节点以编辑
+      <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+        <p className="text-xs text-[var(--color-text-tertiary)]">点击画布上的卡片以查看详情</p>
+        <p className="text-[10px] text-[var(--color-text-tertiary)]/60">或选中卡片后切换到"详情"标签</p>
       </div>
     );
   }
 
-  const typeLabel = node.type === 'scene' ? '场景' : node.type === 'shot' ? '镜头' : node.type === 'act' ? '幕' : '项目';
+  const data = selectedCard.data;
+  const get = (key: string) => (key in draft ? draft[key as keyof typeof draft] : (data as Record<string, unknown>)[key]);
+
+  const typeLabel: Record<string, string> = {
+    storyline: '故事线', moodboard: '情绪板', videoClip: '视频片段',
+    asset: '素材', task: '任务', art: '美术', character: '角色',
+    script: '剧本', deliverable: '产出物', sceneCard: '场景',
+  };
+
+  const commonFields = ['title', 'description', 'status'];
+  const typeSpecificFields: Record<string, string[]> = {
+    storyline: ['location', 'timeOfDay', 'duration', 'sceneCount', 'shotCount'],
+    moodboard: ['styleRef', 'musicRef'],
+    videoClip: ['source', 'duration'],
+    asset: ['assetType', 'fileSize', 'resolution'],
+    task: ['taskType', 'taskStatus'],
+    art: ['generatedPrompt', 'sourceProvider'],
+    character: ['role', 'age', 'occupation', 'personality'],
+    script: ['dialogue'],
+    deliverable: ['deliverableType', 'duration', 'fileSize', 'resolution'],
+    sceneCard: ['location', 'timeOfDay', 'duration', 'shotType', 'cameraMovement', 'dialogue'],
+  };
+
+  const fields = [...commonFields, ...(typeSpecificFields[selectedCard.type] ?? [])];
+
+  const fieldLabels: Record<string, string> = {
+    title: '标题', description: '描述', status: '状态',
+    location: '地点', timeOfDay: '时段', duration: '时长',
+    sceneCount: '场景数', shotCount: '镜头数',
+    styleRef: '风格参考', musicRef: '音乐参考',
+    source: '来源', assetType: '素材类型', fileSize: '文件大小', resolution: '分辨率',
+    taskType: '任务类型', taskStatus: '任务状态',
+    generatedPrompt: '生成提示词', sourceProvider: '生成提供商',
+    role: '角色', age: '年龄', occupation: '职业', personality: '性格',
+    dialogue: '对白', shotType: '镜头类型', cameraMovement: '运镜方式',
+    deliverableType: '产出类型',
+  };
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-3 py-2">
         <span className="text-xs font-medium text-[var(--color-text-primary)]">
-          {typeLabel}详情
+          {typeLabel[selectedCard.type] ?? '卡片'}详情
         </span>
-        {dirty && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-amber-500">未保存</span>
-            <button
-              onClick={handleSave}
-              className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-accent-500)] px-2 text-[10px] font-medium text-white hover:bg-[var(--color-accent-600)]"
-            >
-              <Save className="h-3 w-3" />
-              保存
-            </button>
-            <button
-              onClick={handleDiscard}
-              className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-2 text-[10px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-primary)]"
-            >
-              <RotateCcw className="h-3 w-3" />
-              放弃
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-1.5">
+          {dirty && (
+            <>
+              <span className="text-[10px] text-amber-500">未保存</span>
+              <button onClick={handleSave} className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-accent-500)] px-2 text-[10px] font-medium text-white hover:bg-[var(--color-accent-600)]">
+                <Save className="h-3 w-3" />保存
+              </button>
+              <button onClick={handleDiscard} className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-2 text-[10px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-primary)]">
+                <RotateCcw className="h-3 w-3" />放弃
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => triggerFocusCard(selectedCard.id)}
+            className="flex h-6 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-2 text-[10px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-primary)]"
+            title="定位到画布上的卡片"
+          >
+            <ExternalLink className="h-3 w-3" />
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
-        {node.type === 'scene' && (
-          <SceneDetailForm key={formKey} node={node} onChange={handleDraftChange} />
-        )}
-        {node.type === 'shot' && (
-          <ShotDetailForm key={formKey} node={node} onChange={handleDraftChange} />
-        )}
-        {(node.type === 'project' || node.type === 'act') && (
-          <ProjectActDetailForm key={formKey} node={node} onChange={handleDraftChange} />
-        )}
-        {node.type === 'project' && tree && (
-          <div className="px-4 pb-4">
-            <AnalysisReport tree={tree} />
-          </div>
-        )}
-      </div>
+      <div className="flex-1 overflow-auto p-3 space-y-3" key={formKey}>
+        {fields.map((field) => {
+          const val = get(field);
+          const label = fieldLabels[field] ?? field;
 
-      {node.type === 'scene' && (
-        <button
-          onClick={() => {
-            if (hasLinkedCard) {
-              requestFocusCanvas(node.id);
-            } else {
-              addNode({
-                id: generateId('canvas_scene_'),
-                type: 'sceneCard',
-                position: { x: 100 + Math.random() * 300, y: 100 + Math.random() * 200 },
-                data: {
-                  title: node.title,
-                  description: node.metadata?.description ?? '',
-                  status: node.status,
-                  linkedTreeNodeId: node.id,
-                },
-              });
-            }
-          }}
-          className="m-3 rounded-[var(--radius-sm)] bg-[var(--color-accent-500)] px-3 py-2 text-xs font-medium text-white hover:bg-[var(--color-accent-600)]"
-        >
-          {hasLinkedCard ? '定位到画布' : '添加到画布'}
-        </button>
-      )}
+          if (field === 'status') {
+            return (
+              <label key={field} className="block">
+                <span className="text-[10px] font-medium text-[var(--color-text-tertiary)]">{label}</span>
+                <select
+                  value={String(val ?? 'draft')}
+                  onChange={(e) => handleFieldChange(field, e.target.value)}
+                  className="mt-0.5 block w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-2 py-1 text-xs outline-none focus:border-[var(--color-accent-500)]"
+                >
+                  <option value="draft">📝 草稿</option>
+                  <option value="in_progress">🔄 进行中</option>
+                  <option value="review">👀 审核中</option>
+                  <option value="done">✅ 已完成</option>
+                </select>
+              </label>
+            );
+          }
+
+          if (field === 'description' || field === 'dialogue' || field === 'generatedPrompt') {
+            return (
+              <label key={field} className="block">
+                <span className="text-[10px] font-medium text-[var(--color-text-tertiary)]">{label}</span>
+                <textarea
+                  value={String(val ?? '')}
+                  onChange={(e) => handleFieldChange(field, e.target.value)}
+                  rows={3}
+                  className="mt-0.5 block w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-2 py-1 text-xs outline-none resize-none focus:border-[var(--color-accent-500)]"
+                />
+              </label>
+            );
+          }
+
+          return (
+            <label key={field} className="block">
+              <span className="text-[10px] font-medium text-[var(--color-text-tertiary)]">{label}</span>
+              <input
+                type={field === 'duration' || field === 'age' || field === 'fileSize' || field === 'sceneCount' || field === 'shotCount' ? 'number' : 'text'}
+                value={val != null ? String(val) : ''}
+                onChange={(e) => handleFieldChange(field, field === 'duration' || field === 'age' ? Number(e.target.value) || undefined : e.target.value)}
+                className="mt-0.5 block w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-2 py-1 text-xs outline-none focus:border-[var(--color-accent-500)]"
+              />
+            </label>
+          );
+        })}
+      </div>
     </div>
   );
 }

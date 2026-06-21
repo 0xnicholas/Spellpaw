@@ -32,7 +32,7 @@ export function ScriptCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
 
   return (
     <div
-      className={`w-[240px] rounded-[var(--radius-base)] border bg-[var(--color-bg-secondary)] shadow-sm transition-shadow ${
+      className={`group w-[240px] rounded-[var(--radius-base)] border bg-[var(--color-bg-secondary)] shadow-sm transition-shadow ${
         selected ? 'border-[var(--color-accent-500)] shadow-md' : 'border-[var(--color-border-default)]'
       }`}
     >

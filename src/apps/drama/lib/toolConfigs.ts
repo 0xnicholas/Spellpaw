@@ -14,6 +14,62 @@ function providerEnum(): string[] {
 }
 
 export const SPELLPAW_TOOL_CONFIGS = [
+	// ── Canvas card tools (primary) ──
+	{
+		name: "spellpaw_get_canvas",
+		description: "List all cards currently on the canvas. Use this to understand the project state before making changes.",
+		parameters: { type: "object", properties: {} },
+		endpoint: TOOL_ENDPOINT,
+	},
+	{
+		name: "spellpaw_add_card",
+		description: "Add a new card to the canvas. Choose type based on content: storyline for narrative structure, moodboard for visual style references, videoClip for video assets, asset for materials/logos/subtitles, task for instructions/feedback, art for AI-generated images, character for character profiles.",
+		parameters: {
+			type: "object",
+			properties: {
+				type: { type: "string", enum: ["storyline", "moodboard", "videoClip", "asset", "task", "art", "character"] },
+				title: { type: "string" },
+				description: { type: "string" },
+				status: { type: "string", enum: ["draft", "in_progress", "review", "done"] },
+				location: { type: "string", description: "For storyline cards: scene location" },
+				timeOfDay: { type: "string", description: "For storyline cards: morning/day/evening/night" },
+				duration: { type: "number", description: "Duration in seconds" },
+				colors: { type: "array", items: { type: "string" }, description: "For moodboard cards: color palette hex values" },
+				styleRef: { type: "string", description: "For moodboard cards: visual style reference" },
+				source: { type: "string", enum: ["ai", "upload"], description: "For videoClip cards" },
+				assetType: { type: "string", description: "For asset cards: product/logo/subtitle/audio/image/video/other" },
+				taskType: { type: "string", enum: ["instruction", "feedback", "diff"], description: "For task cards" },
+				targetCardId: { type: "string", description: "For task cards: which card this task relates to" },
+			},
+			required: ["type", "title"],
+		},
+		endpoint: TOOL_ENDPOINT,
+	},
+	{
+		name: "spellpaw_update_card",
+		description: "Update an existing canvas card's data. Can change title, description, status, or any type-specific field.",
+		parameters: {
+			type: "object",
+			properties: {
+				cardId: { type: "string" },
+				data: { type: "object", description: "Fields to update (any field from add_card)" },
+			},
+			required: ["cardId", "data"],
+		},
+		endpoint: TOOL_ENDPOINT,
+	},
+	{
+		name: "spellpaw_delete_card",
+		description: "Delete a card from the canvas. CAREFUL: irreversible. Ask user first.",
+		parameters: {
+			type: "object",
+			properties: { cardId: { type: "string" } },
+			required: ["cardId"],
+		},
+		endpoint: TOOL_ENDPOINT,
+	},
+
+	// ── Legacy tree tools (kept for backward compat, prefer card tools above) ──
 	{
 		name: "spellpaw_add_node",
 		description:
@@ -116,7 +172,7 @@ export const SPELLPAW_TOOL_CONFIGS = [
 				},
 				cardType: {
 					type: "string",
-					enum: ["art", "sceneCard", "deliverable"],
+					enum: ["art", "sceneCard", "deliverable", "storyline", "moodboard", "videoClip"],
 					description:
 						"Canvas card type to create (default art for image, deliverable for video)",
 				},
@@ -321,9 +377,9 @@ export const SPELLPAW_TOOL_CONFIGS = [
 				},
 				cardType: {
 					type: "string",
-					enum: ["sceneCard", "script"],
+					enum: ["storyline", "sceneCard", "script"],
 					description:
-						"Type of canvas card to create for each scene. Defaults to sceneCard.",
+						"Type of canvas card to create. Defaults to storyline.",
 				},
 			},
 			required: ["theme"],
@@ -339,7 +395,7 @@ export const SPELLPAW_TOOL_CONFIGS = [
 			properties: {
 				cardType: {
 					type: "string",
-					enum: ["script", "sceneCard", "art", "character", "deliverable"],
+					enum: ["storyline", "moodboard", "videoClip", "asset", "task", "art", "character", "script", "sceneCard", "deliverable"],
 					description: "Canvas card type",
 				},
 				data: {

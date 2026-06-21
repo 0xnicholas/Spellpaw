@@ -2,16 +2,15 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Panel, Group } from 'react-resizable-panels';
 import { Navbar } from '@drama/layouts/Navbar';
-import { ChatPanel } from '@drama/components/chat-panel/ChatPanel';
-import { FlowCanvasPanel } from '@drama/components/flow-canvas/FlowCanvasPanel';
+import { ChatPanel } from '@chat/ChatPanel';
+import { CanvasPanel } from '@canvas/CanvasPanel';
 import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
 
 import { BuilderPanel } from '@shared/components/builder';
 import { useHotkeys } from '@/shared/hooks/useHotkeys';
+import { useChatStore } from '@drama/stores/chatStore';
 import { useToolBridge } from '@drama/hooks/useToolBridge';
 import { useProjectStore } from '@drama/stores/projectStore';
-import { OfflineBanner } from '@drama/components/sync/OfflineBanner';
-
 
 function MobileGuard({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(false);
@@ -50,6 +49,7 @@ export function WorkspacePage() {
   const selectNode = useProjectStore((s) => s.selectNode);
   const deleteTreeNode = useProjectStore((s) => s.deleteTreeNode);
   const setCurrentProject = useProjectStore((s) => s.setCurrentProject);
+  const currentProjectId = useProjectStore((s) => s.currentProjectId);
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; childCount: number } | null>(null);
 
@@ -72,7 +72,6 @@ export function WorkspacePage() {
 
   return (
     <MobileGuard>
-      <OfflineBanner />
       <div className="flex h-screen flex-col">
         <Navbar />
         <div className="flex-1 overflow-hidden relative">
@@ -84,7 +83,13 @@ export function WorkspacePage() {
             </Panel>
             <Panel id="right" defaultSize="65%" minSize="30%">
               <div className="h-full overflow-hidden">
-                <FlowCanvasPanel />
+                <CanvasPanel
+                  onAIAction={(prompt) => {
+                    if (currentProjectId) {
+                      useChatStore.getState().sendMessage(prompt, currentProjectId);
+                    }
+                  }}
+                />
               </div>
             </Panel>
           </Group>

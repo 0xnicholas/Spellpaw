@@ -161,37 +161,43 @@ export const useChatStore = create<ChatState>()((set) => ({
 	},
 	setFilterNodeId: (nodeId) => set({ filterNodeId: nodeId }),
 
-    pushProactiveInsights: (projectId) => {
-      const projectState = useProjectStore.getState();
-      const tree = projectState.getCurrentTree();
-      const project = projectState.projects.find((p) => p.id === projectState.currentProjectId);
-      if (!tree || !project) return [];
-      const insights = computeProactiveInsights(tree, project.title, project.description);
-      if (insights.length === 0) return [];
-      const body = formatInsightsAsMessage(insights);
-      const msg: ChatMessage = {
-        id: generateId('msg_'),
-        role: 'agent',
-        content: body,
-        type: 'suggestion',
-        timestamp: new Date().toISOString(),
-        actions: insights
-          .filter((i) => i.suggestedPrompt)
-          .slice(0, 4)
-          .map((i) => ({
-            id: generateId('act_'),
-            label: i.title,
-            type: 'custom',
-            payload: { prompt: i.suggestedPrompt },
-          })),
-      };
-      set((state) => {
-        const messages = [...state.messages, msg];
-        void saveChatMessages(messages, projectId);
-        return { messages };
-      });
-      return insights;
-    },
+	pushProactiveInsights: (projectId) => {
+		const projectState = useProjectStore.getState();
+		const tree = projectState.getCurrentTree();
+		const project = projectState.projects.find(
+			(p) => p.id === projectState.currentProjectId,
+		);
+		if (!tree || !project) return [];
+		const insights = computeProactiveInsights(
+			tree,
+			project.title,
+			project.description,
+		);
+		if (insights.length === 0) return [];
+		const body = formatInsightsAsMessage(insights);
+		const msg: ChatMessage = {
+			id: generateId("msg_"),
+			role: "agent",
+			content: body,
+			type: "suggestion",
+			timestamp: new Date().toISOString(),
+			actions: insights
+				.filter((i) => i.suggestedPrompt)
+				.slice(0, 4)
+				.map((i) => ({
+					id: generateId("act_"),
+					label: i.title,
+					type: "custom",
+					payload: { prompt: i.suggestedPrompt },
+				})),
+		};
+		set((state) => {
+			const messages = [...state.messages, msg];
+			void saveChatMessages(messages, projectId);
+			return { messages };
+		});
+		return insights;
+	},
 
 	// Phase 2: SSE streaming actions
 	startStreaming: (messageId) =>

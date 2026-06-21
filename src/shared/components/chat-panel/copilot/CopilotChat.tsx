@@ -17,6 +17,7 @@ export interface CopilotChatProps {
   placeholder?: string;
   emptyState?: ReactNode;
   onActionClick?: (action: ChatAction) => void;
+  contextChip?: { label: string; onClear: () => void } | null;
 }
 
 export function CopilotChat({
@@ -28,6 +29,7 @@ export function CopilotChat({
   placeholder = '输入消息…（Enter 发送，Shift + Enter 换行）',
   emptyState,
   onActionClick,
+  contextChip,
 }: CopilotChatProps) {
   return (
     <div className="flex h-full flex-col">
@@ -43,6 +45,7 @@ export function CopilotChat({
         onSend={onSend}
         disabled={isLoading}
         placeholder={placeholder}
+        contextChip={contextChip}
       />
     </div>
   );

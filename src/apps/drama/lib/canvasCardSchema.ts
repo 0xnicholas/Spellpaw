@@ -18,7 +18,7 @@ export interface ValidationResult {
   error?: string;
 }
 
-const VALID_CARD_TYPES: CanvasNodeType[] = ['script', 'art', 'character', 'deliverable', 'sceneCard'];
+const VALID_CARD_TYPES: CanvasNodeType[] = ['storyline', 'moodboard', 'videoClip', 'asset', 'task', 'art', 'character', 'script', 'deliverable', 'sceneCard'];
 const VALID_STATUSES = ['draft', 'in_progress', 'review', 'done'];
 const VALID_DELIVERABLE_TYPES = ['image', 'video', 'audio'];
 

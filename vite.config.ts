@@ -15,6 +15,8 @@ export default defineConfig({
       '@shared': '/src/shared',
       '@drama': '/src/apps/drama',
       '@console': '/src/apps/console',
+      '@canvas': '/src/shared/components/canvas',
+      '@chat': '/src/shared/components/chat-panel',
     },
   },
   // @ts-expect-error Vitest config keys are not in Vite's UserConfig type

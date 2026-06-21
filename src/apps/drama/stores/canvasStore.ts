@@ -45,6 +45,19 @@ interface CanvasState {
   getSelectedCard: () => CanvasNode | null;
 
   clearCurrentProjectCanvas: () => void;
+
+  highlightCardIds: string[];
+  triggerHighlight: (cardIds: string[]) => void;
+  clearHighlights: () => void;
+
+  focusCardId: string | null;
+  triggerFocusCard: (cardId: string) => void;
+  clearFocusCard: () => void;
+
+  addChildToCard: (cardId: string, child: import('@drama/types').CardChild) => void;
+  removeChildFromCard: (cardId: string, childId: string) => void;
+  addCardRelation: (cardId: string, targetCardId: string) => void;
+  removeCardRelation: (cardId: string, targetCardId: string) => void;
 }
 
 function ensureEntry(state: CanvasState): CanvasEntry {
@@ -68,6 +81,8 @@ export const useCanvasStore = create<CanvasState>()(
       canvases: {},
 
       selectedCardId: null,
+      highlightCardIds: [],
+      focusCardId: null,
 
       getCurrentNodes: () => {
         const projectId = useProjectStore.getState().currentProjectId;
@@ -241,6 +256,108 @@ export const useCanvasStore = create<CanvasState>()(
           const { [projectId]: _, ...rest } = state.canvases;
           return { canvases: rest, selectedCardId: null };
         }),
+
+      triggerHighlight: (cardIds) => {
+        set({ highlightCardIds: cardIds });
+        setTimeout(() => set({ highlightCardIds: [] }), 2000);
+      },
+
+      clearHighlights: () => set({ highlightCardIds: [] }),
+
+      triggerFocusCard: (cardId) => {
+        set({ focusCardId: cardId });
+        setTimeout(() => set({ focusCardId: null }), 3000);
+      },
+
+      clearFocusCard: () => set({ focusCardId: null }),
+
+      addChildToCard: (cardId, child) =>
+        set((state) => {
+          bumpProjectUpdatedAt();
+          const pid = useProjectStore.getState().currentProjectId;
+          if (!pid) return state;
+          const entry = state.canvases[pid];
+          if (!entry) return state;
+          return {
+            canvases: {
+              ...state.canvases,
+              [pid]: {
+                ...entry,
+                nodes: entry.nodes.map((n) =>
+                  n.id === cardId
+                    ? { ...n, data: { ...n.data, children: [...(n.data.children ?? []), child] } }
+                    : n
+                ),
+              },
+            },
+          };
+        }),
+
+      removeChildFromCard: (cardId, childId) =>
+        set((state) => {
+          bumpProjectUpdatedAt();
+          const pid = useProjectStore.getState().currentProjectId;
+          if (!pid) return state;
+          const entry = state.canvases[pid];
+          if (!entry) return state;
+          return {
+            canvases: {
+              ...state.canvases,
+              [pid]: {
+                ...entry,
+                nodes: entry.nodes.map((n) =>
+                  n.id === cardId && n.data.children
+                    ? { ...n, data: { ...n.data, children: n.data.children.filter((c) => c.id !== childId) } }
+                    : n
+                ),
+              },
+            },
+          };
+        }),
+
+      addCardRelation: (cardId, targetCardId) =>
+        set((state) => {
+          bumpProjectUpdatedAt();
+          const pid = useProjectStore.getState().currentProjectId;
+          if (!pid) return state;
+          const entry = state.canvases[pid];
+          if (!entry) return state;
+          return {
+            canvases: {
+              ...state.canvases,
+              [pid]: {
+                ...entry,
+                nodes: entry.nodes.map((n) =>
+                  n.id === cardId
+                    ? { ...n, data: { ...n.data, linkedCardIds: [...(n.data.linkedCardIds ?? []), targetCardId] } }
+                    : n
+                ),
+              },
+            },
+          };
+        }),
+
+      removeCardRelation: (cardId, targetCardId) =>
+        set((state) => {
+          bumpProjectUpdatedAt();
+          const pid = useProjectStore.getState().currentProjectId;
+          if (!pid) return state;
+          const entry = state.canvases[pid];
+          if (!entry) return state;
+          return {
+            canvases: {
+              ...state.canvases,
+              [pid]: {
+                ...entry,
+                nodes: entry.nodes.map((n) =>
+                  n.id === cardId && n.data.linkedCardIds
+                    ? { ...n, data: { ...n.data, linkedCardIds: n.data.linkedCardIds.filter((id) => id !== targetCardId) } }
+                    : n
+                ),
+              },
+            },
+          };
+        }),
     }),
     {
       name: 'spellpaw_canvas',
@@ -292,6 +409,7 @@ export const useCanvasStore = create<CanvasState>()(
       },
       partialize: (state) => ({
         canvases: state.canvases,
+        // highlightCardIds, focusCardId are transient — not persisted
       }) as unknown as CanvasState,
     }
   )

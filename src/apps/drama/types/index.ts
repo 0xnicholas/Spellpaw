@@ -68,7 +68,8 @@ export type CanvasNodeType =
   // Legacy — still valid, migrated on read
   | 'script'       // → storyline children
   | 'deliverable'  // → videoClip | asset
-  | 'sceneCard';   // → storyline
+  | 'sceneCard'    // → storyline
+  | 'copilotCard'; // 内联 AI 生成卡片（pane 右键菜单创建）
 
 export type DeliverableType = 'image' | 'video' | 'audio';
 

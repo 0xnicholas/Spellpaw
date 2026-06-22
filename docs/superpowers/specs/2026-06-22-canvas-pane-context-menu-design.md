@@ -68,7 +68,7 @@ CanvasPanel.tsx (修改)
       → canvasStore.addNode({ type: 'copilotCard', position, data: { kind: 'image', status: 'idle' } })
       → CopilotCardNode 渲染 (统一 UI)
       → P 输入 prompt, 点 "生成"
-      → 内部调用 canvasToolkit action
+      → 内部调用 providerRegistry.get(id).submit（image/video）或本地逻辑（upload/text）
       → 流式更新 status / progress
       → 完成时:
           ├─ canvasStore.addNode({ type: 'art', data: { thumbnail, prompt, ... } })
@@ -145,19 +145,25 @@ interface CopilotCardNodeData {
   kind: CopilotKind;                         // 'upload' | 'text' | 'image' | 'video'
   status: 'idle' | 'generating' | 'done' | 'error';
   prompt?: string;                           // text/image/video 用
-  file?: { name: string; size: number };     // upload 用
-  model?: string;                            // 选中的模型
+  file?: {                                    // upload 用 — FileReader 完成后填充
+    name: string;
+    size: number;
+    kind: 'image' | 'video' | 'audio';       // 从 file.type 推断
+    dataUrl: string;                          // FileReader.readAsDataURL 结果
+  };
+  providerId?: string;                       // image/video 用 — providerRegistry.get(id) 用
   progress?: number;                         // 0-100
   result?: {                                 // 生成完成后的结果
+    url?: string;                            // 生成资源的 URL（image/video）
+    text?: string;                           // text 生成的结果
     thumbnail?: string;
-    text?: string;
-    videoUrl?: string;
-    fileUrl?: string;
     duration?: number;
   };
   error?: string;
 }
 ```
+
+**FileReader 在哪里执行？**：`CopilotCardNode` 的 `<input type="file" onChange>` 处理器内部。读完后调用 `updateNodeData(id, { file: { name, size, kind, dataUrl } })`。不需要上传服务器，浏览器本地即可。
 
 **渲染布局**（4 类共享）：
 
@@ -184,8 +190,8 @@ interface CopilotCardNodeData {
 |------|--------|---------|--------|------|
 | upload | 文件选择/拖放 | `FileReader.readAsDataURL(file)` → dataURL | `asset`（图片/音频）或 `videoClip`（视频）| 不调外部 API，浏览器本地完成 |
 | text | 提示词 textarea | 直接创建 storyline 卡片，prompt 作为 `description` | `storyline` | 不调外部 API；如需 AI 文案，用户后续在 ChatPanel 接力 |
-| image | 提示词 textarea + 模型选择 | `providerRegistry.getProvider(id).submit({ type: 'image', capability: 'text2image', prompt })` + `poll(taskId)` | `art` | 直接调用 provider 绕过 `generateAsset`，避免双重创建卡片 |
-| video | 提示词 textarea + 模型选择 | `providerRegistry.getProvider(id).submit({ type: 'video', capability: 'text2video', prompt })` + `poll(taskId)` | `deliverable` | 同上 |
+| image | 提示词 textarea + 模型选择 | `providerRegistry.get(id).submit({ type: 'image', capability: 'text2image', prompt })` + `poll(taskId)` | `art` | 直接调用 provider 绕过 `generateAsset`，避免双重创建卡片 |
+| video | 提示词 textarea + 模型选择 | `providerRegistry.get(id).submit({ type: 'video', capability: 'text2video', prompt })` + `poll(taskId)` | `deliverable` | 同上 |
 
 **为什么绕过 `canvasToolkit.generateAsset`？** 它内部已调用 `addCanvasCardHandler` 自动创建画布节点（见 `generateAsset.ts:84-101`）。如果 CopilotCardNode 再调它，会**重复创建**画布卡片 + 留下 copilot 节点不清理。改为直接调用 `providerRegistry` 拿到 result URL，然后手动 `canvasStore.addNode` + `removeNode(copilotId)`。
 
@@ -193,7 +199,7 @@ interface CopilotCardNodeData {
 
 ```
 CopilotCardNode handleGenerate()
-  → providerRegistry.getProvider(providerId).submit({...})
+  → providerRegistry.get(providerId).submit({...})
   → 拿到 taskId, 进入 polling
   → polling 完成拿到 resultUrl
   → updateNodeData(id, { status: 'done', result: { url: resultUrl } })
@@ -246,6 +252,38 @@ const nodeTypes: NodeTypes = {
 };
 ```
 
+### 4.5 生成中取消与 polling
+
+**`pollUntilDone` 工具函数**（新增，在 `src/apps/drama/lib/canvasToolkit/shared.ts` 或 `CopilotCardNode.tsx` 同文件）：
+
+```ts
+async function pollUntilDone(
+  provider: GenerationProvider,
+  taskId: string,
+  onProgress: (p: number) => void,
+  signal: AbortSignal,           // 用于取消
+): Promise<GenerationTask> {
+  while (true) {
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    const task = await provider.poll!(taskId);
+    if (task.status === 'done') return task;
+    if (task.status === 'failed') throw new Error(task.error ?? 'Generation failed');
+    // 进度估计：可用 elapsed time / typical duration，或从 task.metadata 取
+    onProgress(estimateProgress(task));
+    await sleep(2000);            // poll 间隔
+  }
+}
+```
+
+**`CopilotCardNode` 内部的取消机制**：
+
+- 使用 `useRef<AbortController | null>(null)` 保存当前 controller
+- 点击「生成」时 `controller = new AbortController()`，传给 `pollUntilDone`
+- 组件卸载 / 关闭卡片 / 点击「取消」时 `controller.abort()` 停止 polling
+- `handleGenerate` 的 `setTimeout` 在 addNode 前检查 abort 状态：若已 abort，跳过 addNode 和 removeNode（避免在已删除的卡片上误调）
+
+**为什么需要 `AbortController`？** React Flow 节点在拖拽、复制、删除场景可能被卸载，原 polling 循环仍在跑，会调用已卸载组件的 `updateNodeData`。AbortController 让 polling 提前退出，避免无效回调与竟态。
+
 ---
 
 ## 5. 数据流详解
@@ -276,7 +314,7 @@ const nodeTypes: NodeTypes = {
 
 5. 用户输入 prompt, 点 "生成"
    onClick → setStatus('generating')
-   → 直接调用 providerRegistry（image/video）或本地逻辑（upload/text）
+   → providerRegistry.get(providerId).submit + pollUntilDone（image/video）或本地逻辑（upload/text）
 
 6. 流式更新
    provider.poll 或 FileReader 进度回调
@@ -286,7 +324,11 @@ const nodeTypes: NodeTypes = {
    onComplete(result)
    → updateNodeData(id, { status: 'done', result })
    → 延迟 1s 后（让用户看到结果）:
-       ├─ canvasStore.addNode({ type: targetType, data: result.data, position: offsetPosition(self) })
+       ├─ canvasStore.addNode({
+       │     type: targetType,                    // 'art' | 'deliverable' | 'storyline' | 'asset' | 'videoClip'
+       │     data: { title, thumbnail, generatedPrompt?, sourceProvider?, description?, fileSize? },
+       │     position: offsetPosition(self),
+       │   })
        └─ canvasStore.removeNode(id)         // 移除 copilot 节点
 ```
 
@@ -314,7 +356,7 @@ generation error
 |------|------|
 | API 未配置 | 菜单项 disabled + tooltip "未配置 [model] API Key" |
 | 生成失败 | `status: 'error'` + 错误信息 + 重试按钮 |
-| 用户取消 | 关闭卡片（移除节点） |
+| 用户取消 | 关闭卡片（移除节点）。若生成进行中，polling 停止（见 §4.5） |
 | 网络中断 | `status: 'error'` + "网络错误，请重试" |
 | Prompt 为空 | 生成按钮 disabled |
 | 文件过大 | 文件选择时校验，显示错误 toast |
@@ -327,17 +369,21 @@ generation error
 
 **PaneContextMenu.test.tsx**：
 - 渲染 4 个菜单项
-- 点击菜单项触发 `onCreate(kind, position)`
+- 点击菜单项触发 `onCreate(kind, flowPosition)`（不是 `{x, y}`）
 - 点击 overlay 触发 `onClose`
 - 按 Esc 关闭
+- x/y 用于 `position: fixed` 菜单定位；flowPosition 仅用于 onCreate
 
 **CopilotCardNode.test.tsx**：
-- 4 种 kind 渲染正确的输入区
-- 初始状态 `idle`，生成按钮 disabled 当 prompt 为空
-- 模拟生成：updateNodeData 状态从 `idle` → `generating` → `done`
-- 完成后自动调用 addNode + removeNode
-- 错误状态显示错误信息
-- 关闭按钮触发 removeNode
+- 4 种 kind 渲染正确的输入区（image/video 带 provider 下拉，text 带 textarea，upload 带文件输入）
+- 初始状态 `idle`，生成按钮 disabled 当 prompt 为空 / 未选 provider
+- image/video：调用 `providerRegistry.get(providerId).submit` + `pollUntilDone`
+- upload：FileReader 在 onChange 中执行，data.file.dataUrl 填充后可直接插入
+- text：直接 addNode storyline
+- 完成后 1s 自动 addNode 正式卡片 + removeNode copilot 节点
+- 组件卸载时 abortController 触发 abort（polling 循环停止）
+- 生成中用户取消（关闭卡片）：addNode/removeNode 不执行（状态检查）
+- 错误状态显示错误信息 + 重试按钮
 
 ### 7.2 集成测试
 
@@ -387,7 +433,7 @@ generation error
 ### A.1 PaneContextMenu 组件骨架
 
 ```tsx
-export function PaneContextMenu({ x, y, onClose, onCreate }: PaneContextMenuProps) {
+export function PaneContextMenu({ x, y, flowPosition, onClose, onCreate }: PaneContextMenuProps) {
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleEsc);
@@ -404,7 +450,7 @@ export function PaneContextMenu({ x, y, onClose, onCreate }: PaneContextMenuProp
         {MENU_ITEMS.map(({ kind, label, icon: Icon, hint }) => (
           <button
             key={kind}
-            onClick={() => onCreate(kind, { x, y })}
+            onClick={() => onCreate(kind, flowPosition)}
             className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-..."
           >
             <Icon className="h-3.5 w-3.5" />
@@ -424,14 +470,20 @@ export function CopilotCardNode({ data, id }: NodeProps<Node<CopilotCardNodeData
   const updateNodeData = useCanvasStore(s => s.updateNodeData);
   const addNode = useCanvasStore(s => s.addNode);
   const removeNode = useCanvasStore(s => s.removeNode);
-  const nodes = useCanvasStore(s => s.getCurrentNodes());
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // 组件卸载时 abort 正在进行的 polling
+  useEffect(() => {
+    return () => { abortControllerRef.current?.abort(); };
+  }, []);
 
   const handleGenerate = async () => {
+    abortControllerRef.current = new AbortController();
     updateNodeData(id, { status: 'generating', progress: 0 });
     try {
       // image/video: 直接调 providerRegistry，绕过 generateAsset 的内置卡片创建
       if (data.kind === 'image' || data.kind === 'video') {
-        const provider = providerRegistry.getProvider(data.providerId!);
+        const provider = providerRegistry.get(data.providerId!);
         const capability: Capability = data.kind === 'image' ? 'text2image' : 'text2video';
         const task = await provider.submit({
           type: data.kind,
@@ -440,10 +492,12 @@ export function CopilotCardNode({ data, id }: NodeProps<Node<CopilotCardNodeData
         });
         const final = await pollUntilDone(provider, task.taskId, (p) => {
           updateNodeData(id, { progress: p });
-        });
+        }, abortControllerRef.current!.signal);
         updateNodeData(id, { status: 'done', result: { url: final.resultUrl } });
         setTimeout(() => {
-          const self = nodes.find(n => n.id === id)!;
+          if (abortControllerRef.current?.signal.aborted) return;  // 已被取消
+          const self = useCanvasStore.getState().getCurrentNodes().find(n => n.id === id);
+          if (!self) return;                                         // 节点已不存在
           addNode({
             type: data.kind === 'image' ? 'art' : 'deliverable',
             position: offsetPosition(self),
@@ -452,8 +506,9 @@ export function CopilotCardNode({ data, id }: NodeProps<Node<CopilotCardNodeData
           removeNode(id);
         }, 1000);
       } else if (data.kind === 'upload') {
-        // FileReader 已在外层转 dataURL；这里直接添加
-        const self = nodes.find(n => n.id === id)!;
+        // FileReader 已在 onFileChange 中转 dataURL；这里直接添加
+        const self = useCanvasStore.getState().getCurrentNodes().find(n => n.id === id);
+        if (!self) return;
         addNode({
           type: data.file!.kind === 'video' ? 'videoClip' : 'asset',
           position: offsetPosition(self),
@@ -462,7 +517,8 @@ export function CopilotCardNode({ data, id }: NodeProps<Node<CopilotCardNodeData
         removeNode(id);
       } else if (data.kind === 'text') {
         // 直接创建 storyline 卡片，不调外部 API
-        const self = nodes.find(n => n.id === id)!;
+        const self = useCanvasStore.getState().getCurrentNodes().find(n => n.id === id);
+        if (!self) return;
         addNode({
           type: 'storyline',
           position: offsetPosition(self),
@@ -471,6 +527,7 @@ export function CopilotCardNode({ data, id }: NodeProps<Node<CopilotCardNodeData
         removeNode(id);
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;  // 主动取消，静默退出
       updateNodeData(id, { status: 'error', error: err instanceof Error ? err.message : String(err) });
     }
   };

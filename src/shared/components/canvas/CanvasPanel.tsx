@@ -185,7 +185,9 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
         id: generateId('copilot_'),
         type: 'copilotCard',
         position: flowPos,
-        data: { kind, status: 'idle' },
+        // Cast data: copilotCard has its own status enum ('idle' | 'generating' | 'done' | 'error')
+        // that is broader than CanvasNodeData['status']; cast the whole payload.
+        data: { kind, status: 'idle' as never } as never,
       };
       useCanvasStore.getState().addNode(copilotNode);
       setPaneMenu(null);

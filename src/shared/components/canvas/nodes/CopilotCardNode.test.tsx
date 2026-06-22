@@ -9,8 +9,12 @@ import { providerRegistry } from '@drama/lib/canvasToolkit';
 import type { GenerationProvider, GenerationTask } from '@drama/lib/canvasToolkit';
 import type { NodeProps, Node } from '@xyflow/react';
 
-function makeNodeProps<T>(id: string, data: T): NodeProps<Node<T>> {
-  return { id, data, type: 'copilotCard' } as unknown as NodeProps<Node<T>>;
+function makeNodeProps(id: string, data: CopilotCardNodeData): NodeProps<Node<Record<string, unknown>>> {
+  return {
+    id,
+    data: data as unknown as Record<string, unknown>,
+    type: 'copilotCard',
+  } as unknown as NodeProps<Node<Record<string, unknown>>>;
 }
 
 function renderInFlow(node: React.ReactNode) {
@@ -27,7 +31,7 @@ function setupProjectAndAddCopilot(id: string, data: CopilotCardNodeData) {
   useCanvasStore.setState({
     canvases: {
       'proj_1': {
-        nodes: [{ id, type: 'copilotCard', position: { x: 100, y: 100 }, data }],
+        nodes: [{ id, type: 'copilotCard', position: { x: 100, y: 100 }, data: data as never }],
         edges: [],
         viewport: { x: 0, y: 0, zoom: 1 },
       },

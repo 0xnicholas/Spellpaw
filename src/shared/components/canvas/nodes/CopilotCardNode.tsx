@@ -40,7 +40,11 @@ function offsetPosition(node: { position: { x: number; y: number } }, dx = 40, d
   return { x: node.position.x + dx, y: node.position.y + dy };
 }
 
-export function CopilotCardNode({ data, id }: NodeProps<Node<CopilotCardNodeData>>) {
+export function CopilotCardNode({ data: rawData, id }: NodeProps<Node<Record<string, unknown>>>) {
+  // CopilotCardNodeData is intentionally narrower than CanvasNodeData and uses its own
+  // status enum ('idle' | 'generating' | 'done' | 'error'). We type the props against
+  // the React Flow constraint (Record<string, unknown>) and cast on read/write.
+  const data = rawData as unknown as CopilotCardNodeData;
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   const addNode = useCanvasStore((s) => s.addNode);
   const removeNode = useCanvasStore((s) => s.removeNode);
@@ -58,7 +62,8 @@ export function CopilotCardNode({ data, id }: NodeProps<Node<CopilotCardNodeData
 
   const handleGenerate = useCallback(async () => {
     abortRef.current = new AbortController();
-    updateNodeData(id, { status: 'generating', progress: 0, error: undefined });
+    // Cast status: 'generating' is not part of CanvasNodeData['status'] enum
+    updateNodeData(id, { status: 'generating' as never, progress: 0, error: undefined });
 
     try {
       if (data.kind === 'image' || data.kind === 'video') {
@@ -73,10 +78,12 @@ export function CopilotCardNode({ data, id }: NodeProps<Node<CopilotCardNodeData
         const final = await pollUntilDone(
           provider,
           task.taskId,
-          (p) => updateNodeData(id, { progress: p }),
+          (p) => updateNodeData(id, { progress: p as never }),
           abortRef.current.signal,
         );
-        updateNodeData(id, { status: 'done', result: { url: final.resultUrl } });
+        // Cast status: 'done' is valid in CanvasNodeData['status'], but `result` is a
+        // copilot-specific field that is not in CanvasNodeData. Cast the whole payload.
+        updateNodeData(id, { status: 'done' as never, result: { url: final.resultUrl } as never });
         setTimeout(() => {
           if (abortRef.current?.signal.aborted) return;
           const self = useCanvasStore.getState().getCurrentNodes().find((n) => n.id === id);
@@ -126,8 +133,9 @@ export function CopilotCardNode({ data, id }: NodeProps<Node<CopilotCardNodeData
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
+      // Cast status: 'error' is not part of CanvasNodeData['status'] enum
       updateNodeData(id, {
-        status: 'error',
+        status: 'error' as never,
         error: err instanceof Error ? err.message : String(err),
       });
     }
@@ -145,7 +153,7 @@ export function CopilotCardNode({ data, id }: NodeProps<Node<CopilotCardNodeData
       // For upload kind, file selection is the final action — auto-create the asset/videoClip card.
       const self = useCanvasStore.getState().getCurrentNodes().find((n) => n.id === id);
       if (!self) {
-        updateNodeData(id, { file: { name: file.name, size: file.size, kind, dataUrl } });
+        updateNodeData(id, { file: { name: file.name, size: file.size, kind, dataUrl } as never });
         return;
       }
       addNode({
@@ -207,7 +215,7 @@ export function CopilotCardNode({ data, id }: NodeProps<Node<CopilotCardNodeData
       ) : (
         <textarea
           value={data.prompt ?? ''}
-          onChange={(e) => updateNodeData(id, { prompt: e.target.value })}
+          onChange={(e) => updateNodeData(id, { prompt: e.target.value as never })}
           placeholder="输入提示词..."
           disabled={isGenerating}
           rows={3}

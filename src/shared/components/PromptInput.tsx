@@ -12,7 +12,8 @@ import { useState, type KeyboardEvent } from 'react';
 import { ArrowUp, Paperclip, Sparkles, ChevronDown } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
-const PLACEHOLDER = 'Describe your story idea, paste a script, or attach a reference…';
+const PLACEHOLDER_FULL = 'Describe your story idea, paste a script, or attach a reference…';
+const PLACEHOLDER_FLOATED = 'Describe your idea…';
 
 export type PromptInputSize = 'hero' | 'floating';
 
@@ -66,31 +67,35 @@ export function PromptInput({
           'group overflow-hidden transition-all focus-within:scale-[1.005]',
           isHero
             ? 'rounded-3xl'
-            : 'pointer-events-auto flex items-center rounded-full',
+            : 'pointer-events-auto flex h-12 items-center rounded-full',
         )}
         style={{
-          background:
-            'linear-gradient(170deg, oklch(20% 0.02 275 / 0.85) 6%, oklch(15% 0.02 270 / 0.92) 94%)',
-          border: '1px solid oklch(100% 0 0 / 0.14)',
-          boxShadow:
-            '0 8px 32px oklch(0% 0 0 / 0.5), inset 0 1px oklch(100% 0 0 / 0.06), inset 0 -1px oklch(0% 0 0 / 0.3)',
+          background: isFloating
+            ? 'linear-gradient(170deg, oklch(22% 0.025 275 / 0.95) 0%, oklch(15% 0.02 270 / 0.95) 100%)'
+            : 'linear-gradient(170deg, oklch(20% 0.02 275 / 0.85) 6%, oklch(15% 0.02 270 / 0.92) 94%)',
+          border: '1px solid oklch(100% 0 0 / 0.16)',
+          boxShadow: isFloating
+            ? '0 16px 48px oklch(0% 0 0 / 0.55), inset 0 1px oklch(100% 0 0 / 0.06), 0 0 0 1px oklch(55% 0.22 275 / 0.08)'
+            : '0 8px 32px oklch(0% 0 0 / 0.5), inset 0 1px oklch(100% 0 0 / 0.06), inset 0 -1px oklch(0% 0 0 / 0.3)',
+          backdropFilter: 'blur(12px)',
         }}
       >
+        {/* 浮动版左侧 Sparkles icon */}
         {isFloating && (
-          <div className="flex flex-1 items-center pl-3">
-            <Sparkles className="h-4 w-4 shrink-0" style={{ color: 'var(--portal-accent)' }} />
+          <div className="flex h-full shrink-0 items-center pl-4 pr-1">
+            <Sparkles className="h-4 w-4" style={{ color: 'var(--portal-accent)' }} />
           </div>
         )}
 
         {/* 输入区 */}
-        <div className={cn('relative flex-1', isHero ? '' : '')}>
+        <div className="relative flex-1">
           {/* 渐变占位文字层 */}
           {value === '' && (
             <span
               aria-hidden
               className={cn(
                 'pointer-events-none absolute left-5 select-none',
-                isHero ? 'top-4 text-[15px] leading-relaxed' : 'top-1/2 -translate-y-1/2 text-sm',
+                isHero ? 'top-4 text-[15px] leading-relaxed' : 'left-3 top-1/2 -translate-y-1/2 text-sm whitespace-nowrap',
               )}
               style={{
                 background:
@@ -101,7 +106,7 @@ export function PromptInput({
                 fontFamily: 'var(--font-family-display)',
               }}
             >
-              {PLACEHOLDER}
+              {isHero ? PLACEHOLDER_FULL : PLACEHOLDER_FLOATED}
             </span>
           )}
           <textarea
@@ -109,22 +114,23 @@ export function PromptInput({
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={onKey}
             rows={isHero ? 3 : 1}
-            aria-label={PLACEHOLDER}
+            aria-label={isHero ? PLACEHOLDER_FULL : PLACEHOLDER_FLOATED}
             className={cn(
               'block w-full resize-none border-0 bg-transparent text-white outline-none focus:outline-none',
               isHero
                 ? 'px-5 pb-2 pt-4 text-[15px] leading-relaxed'
-                : 'px-3 py-2 text-sm',
+                : 'h-12 px-3 text-sm leading-[48px]',
             )}
             style={{
               fontFamily: 'var(--font-family-display)',
-              minHeight: isHero ? undefined : '40px',
+              minHeight: isHero ? undefined : '48px',
             }}
           />
         </div>
 
+        {/* 浮动版 hover 时才显示的 action 按钮组 */}
         {isFloating && (
-          <div className="flex shrink-0 items-center gap-1 pr-2">
+          <div className="flex h-full shrink-0 items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
             <FloatingIconButton icon={<Paperclip className="h-4 w-4" />} label="附件" onClick={onAttach} />
             <FloatingIconButton
               icon={<Sparkles className="h-4 w-4" />}
@@ -135,7 +141,7 @@ export function PromptInput({
           </div>
         )}
 
-        {/* 底部工具栏（仅 hero） / Send 按钮（两个 size 都有） */}
+        {/* Send 按钮 */}
         {isHero ? (
           <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] px-3 py-2.5">
             <div className="flex items-center gap-1">
@@ -154,16 +160,14 @@ export function PromptInput({
             <SendButton onClick={submit} disabled={!value.trim()} />
           </div>
         ) : (
-          <div className="flex shrink-0 items-center pr-2">
+          <div className="flex h-full shrink-0 items-center pr-2">
             <SendButton onClick={submit} disabled={!value.trim()} compact />
           </div>
         )}
       </div>
 
-      {/* example tags（仅 hero 显示，floating 紧凑不显示） */}
-      {isHero && (
-        <ExampleTags onPick={(tag) => setValue(tag)} />
-      )}
+      {/* example tags（仅 hero 显示） */}
+      {isHero && <ExampleTags onPick={(tag) => setValue(tag)} />}
     </div>
   );
 }

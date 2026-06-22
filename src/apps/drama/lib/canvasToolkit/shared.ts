@@ -84,3 +84,31 @@ export function startPolling(
 		}
 	}, 4000);
 }
+
+import type { GenerationTask } from "./types";
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * Poll a generation task until done/failed/aborted.
+ * Throws AbortError if signal is aborted mid-poll.
+ * Throws Error if task status is 'failed'.
+ */
+export async function pollUntilDone(
+	provider: GenerationProvider,
+	taskId: string,
+	onProgress: (progress: number) => void,
+	signal: AbortSignal,
+): Promise<GenerationTask> {
+	let attempt = 0;
+	while (true) {
+		if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+		if (!provider.poll) throw new Error(`Provider ${provider.id} 不支持轮询`);
+		const task = await provider.poll(taskId);
+		if (task.status === "done") return task;
+		if (task.status === "failed") throw new Error(task.error ?? "Generation failed");
+		attempt += 1;
+		onProgress(Math.min(90, attempt * 20));
+		await sleep(2000);
+	}
+}

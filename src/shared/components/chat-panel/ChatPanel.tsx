@@ -204,7 +204,7 @@ export function ChatPanel() {
 
 	return (
 		<>
-			<div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-bg-primary)]">
+			<div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] shadow-lg">
 			<div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-2 py-1.5">
 				<IconButton
 					icon={<ArrowLeft className="h-4 w-4" />}

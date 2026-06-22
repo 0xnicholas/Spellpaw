@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Panel, Group } from 'react-resizable-panels';
 import { Navbar } from '@drama/layouts/Navbar';
 import { ChatPanel } from '@chat/ChatPanel';
 import { CanvasPanel } from '@canvas/CanvasPanel';
@@ -75,24 +74,20 @@ export function WorkspacePage() {
       <div className="flex h-screen flex-col">
         <Navbar />
         <div className="flex-1 overflow-hidden relative">
-          <Group orientation="horizontal" className="h-full">
-            <Panel id="center" defaultSize="35%" minSize="25%" maxSize="45%" style={{ minWidth: 280 }}>
-              <div className="h-full overflow-hidden border-r border-[var(--color-border-default)]">
-                <ChatPanel />
-              </div>
-            </Panel>
-            <Panel id="right" defaultSize="65%" minSize="30%">
-              <div className="h-full overflow-hidden">
-                <CanvasPanel
-                  onAIAction={(prompt) => {
-                    if (currentProjectId) {
-                      useChatStore.getState().sendMessage(prompt, currentProjectId);
-                    }
-                  }}
-                />
-              </div>
-            </Panel>
-          </Group>
+          {/* Canvas 占据全部背景 */}
+          <div className="absolute inset-0">
+            <CanvasPanel
+              onAIAction={(prompt) => {
+                if (currentProjectId) {
+                  useChatStore.getState().sendMessage(prompt, currentProjectId);
+                }
+              }}
+            />
+          </div>
+          {/* Copilot 浮在左侧 */}
+          <div className="absolute left-3 top-3 bottom-3 w-[400px] z-10">
+            <ChatPanel />
+          </div>
           <BuilderPanel />
         </div>
       </div>

@@ -5,6 +5,7 @@ import {
   Controls,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   type Node,
   type Edge,
   type Connection,
@@ -20,7 +21,9 @@ import { computeDisplayNumbers } from '@drama/lib/numbering';
 import type { CanvasNode, CanvasEdge } from '@drama/types';
 import { ScriptCardNode, ArtCardNode, CharacterCardNode, DeliverableCardNode, SceneCardNode } from './nodes';
 import { GenericCardNode } from './nodes/GenericCardNode';
+import { CopilotCardNode } from './nodes/CopilotCardNode';
 import { CardDetailDrawer } from './CardDetailDrawer';
+import { PaneContextMenu, type CopilotKind } from './PaneContextMenu';
 import { generateId } from '@/shared/lib/utils';
 
 const nodeTypes: NodeTypes = {
@@ -34,6 +37,7 @@ const nodeTypes: NodeTypes = {
   videoClip: GenericCardNode,
   asset: GenericCardNode,
   task: GenericCardNode,
+  copilotCard: CopilotCardNode,
 };
 
 interface ContextMenuState {
@@ -41,6 +45,12 @@ interface ContextMenuState {
   y: number;
   nodeId: string;
   data: Record<string, unknown>;
+}
+
+interface PaneMenuState {
+  x: number;
+  y: number;
+  flowPosition: { x: number; y: number };
 }
 
 interface CanvasPanelProps {
@@ -152,6 +162,34 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
     []
   );
 
+  const [paneMenu, setPaneMenu] = useState<PaneMenuState | null>(null);
+  const { screenToFlowPosition } = useReactFlow();
+
+  const onPaneContextMenu = useCallback(
+    (event: React.MouseEvent | MouseEvent) => {
+      event.preventDefault();
+      const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      setPaneMenu({ x: event.clientX, y: event.clientY, flowPosition: flowPos });
+    },
+    [screenToFlowPosition]
+  );
+
+  const closePaneMenu = useCallback(() => setPaneMenu(null), []);
+
+  const handlePaneCreate = useCallback(
+    (kind: CopilotKind, flowPos: { x: number; y: number }) => {
+      const copilotNode: CanvasNode = {
+        id: generateId('copilot_'),
+        type: 'copilotCard',
+        position: flowPos,
+        data: { kind, status: 'idle' },
+      };
+      useCanvasStore.getState().addNode(copilotNode);
+      setPaneMenu(null);
+    },
+    []
+  );
+
   const closeContextMenu = () => setContextMenu(null);
 
   const onNodeClick = useCallback(
@@ -206,6 +244,7 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
           onConnect={onConnect}
           onNodeDragStop={onNodeDragStop}
           onNodeContextMenu={onNodeContextMenu}
+          onPaneContextMenu={onPaneContextMenu}
           onNodeClick={onNodeClick}
           onPaneClick={() => {
             closeContextMenu();
@@ -224,6 +263,17 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
         <div className="absolute bottom-2 left-2 z-10 rounded-[var(--radius-sm)] bg-[var(--color-bg-primary)]/80 px-2 py-0.5 text-[10px] text-[var(--color-text-tertiary)] backdrop-blur-sm border border-[var(--color-border-default)]">
           {Math.round(zoom * 100)}%
         </div>
+
+        {/* Pane Context Menu */}
+        {paneMenu && (
+          <PaneContextMenu
+            x={paneMenu.x}
+            y={paneMenu.y}
+            flowPosition={paneMenu.flowPosition}
+            onClose={closePaneMenu}
+            onCreate={handlePaneCreate}
+          />
+        )}
 
         {/* Context Menu */}
         {contextMenu && (

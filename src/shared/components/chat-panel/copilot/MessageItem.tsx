@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { formatDate } from '@/shared/lib/utils';
 import type { ChatMessage, ChatAction } from '@shared/types';
@@ -50,35 +50,42 @@ export function MessageItem({ message, onActionClick }: MessageItemProps) {
           )}
         >
           <div className="prose prose-sm max-w-none">
-            <Markdown
-              components={{
-                code({ children, className }) {
-                  const isInline = !className;
-                  if (isInline) {
+            {message.status === 'pending' ? (
+              <div className="flex items-center gap-2 italic text-[var(--color-text-tertiary)]">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>{message.content}</span>
+              </div>
+            ) : (
+              <Markdown
+                components={{
+                  code({ children, className }) {
+                    const isInline = !className;
+                    if (isInline) {
+                      return (
+                        <code className="rounded bg-[var(--color-bg-tertiary)] px-1 py-0.5 text-xs">
+                          {children}
+                        </code>
+                      );
+                    }
                     return (
-                      <code className="rounded bg-[var(--color-bg-tertiary)] px-1 py-0.5 text-xs">
-                        {children}
-                      </code>
+                      <div className="relative my-2 min-w-0 overflow-x-auto rounded-[var(--radius-sm)] bg-[var(--color-bg-tertiary)] p-3">
+                        <pre className="text-xs">
+                          <code>{children}</code>
+                        </pre>
+                        <button
+                          onClick={() => handleCopy(String(children))}
+                          className="absolute right-2 top-2 rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
+                        >
+                          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        </button>
+                      </div>
                     );
-                  }
-                  return (
-                    <div className="relative my-2 min-w-0 overflow-x-auto rounded-[var(--radius-sm)] bg-[var(--color-bg-tertiary)] p-3">
-                      <pre className="text-xs">
-                        <code>{children}</code>
-                      </pre>
-                      <button
-                        onClick={() => handleCopy(String(children))}
-                        className="absolute right-2 top-2 rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-                      >
-                        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      </button>
-                    </div>
-                  );
-                },
-              }}
-            >
-              {message.content}
-            </Markdown>
+                  },
+                }}
+              >
+                {message.content}
+              </Markdown>
+            )}
           </div>
 
           {/* Actions */}

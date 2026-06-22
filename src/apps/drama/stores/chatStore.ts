@@ -7,7 +7,12 @@ import {
 	formatInsightsAsMessage,
 	type ProactiveInsight,
 } from "@drama/lib/proactiveInsights";
-import { tryRunSkill, formatSkillInvocation, isSlashCommand } from "@drama/lib/skills/chat";
+import {
+  tryRunSkill,
+  executeSkill,
+  formatSkillInvocation,
+  isSlashCommand,
+} from "@drama/lib/skills/chat";
 import { useProjectStore } from "./projectStore";
 import { useCanvasStore } from "./canvasStore";
 
@@ -33,6 +38,7 @@ interface ChatState {
 	sendMessage: (content: string, projectId: string) => void;
 	setInputValue: (value: string) => void;
 	appendMessage: (message: ChatMessage, projectId: string) => void;
+	updateMessage: (id: string, patch: Partial<ChatMessage>, projectId?: string) => void;
 	clearMessages: () => void;
 	setFilterNodeId: (nodeId: string | null) => void;
 
@@ -188,8 +194,9 @@ export const useChatStore = create<ChatState>()((set) => ({
 		// (The useCopilotSSE override also has this short-circuit so skills
 		// work in both mock and real modes.)
 		if (isSlashCommand(content)) {
-			void tryRunSkill(content, projectId).then((result) => {
-				if (!result) {
+			void (async () => {
+				const started = tryRunSkill(content, projectId);
+				if (!started) {
 					// Unknown slash command — fall through to mock reply
 					const agentMsg = mockAgentReply(content, projectId);
 					set((state) => {
@@ -202,16 +209,32 @@ export const useChatStore = create<ChatState>()((set) => ({
 				const invocationMsg: ChatMessage = {
 					id: generateId("msg_"),
 					role: "agent",
-					content: formatSkillInvocation(result.skillId),
+					content: formatSkillInvocation(started.skillId),
 					type: "text",
 					timestamp: new Date().toISOString(),
 				};
 				set((state) => {
-					const messages = [...state.messages, invocationMsg, result.assistantMessage];
+					const messages = [...state.messages, invocationMsg, started.pendingMessage];
 					void saveChatMessages(messages, projectId);
-					return { messages, isLoading: false };
+					return { messages };
 				});
-			});
+
+				// Run the skill and update the pending message in place.
+				const done = await executeSkill(content, projectId);
+				if (done) {
+					set((state) => {
+						const messages = state.messages.map((m) =>
+							m.id === started.pendingMessage.id
+								? { ...done.finalMessage, timestamp: started.pendingMessage.timestamp }
+								: m
+						);
+						void saveChatMessages(messages, projectId);
+						return { messages, isLoading: false };
+					});
+				} else {
+					set({ isLoading: false });
+				}
+			})();
 			return;
 		}
 
@@ -234,6 +257,15 @@ export const useChatStore = create<ChatState>()((set) => ({
 		set((state) => {
 			const messages = [...state.messages, message];
 			void saveChatMessages(messages, projectId);
+			return { messages };
+		}),
+
+	updateMessage: (id, patch, projectId) =>
+		set((state) => {
+			const messages = state.messages.map((m) =>
+				m.id === id ? { ...m, ...patch } : m
+			);
+			if (projectId) void saveChatMessages(messages, projectId);
 			return { messages };
 		}),
 

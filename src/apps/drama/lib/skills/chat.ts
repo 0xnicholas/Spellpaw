@@ -19,7 +19,7 @@ import { useCanvasStore } from '@drama/stores/canvasStore';
 import type { SkillContext } from './types';
 
 interface RunSkillResult {
-  assistantMessage: ChatMessage;
+  pendingMessage: ChatMessage;
   skillId: string;
 }
 
@@ -34,45 +34,111 @@ export function matchSkillByInput(text: string) {
 }
 
 /**
- * Run a slash command and return the assistant message to post. Caller
- * is responsible for appending the user message first; this only
- * produces the response.
+ * Returns the final assistant message for a completed skill run.
+ * Call this after tryRunSkill() resolves to update the pending message
+ * in the chat to its final content.
  */
-export async function tryRunSkill(
+export function buildSkillResultMessage(
   text: string,
-  projectId: string,
-): Promise<RunSkillResult | null> {
+  status: 'done' | 'error' = 'done',
+  timestamp?: string,
+): ChatMessage {
+  return {
+    id: generateId('msg_'),
+    role: 'agent',
+    content: text,
+    type: 'action',
+    timestamp: timestamp ?? new Date().toISOString(),
+    status,
+  };
+}
+
+/**
+ * Build the pending (running) message for a skill. Posted immediately
+ * when the skill starts; the chat UI shows a spinner until the skill
+ * completes and the message is updated via updateMessage().
+ */
+export function buildSkillPendingMessage(
+  _skillId: string,
+  text: string,
+): ChatMessage {
+  return {
+    id: generateId('msg_'),
+    role: 'agent',
+    content: text,
+    type: 'action',
+    timestamp: new Date().toISOString(),
+    status: 'pending',
+  };
+}
+
+/**
+ * Run a slash command and return the *pending* assistant message
+ * (with a spinner). The caller is responsible for:
+ *
+ *   1. Appending this pending message to the chat
+ *   2. Calling await parsed.skill.invoke(...) and then building
+ *      a final message via buildSkillResultMessage()
+ *   3. Updating the pending message's content + status via
+ *      useChatStore.getState().updateMessage(id, {...})
+ *
+ * Returns null if the input is not a slash command or the command
+ * is unknown. Use `tryRunSkillFull()` for the simpler one-call API.
+ */
+export function tryRunSkill(
+  text: string,
+  _projectId: string,
+): RunSkillResult | null {
   const parsed = parseSlashCommand(text);
   if (!parsed) return null;
 
-  // Parse args from the trailing portion of the slash command.
-  // Format: "/<cmd> key1:val1 key2:val2"
-  const args = parseArgTokens(parsed.args);
+  const pendingMessage = buildSkillPendingMessage(
+    parsed.skill.id,
+    `🎯 正在执行 ${parsed.skill.name}…`
+  );
 
+  return { pendingMessage, skillId: parsed.skill.id };
+}
+
+/**
+ * One-call API: parse the slash command, run the skill, and return
+ * the final result message. The caller is still responsible for
+ * updating the chat UI (appending the pending message, then updating
+ * it with the final). Provided for tests and code that doesn't care
+ * about progress UI.
+ */
+export async function tryRunSkillFull(
+  text: string,
+  projectId: string,
+): Promise<{ pendingMessage: ChatMessage; finalMessage: ChatMessage; skillId: string } | null> {
+  const parsed = parseSlashCommand(text);
+  if (!parsed) return null;
+
+  const pendingMessage = buildSkillPendingMessage(
+    parsed.skill.id,
+    `🎯 正在执行 ${parsed.skill.name}…`
+  );
+
+  const args = parseArgTokens(parsed.args);
   const ctx: SkillContext = {
     projectId,
     getProjectTree: () => useProjectStore.getState().getCurrentTree(),
     getCanvasCardCount: () => useCanvasStore.getState().getCurrentNodes().length,
   };
 
-  let result;
+  let summary: string;
+  let status: 'done' | 'error';
   try {
-    result = await parsed.skill.invoke(args, ctx);
+    const result = await parsed.skill.invoke(args, ctx);
+    summary = result.summary;
+    status = 'done';
   } catch (err) {
-    result = {
-      summary: `❌ Skill「${parsed.skill.name}」执行失败：${(err as Error).message}`,
-    };
+    summary = `❌ Skill「${parsed.skill.name}」执行失败：${(err as Error).message}`;
+    status = 'error';
   }
 
-  const assistantMessage: ChatMessage = {
-    id: generateId('msg_'),
-    role: 'agent',
-    content: result.summary,
-    type: 'action',
-    timestamp: new Date().toISOString(),
-  };
-
-  return { assistantMessage, skillId: parsed.skill.id };
+  const finalMessage = buildSkillResultMessage(summary, status, pendingMessage.timestamp);
+  return { pendingMessage, finalMessage, skillId: parsed.skill.id };
 }
 
 /**
@@ -83,4 +149,46 @@ export function formatSkillInvocation(skillId: string): string {
   const skill = getSkillBySlashCommand(skillId);
   if (!skill) return `🎯 ${skillId}`;
   return `🎯 调用 Skill：${skill.name}（/${skill.slashCommand}）`;
+}
+
+/**
+ * Parse the slash command at the start of `text` and return the skill
+ * to invoke plus the parsed args. Returns null if no slash command.
+ */
+export function parseSkillInvocation(text: string): { skill: import('./types').Skill; args: Record<string, string> } | null {
+  const parsed = parseSlashCommand(text);
+  if (!parsed) return null;
+  return { skill: parsed.skill, args: parseArgTokens(parsed.args) };
+}
+
+/**
+ * Run a skill and return the final result message. Convenience wrapper
+ * for code that doesn't need to manage the pending/final two-step UI.
+ */
+export async function executeSkill(
+  text: string,
+  projectId: string,
+): Promise<{ finalMessage: ChatMessage; skillId: string } | null> {
+  const parsed = parseSlashCommand(text);
+  if (!parsed) return null;
+  const args = parseArgTokens(parsed.args);
+  const ctx: SkillContext = {
+    projectId,
+    getProjectTree: () => useProjectStore.getState().getCurrentTree(),
+    getCanvasCardCount: () => useCanvasStore.getState().getCurrentNodes().length,
+  };
+  let summary: string;
+  let status: 'done' | 'error';
+  try {
+    const result = await parsed.skill.invoke(args, ctx);
+    summary = result.summary;
+    status = 'done';
+  } catch (err) {
+    summary = `❌ Skill「${parsed.skill.name}」执行失败：${(err as Error).message}`;
+    status = 'error';
+  }
+  return {
+    finalMessage: buildSkillResultMessage(summary, status),
+    skillId: parsed.skill.id,
+  };
 }

@@ -20,7 +20,7 @@ import {
   batchApplyStyle,
 } from '@drama/lib/canvasToolkit';
 import { logger } from '@shared/lib/logger';
-import { isSlashCommand, tryRunSkill, formatSkillInvocation } from '@drama/lib/skills/chat';
+import { isSlashCommand, tryRunSkill, executeSkill, formatSkillInvocation } from '@drama/lib/skills/chat';
 import type { CanvasIntent } from '@drama/lib/intentRouter';
 
 export function useCopilotSSE() {
@@ -175,17 +175,27 @@ export function useCopilotSSE() {
           };
           useChatStore.getState().appendMessage(userMsg, projectId);
 
-          const result = await tryRunSkill(content, projectId);
-          if (result) {
+          const started = tryRunSkill(content, projectId);
+          if (started) {
             const invocationMsg: ChatMessage = {
               id: crypto.randomUUID(),
               role: 'agent',
-              content: formatSkillInvocation(result.skillId),
+              content: formatSkillInvocation(started.skillId),
               type: 'text',
               timestamp: new Date().toISOString(),
             };
             useChatStore.getState().appendMessage(invocationMsg, projectId);
-            useChatStore.getState().appendMessage(result.assistantMessage, projectId);
+            useChatStore.getState().appendMessage(started.pendingMessage, projectId);
+
+            // Run the skill and replace the pending message with the final
+            const done = await executeSkill(content, projectId);
+            if (done) {
+              useChatStore.getState().updateMessage(
+                started.pendingMessage.id,
+                { ...done.finalMessage, timestamp: started.pendingMessage.timestamp },
+                projectId
+              );
+            }
             endStreaming(projectId, 'skill_invocation');
             return;
           }

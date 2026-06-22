@@ -18,7 +18,10 @@ import {
   BUILT_IN_SKILLS,
   analyzePacingSkill,
   batchStoryboardSkill,
+  brainstormVariantsSkill,
+  characterProfileSkill,
   duplicateProjectSkill,
+  exportStoryboardPdfSkill,
 } from './builtIn';
 import type { SkillContext } from './types';
 
@@ -31,13 +34,16 @@ function makeCtx(): SkillContext {
 }
 
 describe('skill registry', () => {
-  it('ships 3 built-in skills', () => {
+  it('ships 6 built-in skills', () => {
     const skills = getAllSkills();
-    expect(skills).toHaveLength(3);
+    expect(skills).toHaveLength(6);
     expect(skills.map((s) => s.id)).toEqual([
       'analyze-pacing',
       'duplicate-project',
       'batch-storyboard',
+      'character-profile',
+      'brainstorm-variants',
+      'export-storyboard-pdf',
     ]);
   });
 
@@ -91,6 +97,9 @@ describe('skill registry', () => {
       'spellpaw_skill_analyze-pacing',
       'spellpaw_skill_duplicate-project',
       'spellpaw_skill_batch-storyboard',
+      'spellpaw_skill_character-profile',
+      'spellpaw_skill_brainstorm-variants',
+      'spellpaw_skill_export-storyboard-pdf',
     ]);
   });
 });
@@ -208,5 +217,88 @@ describe('batch-storyboard skill', () => {
     const result = await batchStoryboardSkill.invoke({ onlyEmpty: 'true' }, makeCtx());
     // Will call generate_storyboard once for c2
     expect(result.summary).toMatch(/1\/\d+/);
+  });
+});
+
+describe('character-profile skill', () => {
+  beforeEach(() => {
+    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null, projects: [] });
+    useCanvasStore.setState({ canvases: {}, selectedCardId: null });
+  });
+
+  it('requires a name', async () => {
+    useProjectStore.getState().createProject('p', '', '#000');
+    const result = await characterProfileSkill.invoke({}, makeCtx());
+    expect(result.summary).toContain('请提供角色姓名');
+  });
+
+  it('creates a character card with all provided fields', async () => {
+    useProjectStore.getState().createProject('p', '', '#000');
+    const pid = useProjectStore.getState().currentProjectId!;
+    const result = await characterProfileSkill.invoke(
+      { 姓名: '林小夏', 年龄: '25', 职业: '咖啡师', 性格: '温柔坚韧' },
+      makeCtx()
+    );
+    expect(result.summary).toContain('林小夏');
+    expect(result.summary).toContain('咖啡师');
+    expect(result.cardsCreated).toBe(1);
+
+    const cards = useCanvasStore.getState().canvases[pid].nodes;
+    expect(cards).toHaveLength(1);
+    expect(cards[0].type).toBe('character');
+    expect((cards[0].data as { title: string }).title).toBe('林小夏');
+  });
+
+  it('uses placeholders for missing fields', async () => {
+    useProjectStore.getState().createProject('p', '', '#000');
+    const pid = useProjectStore.getState().currentProjectId!;
+    const result = await characterProfileSkill.invoke({ 姓名: '顾言' }, makeCtx());
+    expect(result.summary).toContain('顾言');
+    expect(result.summary).toContain('未知');
+
+    const cards = useCanvasStore.getState().canvases[pid].nodes;
+    // role/age/personality are encoded into description + tags (the
+    // character card schema doesn't allow them as top-level fields)
+    expect((cards[0].data as { description: string }).description).toContain('未知');
+    expect((cards[0].data as { tags: string[] }).tags).toContain('未知');
+  });
+});
+
+describe('brainstorm-variants skill', () => {
+  beforeEach(() => {
+    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null, projects: [] });
+    useCanvasStore.setState({ canvases: {}, selectedCardId: null });
+  });
+
+  it('requires a theme', async () => {
+    useProjectStore.getState().createProject('p', '', '#000');
+    const result = await brainstormVariantsSkill.invoke({}, makeCtx());
+    expect(result.summary).toContain('请提供主题');
+  });
+
+  it('creates 3 storyline cards with different angles', async () => {
+    useProjectStore.getState().createProject('p', '', '#000');
+    const pid = useProjectStore.getState().currentProjectId!;
+    const result = await brainstormVariantsSkill.invoke(
+      { 主题: '时间旅行' },
+      makeCtx()
+    );
+    expect(result.cardsCreated).toBe(3);
+    expect(result.summary).toContain('时间旅行');
+    expect(result.summary).toContain('喜剧反差');
+    expect(result.summary).toContain('悬疑反转');
+    expect(result.summary).toContain('温情治愈');
+
+    const cards = useCanvasStore.getState().canvases[pid].nodes;
+    expect(cards).toHaveLength(3);
+    expect(cards.every((c) => c.type === 'storyline')).toBe(true);
+  });
+});
+
+describe('export-storyboard-pdf skill', () => {
+  it('returns a hint about how to export', async () => {
+    const result = await exportStoryboardPdfSkill.invoke({}, makeCtx());
+    // Should mention at least one way to export
+    expect(result.summary).toMatch(/(导出|export|PDF)/i);
   });
 });

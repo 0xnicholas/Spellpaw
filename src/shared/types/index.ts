@@ -28,4 +28,6 @@ export interface ChatMessage {
     nodeType?: string;
   };
   actions?: ChatAction[];
+  /** Pending skills show a spinner until they complete. */
+  status?: 'pending' | 'done' | 'error';
 }

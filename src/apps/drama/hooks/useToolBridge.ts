@@ -23,7 +23,8 @@ function getCandidateUrls(): string[] {
   const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
   const host = window.location.host; // e.g. localhost:5173
   const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
-  const hostnames = [host, `127.0.0.1:${port}`, `127.0.0.1.nip.io:${port}`];
+  // Try 127.0.0.1 first — localhost can fail in headless Chrome / Playwright
+  const hostnames = [`127.0.0.1:${port}`, host, `127.0.0.1.nip.io:${port}`];
   return hostnames.map((h) => `${protocol}://${h}/tool-ws`);
 }
 
@@ -80,7 +81,12 @@ function connect(
         return;
       }
 
-      const handler = toolRouter[action];
+      // Try stripped action first, then raw action (handles spellpaw_skill_* which
+      // strips to skill_* but is registered in toolRouter as spellpaw_skill_*)
+      let handler = toolRouter[action];
+      if (!handler) {
+        handler = toolRouter[rawAction];
+      }
 
       if (!handler) {
         ws.send(JSON.stringify({

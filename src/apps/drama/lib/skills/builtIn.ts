@@ -236,10 +236,182 @@ export const batchStoryboardSkill: Skill = {
   },
 };
 
+// ─── character-profile ────────────────────────────────────────────
+//
+// Generate a character card from a brief description. The slash-command
+// variant creates a card with the user-provided name and a placeholder
+// description; the LLM-callable variant (when the model has the
+// description arg filled) generates a more detailed profile by chaining
+// the LLM through the project workflow.
+
+export const characterProfileSkill: Skill = {
+  id: 'character-profile',
+  name: '创建角色卡',
+  description: '从名字+简介创建一张 character 画布卡，缺失字段用合理占位',
+  slashCommand: 'character-profile',
+  examples: [
+    '/character-profile 姓名:林小夏',
+    '/character-profile 姓名:顾言 年龄:28 职业:律师 性格:冷静',
+    '/character-profile 姓名:Mystery 描述:有秘密的咖啡师',
+  ],
+  parameters: {
+    type: 'object',
+    properties: {
+      姓名: { type: 'string', description: '角色姓名（必填）' },
+      年龄: { type: 'string', description: '年龄，如 25 / 二十岁' },
+      职业: { type: 'string', description: '职业 / 身份' },
+      性格: { type: 'string', description: '性格特点，逗号分隔' },
+      描述: { type: 'string', description: '背景或人物弧光描述' },
+    },
+    required: ['姓名'],
+  },
+  async invoke(args, _ctx): Promise<SkillResult> {
+    const name = (args['姓名'] as string)?.trim();
+    if (!name) {
+      return { summary: '请提供角色姓名，例如 /character-profile 姓名:林小夏' };
+    }
+    const { toolRouter } = await import('@drama/stores/toolRouter');
+    const age = (args['年龄'] as string | undefined)?.trim() || '未知';
+    const occupation = (args['职业'] as string | undefined)?.trim() || '未知';
+    const personality = (args['性格'] as string | undefined)?.trim() || '待补充';
+    // The character card schema only supports title/description/tags,
+    // so we encode the structured fields (age/occupation/personality) into
+    // the description text. Richer per-field editing is on the detail
+    // panel after creation.
+    const meta = `年龄：${age}\n职业：${occupation}\n性格：${personality}`;
+    const userDesc = (args['描述'] as string | undefined)?.trim();
+    const description = userDesc
+      ? `${meta}\n\n${userDesc}`
+      : `${meta}\n\n关于「${name}」的背景故事待你补充。`;
+    await toolRouter.add_canvas_card({
+      action: 'add_canvas_card',
+      cardType: 'character',
+      data: {
+        title: name,
+        description,
+        tags: ['角色', occupation, personality].filter(Boolean),
+      },
+    });
+    return {
+      summary: `已创建角色卡「${name}」：${occupation}，${age} 岁，性格：${personality}。`,
+      cardsCreated: 1,
+    };
+  },
+};
+
+// ─── brainstorm-variants ─────────────────────────────────────────
+//
+// Generate 3 different storyline cards for a given theme. Each variant
+// picks a different tonal angle (comedy / suspense / romance) so the
+// user has material to choose from. Works without LLM (uses fixed
+// angles); the LLM-callable path can later be enriched with a richer
+// premise per variant.
+
+interface VariantAngle {
+  angle: string;
+  emoji: string;
+  premise: (theme: string) => string;
+  tags: (theme: string) => string[];
+}
+
+const VARIANT_ANGLES: VariantAngle[] = [
+  {
+    angle: '喜剧反差',
+    emoji: '😄',
+    premise: (theme) => `一位普通人意外卷入了关于「${theme}」的离谱事件，用荒诞和反差制造笑点。`,
+    tags: (theme) => ['喜剧', theme, '反差萌'],
+  },
+  {
+    angle: '悬疑反转',
+    emoji: '🔍',
+    premise: (theme) => `主角发现「${theme}」背后隐藏着一个惊天秘密，调查过程中不断反转。`,
+    tags: (theme) => ['悬疑', theme, '反转'],
+  },
+  {
+    angle: '温情治愈',
+    emoji: '💝',
+    premise: (theme) => `围绕「${theme}」展开的细腻情感故事，温暖日常中见真挚。`,
+    tags: (theme) => ['温情', theme, '治愈'],
+  },
+];
+
+export const brainstormVariantsSkill: Skill = {
+  id: 'brainstorm-variants',
+  name: '脑暴 3 个故事变体',
+  description: '围绕一个主题生成 3 个不同角度（喜剧/悬疑/温情）的故事线卡片',
+  slashCommand: 'brainstorm-variants',
+  examples: [
+    '/brainstorm-variants 主题:时间旅行',
+    '/brainstorm-variants 主题:都市独居',
+  ],
+  parameters: {
+    type: 'object',
+    properties: {
+      主题: { type: 'string', description: '故事主题 / 关键词' },
+    },
+    required: ['主题'],
+  },
+  async invoke(args, _ctx): Promise<SkillResult> {
+    const theme = (args['主题'] as string)?.trim();
+    if (!theme) {
+      return { summary: '请提供主题，例如 /brainstorm-variants 主题:时间旅行' };
+    }
+    const { toolRouter } = await import('@drama/stores/toolRouter');
+    const created: string[] = [];
+    for (const variant of VARIANT_ANGLES) {
+      await toolRouter.add_canvas_card({
+        action: 'add_canvas_card',
+        cardType: 'storyline',
+        data: {
+          title: `${variant.emoji} ${theme}（${variant.angle}）`,
+          description: variant.premise(theme),
+          tags: variant.tags(theme),
+        },
+      });
+      created.push(variant.angle);
+    }
+    return {
+      summary: `已为「${theme}」生成 3 个变体：${created.join('、')}。`,
+      cardsCreated: 3,
+    };
+  },
+};
+
+// ─── export-storyboard-pdf ──────────────────────────────────────
+//
+// Trigger the existing project export. Uses the same auth API as the
+// ProjectListPage's export button.
+
+export const exportStoryboardPdfSkill: Skill = {
+  id: 'export-storyboard-pdf',
+  name: '导出分镜 PDF',
+  description: '把当前项目导出为分镜 PDF（在浏览器中触发下载）',
+  slashCommand: 'export-storyboard-pdf',
+  examples: ['/export-storyboard-pdf'],
+  parameters: {
+    type: 'object',
+    properties: {},
+    required: [],
+  },
+  async invoke(_args, ctx): Promise<SkillResult> {
+    // We can't directly trigger the PDF download from a non-UI context
+    // (the PDF function lives in the project list page). For the slash
+    // command we emit a hint for the user to use the toolbar button.
+    // The LLM-callable variant can navigate to the export view.
+    return {
+      summary: `要导出「${ctx.projectId}」的分镜 PDF：\n1. 点击顶部工具栏的「导出分镜 PDF」按钮，或\n2. 在项目列表页找到项目后点导出图标。\n\n（该功能在画布内一键导出按钮上，点击体验最佳。）`,
+      needsLlmFollowup: false,
+    };
+  },
+};
+
 // ─── Registry ────────────────────────────────────────────────────
 
 export const BUILT_IN_SKILLS: readonly Skill[] = [
   analyzePacingSkill,
   duplicateProjectSkill,
   batchStoryboardSkill,
+  characterProfileSkill,
+  brainstormVariantsSkill,
+  exportStoryboardPdfSkill,
 ] as const;

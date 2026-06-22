@@ -1,4 +1,4 @@
-import { ArrowRight, Sparkles, Play } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const EXAMPLE_PROMPTS = [
@@ -88,17 +88,18 @@ export function HeroSection() {
           不需要剧本经验，让创意变成可以拍的内容。
         </p>
 
-        {/* CTAs — pill shaped (buzzy.now signature) */}
+        {/* CTAs — buzzy-style purple gradient pill primary */}
         <div className="mb-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
           <button
             onClick={handleCreate}
-            className="group flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-[15px] font-semibold text-[oklch(15%_0.02_270)] transition-all hover:bg-white/95 hover:scale-[1.02]"
+            className="group flex items-center gap-2 rounded-full px-7 py-3.5 text-[15px] font-semibold text-white transition-all hover:scale-[1.02]"
             style={{
               fontFamily: 'var(--font-family-display)',
-              boxShadow: '0 8px 32px rgba(255,255,255,0.18), 0 0 0 1px rgba(255,255,255,0.08)',
+              background: 'linear-gradient(170deg, oklch(82% 0.18 290) 0%, oklch(65% 0.22 275) 50%, oklch(55% 0.22 260) 100%)',
+              boxShadow: '0 8px 32px oklch(55% 0.22 275 / 0.45), 0 0 0 1px oklch(90% 0.05 275 / 0.18)',
             }}
           >
-            <Play className="h-4 w-4" fill="currentColor" strokeWidth={0} />
+            <Sparkles className="h-4 w-4" />
             开始创作
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
@@ -108,7 +109,6 @@ export function HeroSection() {
             className="flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.04] px-6 py-3.5 text-[15px] font-medium text-white transition-all hover:bg-white/[0.08]"
             style={{ fontFamily: 'var(--font-family-display)' }}
           >
-            <Play className="h-3.5 w-3.5" fill="currentColor" strokeWidth={0} />
             查看工作流
           </a>
         </div>

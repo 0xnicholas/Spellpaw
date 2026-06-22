@@ -19,6 +19,12 @@ export interface CopilotChatProps {
   emptyState?: ReactNode;
   onActionClick?: (action: ChatAction) => void;
   contextChip?: { label: string; onClear: () => void } | null;
+  /** 透传给 MessageInput 的左侧工具栏插槽 */
+  inputLeftToolbar?: ReactNode;
+  /** 透传给 MessageInput 的 textarea 行高 */
+  inputRows?: number;
+  /** 透传给 MessageInput 的外层 className 覆盖 */
+  inputClassName?: string;
 }
 
 export function CopilotChat({
@@ -31,6 +37,9 @@ export function CopilotChat({
   emptyState,
   onActionClick,
   contextChip,
+  inputLeftToolbar,
+  inputRows,
+  inputClassName,
 }: CopilotChatProps) {
   return (
     <div className="flex h-full flex-col">
@@ -53,6 +62,9 @@ export function CopilotChat({
         disabled={isLoading}
         placeholder={placeholder}
         contextChip={contextChip}
+        leftToolbar={inputLeftToolbar}
+        rows={inputRows}
+        inputClassName={inputClassName}
       />
     </div>
   );

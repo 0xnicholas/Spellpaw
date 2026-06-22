@@ -6,7 +6,7 @@
   "template": { "builtin": "内置模板", "community": "社区模板", "myTemplates": "我的模板", "useTemplate": "使用此模板创建项目", "noTemplates": "暂无模板", "import": "导入模板文件", "exportAsTemplate": "导出为模板", "deleteTemplate": "删除模板", "noCustomTemplates": "暂无自定义模板，点击上方导入" },
   "gallery": { "title": "社区画廊", "publish": "发布到画廊" },
   "workspace": { "chat": "对话", "details": "详情", "tree": "项目结构", "assets": "资产", "canvas": "画布" },
-  "common": { "loading": "加载中…", "save": "保存", "confirm": "确认" },
+  "common": { "loading": "加载中…", "save": "保存", "confirm": "确认", "skills": "搭建故事" },
   "console": {
     "title": "个人中心",
     "back": "返回项目列表",

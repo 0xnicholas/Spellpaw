@@ -2,6 +2,7 @@
  * Build the system prompt for the Copilot from the current project tree.
  */
 import { listProviders, providerRegistry } from "@drama/lib/canvasToolkit";
+import type { CanvasNode } from "@drama/types";
 
 /** Infer genre from project title for style adaptation */
 function inferGenre(title: string): string {
@@ -152,4 +153,19 @@ export function buildSystemPrompt(
 	]
 		.filter(Boolean)
 		.join("\n");
+}
+
+/** Convert canvas nodes to indented text for system_prompt injection */
+export function canvasToPromptText(cards: CanvasNode[]): string {
+	if (cards.length === 0) return '(画布为空)';
+	const lines: string[] = [`画布共 ${cards.length} 张卡片：`];
+	for (const c of cards) {
+		const icon = ({ storyline: '📖', moodboard: '🎨', videoClip: '🎬', asset: '📦', task: '📋', art: '🖼️', character: '👤', script: '📝', deliverable: '📦', sceneCard: '🎬' } as Record<string, string>)[c.type] ?? '📄';
+		lines.push(`  ${icon} ${c.type}「${c.data.title}」(id: ${c.id})`);
+		if (c.data.description) lines.push(`    描述：${c.data.description.slice(0, 80)}`);
+		if (c.data.children?.length) {
+			for (const ch of c.data.children) lines.push(`    └─ ${ch.type}「${ch.title}」`);
+		}
+	}
+	return lines.join('\n');
 }

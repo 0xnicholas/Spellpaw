@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Send } from 'lucide-react';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { IconButton } from '@/shared/components/ui/IconButton';
@@ -8,6 +8,12 @@ interface MessageInputProps {
   disabled?: boolean;
   placeholder?: string;
   contextChip?: { label: string; onClear: () => void } | null;
+  /** 渲染在 textarea 左侧的工具栏（如上传 / @ 提及按钮），仅在外部需要时传入 */
+  leftToolbar?: ReactNode;
+  /** textarea 行高，默认 2 */
+  rows?: number;
+  /** 覆盖外层容器的 className（用于让输入框变成独立圆角矩形卡片等） */
+  inputClassName?: string;
 }
 
 export function MessageInput({
@@ -15,6 +21,9 @@ export function MessageInput({
   disabled = false,
   placeholder = '输入消息…（Enter 发送，Shift + Enter 换行）',
   contextChip,
+  leftToolbar,
+  rows = 2,
+  inputClassName,
 }: MessageInputProps) {
   const [value, setValue] = useState('');
 
@@ -54,7 +63,7 @@ export function MessageInput({
   };
 
   return (
-    <div className="border-t border-[var(--color-border-default)] bg-[var(--color-bg-primary)] p-3">
+    <div className={inputClassName ?? 'border-t border-[var(--color-border-default)] bg-[var(--color-bg-primary)] p-3'}>
       {contextChip && (
         <div className="mb-2 flex items-center">
           <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-accent-300)] bg-[var(--color-accent-50)] px-2.5 py-0.5 text-[11px] text-[var(--color-accent-600)]">
@@ -76,9 +85,14 @@ export function MessageInput({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          rows={2}
-          className="pr-10"
+          rows={rows}
+          className="rounded-[var(--radius-lg)] pr-10"
         />
+        {leftToolbar && (
+          <div className="absolute bottom-2 left-2 flex items-center gap-1">
+            {leftToolbar}
+          </div>
+        )}
         <div className="absolute bottom-2 right-2">
           <IconButton
             icon={<Send className="h-4 w-4" />}

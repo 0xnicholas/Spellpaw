@@ -22,7 +22,7 @@ export function SkillChips({ onInsert }: SkillChipsProps) {
     <div className="flex flex-wrap items-center gap-1.5 px-3 py-1.5">
       <span className="flex items-center gap-1 text-[10px] text-[var(--color-text-tertiary)]">
         <Sparkles className="h-3 w-3" />
-        {t('common.skills', { defaultValue: 'Skills' })}
+        {t('common.skills', { defaultValue: 'Build a Story' })}
       </span>
       {skills.map((skill) => (
         <button

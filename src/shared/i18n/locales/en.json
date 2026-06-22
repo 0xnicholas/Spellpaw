@@ -6,7 +6,7 @@
   "template": { "builtin": "Built-in", "community": "Community", "myTemplates": "My Templates", "useTemplate": "Use this template", "noTemplates": "No templates found", "import": "Import template file", "exportAsTemplate": "Export as template", "deleteTemplate": "Delete template", "noCustomTemplates": "No custom templates yet, import one above" },
   "gallery": { "title": "Community Gallery", "publish": "Publish to Gallery" },
   "workspace": { "chat": "Chat", "details": "Details", "tree": "Project Tree", "assets": "Assets", "canvas": "Canvas" },
-  "common": { "loading": "Loading...", "save": "Save", "confirm": "Confirm" },
+  "common": { "loading": "Loading...", "save": "Save", "confirm": "Confirm", "skills": "Build a Story" },
   "console": {
     "title": "Console",
     "back": "Back to projects",

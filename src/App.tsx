@@ -5,6 +5,7 @@ import { ProjectListPage } from '@drama/pages/ProjectListPage';
 import { WorkspacePage } from '@drama/pages/WorkspacePage';
 import { TemplateMarketPage } from '@drama/pages/TemplateMarketPage';
 import { ConsolePage } from '@console/pages/ConsolePage';
+import { CopilotLabPage } from '@drama/pages/CopilotLabPage';
 import { useAuthStore } from '@/shared/stores/authStore';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -47,6 +48,14 @@ function App() {
         element={
           <RequireAuth>
             <ConsolePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/copilot-lab"
+        element={
+          <RequireAuth>
+            <CopilotLabPage />
           </RequireAuth>
         }
       />

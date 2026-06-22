@@ -8,7 +8,7 @@ import { useChatStore } from '@drama/stores/chatStore';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import type { ChatMessage } from '@drama/types';
-import { buildSystemPrompt } from '@drama/lib/systemPrompt';
+import { buildSystemPrompt, canvasToPromptText } from '@drama/lib/systemPrompt';
 import { getLLMProvider } from '@drama/lib/llm';
 import { SPELLPAW_TOOL_CONFIGS } from '@drama/lib/toolConfigs';
 import { detectIntent, intentToToolChoice } from '@drama/lib/intentRouter';
@@ -252,7 +252,7 @@ export function useCopilotSSE() {
         if (!sessionRef.current && !creatingSessionRef.current) {
           creatingSessionRef.current = true;
           try {
-            const canvasText = canvasToPromptText();
+            const canvasText = canvasToPromptText(useCanvasStore.getState().getCurrentNodes());
             const projectTitle = useProjectStore.getState()
               .projects.find(p => p.id === useProjectStore.getState().currentProjectId)?.title ?? 'Untitled';
             const prompt = buildSystemPrompt(projectTitle, canvasText);
@@ -312,18 +312,4 @@ export function useCopilotSSE() {
   }, [currentProjectId]);
 }
 
-/** Convert project tree to indented text for system_prompt */
-function canvasToPromptText(): string {
-  const cards = useCanvasStore.getState().getCurrentNodes();
-  if (cards.length === 0) return '(画布为空)';
-  const lines: string[] = [`画布共 ${cards.length} 张卡片：`];
-  for (const c of cards) {
-    const icon = { storyline: '📖', moodboard: '🎨', videoClip: '🎬', asset: '📦', task: '📋', art: '🖼️', character: '👤', script: '📝', deliverable: '📦', sceneCard: '🎬' }[c.type] ?? '📄';
-    lines.push(`  ${icon} ${c.type}「${c.data.title}」(id: ${c.id})`);
-    if (c.data.description) lines.push(`    描述：${c.data.description.slice(0, 80)}`);
-    if (c.data.children?.length) {
-      for (const ch of c.data.children) lines.push(`    └─ ${ch.type}「${ch.title}」`);
-    }
-  }
-  return lines.join('\n');
-}
+// canvasToPromptText 现在在 @drama/lib/systemPrompt 里导出，这里不再定义。

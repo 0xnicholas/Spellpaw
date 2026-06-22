@@ -1,11 +1,18 @@
-import { useCallback, useEffect, useMemo } from "react";
-import { TabBar } from "@/shared/components/ui/TabBar";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Copy, Plus, Share2, Eye } from "lucide-react";
 import { TabPanel } from "@/shared/components/ui/TabPanel";
+import { Button } from "@/shared/components/ui/Button";
+import { IconButton } from "@/shared/components/ui/IconButton";
+import { useToast } from "@/shared/components/ui/useToast";
 import { DetailPanel } from "@drama/components/detail-panel/DetailPanel";
 import { CopilotChat } from "./copilot";
 import { ContextBar } from "./ContextBar";
 import { QuickActions } from "./QuickActions";
 import { WorkflowGuide } from "./WorkflowGuide";
+import { CanvasMentionButton } from "./CanvasMentionButton";
+import { FileUploadButton, formatFileInsert } from "./FileUploadButton";
+import { buildSystemPrompt, canvasToPromptText } from "@drama/lib/systemPrompt";
 import { useChatStore } from "@drama/stores/chatStore";
 import { useCanvasStore } from "@drama/stores/canvasStore";
 import { useDetailStore } from "@drama/stores/detailStore";
@@ -158,20 +165,68 @@ export function ChatPanel() {
 	}, [selectedCard]);
 
 	const showDetailsTab = !!selectedCard;
-	const tabs = showDetailsTab
-		? [
-				{ id: "chat", label: "对话" },
-				{ id: "details", label: "详情" },
-			]
-		: [{ id: "chat", label: "对话" }];
+	const navigate = useNavigate();
+	const { show: showToast } = useToast();
+
+	const handleBack = () => {
+		if (activeTab === "details") {
+			setActiveTab("chat");
+			return;
+		}
+		navigate("/");
+	};
+
+	const handleNew = () => {
+		navigate("/");
+	};
+
+	const handleShare = () => {
+		showToast("分享功能即将上线", "info");
+	};
+
+	// View Prompt modal state —— 只读查看 + 复制当前 session 使用的 system prompt
+	const [promptOpen, setPromptOpen] = useState(false);
+	const currentPrompt = useMemo(() => {
+		const projectTitle = useProjectStore.getState()
+			.projects.find(p => p.id === useProjectStore.getState().currentProjectId)?.title ?? "Untitled";
+		const canvasText = canvasToPromptText(useCanvasStore.getState().getCurrentNodes());
+		return buildSystemPrompt(projectTitle, canvasText);
+		}, []);
+	const copyPrompt = async () => {
+		try {
+			await navigator.clipboard.writeText(currentPrompt);
+			showToast("Prompt 已复制", "success");
+		} catch {
+			showToast("复制失败", "error");
+		}
+	};
+	
 
 	return (
-		<div className="flex h-full flex-col bg-[var(--color-bg-primary)]">
-			<TabBar
-				tabs={tabs}
-				activeTab={activeTab}
-				onChange={(id) => setActiveTab(id as "chat" | "details")}
-			/>
+		<>
+			<div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-bg-primary)]">
+			<div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-2 py-1.5">
+				<IconButton
+					icon={<ArrowLeft className="h-4 w-4" />}
+					label={activeTab === "details" ? "返回对话" : "返回项目列表"}
+					size="sm"
+					onClick={handleBack}
+				/>
+				<div className="flex items-center gap-1">
+					<Button variant="ghost" size="sm" onClick={handleNew}>
+						<Plus className="mr-1 h-3.5 w-3.5" />
+						New
+					</Button>
+					<Button variant="ghost" size="sm" onClick={() => setPromptOpen(true)}>
+						<Eye className="mr-1 h-3.5 w-3.5" />
+						View Prompt
+					</Button>
+					<Button variant="ghost" size="sm" onClick={handleShare}>
+						<Share2 className="mr-1 h-3.5 w-3.5" />
+						Share
+					</Button>
+				</div>
+			</div>
 			<div className="flex-1 overflow-hidden">
 				<TabPanel
 					isActive={activeTab === "chat" || !showDetailsTab}
@@ -190,7 +245,21 @@ export function ChatPanel() {
 						onActionClick={handleActionClick}
 						placeholder="输入创作想法…"
 						emptyState={<WorkflowGuide />}
-					contextChip={contextChip}
+						contextChip={contextChip}
+						inputLeftToolbar={
+							<>
+								<FileUploadButton
+									onUpload={(f) => {
+										window.dispatchEvent(new CustomEvent('spellpaw:insert-text', { detail: formatFileInsert(f) }));
+									}}
+								/>
+								<CanvasMentionButton
+									onPick={(node) => useCanvasStore.getState().setSelectedCardId(node.id)}
+								/>
+							</>
+						}
+						inputRows={5}
+						inputClassName="border-t border-[var(--color-border-default)] bg-[var(--color-bg-primary)] p-3"
 					/>
 				</TabPanel>
 				<TabPanel isActive={activeTab === "details" && showDetailsTab}>
@@ -198,5 +267,21 @@ export function ChatPanel() {
 				</TabPanel>
 			</div>
 		</div>
+
+			{promptOpen && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setPromptOpen(false)}>
+					<div className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+						<div className="flex shrink-0 items-center justify-between border-b border-[var(--color-border-default)] px-4 py-3">
+							<h2 className="text-sm font-semibold text-[var(--color-text-primary)]">System Prompt（只读）</h2>
+							<Button variant="secondary" size="sm" onClick={copyPrompt}>
+								<Copy className="mr-1 h-3 w-3" />
+								复制
+							</Button>
+						</div>
+						<pre className="m-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-[11px] leading-relaxed text-[var(--color-text-secondary)]">{currentPrompt}</pre>
+					</div>
+				</div>
+			)}
+		</>
 	);
 }

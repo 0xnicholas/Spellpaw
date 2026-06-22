@@ -140,39 +140,87 @@ export function IntegrationsSection() {
   };
 
   return (
-    <section className="space-y-8">
+    <section className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">{t('console.integrations.title')}</h2>
-        <p className="text-sm text-[var(--color-text-secondary)]">{t('console.integrations.description')}</p>
+        <div
+          className="mb-2 inline-block text-xs font-semibold tracking-[0.18em]"
+          style={{ color: 'var(--portal-accent)' }}
+        >
+          INTEGRATIONS
+        </div>
+        <h2
+          className="mb-1.5 text-2xl font-bold text-white"
+          style={{ fontFamily: 'var(--font-family-display)', letterSpacing: '-0.02em' }}
+        >
+          {t('console.integrations.title')}
+        </h2>
+        <p className="text-sm" style={{ color: 'var(--portal-text-muted)' }}>
+          {t('console.integrations.description')}
+        </p>
       </div>
 
-      <div className="space-y-4">
+      <div
+        className="space-y-5 rounded-[20px] border p-6"
+        style={{
+          background: 'var(--portal-bg-elevated)',
+          borderColor: 'var(--portal-border)',
+        }}
+      >
         <div>
-          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{t('console.integrations.languageModelTitle')}</h3>
-          <p className="text-sm text-[var(--color-text-secondary)]">{t('console.integrations.languageModelDescription')}</p>
+          <h3
+            className="text-sm font-semibold text-white"
+            style={{ fontFamily: 'var(--font-family-display)' }}
+          >
+            {t('console.integrations.languageModelTitle')}
+          </h3>
+          <p className="mt-0.5 text-xs" style={{ color: 'var(--portal-text-muted)' }}>
+            {t('console.integrations.languageModelDescription')}
+          </p>
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-medium text-[var(--color-text-secondary)]">
+          <label
+            className="mb-2 block text-xs font-medium"
+            style={{ color: 'var(--portal-text-muted)' }}
+          >
             {t('console.integrations.llmProvider')}
           </label>
           <div className="flex flex-wrap gap-2">
-            {LLM_PROVIDERS.map((provider) => (
-              <Button
-                key={provider}
-                variant={llmProvider === provider ? 'primary' : 'outline'}
-                size="sm"
-                onClick={() => handleProviderChange(provider)}
-                disabled={loading}
-              >
-                {t(`console.integrations.providers.${provider}`)}
-              </Button>
-            ))}
+            {LLM_PROVIDERS.map((provider) => {
+              const active = llmProvider === provider;
+              return (
+                <button
+                  key={provider}
+                  onClick={() => handleProviderChange(provider)}
+                  disabled={loading}
+                  className="rounded-full px-3.5 py-1.5 text-xs font-medium transition-all disabled:opacity-50"
+                  style={
+                    active
+                      ? {
+                          background: 'white',
+                          color: 'oklch(15% 0.02 270)',
+                          fontFamily: 'var(--font-family-display)',
+                          boxShadow: '0 2px 8px rgba(255,255,255,0.1)',
+                        }
+                      : {
+                          background: 'oklch(100% 0 0 / 0.04)',
+                          border: '1px solid oklch(100% 0 0 / 0.08)',
+                          color: 'var(--portal-text-muted)',
+                        }
+                  }
+                >
+                  {t(`console.integrations.providers.${provider}`)}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
+          <label
+            className="mb-1.5 block text-xs font-medium"
+            style={{ color: 'var(--portal-text-muted)' }}
+          >
             {t('console.integrations.llmApiKey')}
           </label>
           <Input
@@ -181,11 +229,19 @@ export function IntegrationsSection() {
             onChange={(e) => updateCurrentLlmApiKey(e.target.value)}
             placeholder={LLM_PROVIDER_REGISTRY[llmProvider].apiKeyPlaceholder}
             disabled={loading}
+            className="!h-10 !rounded-xl !text-sm !text-white"
+            style={{
+              background: 'oklch(100% 0 0 / 0.04)',
+              border: '1px solid oklch(100% 0 0 / 0.08)',
+            }}
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
+          <label
+            className="mb-1.5 block text-xs font-medium"
+            style={{ color: 'var(--portal-text-muted)' }}
+          >
             {t('console.integrations.llmBaseUrl')}
           </label>
           <Input
@@ -193,14 +249,22 @@ export function IntegrationsSection() {
             onChange={(e) => setLlmBaseUrl(e.target.value)}
             placeholder={LLM_PROVIDER_REGISTRY[llmProvider].baseUrl}
             disabled={loading}
+            className="!h-10 !rounded-xl !text-sm !text-white"
+            style={{
+              background: 'oklch(100% 0 0 / 0.04)',
+              border: '1px solid oklch(100% 0 0 / 0.08)',
+            }}
           />
-          <p className="mt-1 text-[10px] text-[var(--color-text-tertiary)]">
+          <p className="mt-1.5 text-[10px]" style={{ color: 'var(--portal-text-dim)' }}>
             {t('console.integrations.llmBaseUrlHint')}
           </p>
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
+          <label
+            className="mb-1.5 block text-xs font-medium"
+            style={{ color: 'var(--portal-text-muted)' }}
+          >
             {t('console.integrations.llmModel')}
           </label>
           <ModelSelector
@@ -211,27 +275,56 @@ export function IntegrationsSection() {
           />
         </div>
 
-        {languageSaved && <p className="text-xs text-green-500">{t('console.integrations.saved')}</p>}
-        {languageError && <p className="text-xs text-red-500">{t('console.integrations.saveError')}</p>}
+        {languageSaved && (
+          <p className="text-xs" style={{ color: 'oklch(80% 0.12 145)' }}>
+            {t('console.integrations.saved')}
+          </p>
+        )}
+        {languageError && (
+          <p className="text-xs" style={{ color: 'oklch(80% 0.12 25)' }}>
+            {t('console.integrations.saveError')}
+          </p>
+        )}
 
         <div className="pt-2">
-          <Button size="sm" onClick={handleSaveLanguageModel} loading={languageSaving} disabled={loading}>
+          <Button
+            size="sm"
+            onClick={handleSaveLanguageModel}
+            loading={languageSaving}
+            disabled={loading}
+          >
             {t('console.integrations.saveLanguageModel')}
           </Button>
         </div>
       </div>
 
-      <div className="space-y-4 border-t border-[var(--color-border-default)] pt-6">
+      <div
+        className="space-y-5 rounded-[20px] border p-6"
+        style={{
+          background: 'var(--portal-bg-elevated)',
+          borderColor: 'var(--portal-border)',
+        }}
+      >
         <div>
-          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{t('console.integrations.multimodalTitle')}</h3>
-          <p className="text-sm text-[var(--color-text-secondary)]">{t('console.integrations.multimodalDescription')}</p>
+          <h3
+            className="text-sm font-semibold text-white"
+            style={{ fontFamily: 'var(--font-family-display)' }}
+          >
+            {t('console.integrations.multimodalTitle')}
+          </h3>
+          <p className="mt-0.5 text-xs" style={{ color: 'var(--portal-text-muted)' }}>
+            {t('console.integrations.multimodalDescription')}
+          </p>
         </div>
 
         {MULTIMODAL_PROVIDERS.map((id) => {
           const config = MULTIMODAL_PROVIDER_REGISTRY[id];
           return (
             <div key={id}>
-              <label className="mb-1 block text-xs font-medium text-[var(--color-text-secondary)]">
+              <label
+                className="mb-1.5 block text-xs font-medium"
+                style={{ color: 'var(--portal-text-muted)' }}
+              >
                 {t(config.labelKey)}
               </label>
               <Input
@@ -240,19 +333,37 @@ export function IntegrationsSection() {
                 onChange={(e) => setMultimodalKeys((prev) => ({ ...prev, [id]: e.target.value }))}
                 placeholder={config.placeholderKey ? t(config.placeholderKey) : undefined}
                 disabled={id === 'minimax' || loading}
+                className="!h-10 !rounded-xl !text-sm !text-white"
+                style={{
+                  background: 'oklch(100% 0 0 / 0.04)',
+                  border: '1px solid oklch(100% 0 0 / 0.08)',
+                }}
               />
-              <p className="mt-1 text-[10px] text-[var(--color-text-tertiary)]">
+              <p className="mt-1.5 text-[10px]" style={{ color: 'var(--portal-text-dim)' }}>
                 {t(config.hintKey)}
               </p>
             </div>
           );
         })}
 
-        {multimodalSaved && <p className="text-xs text-green-500">{t('console.integrations.saved')}</p>}
-        {multimodalError && <p className="text-xs text-red-500">{t('console.integrations.saveError')}</p>}
+        {multimodalSaved && (
+          <p className="text-xs" style={{ color: 'oklch(80% 0.12 145)' }}>
+            {t('console.integrations.saved')}
+          </p>
+        )}
+        {multimodalError && (
+          <p className="text-xs" style={{ color: 'oklch(80% 0.12 25)' }}>
+            {t('console.integrations.saveError')}
+          </p>
+        )}
 
         <div className="pt-2">
-          <Button size="sm" onClick={handleSaveMultimodal} loading={multimodalSaving} disabled={loading}>
+          <Button
+            size="sm"
+            onClick={handleSaveMultimodal}
+            loading={multimodalSaving}
+            disabled={loading}
+          >
             {t('console.integrations.saveMultimodal')}
           </Button>
         </div>
@@ -284,9 +395,13 @@ function ModelSelector({ provider, model, onChange, disabled }: ModelSelectorPro
         }}
         disabled={disabled}
         className={cn(
-          'h-9 w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-3 text-sm text-[var(--color-text-primary)] focus:border-[var(--color-accent-500)] focus:outline-none focus:ring-[1.5px] focus:ring-[var(--color-accent-500)]',
+          'h-10 w-full rounded-xl border px-3.5 text-sm text-white outline-none focus:ring-[1.5px]',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
+        style={{
+          background: 'oklch(100% 0 0 / 0.04)',
+          borderColor: 'oklch(100% 0 0 / 0.08)',
+        }}
       >
         <option value="">{t('console.integrations.llmModelDefault', { model: defaultModel })}</option>
         {recommended.map((m) => (

@@ -1,238 +1,133 @@
-import { ArrowRight, Wand2, Sparkles, Upload, FileText, Clapperboard, X, ChevronDown } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { ArrowRight, Sparkles, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-type DramaType = 'single' | 'series';
-type WriterMode = 'pro' | 'high' | 'xhigh';
+const EXAMPLE_PROMPTS = [
+  '都市奇缘',
+  '密室逃脱',
+  '逆袭人生',
+  '校园恋爱',
+];
 
-const writerModeConfig: Record<WriterMode, { label: string; desc: string }> = {
-  pro: { label: '编剧 Pro', desc: '标准模式' },
-  high: { label: '编剧 High', desc: '深度创作' },
-  xhigh: { label: '编剧 xHigh', desc: '极致体验' },
-};
-
+/**
+ * Hero section — buzzy.now-style dark hero with large Poppins
+ * display headline, dual CTAs (white pill primary + outline),
+ * and example prompt chips.
+ */
 export function HeroSection() {
-  const [prompt, setPrompt] = useState('');
-  const [dramaType, setDramaType] = useState<DramaType>('single');
-  const [writerMode, setWriterMode] = useState<WriterMode>('pro');
-  const [writerDropdownOpen, setWriterDropdownOpen] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setWriterDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleCreate = () => {
     navigate('/projects');
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) setUploadedFile(file);
-  };
-
-  const clearFile = () => {
-    setUploadedFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
   return (
-    <section className="relative flex min-h-[auto] items-center justify-center overflow-hidden py-12 pt-24 sm:min-h-[85vh]">
-      {/* Aurora flowing background */}
-      <div className="absolute inset-0 bg-[var(--color-bg-primary)]" />
+    <section
+      className="relative flex min-h-[auto] items-center justify-center overflow-hidden pt-32 pb-20 sm:min-h-[88vh] sm:pt-36"
+      style={{ background: 'var(--portal-bg)' }}
+    >
+      {/* Aurora flowing bands — purple/violet theme */}
+      <div
+        className="absolute -left-[15%] -top-[20%] h-[800px] w-[1000px] rounded-full blur-[180px] animate-[aurora-1_16s_ease-in-out_infinite]"
+        style={{ background: 'oklch(45% 0.2 275 / 0.35)' }}
+      />
+      <div
+        className="absolute -right-[10%] top-[5%] h-[700px] w-[900px] rounded-full blur-[160px] animate-[aurora-2_20s_ease-in-out_infinite]"
+        style={{ background: 'oklch(50% 0.2 290 / 0.28)' }}
+      />
+      <div
+        className="absolute left-[15%] -bottom-[10%] h-[600px] w-[800px] rounded-full blur-[180px] animate-[aurora-3_18s_ease-in-out_infinite]"
+        style={{ background: 'oklch(45% 0.18 260 / 0.25)' }}
+      />
 
-      {/* Flowing aurora bands */}
-      <div className="absolute -left-[10%] -top-[10%] h-[700px] w-[900px] animate-[aurora-1_14s_ease-in-out_infinite] rounded-full bg-purple-500/8 blur-[160px] dark:bg-purple-500/15" />
-      <div className="absolute -right-[5%] top-[5%] h-[600px] w-[800px] animate-[aurora-2_18s_ease-in-out_infinite] rounded-full bg-cyan-500/6 blur-[140px] dark:bg-cyan-500/12" />
-      <div className="absolute left-[10%] -bottom-[5%] h-[500px] w-[700px] animate-[aurora-3_16s_ease-in-out_infinite] rounded-full bg-pink-500/6 blur-[150px] dark:bg-pink-500/10" />
+      {/* Center vignette to focus on the headline */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 50% at 50% 45%, transparent 30%, var(--portal-bg) 100%)',
+        }}
+      />
 
-      {/* Vignette for depth */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,_transparent_40%,_var(--color-bg-primary)_100%)]" />
-
-      {/* Subtle flowing grid */}
-      <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.03]">
-        <div
-          className="h-full w-full"
-          style={{
-            backgroundImage: `linear-gradient(var(--color-accent-500) 1px, transparent 1px), linear-gradient(90deg, var(--color-accent-500) 1px, transparent 1px)`,
-            backgroundSize: '80px 80px',
-          }}
-        />
-      </div>
-
-      <div className="relative z-10 mx-auto w-full max-w-3xl px-6">
+      <div className="relative z-10 mx-auto w-full max-w-4xl px-6 text-center">
         {/* Badge */}
-        <div className="mb-6 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-accent-500)]/20 bg-[var(--color-accent-500)]/5 px-4 py-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-[var(--color-accent-500)]" />
-            <span className="text-xs font-medium text-[var(--color-accent-500)]">
-              AI 驱动的短剧创作平台
-            </span>
-          </div>
+        <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 py-1.5 backdrop-blur-sm">
+          <span
+            className="flex h-4 w-4 items-center justify-center rounded-full"
+            style={{ background: 'var(--portal-accent)' }}
+          >
+            <Sparkles className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />
+          </span>
+          <span
+            className="text-xs font-semibold tracking-wide"
+            style={{ color: 'var(--portal-accent)', letterSpacing: '0.04em' }}
+          >
+            AI-DRIVEN SHORT DRAMA STUDIO
+          </span>
         </div>
 
-        {/* Headline */}
-        <h1 className="mb-3 text-center text-4xl font-bold leading-[1.1] tracking-tight text-[var(--color-text-primary)] sm:text-5xl">
-          用 AI 打造你的
+        {/* Headline — large, bold, tight tracking (buzzy.now style) */}
+        <h1
+          className="mb-5 font-bold leading-[1.05] tracking-[-0.04em] text-white"
+          style={{
+            fontFamily: 'var(--font-family-display)',
+            fontSize: 'clamp(2.5rem, 6vw, 4.75rem)',
+            fontWeight: 700,
+          }}
+        >
+          把灵感直接
           <br />
-          <span className="bg-gradient-to-r from-[#5b21ff] to-[#a855f7] bg-clip-text text-transparent">
-            下一个爆款短剧
-          </span>
+          拍成<span style={{ color: 'var(--portal-accent)' }}>爆款短剧</span>
         </h1>
 
-        <p className="mb-10 text-center text-base leading-relaxed text-[var(--color-text-secondary)] sm:text-lg">
-          输入创意或上传剧本，AI 自动生成剧本、分镜和拍摄方案
+        <p
+          className="mx-auto mb-10 max-w-2xl text-base leading-relaxed sm:text-lg"
+          style={{ color: 'var(--portal-text-muted)' }}
+        >
+          从一句话梗概到完整分镜，AI 帮你完成剧本结构、角色设计和拍摄方案。
+          <br className="hidden sm:block" />
+          不需要剧本经验，让创意变成可以拍的内容。
         </p>
 
-        {/* Unified Input Panel */}
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] shadow-xl shadow-[var(--color-accent-500)]/5">
-          {/* Textarea */}
-          <div className="relative">
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="输入你的短剧创意..."
-              className="min-h-[140px] w-full resize-none rounded-t-[var(--radius-lg)] bg-transparent px-5 pt-4 text-[15px] leading-relaxed text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-tertiary)]"
-            />
-            {prompt.length > 0 && (
-              <div className="absolute bottom-2 right-4 text-[10px] text-[var(--color-text-tertiary)]">
-                {prompt.length}
-              </div>
-            )}
-          </div>
-
-          {/* Bottom toolbar — all controls in one row */}
-          <div className="flex items-center gap-2 border-t border-[var(--color-border-default)] px-4 py-3">
-            {/* Left: Upload */}
-            <div className="flex items-center">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".txt,.pdf,.doc,.docx,.md"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              {uploadedFile ? (
-                <div className="flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-accent-50)] px-2.5 py-1 text-xs text-[var(--color-accent-600)]">
-                  <FileText className="h-3 w-3" />
-                  <span className="max-w-[120px] truncate">{uploadedFile.name}</span>
-                  <button onClick={clearFile} className="ml-0.5 hover:text-[var(--color-accent-700)]">
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-xs text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-secondary)]"
-                >
-                  <Upload className="h-3 w-3" />
-                  上传剧本/小说
-                </button>
-              )}
-            </div>
-
-            {/* Spacer */}
-            <div className="flex-1" />
-
-            {/* Right: Drama Type */}
-            <div className="flex items-center rounded-[var(--radius-sm)] bg-[var(--color-bg-tertiary)] p-0.5">
-              <button
-                onClick={() => setDramaType('single')}
-                className={`flex items-center gap-1 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-medium transition-all ${
-                  dramaType === 'single'
-                    ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
-                    : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'
-                }`}
-              >
-                <Clapperboard className="h-3 w-3" />
-                单剧
-              </button>
-              <button
-                onClick={() => setDramaType('series')}
-                className={`flex items-center gap-1 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-medium transition-all ${
-                  dramaType === 'series'
-                    ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
-                    : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'
-                }`}
-              >
-                <FileText className="h-3 w-3" />
-                连续剧
-              </button>
-            </div>
-
-            {/* Divider */}
-            <div className="h-4 w-px bg-[var(--color-border-default)]" />
-
-            {/* Right: Writer Mode Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setWriterDropdownOpen(!writerDropdownOpen)}
-                className="flex items-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-secondary)]"
-              >
-                {writerModeConfig[writerMode].label}
-                <ChevronDown className={`h-3 w-3 transition-transform ${writerDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {writerDropdownOpen && (
-                <div className="absolute bottom-full right-0 mb-1 w-36 rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] py-1 shadow-lg">
-                  {(['pro', 'high', 'xhigh'] as WriterMode[]).map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => {
-                        setWriterMode(mode);
-                        setWriterDropdownOpen(false);
-                      }}
-                      className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors ${
-                        writerMode === mode
-                          ? 'bg-[var(--color-accent-50)] text-[var(--color-accent-600)]'
-                          : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]'
-                      }`}
-                    >
-                      <span className="font-medium">{writerModeConfig[mode].label}</span>
-                      <span className="text-[10px] text-[var(--color-text-tertiary)]">{writerModeConfig[mode].desc}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Create Button */}
-        <div className="mt-4 flex justify-center">
+        {/* CTAs — pill shaped (buzzy.now signature) */}
+        <div className="mb-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
           <button
             onClick={handleCreate}
-            className="group flex items-center gap-2 rounded-[var(--radius-base)] bg-gradient-to-r from-[#5b21ff] to-[#a855f7] px-8 py-3 text-base font-semibold text-white shadow-lg shadow-[#5b21ff]/20 transition-all hover:from-[#4c1ad9] hover:to-[#9646e5] hover:shadow-[#5b21ff]/30"
+            className="group flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-[15px] font-semibold text-[oklch(15%_0.02_270)] transition-all hover:bg-white/95 hover:scale-[1.02]"
+            style={{
+              fontFamily: 'var(--font-family-display)',
+              boxShadow: '0 8px 32px rgba(255,255,255,0.18), 0 0 0 1px rgba(255,255,255,0.08)',
+            }}
           >
-            <Wand2 className="h-5 w-5" />
+            <Play className="h-4 w-4" fill="currentColor" strokeWidth={0} />
             开始创作
-            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
+
+          <a
+            href="#workflow"
+            className="flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.04] px-6 py-3.5 text-[15px] font-medium text-white transition-all hover:bg-white/[0.08]"
+            style={{ fontFamily: 'var(--font-family-display)' }}
+          >
+            <Play className="h-3.5 w-3.5" fill="currentColor" strokeWidth={0} />
+            查看工作流
+          </a>
         </div>
 
-        {/* Quick examples */}
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-xs text-[var(--color-text-tertiary)]">试试：</span>
-          {['都市奇缘', '密室逃脱', '逆袭人生', '校园恋爱'].map((item) => (
+        {/* Quick prompt chips — example starters */}
+        <div className="flex flex-wrap items-center justify-center gap-2.5">
+          <span className="text-xs" style={{ color: 'var(--portal-text-dim)' }}>
+            快速开始：
+          </span>
+          {EXAMPLE_PROMPTS.map((item) => (
             <button
               key={item}
-              onClick={() => setPrompt(item)}
-              className="rounded-full border border-[var(--color-border-default)] bg-[var(--color-bg-primary)]/80 px-3 py-1 text-xs text-[var(--color-text-secondary)] transition-all hover:border-[var(--color-accent-500)]/30 hover:text-[var(--color-accent-500)]"
+              onClick={() => handleCreate()}
+              className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 py-1 text-xs font-medium text-white/80 backdrop-blur-sm transition-all hover:border-white/[0.18] hover:bg-white/[0.08] hover:text-white"
             >
               {item}
             </button>
           ))}
         </div>
-
-
       </div>
     </section>
   );

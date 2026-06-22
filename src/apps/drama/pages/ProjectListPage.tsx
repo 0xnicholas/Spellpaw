@@ -1,7 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Clock, LayoutGrid, Trash2, Download, Upload, FileCode, LayoutTemplate, Printer, FileText, Camera } from 'lucide-react';
-import { Button } from '@/shared/components/ui/Button';
+import {
+  Plus,
+  Clock,
+  LayoutGrid,
+  Trash2,
+  Download,
+  Upload,
+  FileCode,
+  LayoutTemplate,
+  Printer,
+  FileText,
+  Camera,
+  Film,
+} from 'lucide-react';
 import { NewProjectModal } from '@drama/components/modals/NewProjectModal';
 import { SnapshotModal } from '@drama/components/modals/SnapshotModal';
 import type { NarrativeTemplate } from '@drama/types';
@@ -14,7 +26,6 @@ import { logger } from '@shared/lib/logger';
 import { treeToTemplate, downloadTemplateFile } from '@drama/lib/templateExportImport';
 import { pushAll, pullAll } from '@drama/lib/projectSync';
 import { exportStoryboardPDF, exportDialogueScript } from '@drama/lib/exportPrint';
-
 
 export function ProjectListPage() {
   const navigate = useNavigate();
@@ -62,12 +73,7 @@ export function ProjectListPage() {
     const tree = state.trees[projectId];
     if (!project || !tree) return;
     const canvasEntry = canvasState.canvases[projectId];
-    exportProjectToJSON(
-      project,
-      tree,
-      canvasEntry?.nodes,
-      canvasEntry?.edges,
-    );
+    exportProjectToJSON(project, tree, canvasEntry?.nodes, canvasEntry?.edges);
   };
 
   const handleExportAsTemplate = (projectId: string) => {
@@ -113,22 +119,41 @@ export function ProjectListPage() {
   };
 
   return (
-    <div className="flex h-full min-h-screen flex-col bg-[var(--color-bg-secondary)]">
-      <header className="flex h-12 items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-6">
-        <div className="flex items-center gap-2">
-          <img src="/favicon.svg" alt="SpellPaw" className="h-5 w-5" />
+    <div
+      className="flex h-full min-h-screen flex-col"
+      style={{ background: 'var(--portal-bg)' }}
+    >
+      {/* Header — buzzy.now-style */}
+      <header
+        className="flex h-14 shrink-0 items-center justify-between border-b px-6"
+        style={{
+          background: 'oklch(13% 0.015 270 / 0.72)',
+          backdropFilter: 'blur(16px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+          borderColor: 'oklch(100% 0 0 / 0.06)',
+        }}
+      >
+        <Link to="/" className="flex items-center gap-2.5">
+          <img src="/favicon.svg" alt="SpellPaw" className="h-6 w-6" />
           <span
-            className="text-[15px] font-bold tracking-[-0.01em] text-[var(--color-text-primary)]"
+            className="text-[17px] font-bold tracking-[-0.02em] text-white"
             style={{ fontFamily: '"Sora", Inter, sans-serif' }}
           >
             SpellPaw
           </span>
-        </div>
+        </Link>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[var(--color-text-tertiary)]">{user?.name}</span>
+          <span className="text-xs" style={{ color: 'var(--portal-text-muted)' }}>
+            {user?.name}
+          </span>
           <Link
             to="/console"
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-accent-50)] text-xs font-medium text-[var(--color-accent-500)] transition-colors hover:bg-[var(--color-accent-100)]"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white transition-all hover:scale-105"
+            style={{
+              background:
+                'linear-gradient(135deg, oklch(55% 0.2 275) 0%, oklch(45% 0.18 290) 100%)',
+              boxShadow: '0 0 16px oklch(55% 0.2 275 / 0.3)',
+            }}
             title="个人中心"
           >
             {user?.name?.[0] ?? 'U'}
@@ -136,121 +161,281 @@ export function ProjectListPage() {
         </div>
       </header>
 
-      <main className="flex-1 p-8">
-        <div className="mx-auto max-w-[960px]">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text-primary)]">
+      <main className="flex-1 overflow-auto p-8 sm:p-12">
+        <div className="mx-auto max-w-[1100px]">
+          {/* Page header */}
+          <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <div
+                className="mb-2 inline-block text-xs font-semibold tracking-[0.18em]"
+                style={{ color: 'var(--portal-accent)' }}
+              >
+                YOUR PROJECTS
+              </div>
+              <h1
+                className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
+                style={{ fontFamily: 'var(--font-family-display)', letterSpacing: '-0.025em' }}
+              >
                 项目
               </h1>
+              <p className="mt-1.5 text-sm" style={{ color: 'var(--portal-text-muted)' }}>
+                继续编辑你的创作，或开始一个新项目
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => navigate('/templates')}
-                className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent-500)] hover:text-[var(--color-accent-500)]"
+                className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-all"
+                style={{
+                  background: 'oklch(100% 0 0 / 0.04)',
+                  border: '1px solid oklch(100% 0 0 / 0.08)',
+                  color: 'var(--portal-text-muted)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'oklch(60% 0.18 275 / 0.5)';
+                  e.currentTarget.style.color = 'var(--portal-accent)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'oklch(100% 0 0 / 0.08)';
+                  e.currentTarget.style.color = 'var(--portal-text-muted)';
+                }}
               >
                 <LayoutTemplate className="h-3.5 w-3.5" />
                 模板市场
               </button>
-            </div>
-            <div className="flex items-center gap-2">
+
               {user && (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => pushAll().then(r => alert(`已同步 ${r.synced}${r.errors.length ? `，错误：${r.errors.join('；')}` : ''}`))}>
-                    <Upload className="mr-1 h-4 w-4" />
+                  <button
+                    onClick={() =>
+                      pushAll().then((r) =>
+                        alert(
+                          `已同步 ${r.synced}${r.errors.length ? `，错误：${r.errors.join('；')}` : ''}`
+                        )
+                      )
+                    }
+                    className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-all"
+                    style={{
+                      background: 'oklch(100% 0 0 / 0.04)',
+                      border: '1px solid oklch(100% 0 0 / 0.08)',
+                      color: 'var(--portal-text-muted)',
+                    }}
+                    title="推送项目到云端"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
                     推送
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => pullAll().then(r => alert(`已导入 ${r.imported} 个项目`))}>
-                    <Download className="mr-1 h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => pullAll().then((r) => alert(`已导入 ${r.imported} 个项目`))}
+                    className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-all"
+                    style={{
+                      background: 'oklch(100% 0 0 / 0.04)',
+                      border: '1px solid oklch(100% 0 0 / 0.08)',
+                      color: 'var(--portal-text-muted)',
+                    }}
+                    title="从云端拉取项目"
+                  >
+                    <Download className="h-3.5 w-3.5" />
                     拉取
-                  </Button>
+                  </button>
                 </>
               )}
-              <Button variant="outline" size="sm" onClick={handleImport}>
-                <Upload className="mr-1 h-4 w-4" />
+
+              <button
+                onClick={handleImport}
+                className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-all"
+                style={{
+                  background: 'oklch(100% 0 0 / 0.04)',
+                  border: '1px solid oklch(100% 0 0 / 0.08)',
+                  color: 'var(--portal-text-muted)',
+                }}
+              >
+                <Upload className="h-3.5 w-3.5" />
                 导入
-              </Button>
-              <Button size="sm" onClick={() => setIsModalOpen(true)}>
-                <Plus className="mr-1 h-4 w-4" />
+              </button>
+
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-[oklch(15%_0.02_270)] transition-all hover:scale-[1.02]"
+                style={{
+                  fontFamily: 'var(--font-family-display)',
+                  boxShadow: '0 4px 16px rgba(255,255,255,0.12), 0 0 24px oklch(60% 0.2 275 / 0.18)',
+                }}
+              >
+                <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
                 新建项目
-              </Button>
+              </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
-              <div key={project.id} className="group relative">
-                <button
-                  onClick={() => handleOpen(project.id)}
-                  className="w-full flex flex-col rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] p-5 text-left transition-all hover:border-[var(--color-accent-500)] hover:shadow-sm"
-                >
-                  <div
-                    className="mb-4 h-24 w-full rounded-[var(--radius-sm)]"
-                    style={{ backgroundColor: project.coverColor, opacity: 0.15 }}
-                  />
-                  <h3 className="mb-1 text-base font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-accent-500)]">
-                    {project.title}
-                  </h3>
-                  <p className="mb-3 text-xs text-[var(--color-text-tertiary)] line-clamp-2">
-                    {project.description}
-                  </p>
-                  <div className="mt-auto flex items-center gap-4 text-xs text-[var(--color-text-tertiary)]">
-                    <span className="flex items-center gap-1">
-                      <LayoutGrid className="h-3.5 w-3.5" />
-                      {project.sceneCount} 场景
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {Math.floor(project.duration / 60)}:{String(project.duration % 60).padStart(2, '0')}
-                    </span>
-                  </div>
-                </button>
-                {/* Quick actions on hover */}
-                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setCurrentProject(project.id); setSnapshotProjectId(project.id); }}
-                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-                    title="快照"
-                  >
-                    <Camera className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); exportStoryboardPDF(project.id); }}
-                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-                    title="打印分镜表"
-                  >
-                    <Printer className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); exportDialogueScript(project.id, 'txt'); }}
-                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-                    title="导出对白脚本"
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleExportAsTemplate(project.id); }}
-                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-                    title="导出为模板"
-                  >
-                    <FileCode className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleExport(project.id); }}
-                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
-                    title="导出 JSON"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(project.id); }}
-                    className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-status-danger-bg)] hover:text-[var(--color-status-danger-text)]"
-                    title="删除"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+          {/* Project grid */}
+          {projects.length === 0 ? (
+            <div
+              className="rounded-[24px] border py-20 text-center"
+              style={{
+                background: 'var(--portal-bg-elevated)',
+                borderColor: 'var(--portal-border)',
+                borderStyle: 'dashed',
+              }}
+            >
+              <div
+                className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl"
+                style={{
+                  background: 'oklch(50% 0.18 275 / 0.15)',
+                  border: '1px solid oklch(60% 0.16 275 / 0.25)',
+                }}
+              >
+                <Film className="h-6 w-6" style={{ color: 'var(--portal-accent)' }} />
               </div>
-            ))}
-          </div>
+              <h3
+                className="mb-1.5 text-lg font-semibold text-white"
+                style={{ fontFamily: 'var(--font-family-display)' }}
+              >
+                还没有项目
+              </h3>
+              <p className="mb-5 text-sm" style={{ color: 'var(--portal-text-muted)' }}>
+                创建你的第一个短剧项目开始创作
+              </p>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2 text-sm font-semibold text-[oklch(15%_0.02_270)] transition-all hover:scale-[1.02]"
+                style={{
+                  fontFamily: 'var(--font-family-display)',
+                  boxShadow: '0 4px 16px rgba(255,255,255,0.12)',
+                }}
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.5} />
+                新建项目
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {projects.map((project) => (
+                <div key={project.id} className="group relative">
+                  <button
+                    onClick={() => handleOpen(project.id)}
+                    className="relative w-full overflow-hidden rounded-[20px] border p-5 text-left transition-all duration-300 hover:-translate-y-1"
+                    style={{
+                      background: 'var(--portal-bg-elevated)',
+                      borderColor: 'var(--portal-border)',
+                      boxShadow: '0 1px 0 oklch(100% 0 0 / 0.04) inset',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'oklch(45% 0.1 275 / 0.5)';
+                      e.currentTarget.style.boxShadow =
+                        '0 0 0 1px oklch(60% 0.18 275 / 0.18), 0 16px 40px oklch(0% 0 0 / 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--portal-border)';
+                      e.currentTarget.style.boxShadow = '0 1px 0 oklch(100% 0 0 / 0.04) inset';
+                    }}
+                  >
+                    {/* Cover color bar */}
+                    <div className="mb-4 flex h-1.5 gap-1">
+                      <div
+                        className="flex-1 rounded-full"
+                        style={{ backgroundColor: project.coverColor, opacity: 0.8 }}
+                      />
+                      <div
+                        className="flex-1 rounded-full"
+                        style={{ backgroundColor: project.coverColor, opacity: 0.5 }}
+                      />
+                      <div
+                        className="flex-1 rounded-full"
+                        style={{ backgroundColor: project.coverColor, opacity: 0.3 }}
+                      />
+                    </div>
+
+                    <h3
+                      className="mb-1.5 text-base font-semibold text-white"
+                      style={{ fontFamily: 'var(--font-family-display)' }}
+                    >
+                      {project.title}
+                    </h3>
+                    <p
+                      className="mb-4 line-clamp-2 text-xs"
+                      style={{ color: 'var(--portal-text-muted)' }}
+                    >
+                      {project.description}
+                    </p>
+                    <div
+                      className="flex items-center gap-4 text-xs"
+                      style={{ color: 'var(--portal-text-dim)' }}
+                    >
+                      <span className="flex items-center gap-1">
+                        <LayoutGrid className="h-3.5 w-3.5" />
+                        {project.sceneCount} 场景
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {Math.floor(project.duration / 60)}:{String(project.duration % 60).padStart(2, '0')}
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Quick actions on hover */}
+                  <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ActionIconButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentProject(project.id);
+                        setSnapshotProjectId(project.id);
+                      }}
+                      title="快照"
+                    >
+                      <Camera className="h-3.5 w-3.5" />
+                    </ActionIconButton>
+                    <ActionIconButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        exportStoryboardPDF(project.id);
+                      }}
+                      title="打印分镜表"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                    </ActionIconButton>
+                    <ActionIconButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        exportDialogueScript(project.id, 'txt');
+                      }}
+                      title="导出对白脚本"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                    </ActionIconButton>
+                    <ActionIconButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleExportAsTemplate(project.id);
+                      }}
+                      title="导出为模板"
+                    >
+                      <FileCode className="h-3.5 w-3.5" />
+                    </ActionIconButton>
+                    <ActionIconButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleExport(project.id);
+                      }}
+                      title="导出 JSON"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </ActionIconButton>
+                    <ActionIconButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget(project.id);
+                      }}
+                      title="删除"
+                      danger
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </ActionIconButton>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
 
@@ -277,5 +462,41 @@ export function ProjectListPage() {
         onCancel={() => setDeleteTarget(null)}
       />
     </div>
+  );
+}
+
+interface ActionIconButtonProps {
+  onClick: (e: React.MouseEvent) => void;
+  title: string;
+  danger?: boolean;
+  children: React.ReactNode;
+}
+
+function ActionIconButton({ onClick, title, danger, children }: ActionIconButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="rounded-md p-1.5 transition-colors"
+      style={{
+        background: 'oklch(100% 0 0 / 0.05)',
+        color: 'var(--portal-text-muted)',
+        border: '1px solid oklch(100% 0 0 / 0.06)',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = danger
+          ? 'oklch(22% 0.08 25 / 0.4)'
+          : 'oklch(50% 0.18 275 / 0.18)';
+        e.currentTarget.style.color = danger
+          ? 'oklch(80% 0.12 25)'
+          : 'var(--portal-accent)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'oklch(100% 0 0 / 0.05)';
+        e.currentTarget.style.color = 'var(--portal-text-muted)';
+      }}
+    >
+      {children}
+    </button>
   );
 }

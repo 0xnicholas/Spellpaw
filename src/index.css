@@ -58,7 +58,7 @@
   --color-status-danger-text: oklch(35% 0.12 25);
 
   /* Font Families */
-  --font-family-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family-display: "Poppins", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-family-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-family-mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
 
@@ -111,7 +111,24 @@
   --radius-sm: 2px;
   --radius-base: 4px;
   --radius-lg: 8px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
   --radius-full: 9999px;
+
+  /* Portal-specific design tokens (dark surfaces) */
+  --portal-bg: oklch(13% 0.015 270);
+  --portal-bg-elevated: oklch(18% 0.02 270);
+  --portal-bg-overlay: oklch(22% 0.02 270);
+  --portal-border: oklch(28% 0.02 270);
+  --portal-border-bright: oklch(40% 0.04 270);
+  --portal-text: oklch(96% 0.01 270);
+  --portal-text-muted: oklch(70% 0.02 270);
+  --portal-text-dim: oklch(50% 0.02 270);
+  --portal-accent: oklch(70% 0.18 275);
+  --portal-accent-soft: oklch(55% 0.18 275);
+  --portal-glow: 0 0 32px oklch(55% 0.2 275 / 0.35);
+  --portal-glow-soft: 0 0 60px oklch(55% 0.2 275 / 0.18);
 }
 
 /* ===== Dark Theme Overrides ===== */

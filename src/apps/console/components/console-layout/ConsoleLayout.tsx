@@ -21,34 +21,87 @@ export function ConsoleLayout({ activeTab, onChangeTab, children }: ConsoleLayou
   ];
 
   return (
-    <div className="flex h-screen flex-col bg-[var(--color-bg-primary)]">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-4">
+    <div className="flex h-screen flex-col" style={{ background: 'var(--portal-bg)' }}>
+      <header
+        className="flex h-14 shrink-0 items-center gap-3 border-b px-6"
+        style={{
+          background: 'oklch(13% 0.015 270 / 0.72)',
+          backdropFilter: 'blur(16px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+          borderColor: 'oklch(100% 0 0 / 0.06)',
+        }}
+      >
+        <Link to="/" className="flex items-center gap-2.5">
+          <img src="/favicon.svg" alt="SpellPaw" className="h-6 w-6" />
+          <span
+            className="text-[17px] font-bold tracking-[-0.02em] text-white"
+            style={{ fontFamily: '"Sora", Inter, sans-serif' }}
+          >
+            SpellPaw
+          </span>
+        </Link>
+        <div className="h-4 w-px" style={{ background: 'oklch(100% 0 0 / 0.1)' }} />
         <Link
           to="/projects"
-          className="flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
+          className="flex items-center gap-1.5 text-xs transition-colors"
+          style={{ color: 'var(--portal-text-muted)' }}
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-3.5 w-3.5" />
           {t('console.back')}
         </Link>
-        <div className="h-4 w-px bg-[var(--color-border-default)]" />
-        <span className="text-sm font-medium text-[var(--color-text-primary)]">{t('console.title')}</span>
+        <span className="text-sm text-white">{t('console.title')}</span>
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="w-56 shrink-0 border-r border-[var(--color-border-default)] bg-[var(--color-bg-secondary)]/30 p-3">
+        <aside
+          className="w-60 shrink-0 border-r p-4"
+          style={{
+            background: 'oklch(15% 0.015 270 / 0.5)',
+            borderColor: 'oklch(100% 0 0 / 0.06)',
+          }}
+        >
+          <div
+            className="mb-3 px-2 text-[10px] font-semibold tracking-[0.18em]"
+            style={{ color: 'var(--portal-accent)' }}
+          >
+            SETTINGS
+          </div>
           <nav className="space-y-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              const active = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => onChangeTab(tab.id)}
                   className={cn(
-                    'flex w-full items-center gap-2.5 rounded-[var(--radius-base)] px-3 py-2 text-sm font-medium transition-colors',
-                    activeTab === tab.id
-                      ? 'bg-[var(--color-accent-500)]/10 text-[var(--color-accent-500)]'
-                      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]'
+                    'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all'
                   )}
+                  style={
+                    active
+                      ? {
+                          background: 'oklch(50% 0.18 275 / 0.18)',
+                          color: 'var(--portal-accent)',
+                          border: '1px solid oklch(60% 0.16 275 / 0.3)',
+                        }
+                      : {
+                          color: 'var(--portal-text-muted)',
+                          background: 'transparent',
+                          border: '1px solid transparent',
+                        }
+                  }
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = 'oklch(100% 0 0 / 0.04)';
+                      e.currentTarget.style.color = 'white';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = 'var(--portal-text-muted)';
+                    }
+                  }}
                 >
                   <Icon className="h-4 w-4" />
                   {tab.label}
@@ -58,7 +111,7 @@ export function ConsoleLayout({ activeTab, onChangeTab, children }: ConsoleLayou
           </nav>
         </aside>
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-8 sm:p-10">
           <div className="mx-auto max-w-2xl">{children}</div>
         </main>
       </div>

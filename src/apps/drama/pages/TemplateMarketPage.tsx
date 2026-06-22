@@ -7,7 +7,6 @@ import {
   Download,
   Edit3,
   X,
-  Film,
   LayoutGrid,
   Clock,
   Palette,
@@ -72,7 +71,9 @@ export function TemplateMarketPage() {
         try {
           const res = await fetch(`/templates/${id}.spellpaw-template.json`);
           if (res.ok) loaded.push(await res.json());
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       }
       setBuiltinTemplates(loaded);
       setLoading(false);
@@ -122,10 +123,18 @@ export function TemplateMarketPage() {
   };
 
   const handleCreateFromTemplate = async (template: NarrativeTemplate) => {
-    const projectId = createProject(template.name, template.description, template.stylePresets.colorPalette[0]);
+    const projectId = createProject(
+      template.name,
+      template.description,
+      template.stylePresets.colorPalette[0]
+    );
     try {
       const { toolRouter } = await import('../stores/toolRouter');
-      await toolRouter.apply_template({ action: 'apply_template', templateId: template.id, parentId: undefined });
+      await toolRouter.apply_template({
+        action: 'apply_template',
+        templateId: template.id,
+        parentId: undefined,
+      });
       setCurrentProject(projectId);
       navigate(`/project/${projectId}`);
     } catch (err) {
@@ -151,65 +160,144 @@ export function TemplateMarketPage() {
 
   if (loading && source !== 'custom') {
     return (
-      <div className="flex h-screen items-center justify-center bg-[var(--color-bg-secondary)]">
-        <div className="text-xs text-[var(--color-text-tertiary)]">加载模板中…</div>
+      <div
+        className="flex h-screen items-center justify-center"
+        style={{ background: 'var(--portal-bg)' }}
+      >
+        <div className="text-sm" style={{ color: 'var(--portal-text-muted)' }}>
+          加载模板中…
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[var(--color-bg-secondary)]">
+    <div
+      className="flex h-screen flex-col"
+      style={{ background: 'var(--portal-bg)' }}
+    >
       {/* Header */}
-      <header className="flex h-12 items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-6">
+      <header
+        className="flex h-14 shrink-0 items-center justify-between border-b px-6"
+        style={{
+          background: 'oklch(13% 0.015 270 / 0.72)',
+          backdropFilter: 'blur(16px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+          borderColor: 'oklch(100% 0 0 / 0.06)',
+        }}
+      >
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/projects')}
-            className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-base)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white"
+            title="返回项目列表"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <Film className="h-5 w-5 text-[var(--color-accent-500)]" />
-          <span className="text-base font-semibold text-[var(--color-text-primary)]">模板管理</span>
+          <img src="/favicon.svg" alt="SpellPaw" className="h-5 w-5" />
+          <span className="text-base font-semibold text-white">模板管理</span>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="flex cursor-pointer items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-3 py-1.5 text-[11px] text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent-500)] hover:text-[var(--color-accent-500)]">
-            <Upload className="h-3.5 w-3.5" />
-            导入模板
-            <input type="file" accept=".spellpaw-template.json,application/json" className="hidden" onChange={handleImport} />
-          </label>
-        </div>
+        <label
+          className="flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all"
+          style={{
+            background: 'oklch(100% 0 0 / 0.04)',
+            border: '1px solid oklch(100% 0 0 / 0.08)',
+            color: 'var(--portal-text-muted)',
+          }}
+        >
+          <Upload className="h-3.5 w-3.5" />
+          导入模板
+          <input
+            type="file"
+            accept=".spellpaw-template.json,application/json"
+            className="hidden"
+            onChange={handleImport}
+          />
+        </label>
       </header>
 
       {importError && (
-        <div className="mx-6 mt-3 rounded-[var(--radius-sm)] bg-[var(--color-status-danger-bg)] px-3 py-2 text-[11px] text-[var(--color-status-danger-text)]">
+        <div
+          className="mx-6 mt-4 rounded-xl px-3 py-2.5 text-xs"
+          style={{
+            background: 'oklch(22% 0.08 25 / 0.4)',
+            color: 'oklch(80% 0.12 25)',
+            border: '1px solid oklch(40% 0.12 25 / 0.5)',
+          }}
+        >
           导入失败: {importError}
         </div>
       )}
 
-      <main className="flex-1 overflow-auto p-6">
+      <main className="flex-1 overflow-auto p-6 sm:p-10">
         <div className="mx-auto max-w-[1200px]">
+          {/* Page title */}
+          <div className="mb-6">
+            <div
+              className="mb-2 inline-block text-xs font-semibold tracking-[0.18em]"
+              style={{ color: 'var(--portal-accent)' }}
+            >
+              TEMPLATE MARKET
+            </div>
+            <h1
+              className="text-2xl font-bold tracking-tight text-white sm:text-3xl"
+              style={{ fontFamily: 'var(--font-family-display)', letterSpacing: '-0.025em' }}
+            >
+              叙事模板
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: 'var(--portal-text-muted)' }}>
+              一键套用经典结构，快速开始你的创作
+            </p>
+          </div>
+
           {/* Search + Source tabs */}
           <div className="mb-4 flex items-center gap-3">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
+              <Search
+                className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
+                style={{ color: 'var(--portal-text-dim)' }}
+              />
               <input
                 type="text"
                 placeholder="搜索模板名称、描述或标签…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] pl-8 pr-3 text-xs text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent-500)]"
+                className="h-9 w-full rounded-full pl-9 pr-3.5 text-sm text-white outline-none"
+                style={{
+                  background: 'oklch(100% 0 0 / 0.04)',
+                  border: '1px solid oklch(100% 0 0 / 0.08)',
+                  color: 'white',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'oklch(60% 0.18 275 / 0.6)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'oklch(100% 0 0 / 0.08)';
+                }}
               />
             </div>
-            <div className="flex gap-1 rounded-[var(--radius-sm)] bg-[var(--color-bg-tertiary)] p-0.5">
+            <div
+              className="flex gap-1 rounded-full p-1"
+              style={{
+                background: 'oklch(100% 0 0 / 0.04)',
+                border: '1px solid oklch(100% 0 0 / 0.06)',
+              }}
+            >
               {(['all', 'builtin', 'custom'] as const).map((s) => (
                 <button
                   key={s}
                   onClick={() => setSource(s)}
-                  className={`rounded-[var(--radius-sm)] px-3 py-1 text-[11px] font-medium transition-colors ${
+                  className="rounded-full px-3.5 py-1 text-[11px] font-medium transition-all"
+                  style={
                     source === s
-                      ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
-                      : 'text-[var(--color-text-tertiary)]'
-                  }`}
+                      ? {
+                          background: 'white',
+                          color: 'oklch(15% 0.02 270)',
+                        }
+                      : {
+                          color: 'var(--portal-text-muted)',
+                        }
+                  }
                 >
                   {s === 'all' ? '全部' : s === 'builtin' ? '内置' : '我的'}
                 </button>
@@ -218,34 +306,23 @@ export function TemplateMarketPage() {
           </div>
 
           {/* Category filter */}
-          <div className="mb-4 flex flex-wrap gap-1.5">
-            <button
-              onClick={() => setCategory(null)}
-              className={`rounded-[var(--radius-sm)] px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                !category
-                  ? 'bg-[var(--color-bg-accent)] text-[var(--color-text-inverse)]'
-                  : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-accent-subtle)]'
-              }`}
-            >
+          <div className="mb-5 flex flex-wrap gap-1.5">
+            <CategoryChip active={!category} onClick={() => setCategory(null)}>
               全部
-            </button>
+            </CategoryChip>
             {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-              <button
+              <CategoryChip
                 key={key}
+                active={category === key}
                 onClick={() => setCategory(key)}
-                className={`rounded-[var(--radius-sm)] px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                  category === key
-                    ? 'bg-[var(--color-bg-accent)] text-[var(--color-text-inverse)]'
-                    : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-accent-subtle)]'
-                }`}
               >
                 {label}
-              </button>
+              </CategoryChip>
             ))}
           </div>
 
           {/* Results count */}
-          <div className="mb-3 text-[11px] text-[var(--color-text-tertiary)]">
+          <div className="mb-4 text-[11px]" style={{ color: 'var(--portal-text-dim)' }}>
             共 {filtered.length} 个模板
             {searchQuery && ` · 搜索「${searchQuery}」`}
             {category && ` · ${CATEGORY_LABELS[category]}`}
@@ -256,7 +333,17 @@ export function TemplateMarketPage() {
             {filtered.map((template) => (
               <div
                 key={template.id}
-                className="group flex flex-col rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] p-4 transition-all hover:border-[var(--color-accent-500)] hover:shadow-sm"
+                className="group flex flex-col rounded-[20px] border p-5 transition-all duration-300 hover:-translate-y-0.5"
+                style={{
+                  background: 'var(--portal-bg-elevated)',
+                  borderColor: 'var(--portal-border)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'oklch(45% 0.1 275 / 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--portal-border)';
+                }}
               >
                 {/* Color bar */}
                 <div className="mb-3 flex gap-1">
@@ -270,11 +357,24 @@ export function TemplateMarketPage() {
                 </div>
 
                 {/* Title & meta */}
-                <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{template.name}</h3>
-                <p className="mt-1 line-clamp-2 text-[11px] text-[var(--color-text-tertiary)]">{template.description}</p>
+                <h3
+                  className="text-sm font-semibold text-white"
+                  style={{ fontFamily: 'var(--font-family-display)' }}
+                >
+                  {template.name}
+                </h3>
+                <p
+                  className="mt-1.5 line-clamp-2 text-[11px]"
+                  style={{ color: 'var(--portal-text-muted)' }}
+                >
+                  {template.description}
+                </p>
 
                 {/* Stats */}
-                <div className="mt-3 flex items-center gap-3 text-[10px] text-[var(--color-text-tertiary)]">
+                <div
+                  className="mt-3 flex items-center gap-3 text-[10px]"
+                  style={{ color: 'var(--portal-text-dim)' }}
+                >
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {template.targetDuration}s
@@ -294,7 +394,12 @@ export function TemplateMarketPage() {
                   {template.tags.slice(0, 3).map((tag) => (
                     <span
                       key={tag}
-                      className="rounded px-1.5 py-0.5 text-[10px] bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]"
+                      className="rounded px-1.5 py-0.5 text-[10px]"
+                      style={{
+                        background: 'oklch(100% 0 0 / 0.05)',
+                        color: 'var(--portal-text-muted)',
+                        border: '1px solid oklch(100% 0 0 / 0.06)',
+                      }}
                     >
                       {tag}
                     </span>
@@ -302,43 +407,47 @@ export function TemplateMarketPage() {
                 </div>
 
                 {/* Source badge */}
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[10px] text-[var(--color-text-tertiary)]">
-                    {template.source === 'builtin' ? '内置' : '我的模板'}
-                  </span>
+                <div
+                  className="mt-2.5 flex items-center justify-between text-[10px]"
+                  style={{ color: 'var(--portal-text-dim)' }}
+                >
+                  <span>{template.source === 'builtin' ? '内置' : '我的模板'}</span>
                 </div>
 
                 {/* Actions */}
-                <div className="mt-auto pt-3 flex items-center gap-2">
+                <div className="mt-auto pt-3.5 flex items-center gap-1.5">
                   <button
                     onClick={() => setPreviewTemplate(template)}
-                    className="flex-1 rounded-[var(--radius-sm)] bg-[var(--color-bg-accent)] py-1.5 text-[11px] font-semibold text-[var(--color-text-inverse)] hover:opacity-90 transition-opacity"
+                    className="flex-1 rounded-full py-1.5 text-[11px] font-semibold transition-all"
+                    style={{
+                      background: 'white',
+                      color: 'oklch(15% 0.02 270)',
+                      fontFamily: 'var(--font-family-display)',
+                    }}
                   >
                     预览 & 使用
                   </button>
                   {isCustom(template) && (
                     <>
-                      <button
+                      <SmallIconButton
                         onClick={() => setEditingTemplate(template)}
-                        className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border-default)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
                         title="编辑"
                       >
                         <Edit3 className="h-3.5 w-3.5" />
-                      </button>
-                      <button
+                      </SmallIconButton>
+                      <SmallIconButton
                         onClick={() => handleExportTemplate(template)}
-                        className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border-default)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
                         title="导出"
                       >
                         <Download className="h-3.5 w-3.5" />
-                      </button>
-                      <button
+                      </SmallIconButton>
+                      <SmallIconButton
                         onClick={() => setDeleteTarget(template.id)}
-                        className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border-default)] text-[var(--color-text-tertiary)] hover:text-red-500"
                         title="删除"
+                        danger
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      </SmallIconButton>
                     </>
                   )}
                 </div>
@@ -347,10 +456,28 @@ export function TemplateMarketPage() {
           </div>
 
           {filtered.length === 0 && (
-            <div className="py-16 text-center">
-              <LayoutGrid className="mx-auto h-8 w-8 text-[var(--color-text-tertiary)]" />
-              <p className="mt-3 text-sm text-[var(--color-text-secondary)]">未找到匹配的模板</p>
-              <p className="mt-1 text-[11px] text-[var(--color-text-tertiary)]">尝试更换搜索词或分类</p>
+            <div
+              className="rounded-[24px] border border-dashed py-20 text-center"
+              style={{
+                background: 'var(--portal-bg-elevated)',
+                borderColor: 'oklch(100% 0 0 / 0.1)',
+              }}
+            >
+              <div
+                className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl"
+                style={{
+                  background: 'oklch(100% 0 0 / 0.04)',
+                  border: '1px solid oklch(100% 0 0 / 0.08)',
+                }}
+              >
+                <LayoutGrid className="h-5 w-5" style={{ color: 'var(--portal-text-dim)' }} />
+              </div>
+              <p className="text-sm" style={{ color: 'var(--portal-text-muted)' }}>
+                未找到匹配的模板
+              </p>
+              <p className="mt-1 text-[11px]" style={{ color: 'var(--portal-text-dim)' }}>
+                尝试更换搜索词或分类
+              </p>
             </div>
           )}
         </div>
@@ -358,50 +485,104 @@ export function TemplateMarketPage() {
 
       {/* Preview Drawer */}
       {previewTemplate && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/30">
-          <div className="flex h-full w-full max-w-md flex-col bg-[var(--color-bg-primary)] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-5 py-3">
-              <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{previewTemplate.name}</h3>
+        <div
+          className="fixed inset-0 z-50 flex justify-end"
+          style={{ background: 'oklch(0% 0 0 / 0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setPreviewTemplate(null)}
+        >
+          <div
+            className="flex h-full w-full max-w-md flex-col"
+            style={{
+              background: 'var(--portal-bg-elevated)',
+              borderLeft: '1px solid var(--portal-border)',
+              boxShadow: '-24px 0 60px oklch(0% 0 0 / 0.5)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="flex items-center justify-between border-b px-5 py-3"
+              style={{ borderColor: 'var(--portal-border)' }}
+            >
+              <h3
+                className="text-sm font-semibold text-white"
+                style={{ fontFamily: 'var(--font-family-display)' }}
+              >
+                {previewTemplate.name}
+              </h3>
               <button
                 onClick={() => setPreviewTemplate(null)}
-                className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)]"
+                className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
+                style={{ color: 'var(--portal-text-muted)' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'oklch(100% 0 0 / 0.06)';
+                  e.currentTarget.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--portal-text-muted)';
+                }}
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-5">
-              <p className="text-xs text-[var(--color-text-secondary)]">{previewTemplate.description}</p>
+              <p className="text-xs" style={{ color: 'var(--portal-text-muted)' }}>
+                {previewTemplate.description}
+              </p>
 
               <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-[var(--radius-sm)] bg-[var(--color-bg-secondary)] p-2">
-                  <div className="text-sm font-semibold text-[var(--color-text-primary)]">{previewTemplate.targetDuration}s</div>
-                  <div className="text-[10px] text-[var(--color-text-tertiary)]">时长</div>
-                </div>
-                <div className="rounded-[var(--radius-sm)] bg-[var(--color-bg-secondary)] p-2">
-                  <div className="text-sm font-semibold text-[var(--color-text-primary)]">{previewTemplate.structure.acts.length}</div>
-                  <div className="text-[10px] text-[var(--color-text-tertiary)]">幕数</div>
-                </div>
-                <div className="rounded-[var(--radius-sm)] bg-[var(--color-bg-secondary)] p-2">
-                  <div className="text-sm font-semibold text-[var(--color-text-primary)]">{PLATFORM_LABELS[previewTemplate.targetPlatform]}</div>
-                  <div className="text-[10px] text-[var(--color-text-tertiary)]">画幅</div>
-                </div>
+                <StatBox
+                  value={`${previewTemplate.targetDuration}s`}
+                  label="时长"
+                />
+                <StatBox
+                  value={`${previewTemplate.structure.acts.length}`}
+                  label="幕数"
+                />
+                <StatBox
+                  value={PLATFORM_LABELS[previewTemplate.targetPlatform]}
+                  label="画幅"
+                />
               </div>
 
               <div className="mt-4">
-                <h4 className="mb-2 text-xs font-medium text-[var(--color-text-secondary)]">结构预览</h4>
+                <h4
+                  className="mb-2 text-xs font-semibold"
+                  style={{ fontFamily: 'var(--font-family-display)' }}
+                >
+                  结构预览
+                </h4>
                 <div className="space-y-3">
                   {previewTemplate.structure.acts.map((act, i) => (
-                    <div key={i} className="rounded-[var(--radius-sm)] border border-[var(--color-border-default)] p-3">
-                      <div className="text-xs font-medium text-[var(--color-text-primary)]">{act.title}</div>
-                      <div className="mt-0.5 text-[10px] text-[var(--color-text-tertiary)]">{act.description}</div>
+                    <div
+                      key={i}
+                      className="rounded-xl border p-3"
+                      style={{
+                        background: 'oklch(100% 0 0 / 0.03)',
+                        borderColor: 'oklch(100% 0 0 / 0.06)',
+                      }}
+                    >
+                      <div className="text-xs font-semibold text-white">{act.title}</div>
+                      <div className="mt-0.5 text-[10px]" style={{ color: 'var(--portal-text-dim)' }}>
+                        {act.description}
+                      </div>
                       <div className="mt-2 space-y-1.5">
                         {act.scenes.map((scene, j) => (
-                          <div key={j} className="flex items-start gap-2 rounded bg-[var(--color-bg-secondary)] px-2 py-1.5">
-                            <div className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-accent-500)]" />
+                          <div
+                            key={j}
+                            className="flex items-start gap-2 rounded-lg px-2 py-1.5"
+                            style={{ background: 'oklch(100% 0 0 / 0.04)' }}
+                          >
+                            <div
+                              className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full"
+                              style={{ background: 'var(--portal-accent)' }}
+                            />
                             <div>
-                              <div className="text-[11px] text-[var(--color-text-primary)]">{scene.title}</div>
+                              <div className="text-[11px] text-white">{scene.title}</div>
                               {scene.metadata?.duration && (
-                                <div className="text-[10px] text-[var(--color-text-tertiary)]">{scene.metadata.duration}s</div>
+                                <div className="text-[10px]" style={{ color: 'var(--portal-text-dim)' }}>
+                                  {scene.metadata.duration}s
+                                </div>
                               )}
                             </div>
                           </div>
@@ -413,10 +594,23 @@ export function TemplateMarketPage() {
               </div>
 
               <div className="mt-4">
-                <h4 className="mb-1.5 text-xs font-medium text-[var(--color-text-secondary)]">标签</h4>
+                <h4
+                  className="mb-1.5 text-xs font-semibold"
+                  style={{ fontFamily: 'var(--font-family-display)' }}
+                >
+                  标签
+                </h4>
                 <div className="flex flex-wrap gap-1">
                   {previewTemplate.tags.map((tag) => (
-                    <span key={tag} className="rounded px-2 py-0.5 text-[10px] bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]">
+                    <span
+                      key={tag}
+                      className="rounded px-2 py-0.5 text-[10px]"
+                      style={{
+                        background: 'oklch(100% 0 0 / 0.05)',
+                        color: 'var(--portal-text-muted)',
+                        border: '1px solid oklch(100% 0 0 / 0.06)',
+                      }}
+                    >
                       {tag}
                     </span>
                   ))}
@@ -425,17 +619,28 @@ export function TemplateMarketPage() {
 
               {previewTemplate.stylePresets.visualStyle && (
                 <div className="mt-4">
-                  <h4 className="mb-1.5 text-xs font-medium text-[var(--color-text-secondary)]">视觉风格</h4>
-                  <p className="text-[11px] text-[var(--color-text-tertiary)]">{previewTemplate.stylePresets.visualStyle}</p>
+                  <h4
+                    className="mb-1.5 text-xs font-semibold"
+                    style={{ fontFamily: 'var(--font-family-display)' }}
+                  >
+                    视觉风格
+                  </h4>
+                  <p className="text-[11px]" style={{ color: 'var(--portal-text-muted)' }}>
+                    {previewTemplate.stylePresets.visualStyle}
+                  </p>
                 </div>
               )}
             </div>
-            <div className="border-t border-[var(--color-border-default)] p-4">
+            <div className="border-t p-4" style={{ borderColor: 'var(--portal-border)' }}>
               <button
                 onClick={() => handleCreateFromTemplate(previewTemplate)}
-                className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-accent-500)] py-2 text-xs font-semibold text-white hover:bg-[var(--color-accent-600)] transition-colors"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-white py-2.5 text-sm font-semibold text-[oklch(15%_0.02_270)] transition-all hover:scale-[1.01]"
+                style={{
+                  fontFamily: 'var(--font-family-display)',
+                  boxShadow: '0 4px 16px rgba(255,255,255,0.1)',
+                }}
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-4 w-4" strokeWidth={2.5} />
                 使用此模板创建项目
               </button>
             </div>
@@ -445,48 +650,130 @@ export function TemplateMarketPage() {
 
       {/* Edit Modal */}
       {editingTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="w-full max-w-sm rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] p-5 shadow-lg">
-            <h3 className="mb-3 text-sm font-semibold text-[var(--color-text-primary)]">编辑模板</h3>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'oklch(0% 0 0 / 0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setEditingTemplate(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-[20px] border p-5"
+            style={{
+              background: 'var(--portal-bg-elevated)',
+              borderColor: 'var(--portal-border)',
+              boxShadow: '0 24px 60px oklch(0% 0 0 / 0.5)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              className="mb-4 text-sm font-semibold text-white"
+              style={{ fontFamily: 'var(--font-family-display)' }}
+            >
+              编辑模板
+            </h3>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-[11px] font-medium text-[var(--color-text-secondary)]">名称</label>
+                <label
+                  className="mb-1.5 block text-[11px] font-medium"
+                  style={{ color: 'var(--portal-text-muted)' }}
+                >
+                  名称
+                </label>
                 <input
                   type="text"
                   value={editingTemplate.name}
                   onChange={(e) => setEditingTemplate({ ...editingTemplate, name: e.target.value })}
-                  className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2.5 text-xs outline-none focus:border-[var(--color-accent-500)]"
+                  className="h-9 w-full rounded-xl px-3 text-xs text-white outline-none"
+                  style={{
+                    background: 'oklch(100% 0 0 / 0.04)',
+                    border: '1px solid oklch(100% 0 0 / 0.08)',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'oklch(60% 0.18 275 / 0.6)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'oklch(100% 0 0 / 0.08)';
+                  }}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-medium text-[var(--color-text-secondary)]">描述</label>
+                <label
+                  className="mb-1.5 block text-[11px] font-medium"
+                  style={{ color: 'var(--portal-text-muted)' }}
+                >
+                  描述
+                </label>
                 <textarea
                   value={editingTemplate.description}
-                  onChange={(e) => setEditingTemplate({ ...editingTemplate, description: e.target.value })}
+                  onChange={(e) =>
+                    setEditingTemplate({ ...editingTemplate, description: e.target.value })
+                  }
                   rows={3}
-                  className="w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2.5 py-1.5 text-xs outline-none resize-none focus:border-[var(--color-accent-500)]"
+                  className="w-full rounded-xl px-3 py-2 text-xs text-white outline-none resize-none"
+                  style={{
+                    background: 'oklch(100% 0 0 / 0.04)',
+                    border: '1px solid oklch(100% 0 0 / 0.08)',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'oklch(60% 0.18 275 / 0.6)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'oklch(100% 0 0 / 0.08)';
+                  }}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-medium text-[var(--color-text-secondary)]">标签（逗号分隔）</label>
+                <label
+                  className="mb-1.5 block text-[11px] font-medium"
+                  style={{ color: 'var(--portal-text-muted)' }}
+                >
+                  标签（逗号分隔）
+                </label>
                 <input
                   type="text"
                   value={editingTemplate.tags.join(', ')}
-                  onChange={(e) => setEditingTemplate({ ...editingTemplate, tags: e.target.value.split(/,\s*/).filter(Boolean) })}
-                  className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] px-2.5 text-xs outline-none focus:border-[var(--color-accent-500)]"
+                  onChange={(e) =>
+                    setEditingTemplate({
+                      ...editingTemplate,
+                      tags: e.target.value.split(/,\s*/).filter(Boolean),
+                    })
+                  }
+                  className="h-9 w-full rounded-xl px-3 text-xs text-white outline-none"
+                  style={{
+                    background: 'oklch(100% 0 0 / 0.04)',
+                    border: '1px solid oklch(100% 0 0 / 0.08)',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'oklch(60% 0.18 275 / 0.6)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'oklch(100% 0 0 / 0.08)';
+                  }}
                 />
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setEditingTemplate(null)}
-                className="rounded-[var(--radius-sm)] px-3 py-1.5 text-[11px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
+                className="rounded-full px-4 py-1.5 text-[11px] transition-colors"
+                style={{ color: 'var(--portal-text-muted)' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'oklch(100% 0 0 / 0.06)';
+                  e.currentTarget.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--portal-text-muted)';
+                }}
               >
                 取消
               </button>
               <button
                 onClick={handleSaveEdit}
-                className="rounded-[var(--radius-sm)] bg-[var(--color-accent-500)] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[var(--color-accent-600)]"
+                className="rounded-full bg-white px-4 py-1.5 text-[11px] font-semibold text-[oklch(15%_0.02_270)] transition-all hover:scale-[1.02]"
+                style={{
+                  fontFamily: 'var(--font-family-display)',
+                  boxShadow: '0 4px 12px rgba(255,255,255,0.1)',
+                }}
               >
                 保存
               </button>
@@ -505,6 +792,97 @@ export function TemplateMarketPage() {
         }}
         onCancel={() => setDeleteTarget(null)}
       />
+    </div>
+  );
+}
+
+interface CategoryChipProps {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}
+
+function CategoryChip({ active, onClick, children }: CategoryChipProps) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-full px-3 py-1 text-[11px] font-medium transition-all"
+      style={
+        active
+          ? {
+              background: 'white',
+              color: 'oklch(15% 0.02 270)',
+              fontFamily: 'var(--font-family-display)',
+            }
+          : {
+              background: 'oklch(100% 0 0 / 0.04)',
+              border: '1px solid oklch(100% 0 0 / 0.06)',
+              color: 'var(--portal-text-muted)',
+            }
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+interface SmallIconButtonProps {
+  onClick: () => void;
+  title: string;
+  danger?: boolean;
+  children: React.ReactNode;
+}
+
+function SmallIconButton({ onClick, title, danger, children }: SmallIconButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
+      style={{
+        background: 'oklch(100% 0 0 / 0.04)',
+        border: '1px solid oklch(100% 0 0 / 0.06)',
+        color: 'var(--portal-text-muted)',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = danger
+          ? 'oklch(22% 0.08 25 / 0.4)'
+          : 'oklch(50% 0.18 275 / 0.18)';
+        e.currentTarget.style.color = danger ? 'oklch(80% 0.12 25)' : 'var(--portal-accent)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'oklch(100% 0 0 / 0.04)';
+        e.currentTarget.style.color = 'var(--portal-text-muted)';
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+interface StatBoxProps {
+  value: string;
+  label: string;
+}
+
+function StatBox({ value, label }: StatBoxProps) {
+  return (
+    <div
+      className="rounded-xl p-2.5"
+      style={{
+        background: 'oklch(100% 0 0 / 0.04)',
+        border: '1px solid oklch(100% 0 0 / 0.06)',
+      }}
+    >
+      <div
+        className="text-base font-bold text-white"
+        style={{ fontFamily: 'var(--font-family-display)' }}
+      >
+        {value}
+      </div>
+      <div className="mt-0.5 text-[10px]" style={{ color: 'var(--portal-text-dim)' }}>
+        {label}
+      </div>
     </div>
   );
 }

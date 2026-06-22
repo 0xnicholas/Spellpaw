@@ -1,5 +1,6 @@
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { HeroSearchBar } from './HeroSearchBar';
 
 const EXAMPLE_PROMPTS = [
   '都市奇缘',
@@ -113,8 +114,11 @@ export function HeroSection() {
           </a>
         </div>
 
+        {/* Hero 中心搜索框（buzzy 风格的 .search-bar） */}
+        <HeroSearchBar />
+
         {/* Quick prompt chips — example starters */}
-        <div className="flex flex-wrap items-center justify-center gap-2.5">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
           <span className="text-xs" style={{ color: 'var(--portal-text-dim)' }}>
             快速开始：
           </span>

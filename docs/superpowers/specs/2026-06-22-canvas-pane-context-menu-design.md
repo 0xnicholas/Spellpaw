@@ -98,13 +98,26 @@ src/shared/components/canvas/
 
 ```tsx
 interface PaneContextMenuProps {
-  x: number;          // clientX from React Flow onPaneContextMenu
-  y: number;
+  x: number;          // Screen coordinates (clientX) — for `position: fixed` placement
+  y: number;          // Screen coordinates (clientY)
+  flowPosition: { x: number; y: number };  // Flow coordinates — for `addNode`
   onClose: () => void;
-  onCreate: (kind: CopilotKind, position: { x: number; y: number }) => void;
+  onCreate: (kind: CopilotKind, flowPosition: { x: number; y: number }) => void;
 }
 
 type CopilotKind = 'upload' | 'text' | 'image' | 'video';
+```
+
+**坐标转换契约**（修复了 review 发现的位置冲突）：
+
+- React Flow 的 `onPaneContextMenu(event)` 提供 `clientX/Y`（屏幕坐标）
+- `CanvasPanel` 收到事件后：
+  1. 调用 `reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY })` 转为 flow 坐标
+  2. 把 **screen 坐标**（用于 `position: fixed` 菜单定位）和 **flow 坐标**（用于节点创建）都传给 `PaneContextMenu`
+- `PaneContextMenu`：
+  - 用 `x/y`（screen）渲染菜单：`style={{ left: x, top: y }}`
+  - 点击菜单项时，`onCreate(kind, flowPosition)` 把 flow 坐标传给 `CanvasPanel`，用于 `canvasStore.addNode`
+
 
 const MENU_ITEMS: Array<{ kind: CopilotKind; label: string; icon: LucideIcon; hint: string }> = [
   { kind: 'upload', label: 'Upload',           icon: Upload,    hint: '上传文件创建卡片' },
@@ -115,7 +128,7 @@ const MENU_ITEMS: Array<{ kind: CopilotKind; label: string; icon: LucideIcon; hi
 ```
 
 **位置计算**：
-- 菜单容器使用 `position: fixed`，`left/top` 直接来自 `event.clientX/Y`
+- 菜单容器使用 `position: fixed`，`left/top` 来自 `x/y` props（screen 坐标）
 - 视口边界处理：`Math.min(x, window.innerWidth - 160)` 防止菜单溢出
 
 **关闭触发**：
@@ -167,12 +180,36 @@ interface CopilotCardNodeData {
 
 **各 kind 的差异**（仅输入区 + 调用函数 + 自动插入的目标类型不同）：
 
-| Kind | 输入区 | 调用函数 | 插入为 |
-|------|--------|---------|--------|
-| upload | 文件选择/拖放 | `uploadAsset(file)` | `asset` 或 `deliverable` |
-| text | 提示词 textarea | `canvasToolkit.generateText(prompt)` | `script` |
-| image | 提示词 textarea | `canvasToolkit.generateAsset({ type: 'image', prompt })` | `art` |
-| video | 提示词 textarea | `canvasToolkit.generateAsset({ type: 'video', prompt })` | `deliverable` |
+| Kind | 输入区 | 内部实现 | 插入为 | 备注 |
+|------|--------|---------|--------|------|
+| upload | 文件选择/拖放 | `FileReader.readAsDataURL(file)` → dataURL | `asset`（图片/音频）或 `videoClip`（视频）| 不调外部 API，浏览器本地完成 |
+| text | 提示词 textarea | 直接创建 storyline 卡片，prompt 作为 `description` | `storyline` | 不调外部 API；如需 AI 文案，用户后续在 ChatPanel 接力 |
+| image | 提示词 textarea + 模型选择 | `providerRegistry.getProvider(id).submit({ type: 'image', capability: 'text2image', prompt })` + `poll(taskId)` | `art` | 直接调用 provider 绕过 `generateAsset`，避免双重创建卡片 |
+| video | 提示词 textarea + 模型选择 | `providerRegistry.getProvider(id).submit({ type: 'video', capability: 'text2video', prompt })` + `poll(taskId)` | `deliverable` | 同上 |
+
+**为什么绕过 `canvasToolkit.generateAsset`？** 它内部已调用 `addCanvasCardHandler` 自动创建画布节点（见 `generateAsset.ts:84-101`）。如果 CopilotCardNode 再调它，会**重复创建**画布卡片 + 留下 copilot 节点不清理。改为直接调用 `providerRegistry` 拿到 result URL，然后手动 `canvasStore.addNode` + `removeNode(copilotId)`。
+
+**生成完成的去重**：
+
+```
+CopilotCardNode handleGenerate()
+  → providerRegistry.getProvider(providerId).submit({...})
+  → 拿到 taskId, 进入 polling
+  → polling 完成拿到 resultUrl
+  → updateNodeData(id, { status: 'done', result: { url: resultUrl } })
+  → setTimeout(1000ms, () => {
+      addNode({ type: targetType, position: offsetPosition, data: { ... } });
+      removeNode(id);
+    });
+```
+
+`offsetPosition` 定义：相对于 copilot 节点位置 `+40, +40` 像素：
+
+```ts
+function offsetPosition(node: Node, dx = 40, dy = 40) {
+  return { x: node.position.x + dx, y: node.position.y + dy };
+}
+```
 
 ### 4.3 与现有架构的集成点
 
@@ -181,9 +218,33 @@ interface CopilotCardNodeData {
 | `canvasStore.addNode` | 创建 copilot 节点 + 创建最终卡片 |
 | `canvasStore.removeNode` | 完成后清理 copilot 节点 |
 | `canvasStore.updateNodeData` | 流式更新 status/progress/result |
-| `canvasToolkit` actions | 内部调用，复用 ProviderRegistry |
-| `nodeTypes` 注册表 | 新增 `copilotCard` |
+| `canvasToolkit/providerRegistry` | image/video 直接调用 `submit` + `poll` |
+| `canvasToolkit/types` | `GenerationInput`、`GenerationTask`、`MediaType`、`Capability` |
+| `nodeTypes` 注册表 | 新增 `copilotCard`（见 §4.4）|
 | 现有手写菜单样式 | 视觉风格直接复用 |
+
+### 4.4 类型扩展（必修）
+
+`CanvasNodeType`（`src/apps/drama/types/index.ts:60-72`）是严格 union，**必须扩展**才能新增 `copilotCard`：
+
+```ts
+// types/index.ts
+export type CanvasNodeType =
+  | 'storyline' | 'moodboard' | 'videoClip' | 'asset' | 'task'
+  | 'art' | 'character' | 'script' | 'deliverable' | 'sceneCard'
+  | 'copilotCard';   // ← 新增
+```
+
+`CanvasNodeData`（同文件）需要扩展 data 字段类型，或在 `CopilotCardNode` 内部用 `Record<string, unknown>` cast（与现有 `SceneCardNode` 一致的方式）。
+
+`CanvasPanel.tsx` 的 `nodeTypes` 注册表新增一行：
+
+```ts
+const nodeTypes: NodeTypes = {
+  // ... 现有 ...
+  copilotCard: CopilotCardNode,
+};
+```
 
 ---
 
@@ -197,15 +258,15 @@ interface CopilotCardNodeData {
    → CanvasPanel setMenuState({ x: event.clientX, y: event.clientY })
 
 2. PaneContextMenu 渲染
-   position: { x: clientX, y: clientY }
-   React Flow pane 坐标: screenToFlowPosition({ x: clientX, y: clientY })
+   菜单以 `position: fixed` 定位：style={{ left: clientX, top: clientY }}
+   同时缓存 flow 坐标：screenToFlowPosition({ x: clientX, y: clientY })
 
 3. 用户点击 "Image Generation"
-   onCreate('image', panePosition)
+   onCreate('image', flowPosition)
    → canvasStore.addNode({
        id: 'copilot_xxx',
        type: 'copilotCard',
-       position: panePosition,        // 画布坐标，不是屏幕坐标
+       position: flowPosition,        // flow 坐标
        data: { kind: 'image', status: 'idle' }
      })
    → 关闭菜单
@@ -215,17 +276,17 @@ interface CopilotCardNodeData {
 
 5. 用户输入 prompt, 点 "生成"
    onClick → setStatus('generating')
-   → 调用对应 canvasToolkit action (e.g. generateAsset)
+   → 直接调用 providerRegistry（image/video）或本地逻辑（upload/text）
 
 6. 流式更新
-   toolkit 回调 (onProgress, onPartial)
+   provider.poll 或 FileReader 进度回调
    → updateNodeData(id, { status: 'generating', progress: 60 })
 
 7. 完成
    onComplete(result)
    → updateNodeData(id, { status: 'done', result })
    → 延迟 1s 后（让用户看到结果）:
-       ├─ canvasStore.addNode({ type: 'art', data: result.data, position: offsetFrom(id) })
+       ├─ canvasStore.addNode({ type: targetType, data: result.data, position: offsetPosition(self) })
        └─ canvasStore.removeNode(id)         // 移除 copilot 节点
 ```
 
@@ -363,24 +424,62 @@ export function CopilotCardNode({ data, id }: NodeProps<Node<CopilotCardNodeData
   const updateNodeData = useCanvasStore(s => s.updateNodeData);
   const addNode = useCanvasStore(s => s.addNode);
   const removeNode = useCanvasStore(s => s.removeNode);
+  const nodes = useCanvasStore(s => s.getCurrentNodes());
 
   const handleGenerate = async () => {
     updateNodeData(id, { status: 'generating', progress: 0 });
     try {
-      const result = await generateByKind(data.kind, data.prompt, data.file, {
-        onProgress: (p) => updateNodeData(id, { progress: p }),
-      });
-      updateNodeData(id, { status: 'done', result });
-      setTimeout(() => {
-        addNode({ type: targetTypeOf(data.kind), position: offsetFrom(id, 40), data: result });
+      // image/video: 直接调 providerRegistry，绕过 generateAsset 的内置卡片创建
+      if (data.kind === 'image' || data.kind === 'video') {
+        const provider = providerRegistry.getProvider(data.providerId!);
+        const capability: Capability = data.kind === 'image' ? 'text2image' : 'text2video';
+        const task = await provider.submit({
+          type: data.kind,
+          capability,
+          prompt: data.prompt!,
+        });
+        const final = await pollUntilDone(provider, task.taskId, (p) => {
+          updateNodeData(id, { progress: p });
+        });
+        updateNodeData(id, { status: 'done', result: { url: final.resultUrl } });
+        setTimeout(() => {
+          const self = nodes.find(n => n.id === id)!;
+          addNode({
+            type: data.kind === 'image' ? 'art' : 'deliverable',
+            position: offsetPosition(self),
+            data: { title: data.prompt ?? '', thumbnail: final.resultUrl, generatedPrompt: data.prompt, sourceProvider: data.providerId },
+          });
+          removeNode(id);
+        }, 1000);
+      } else if (data.kind === 'upload') {
+        // FileReader 已在外层转 dataURL；这里直接添加
+        const self = nodes.find(n => n.id === id)!;
+        addNode({
+          type: data.file!.kind === 'video' ? 'videoClip' : 'asset',
+          position: offsetPosition(self),
+          data: { title: data.file!.name, thumbnail: data.file!.dataUrl, fileSize: data.file!.size },
+        });
         removeNode(id);
-      }, 1000);
+      } else if (data.kind === 'text') {
+        // 直接创建 storyline 卡片，不调外部 API
+        const self = nodes.find(n => n.id === id)!;
+        addNode({
+          type: 'storyline',
+          position: offsetPosition(self),
+          data: { title: data.prompt?.slice(0, 30) ?? '新剧本', description: data.prompt },
+        });
+        removeNode(id);
+      }
     } catch (err) {
-      updateNodeData(id, { status: 'error', error: err.message });
+      updateNodeData(id, { status: 'error', error: err instanceof Error ? err.message : String(err) });
     }
   };
 
   return <div className="w-[240px] ...">{/* Header + Input + Generate + Status + Result */}</div>;
+}
+
+function offsetPosition(node: Node, dx = 40, dy = 40) {
+  return { x: node.position.x + dx, y: node.position.y + dy };
 }
 ```
 

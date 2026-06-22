@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { ChatMessage, ChatAction } from '@shared/types';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
+import { SkillChips } from '../SkillChips';
 
 export interface ToolCall {
   callId: string;
@@ -40,6 +41,12 @@ export function CopilotChat({
         toolCalls={toolCalls}
         emptyState={emptyState}
         onActionClick={onActionClick}
+      />
+      <SkillChips
+        onInsert={(cmd) => {
+          const ev = new CustomEvent('spellpaw:insert-text', { detail: cmd });
+          window.dispatchEvent(ev);
+        }}
       />
       <MessageInput
         onSend={onSend}

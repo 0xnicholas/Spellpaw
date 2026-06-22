@@ -4,6 +4,7 @@
  */
 import { config } from "@/shared/config";
 import { listProviderIds } from "@drama/lib/canvasToolkit";
+import { getAllSkillToolConfigs } from "@drama/lib/skills/registry";
 
 const TOOL_ENDPOINT = config.toolServerEndpoint;
 
@@ -454,4 +455,16 @@ export const SPELLPAW_TOOL_CONFIGS = [
 		},
 		endpoint: TOOL_ENDPOINT,
 	},
+
+	// ── Skill tools (composed workflows) ──
+	// Each skill becomes one tool with name `spellpaw_skill_*` and a
+	// single `input` object argument. The LLM can invoke them like
+	// atomic tools, but they're implemented as composed workflows
+	// internally.
+	...getAllSkillToolConfigs().map((cfg) => ({
+		name: cfg.name,
+		description: cfg.description,
+		parameters: cfg.parameters,
+		endpoint: TOOL_ENDPOINT,
+	})),
 ];

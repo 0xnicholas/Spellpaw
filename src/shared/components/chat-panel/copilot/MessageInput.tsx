@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Send } from 'lucide-react';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { IconButton } from '@/shared/components/ui/IconButton';
@@ -17,6 +17,28 @@ export function MessageInput({
   contextChip,
 }: MessageInputProps) {
   const [value, setValue] = useState('');
+
+  // Listen for `spellpaw:insert-text` events (e.g. from SkillChips) and
+  // append the payload to the current value, then focus the textarea.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<string>;
+      const inserted = ce.detail;
+      if (typeof inserted !== 'string') return;
+      setValue((v) => {
+        const next = v ? `${v} ${inserted}` : inserted;
+        return next;
+      });
+      // Focus the textarea after React commits the new value.
+      setTimeout(() => {
+        document
+          .querySelector<HTMLTextAreaElement>('textarea[data-spellpaw-input]')
+          ?.focus();
+      }, 0);
+    };
+    window.addEventListener('spellpaw:insert-text', handler);
+    return () => window.removeEventListener('spellpaw:insert-text', handler);
+  }, []);
 
   const handleSubmit = () => {
     if (!value.trim() || disabled) return;
@@ -49,6 +71,7 @@ export function MessageInput({
       )}
       <div className="relative">
         <Textarea
+          data-spellpaw-input
           placeholder={placeholder}
           value={value}
           onChange={(e) => setValue(e.target.value)}

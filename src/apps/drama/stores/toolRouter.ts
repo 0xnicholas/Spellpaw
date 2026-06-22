@@ -930,3 +930,37 @@ export const toolRouter: ToolRouter = {
     return `已清空画布${scope}：共删除 ${matched.length} 张卡片。`;
   },
 };
+
+// Skill tool registration — tools that wrap one or more atomic
+// toolRouter calls into a single named workflow.
+//
+// These are registered at module load time. The skill definitions
+// themselves are in @drama/lib/skills/builtIn.ts, but they import
+// toolRouter lazily (dynamic import inside `invoke`) to avoid a
+// toolRouter ↔ builtIn circular dependency. We just need the skill
+// NAMES here, which we get from getAllSkillToolConfigs.
+import { getAllSkillToolConfigs } from '@drama/lib/skills/registry';
+import { getSkillById } from '@drama/lib/skills/registry';
+
+for (const cfg of getAllSkillToolConfigs()) {
+  // Skip if already registered (defensive — shouldn't happen with current
+  // registry, but harmless to guard against future duplicates).
+  if ((toolRouter as Record<string, unknown>)[cfg.name]) continue;
+  (toolRouter as Record<string, (params: unknown) => Promise<string>>)[cfg.name] = async (params: unknown) => {
+    // cfg.name is "spellpaw_skill_<id>" — strip the prefix to look up the skill.
+    const skillId = cfg.name.replace(/^spellpaw_skill_/, '');
+    const skill = getSkillById(skillId);
+    if (!skill) return `Unknown skill: ${skillId}`;
+    const input = (params as { input?: Record<string, unknown> })?.input ?? {};
+    const ctx = {
+      projectId: useProjectStore.getState().currentProjectId ?? '',
+      getProjectTree: () => useProjectStore.getState().getCurrentTree(),
+      getCanvasCardCount: () => useCanvasStore.getState().getCurrentNodes().length,
+    };
+    if (!ctx.projectId) {
+      return `Skill「${skill.name}」失败：当前没有打开的项目。`;
+    }
+    const result = await skill.invoke(input, ctx);
+    return result.summary;
+  };
+}

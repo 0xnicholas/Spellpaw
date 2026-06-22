@@ -7,6 +7,7 @@ import {
 	formatInsightsAsMessage,
 	type ProactiveInsight,
 } from "@drama/lib/proactiveInsights";
+import { tryRunSkill, formatSkillInvocation, isSlashCommand } from "@drama/lib/skills/chat";
 import { useProjectStore } from "./projectStore";
 import { useCanvasStore } from "./canvasStore";
 
@@ -182,6 +183,37 @@ export const useChatStore = create<ChatState>()((set) => ({
 			void saveChatMessages(messages, projectId);
 			return { messages, isLoading: true };
 		});
+
+		// Slash command: run the skill locally, no LLM roundtrip needed.
+		// (The useCopilotSSE override also has this short-circuit so skills
+		// work in both mock and real modes.)
+		if (isSlashCommand(content)) {
+			void tryRunSkill(content, projectId).then((result) => {
+				if (!result) {
+					// Unknown slash command — fall through to mock reply
+					const agentMsg = mockAgentReply(content, projectId);
+					set((state) => {
+						const messages = [...state.messages, agentMsg];
+						void saveChatMessages(messages, projectId);
+						return { messages, isLoading: false };
+					});
+					return;
+				}
+				const invocationMsg: ChatMessage = {
+					id: generateId("msg_"),
+					role: "agent",
+					content: formatSkillInvocation(result.skillId),
+					type: "text",
+					timestamp: new Date().toISOString(),
+				};
+				set((state) => {
+					const messages = [...state.messages, invocationMsg, result.assistantMessage];
+					void saveChatMessages(messages, projectId);
+					return { messages, isLoading: false };
+				});
+			});
+			return;
+		}
 
 		setTimeout(() => {
 			const agentMsg = mockAgentReply(content, projectId);

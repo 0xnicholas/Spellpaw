@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react';
 import { useChatStore } from '@drama/stores/chatStore';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import type { ChatMessage } from '@drama/types';
 import { buildSystemPrompt } from '@drama/lib/systemPrompt';
 import { getLLMProvider } from '@drama/lib/llm';
 import { SPELLPAW_TOOL_CONFIGS } from '@drama/lib/toolConfigs';
@@ -19,6 +20,7 @@ import {
   batchApplyStyle,
 } from '@drama/lib/canvasToolkit';
 import { logger } from '@shared/lib/logger';
+import { isSlashCommand, tryRunSkill, formatSkillInvocation } from '@drama/lib/skills/chat';
 import type { CanvasIntent } from '@drama/lib/intentRouter';
 
 export function useCopilotSSE() {
@@ -160,6 +162,37 @@ export function useCopilotSSE() {
           return;
         }
         logger.log('[useCopilotSSE] sendMessage called:', content.slice(0, 80));
+
+        // Slash command: run the skill locally, no LLM roundtrip.
+        if (isSlashCommand(content)) {
+          // Append the user message first
+          const userMsg: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: 'user',
+            content,
+            type: 'text',
+            timestamp: new Date().toISOString(),
+          };
+          useChatStore.getState().appendMessage(userMsg, projectId);
+
+          const result = await tryRunSkill(content, projectId);
+          if (result) {
+            const invocationMsg: ChatMessage = {
+              id: crypto.randomUUID(),
+              role: 'agent',
+              content: formatSkillInvocation(result.skillId),
+              type: 'text',
+              timestamp: new Date().toISOString(),
+            };
+            useChatStore.getState().appendMessage(invocationMsg, projectId);
+            useChatStore.getState().appendMessage(result.assistantMessage, projectId);
+            endStreaming(projectId, 'skill_invocation');
+            return;
+          }
+          // Unknown slash command — fall through to LLM so it can either
+          // recognize the typo or run a LLM-callable skill tool.
+        }
+
         // Build card context for the message
         let enrichedContent = content;
         let contextCardId: string | undefined;

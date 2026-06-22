@@ -1,0 +1,81 @@
+{
+  "id": "period-romance",
+  "name": "年代爱情短片",
+  "category": "romance",
+  "description": "三幕年代爱情：战乱/家族阻隔下的初遇 → 误会分离 → 多年后重逢。怀旧色调，节奏舒缓。",
+  "targetDuration": 60,
+  "targetPlatform": "portrait",
+  "structure": {
+    "acts": [
+      {
+        "title": "第一幕：初遇",
+        "description": "民国/80年代背景下的浪漫相遇",
+        "scenes": [
+          {
+            "title": "雨巷",
+            "description": "撑着油纸伞的相遇",
+            "suggestedShotTypes": ["medium", "wide"],
+            "suggestedCameraMovement": "dolly",
+            "metadata": { "duration": 15, "timeOfDay": "evening", "location": "老街巷" }
+          },
+          {
+            "title": "回眸",
+            "description": "转身一刻，时间静止",
+            "suggestedShotTypes": ["close-up"],
+            "suggestedCameraMovement": "static",
+            "metadata": { "duration": 8, "timeOfDay": "evening", "location": "老街巷" }
+          }
+        ]
+      },
+      {
+        "title": "第二幕：分离",
+        "description": "家族/战争迫使两人分开",
+        "scenes": [
+          {
+            "title": "车站送别",
+            "description": "月台上的最后一面",
+            "suggestedShotTypes": ["wide", "close-up"],
+            "suggestedCameraMovement": "dolly",
+            "metadata": { "duration": 10, "timeOfDay": "day", "location": "火车站" }
+          },
+          {
+            "title": "一封家书",
+            "description": "多年后收到没有回音的信",
+            "suggestedShotTypes": ["close-up", "insert"],
+            "suggestedCameraMovement": "static",
+            "metadata": { "duration": 7, "timeOfDay": "evening", "location": "老宅" }
+          }
+        ]
+      },
+      {
+        "title": "第三幕：重逢",
+        "description": "多年后的某天，命运再次安排相遇",
+        "scenes": [
+          {
+            "title": "老地方",
+            "description": "回到初遇的那条巷子",
+            "suggestedShotTypes": ["wide", "medium"],
+            "suggestedCameraMovement": "dolly",
+            "metadata": { "duration": 12, "timeOfDay": "afternoon", "location": "老街巷" }
+          },
+          {
+            "title": "白发重逢",
+            "description": "对方也在那里，时间停在这一刻",
+            "suggestedShotTypes": ["close-up", "wide"],
+            "suggestedCameraMovement": "static",
+            "metadata": { "duration": 8, "timeOfDay": "afternoon", "location": "老街巷" }
+          }
+        ]
+      }
+    ]
+  },
+  "stylePresets": {
+    "colorPalette": ["#d4a574", "#8b4513", "#3e2723", "#f5e6d3"],
+    "pacing": "medium",
+    "visualStyle": "怀旧暖棕 · 慢节奏 · 弦乐配乐 · 浅景深"
+  },
+  "tags": ["爱情", "年代", "怀旧", "短剧", "30-90秒"],
+  "author": "Spellpaw",
+  "downloads": 0,
+  "version": 1
+}

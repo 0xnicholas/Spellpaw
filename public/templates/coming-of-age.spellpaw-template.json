@@ -1,0 +1,78 @@
+{
+  "id": "coming-of-age",
+  "name": "青春成长短片",
+  "category": "drama",
+  "description": "三幕青春叙事：迷茫 → 试错 → 找到自己。明亮色调，校园/家庭场景。",
+  "targetDuration": 60,
+  "targetPlatform": "portrait",
+  "structure": {
+    "acts": [
+      {
+        "title": "第一幕：迷茫",
+        "description": "高中生/毕业生面临身份困惑",
+        "scenes": [
+          {
+            "title": "课间",
+            "description": "课间喧闹，主角独自坐在角落",
+            "suggestedShotTypes": ["medium", "wide"],
+            "metadata": { "duration": 10, "timeOfDay": "day", "location": "学校" }
+          },
+          {
+            "title": "家人的期待",
+            "description": "饭桌上被问到未来规划",
+            "suggestedShotTypes": ["medium", "close-up"],
+            "metadata": { "duration": 8, "timeOfDay": "evening", "location": "家中" }
+          }
+        ]
+      },
+      {
+        "title": "第二幕：试错",
+        "description": "尝试不同方向，碰壁但不放弃",
+        "scenes": [
+          {
+            "title": "第一次尝试",
+            "description": "报名比赛/社团，被拒绝或表现不佳",
+            "suggestedShotTypes": ["medium", "close-up"],
+            "suggestedCameraMovement": "handheld",
+            "metadata": { "duration": 10, "timeOfDay": "day", "location": "活动现场" }
+          },
+          {
+            "title": "深夜决定",
+            "description": "一个人坐在书桌前，作出选择",
+            "suggestedShotTypes": ["close-up"],
+            "suggestedCameraMovement": "static",
+            "metadata": { "duration": 8, "timeOfDay": "night", "location": "卧室" }
+          }
+        ]
+      },
+      {
+        "title": "第三幕：找到自己",
+        "description": "按自己的节奏走，世界也回应了",
+        "scenes": [
+          {
+            "title": "专注时刻",
+            "description": "蒙太奇：沉浸在热爱中的状态",
+            "suggestedShotTypes": ["close-up", "medium"],
+            "suggestedCameraMovement": "dolly",
+            "metadata": { "duration": 12, "timeOfDay": "day", "location": "多个" }
+          },
+          {
+            "title": "被看见",
+            "description": "作品被认可/状态自然改变",
+            "suggestedShotTypes": ["medium", "wide"],
+            "metadata": { "duration": 12, "timeOfDay": "day", "location": "舞台/朋友聚会" }
+          }
+        ]
+      }
+    ]
+  },
+  "stylePresets": {
+    "colorPalette": ["#ffe082", "#ffb74d", "#4fc3f7", "#81c784"],
+    "pacing": "medium",
+    "visualStyle": "明亮饱和 · 校园清新 · 青春滤镜 · 抒情配乐"
+  },
+  "tags": ["青春", "成长", "校园", "短剧", "30-90秒"],
+  "author": "Spellpaw",
+  "downloads": 0,
+  "version": 1
+}

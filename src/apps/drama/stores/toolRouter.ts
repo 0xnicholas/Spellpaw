@@ -58,6 +58,11 @@ const BUILTIN_TEMPLATES = [
   { id: 'comedy-twist', name: '喜剧反转', category: 'comedy', keywords: ['喜剧','搞笑','幽默','段子','笑','荒诞','讽刺','无厘头','欢乐','逗','趣'] },
   { id: 'underdog-comeback', name: '励志逆袭', category: 'drama', keywords: ['励志','逆袭','奋斗','成长','追梦','突破','翻身','成功','努力','拼搏','创业','穷'] },
   { id: 'mini-documentary', name: '短纪录片', category: 'documentary', keywords: ['纪录','纪实','访谈','真实','纪录片','人文','社会','探索','历史','见证'] },
+  { id: 'psychological-horror', name: '心理恐怖', category: 'horror', keywords: ['恐怖','惊悚','诡异','阴森','吓人','悬疑','神秘','不安','噩梦','灵异','鬼','邪'] },
+  { id: 'action-chase', name: '动作追逐', category: 'action', keywords: ['动作','追逐','打斗','枪战','爆破','跑酷','特工','警匪','武侠','高能','燃','快节奏'] },
+  { id: 'period-romance', name: '年代爱情', category: 'romance', keywords: ['年代','怀旧','民国','复古','老上海','战乱','家族','分离','重逢','错过','遗憾'] },
+  { id: 'coming-of-age', name: '青春成长', category: 'drama', keywords: ['青春','校园','高中','大学','毕业','迷茫','成长','蜕变','找到自我','试错','选择'] },
+  { id: 'fantasy-awakening', name: '玄幻觉醒', category: 'fantasy', keywords: ['玄幻','仙侠','异能','觉醒','超能力','异世界','奇幻','特效','修仙','古风魔幻'] },
 ];
 
 function scoreTemplates(corpus: string) {

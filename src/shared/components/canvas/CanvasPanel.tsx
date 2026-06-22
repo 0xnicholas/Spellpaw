@@ -5,7 +5,6 @@ import {
   Controls,
   useNodesState,
   useEdgesState,
-  useReactFlow,
   type Node,
   type Edge,
   type Connection,
@@ -163,15 +162,19 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
   );
 
   const [paneMenu, setPaneMenu] = useState<PaneMenuState | null>(null);
-  const { screenToFlowPosition } = useReactFlow();
 
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
       event.preventDefault();
-      const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      const rf = reactFlowRef.current;
+      if (!rf) return;  // guard: onInit hasn't fired yet
+      const flowPos = rf.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
       setPaneMenu({ x: event.clientX, y: event.clientY, flowPosition: flowPos });
     },
-    [screenToFlowPosition]
+    []
   );
 
   const closePaneMenu = useCallback(() => setPaneMenu(null), []);

@@ -2,13 +2,6 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { HeroSearchBar } from './HeroSearchBar';
 
-const EXAMPLE_PROMPTS = [
-  '都市奇缘',
-  '密室逃脱',
-  '逆袭人生',
-  '校园恋爱',
-];
-
 /**
  * Hero section — buzzy.now-style dark hero with large Poppins
  * display headline, dual CTAs (white pill primary + outline),
@@ -114,24 +107,8 @@ export function HeroSection() {
           </a>
         </div>
 
-        {/* Hero 中心搜索框（buzzy 风格的 .search-bar） */}
+        {/* Hero 中心搜索框（HeroSearchBar 自带 example tags 和 action 按钮） */}
         <HeroSearchBar />
-
-        {/* Quick prompt chips — example starters */}
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
-          <span className="text-xs" style={{ color: 'var(--portal-text-dim)' }}>
-            快速开始：
-          </span>
-          {EXAMPLE_PROMPTS.map((item) => (
-            <button
-              key={item}
-              onClick={() => handleCreate()}
-              className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3.5 py-1 text-xs font-medium text-white/80 backdrop-blur-sm transition-all hover:border-white/[0.18] hover:bg-white/[0.08] hover:text-white"
-            >
-              {item}
-            </button>
-          ))}
-        </div>
       </div>
     </section>
   );

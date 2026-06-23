@@ -1,0 +1,54 @@
+#!/usr/bin/env sh
+# post-commit — detect & repair the lint-staged staged-deletion bug.
+#
+# lint-staged iterates staged files and, for any with status 'D'
+# (staged deletion), calls `fs.access(filepath)`. If the file happens
+# to still exist on disk (e.g. the user used `git rm --cached` instead
+# of `git rm`, or the user restored it manually between add and commit),
+# lint-staged happily runs `git add <file>` on it — which flips the
+# staged deletion back into a staged addition, undoing the deletion.
+#
+# Symptom: a commit that deletes files is recorded, but the files are
+# still on disk afterwards. `git status` then shows them as either
+# untracked (if they were never re-added) or staged-as-new-file (if
+# lint-staged re-added them).
+#
+# This hook detects that inconsistency — files deleted by the commit
+# still present in the working tree — and amends the commit so the
+# deletion actually sticks. Safe to use because it only runs on the
+# commit just made (still local, not yet pushed).
+set -e
+
+deleted=$(git diff-tree --no-commit-id --name-only -r --diff-filter=D HEAD)
+
+if [ -z "$deleted" ]; then
+  exit 0
+fi
+
+restored=""
+for f in $deleted; do
+  if [ -e "$f" ]; then
+    restored="$restored $f"
+    # Two scenarios:
+    #   1. lint-staged re-added the file to the index (fs.access passed,
+    #      then `git add` flipped status from D → A). Remove it from
+    #      the index with `--force` so we can re-stage the deletion.
+    #   2. file is just sitting in the working tree untracked (user used
+    #      `git rm --cached`). `git rm --cached` is a noop here since
+    #      it's already gone from the index.
+    git rm --cached --force --ignore-unmatch -- "$f" 2>/dev/null || true
+    rm -- "$f"
+    # Re-stage the deletion so the amend records it.
+    git add -- "$f" 2>/dev/null || true
+  fi
+done
+
+if [ -n "$restored" ]; then
+  printf '\n⚠️  lint-staged restored files deleted by this commit:\n'
+  for f in $restored; do
+    printf '    %s\n' "$f"
+  done
+  printf 'Re-applying the deletions via amend...\n'
+  git commit --amend --no-edit --no-verify
+  printf '✓ Commit amended to %s\n' "$(git rev-parse --short HEAD)"
+fi

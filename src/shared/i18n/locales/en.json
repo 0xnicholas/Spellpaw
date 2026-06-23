@@ -1,12 +1,72 @@
 {
-  "app": { "name": "SpellPaw", "tagline": "AI-assisted short drama & video production tool" },
-  "nav": { "projects": "Projects", "settings": "Settings", "exportPdf": "Export storyboard PDF", "logout": "Sign out" },
-  "auth": { "login": "Sign in", "register": "Create account", "email": "Email", "password": "Password", "name": "Name", "signIn": "Sign in", "signUp": "Sign up", "switchToRegister": "Don't have an account? Sign up", "switchToLogin": "Already have an account? Sign in", "errors": { "invalidCredentials": "Invalid credentials", "emailExists": "Email already registered", "network": "Network error" } },
-  "project": { "new": "New Project", "blank": "Blank", "fromTemplate": "From Template", "title": "Title", "description": "Description", "coverColor": "Cover Color", "create": "Create", "cancel": "Cancel", "delete": "Delete", "export": "Export", "import": "Import", "scenes": "scenes" },
-  "template": { "builtin": "Built-in", "community": "Community", "myTemplates": "My Templates", "useTemplate": "Use this template", "noTemplates": "No templates found", "import": "Import template file", "exportAsTemplate": "Export as template", "deleteTemplate": "Delete template", "noCustomTemplates": "No custom templates yet, import one above" },
-  "gallery": { "title": "Community Gallery", "publish": "Publish to Gallery" },
-  "workspace": { "chat": "Chat", "details": "Details", "tree": "Project Tree", "assets": "Assets", "canvas": "Canvas" },
-  "common": { "loading": "Loading...", "save": "Save", "confirm": "Confirm", "skills": "Build a Story" },
+  "app": {
+    "name": "SpellPaw",
+    "tagline": "AI-assisted short drama & video production tool"
+  },
+  "nav": {
+    "projects": "Projects",
+    "settings": "Settings",
+    "exportPdf": "Export storyboard PDF",
+    "logout": "Sign out"
+  },
+  "auth": {
+    "login": "Sign in",
+    "register": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "switchToRegister": "Don't have an account? Sign up",
+    "switchToLogin": "Already have an account? Sign in",
+    "errors": {
+      "invalidCredentials": "Invalid email or password",
+      "emailExists": "Email already registered",
+      "network": "Network error"
+    }
+  },
+  "project": {
+    "new": "New Project",
+    "blank": "Blank",
+    "fromTemplate": "From Template",
+    "title": "Title",
+    "description": "Description",
+    "coverColor": "Cover Color",
+    "create": "Create",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "export": "Export",
+    "import": "Import",
+    "scenes": "scenes"
+  },
+  "template": {
+    "builtin": "Built-in",
+    "community": "Community",
+    "myTemplates": "My Templates",
+    "useTemplate": "Use this template",
+    "noTemplates": "No templates found",
+    "import": "Import template file",
+    "exportAsTemplate": "Export as template",
+    "deleteTemplate": "Delete template",
+    "noCustomTemplates": "No custom templates yet, import one above"
+  },
+  "gallery": {
+    "title": "Community Gallery",
+    "publish": "Publish to Gallery"
+  },
+  "workspace": {
+    "chat": "Chat",
+    "details": "Details",
+    "tree": "Project Tree",
+    "assets": "Assets",
+    "canvas": "Canvas"
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "confirm": "Confirm",
+    "skills": "Build a Story"
+  },
   "console": {
     "title": "Console",
     "back": "Back to projects",
@@ -78,6 +138,119 @@
         "deepseek": "DeepSeek",
         "openai": "OpenAI"
       }
+    }
+  },
+  "portal": {
+    "nav": {
+      "login": "Sign in",
+      "enterStudio": "Enter Studio",
+      "switchLanguage": "Switch language"
+    },
+    "hero": {
+      "badge": "AI-DRIVEN SHORT DRAMA STUDIO",
+      "headlineLine1": "Meet your",
+      "headlineHighlight": "AI Director",
+      "subtitle1": "AI crafts characters, ",
+      "subtitle2": "breaks down shots, paces the rhythm.",
+      "startCreating": "Start creating",
+      "viewWorkflow": "See the workflow"
+    },
+    "heroSearch": {
+      "modelPickerAlert": "Model picker: Seedance / Kling / Omni coming soon",
+      "attachAlert": "File attach: coming soon"
+    },
+    "dynamicIsland": {
+      "modelPickerAlert": "Model picker: coming soon",
+      "attachAlert": "File attach: coming soon"
+    },
+    "features": {
+      "badge": "CAPABILITIES",
+      "title": "Core capabilities",
+      "subtitle": "An end-to-end AI toolkit built for short drama and short-form creators",
+      "items": {
+        "dialog": {
+          "title": "Chat that acts",
+          "description": "The AI agent doesn't just chat—it edits project structure, generates scenes, and tightens narrative rhythm."
+        },
+        "structure": {
+          "title": "Structure is content",
+          "description": "An act → scene → shot tree becomes the spine of your story, keeping complex projects organized."
+        },
+        "canvas": {
+          "title": "Canvas as workspace",
+          "description": "An infinite canvas of cards visualizes your thinking—drag, arrange, what you see is what you get."
+        },
+        "rhythm": {
+          "title": "AI rhythm analysis",
+          "description": "Real-time pacing distribution analysis flags rhythm imbalances so you control the tension."
+        },
+        "sync": {
+          "title": "Smart sync",
+          "description": "Tree and canvas stay in sync, with local IndexedDB cache and cloud push/pull."
+        },
+        "templates": {
+          "title": "Narrative templates",
+          "description": "Built-in templates for thriller, romance, comedy—one click to kickstart your story."
+        }
+      }
+    },
+    "workflow": {
+      "badge": "WORKFLOW",
+      "title": "From idea to final cut in 4 steps",
+      "subtitle": "AI handles the structural heavy lifting so you can focus on the creative parts",
+      "steps": {
+        "idea": {
+          "title": "One-line idea",
+          "desc": "Type a synopsis or upload a script—AI extracts the three-act structure."
+        },
+        "characters": {
+          "title": "Characters & world",
+          "desc": "Generate character cards and mood boards in one click to build your world."
+        },
+        "storyboard": {
+          "title": "Storyboard breakdown",
+          "desc": "AI splits shots automatically; rhythm analysis keeps the pacing tight."
+        },
+        "production": {
+          "title": "Visual production",
+          "desc": "Export a storyboard PDF or call AI to generate reference images and video."
+        }
+      }
+    },
+    "stats": {
+      "models": {
+        "value": "6+",
+        "label": "AI models",
+        "desc": "Doubao, DeepSeek, SiliconFlow, OpenAI and more"
+      },
+      "templates": {
+        "value": "10+",
+        "label": "Narrative templates",
+        "desc": "Thriller / romance / comedy / urban ready to go"
+      },
+      "skills": {
+        "value": "6",
+        "label": "Built-in skills",
+        "desc": "Character card / storyboard / rhythm at one click"
+      },
+      "sync": {
+        "value": "24/7",
+        "label": "Cloud sync",
+        "desc": "Pick up anywhere, autosave as you go"
+      }
+    },
+    "cta": {
+      "noInstall": "No install, just open and create",
+      "headlineLine1": "Your next hit short drama",
+      "headlineLine2": "starts here",
+      "subtitle": "Try SpellPaw now—turn your story spark into a shoot-ready, full storyboard.",
+      "startFree": "Start creating for free"
+    },
+    "footer": {
+      "tagline": "© 2026 SpellPaw. AI-powered creative platform.",
+      "beian": "浙ICP备2026042372号",
+      "login": "Sign in",
+      "studio": "Studio"
     }
   }
 }

@@ -1,30 +1,11 @@
 import { Lightbulb, Users, Film, Wand2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-const steps = [
-  {
-    n: '01',
-    icon: Lightbulb,
-    title: '一句话创意',
-    desc: '输入梗概或上传剧本，AI 解析出三幕结构。',
-  },
-  {
-    n: '02',
-    icon: Users,
-    title: '角色与场景',
-    desc: '一键生成角色卡与情绪板，建立故事的世界观。',
-  },
-  {
-    n: '03',
-    icon: Film,
-    title: '分镜拆解',
-    desc: 'AI 自动拆分镜头，节奏分析保证叙事张力。',
-  },
-  {
-    n: '04',
-    icon: Wand2,
-    title: '视觉成片',
-    desc: '导出分镜 PDF 或直接调用 AI 生成参考图与视频。',
-  },
+const steps: { n: string; key: string; icon: typeof Lightbulb }[] = [
+  { n: '01', key: 'idea', icon: Lightbulb },
+  { n: '02', key: 'characters', icon: Users },
+  { n: '03', key: 'storyboard', icon: Film },
+  { n: '04', key: 'production', icon: Wand2 },
 ];
 
 /**
@@ -32,6 +13,8 @@ const steps = [
  * Each step is a card with a large step number, icon, title, desc.
  */
 export function WorkflowSection() {
+  const { t } = useTranslation();
+
   return (
     <section
       id="workflow"
@@ -45,16 +28,16 @@ export function WorkflowSection() {
             className="mb-3 inline-block text-xs font-semibold tracking-[0.18em]"
             style={{ color: 'var(--portal-accent)' }}
           >
-            WORKFLOW
+            {t('portal.workflow.badge')}
           </div>
           <h2
             className="mb-3 text-3xl font-bold tracking-tight text-white sm:text-4xl"
             style={{ fontFamily: 'var(--font-family-display)', letterSpacing: '-0.025em' }}
           >
-            从灵感到成片，4 步搞定
+            {t('portal.workflow.title')}
           </h2>
           <p className="text-base" style={{ color: 'var(--portal-text-muted)' }}>
-            AI 接管繁琐的结构工作，让你专注在最有创造力的部分
+            {t('portal.workflow.subtitle')}
           </p>
         </div>
 
@@ -74,7 +57,7 @@ export function WorkflowSection() {
               const Icon = step.icon;
               return (
                 <div
-                  key={step.n}
+                  key={step.key}
                   className="relative rounded-[20px] border p-6"
                   style={{
                     background: 'var(--portal-bg-elevated)',
@@ -109,7 +92,7 @@ export function WorkflowSection() {
                     className="mb-1.5 text-[15px] font-semibold text-white"
                     style={{ fontFamily: 'var(--font-family-display)' }}
                   >
-                    {step.title}
+                    {t(`portal.workflow.steps.${step.key}.title`)}
                   </h3>
 
                   {/* Description */}
@@ -117,7 +100,7 @@ export function WorkflowSection() {
                     className="text-[13px] leading-relaxed"
                     style={{ color: 'var(--portal-text-muted)' }}
                   >
-                    {step.desc}
+                    {t(`portal.workflow.steps.${step.key}.desc`)}
                   </p>
                 </div>
               );

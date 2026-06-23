@@ -1,39 +1,99 @@
 {
-  "app": { "name": "SpellPaw", "tagline": "AI 辅助短剧 & 短视频制作工具" },
-  "nav": { "projects": "项目", "settings": "设置", "exportPdf": "导出分镜 PDF", "logout": "退出登录" },
-  "auth": { "login": "登录", "register": "注册", "email": "邮箱", "password": "密码", "name": "名称", "signIn": "登录", "signUp": "注册", "switchToRegister": "没有账号？立即", "switchToLogin": "已有账号？去", "errors": { "invalidCredentials": "邮箱或密码错误", "emailExists": "该邮箱已注册", "network": "网络错误" } },
-  "project": { "new": "新建项目", "blank": "空白项目", "fromTemplate": "从模板创建", "title": "标题", "description": "描述", "coverColor": "封面颜色", "create": "创建", "cancel": "取消", "delete": "删除", "export": "导出", "import": "导入", "scenes": "场景" },
-  "template": { "builtin": "内置模板", "community": "社区模板", "myTemplates": "我的模板", "useTemplate": "使用此模板创建项目", "noTemplates": "暂无模板", "import": "导入模板文件", "exportAsTemplate": "导出为模板", "deleteTemplate": "删除模板", "noCustomTemplates": "暂无自定义模板，点击上方导入" },
-  "gallery": { "title": "社区画廊", "publish": "发布到画廊" },
-  "workspace": { "chat": "对话", "details": "详情", "tree": "项目结构", "assets": "资产", "canvas": "画布" },
-  "common": { "loading": "加载中…", "save": "保存", "confirm": "确认", "skills": "搭建故事" },
+  "app": {
+    "name": "SpellPaw",
+    "tagline": "AI 辅助短剧/短视频创作工具"
+  },
+  "nav": {
+    "projects": "项目",
+    "settings": "设置",
+    "exportPdf": "导出分镜 PDF",
+    "logout": "退出登录"
+  },
+  "auth": {
+    "login": "登录",
+    "register": "注册",
+    "email": "邮箱",
+    "password": "密码",
+    "name": "姓名",
+    "signIn": "登录",
+    "signUp": "注册",
+    "switchToRegister": "还没有账号？立即注册",
+    "switchToLogin": "已有账号？立即登录",
+    "errors": {
+      "invalidCredentials": "邮箱或密码错误",
+      "emailExists": "该邮箱已注册",
+      "network": "网络错误"
+    }
+  },
+  "project": {
+    "new": "新建项目",
+    "blank": "空白项目",
+    "fromTemplate": "从模板创建",
+    "title": "标题",
+    "description": "描述",
+    "coverColor": "封面颜色",
+    "create": "创建",
+    "cancel": "取消",
+    "delete": "删除",
+    "export": "导出",
+    "import": "导入",
+    "scenes": "场景"
+  },
+  "template": {
+    "builtin": "内置模板",
+    "community": "社区模板",
+    "myTemplates": "我的模板",
+    "useTemplate": "使用此模板",
+    "noTemplates": "未找到模板",
+    "import": "导入模板文件",
+    "exportAsTemplate": "导出为模板",
+    "deleteTemplate": "删除模板",
+    "noCustomTemplates": "暂无自定义模板，请在上方导入"
+  },
+  "gallery": {
+    "title": "社区作品",
+    "publish": "发布到作品库"
+  },
+  "workspace": {
+    "chat": "对话",
+    "details": "详情",
+    "tree": "项目结构",
+    "assets": "素材",
+    "canvas": "画布"
+  },
+  "common": {
+    "loading": "加载中...",
+    "save": "保存",
+    "confirm": "确认",
+    "skills": "构建故事"
+  },
   "console": {
     "title": "个人中心",
-    "back": "返回项目列表",
+    "back": "返回项目",
     "tabs": {
-      "profile": "个人资料",
-      "security": "账号安全",
-      "preferences": "偏好设置",
-      "integrations": "集成/API"
+      "profile": "账户",
+      "security": "安全",
+      "preferences": "偏好",
+      "integrations": "集成"
     },
     "profile": {
-      "title": "个人资料",
-      "description": "管理你的公开显示信息",
+      "title": "账户信息",
+      "description": "管理你的公开信息",
       "email": "邮箱",
-      "emailReadonly": "邮箱暂时不支持修改",
+      "emailReadonly": "邮箱暂不支持修改",
       "name": "显示名称",
-      "save": "保存资料",
+      "save": "保存账户信息",
       "nameRequired": "名称不能为空",
-      "updateSuccess": "资料已更新",
+      "updateSuccess": "账户信息已更新",
       "updateError": "更新失败"
     },
     "security": {
-      "title": "账号安全",
-      "description": "定期修改密码以保护账号安全",
+      "title": "安全",
+      "description": "定期修改密码以保障账户安全",
       "currentPassword": "当前密码",
       "newPassword": "新密码",
       "confirmPassword": "确认新密码",
-      "passwordMin": "新密码至少需要 8 位",
+      "passwordMin": "密码至少需要 8 位",
       "passwordMismatch": "两次输入的新密码不一致",
       "submit": "修改密码",
       "success": "密码已更新",
@@ -41,32 +101,32 @@
     },
     "preferences": {
       "title": "偏好设置",
-      "description": "自定义界面语言",
+      "description": "自定义语言",
       "language": "语言"
     },
     "integrations": {
       "title": "集成 / API",
-      "description": "管理第三方 API Key 和本地集成设置",
+      "description": "管理第三方 API Key 与本地集成配置",
       "save": "保存",
       "saved": "已保存",
       "saveError": "保存失败，请重试",
       "languageModelTitle": "语言模型",
-      "languageModelDescription": "用于 Copilot 对话和 Agent 工具调用",
+      "languageModelDescription": "用于 Copilot 对话与 Agent 工具调用",
       "multimodalTitle": "多模态生成",
-      "multimodalDescription": "用于图片、图生图、风格迁移和视频生成",
+      "multimodalDescription": "用于图像生成、图生图、风格迁移与视频",
       "openaiKey": "OpenAI API Key",
-      "openaiHint": "用于 DALL·E 图片生成",
+      "openaiHint": "用于 DALL·E 图像生成",
       "openaiPlaceholder": "sk-...",
       "doubaoKey": "豆包 / 火山方舟 API Key",
-      "doubaoHint": "用于豆包图片生成、图生图、风格迁移和视频生成",
+      "doubaoHint": "用于豆包图像生成、图生图、风格迁移与视频",
       "doubaoPlaceholder": "ark-...",
       "minimaxKey": "Minimax API Key",
-      "minimaxHint": "预留，用于 Minimax 视频生成",
+      "minimaxHint": "预留给 Minimax 视频生成",
       "minimaxPlaceholder": "即将支持",
-      "llmProvider": "Provider",
+      "llmProvider": "提供商",
       "llmApiKey": "API Key",
       "llmBaseUrl": "Base URL",
-      "llmBaseUrlHint": "已根据 Provider 预设，通常无需修改",
+      "llmBaseUrlHint": "已按所选提供商预填，通常无需修改",
       "llmModel": "模型",
       "llmModelDefault": "默认（{{model}}）",
       "llmModelCustom": "自定义...",
@@ -78,6 +138,119 @@
         "deepseek": "DeepSeek",
         "openai": "OpenAI"
       }
+    }
+  },
+  "portal": {
+    "nav": {
+      "login": "登录",
+      "enterStudio": "进入创作",
+      "switchLanguage": "切换语言"
+    },
+    "hero": {
+      "badge": "AI-DRIVEN SHORT DRAMA STUDIO",
+      "headlineLine1": "遇见你的",
+      "headlineHighlight": "AI 导演",
+      "subtitle1": "AI 生成角色、拆分镜头、",
+      "subtitle2": "把控叙事节奏。",
+      "startCreating": "开始创作",
+      "viewWorkflow": "查看工作流"
+    },
+    "heroSearch": {
+      "modelPickerAlert": "模型选择：即将支持 Seedance / Kling / Omni 等",
+      "attachAlert": "附件上传：即将支持"
+    },
+    "dynamicIsland": {
+      "modelPickerAlert": "模型选择：即将支持",
+      "attachAlert": "附件上传：即将支持"
+    },
+    "features": {
+      "badge": "CAPABILITIES",
+      "title": "核心能力",
+      "subtitle": "为短剧/短视频创作者打造的全链路 AI 辅助工具",
+      "items": {
+        "dialog": {
+          "title": "对话即操作",
+          "description": "AI Agent 不仅是聊天对象，更能直接修改项目结构、生成场景、优化叙事节奏。"
+        },
+        "structure": {
+          "title": "结构即内容",
+          "description": "幕→场景→镜头的树状叙事结构是创作骨架，让复杂的短剧项目井然有序。"
+        },
+        "canvas": {
+          "title": "画布即工作台",
+          "description": "无限画布上的卡片是思维的可视化延伸，拖拽编排，所见即所得。"
+        },
+        "rhythm": {
+          "title": "AI 节奏分析",
+          "description": "实时分析项目时长分布，预警节奏失衡，辅助你把控叙事张力。"
+        },
+        "sync": {
+          "title": "智能同步",
+          "description": "树与画布双向同步，本地 IndexedDB 缓存，云端异步 push/pull。"
+        },
+        "templates": {
+          "title": "叙事模板",
+          "description": "内置多种叙事模板，悬疑、爱情、喜剧一键套用，快速启动创作。"
+        }
+      }
+    },
+    "workflow": {
+      "badge": "WORKFLOW",
+      "title": "从灵感到成片，4 步搞定",
+      "subtitle": "AI 接管繁琐的结构工作，让你专注在最有创造力的部分",
+      "steps": {
+        "idea": {
+          "title": "一句话创意",
+          "desc": "输入梗概或上传剧本，AI 解析出三幕结构。"
+        },
+        "characters": {
+          "title": "角色与场景",
+          "desc": "一键生成角色卡与情绪板，建立故事的世界观。"
+        },
+        "storyboard": {
+          "title": "分镜拆解",
+          "desc": "AI 自动拆分镜头，节奏分析保证叙事张力。"
+        },
+        "production": {
+          "title": "视觉成片",
+          "desc": "导出分镜 PDF 或直接调用 AI 生成参考图与视频。"
+        }
+      }
+    },
+    "stats": {
+      "models": {
+        "value": "6+",
+        "label": "AI 模型",
+        "desc": "覆盖豆包、DeepSeek、SiliconFlow、OpenAI"
+      },
+      "templates": {
+        "value": "10+",
+        "label": "叙事模板",
+        "desc": "悬疑 / 爱情 / 喜剧 / 都市等开箱即用"
+      },
+      "skills": {
+        "value": "6",
+        "label": "内置 Skills",
+        "desc": "角色卡 / 分镜 / 节奏分析一键调用"
+      },
+      "sync": {
+        "value": "24/7",
+        "label": "云端同步",
+        "desc": "随时随地继续创作，自动保存"
+      }
+    },
+    "cta": {
+      "noInstall": "不用安装，打开即用",
+      "headlineLine1": "下一个爆款短剧",
+      "headlineLine2": "从这里开始",
+      "subtitle": "立即体验 SpellPaw，把你的故事灵感变成可拍可发的完整分镜。",
+      "startFree": "免费开始创作"
+    },
+    "footer": {
+      "tagline": "© 2026 SpellPaw. AI 驱动的创作平台。",
+      "beian": "浙ICP备2026042372号",
+      "login": "登录",
+      "studio": "创作工作台"
     }
   }
 }

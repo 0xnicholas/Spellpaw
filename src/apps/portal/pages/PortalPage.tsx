@@ -7,7 +7,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navbar } from '@/apps/portal/components/Navbar';
 import { HeroSection } from '@/apps/portal/components/HeroSection';
-import { AppCardsSection } from '@/apps/portal/components/AppCardsSection';
 import { WorkflowSection } from '@/apps/portal/components/WorkflowSection';
 import { FeaturesSection } from '@/apps/portal/components/FeaturesSection';
 import { StatsSection } from '@/apps/portal/components/StatsSection';
@@ -44,7 +43,7 @@ export function PortalPage() {
       <div ref={heroRef}>
         <HeroSection />
       </div>
-      <AppCardsSection />
+      
       <WorkflowSection />
       <FeaturesSection />
       <StatsSection />

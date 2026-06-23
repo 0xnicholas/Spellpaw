@@ -1,4 +1,5 @@
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 /**
@@ -7,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
  */
 export function CtaSection() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <section
@@ -25,7 +27,7 @@ export function CtaSection() {
         >
           <Sparkles className="h-3 w-3" style={{ color: 'var(--portal-accent)' }} />
           <span className="text-xs font-medium" style={{ color: 'var(--portal-text-muted)' }}>
-            不用安装，打开即用
+            {t('portal.cta.noInstall')}
           </span>
         </div>
 
@@ -36,16 +38,16 @@ export function CtaSection() {
             letterSpacing: '-0.035em',
           }}
         >
-          下一个爆款短剧
+          {t('portal.cta.headlineLine1')}
           <br />
-          从这里开始
+          {t('portal.cta.headlineLine2')}
         </h2>
 
         <p
           className="mx-auto mb-10 max-w-xl text-base leading-relaxed sm:text-lg"
           style={{ color: 'var(--portal-text-muted)' }}
         >
-          立即体验 SpellPaw，把你的故事灵感变成可拍可发的完整分镜。
+          {t('portal.cta.subtitle')}
         </p>
 
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
@@ -58,7 +60,7 @@ export function CtaSection() {
                 '0 8px 32px rgba(255,255,255,0.18), 0 0 0 1px rgba(255,255,255,0.08), 0 0 60px oklch(60% 0.2 275 / 0.25)',
             }}
           >
-            免费开始创作
+            {t('portal.cta.startFree')}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
         </div>

@@ -1,4 +1,6 @@
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { HeroSearchBar } from './HeroSearchBar';
 
@@ -6,31 +8,59 @@ import { HeroSearchBar } from './HeroSearchBar';
  * Hero section — buzzy.now-style dark hero with large Poppins
  * display headline, dual CTAs (white pill primary + outline),
  * and example prompt chips.
+ *
+ * Performance: the three aurora bands use large blurred shapes with
+ * infinite transform animations. To keep GPU cost down we (1) keep the
+ * blur radius modest and (2) pause the animations whenever the hero
+ * scrolls out of view, since the visual effect is invisible anyway.
  */
 export function HeroSection() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const sectionRef = useRef<HTMLElement | null>(null);
+  // Start as `true` so SSR / first paint matches the server, and only
+  // flip to `false` once we confirm the hero has actually left the
+  // viewport (avoids a flash of paused animation on initial load).
+  const [inView, setInView] = useState(true);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => setInView(entry?.isIntersecting ?? false),
+      { threshold: 0.01 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   const handleCreate = () => {
     navigate('/projects');
   };
 
+  // `animationPlayState` is the single most effective lever — turning
+  // the keyframes off stops the per-frame transform/blur work entirely.
+  const animState = inView ? 'running' : 'paused';
+
   return (
     <section
+      ref={sectionRef}
       className="relative flex min-h-[auto] items-center justify-center overflow-hidden pt-32 pb-20 sm:min-h-[88vh] sm:pt-36"
       style={{ background: 'var(--portal-bg)' }}
     >
       {/* Aurora flowing bands — purple/violet theme */}
       <div
-        className="absolute -left-[15%] -top-[20%] h-[800px] w-[1000px] rounded-full blur-[180px] animate-[aurora-1_16s_ease-in-out_infinite]"
-        style={{ background: 'oklch(45% 0.2 275 / 0.35)' }}
+        className="absolute -left-[15%] -top-[20%] h-[700px] w-[900px] rounded-full blur-[80px] animate-[aurora-1_16s_ease-in-out_infinite]"
+        style={{ background: 'oklch(45% 0.2 275 / 0.35)', animationPlayState: animState }}
       />
       <div
-        className="absolute -right-[10%] top-[5%] h-[700px] w-[900px] rounded-full blur-[160px] animate-[aurora-2_20s_ease-in-out_infinite]"
-        style={{ background: 'oklch(50% 0.2 290 / 0.28)' }}
+        className="absolute -right-[10%] top-[5%] h-[600px] w-[800px] rounded-full blur-[80px] animate-[aurora-2_20s_ease-in-out_infinite]"
+        style={{ background: 'oklch(50% 0.2 290 / 0.28)', animationPlayState: animState }}
       />
       <div
-        className="absolute left-[15%] -bottom-[10%] h-[600px] w-[800px] rounded-full blur-[180px] animate-[aurora-3_18s_ease-in-out_infinite]"
-        style={{ background: 'oklch(45% 0.18 260 / 0.25)' }}
+        className="absolute left-[15%] -bottom-[10%] h-[550px] w-[750px] rounded-full blur-[80px] animate-[aurora-3_18s_ease-in-out_infinite]"
+        style={{ background: 'oklch(45% 0.18 260 / 0.25)', animationPlayState: animState }}
       />
 
       {/* Center vignette to focus on the headline */}
@@ -55,7 +85,7 @@ export function HeroSection() {
             className="text-xs font-semibold tracking-wide"
             style={{ color: 'var(--portal-accent)', letterSpacing: '0.04em' }}
           >
-            AI-DRIVEN SHORT DRAMA STUDIO
+            {t('portal.hero.badge')}
           </span>
         </div>
 
@@ -68,18 +98,20 @@ export function HeroSection() {
             fontWeight: 700,
           }}
         >
-          把灵感直接
+          {t('portal.hero.headlineLine1')}
           <br />
-          拍成<span style={{ color: 'var(--portal-accent)' }}>爆款短剧</span>
+          <span style={{ color: 'var(--portal-accent)' }}>
+            {t('portal.hero.headlineHighlight')}
+          </span>
         </h1>
 
         <p
           className="mx-auto mb-10 max-w-2xl text-base leading-relaxed sm:text-lg"
           style={{ color: 'var(--portal-text-muted)' }}
         >
-          从一句话梗概到完整分镜，AI 帮你完成剧本结构、角色设计和拍摄方案。
+          {t('portal.hero.subtitle1')}
           <br className="hidden sm:block" />
-          不需要剧本经验，让创意变成可以拍的内容。
+          {t('portal.hero.subtitle2')}
         </p>
 
         {/* CTAs — buzzy-style purple gradient pill primary */}
@@ -94,7 +126,7 @@ export function HeroSection() {
             }}
           >
             <Sparkles className="h-4 w-4" />
-            开始创作
+            {t('portal.hero.startCreating')}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
 
@@ -103,7 +135,7 @@ export function HeroSection() {
             className="flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.04] px-6 py-3.5 text-[15px] font-medium text-white transition-all hover:bg-white/[0.08]"
             style={{ fontFamily: 'var(--font-family-display)' }}
           >
-            查看工作流
+            {t('portal.hero.viewWorkflow')}
           </a>
         </div>
 

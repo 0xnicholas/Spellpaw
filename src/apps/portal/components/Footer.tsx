@@ -1,6 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 export function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer
       className="border-t"
@@ -25,7 +28,7 @@ export function Footer() {
           {/* Center info */}
           <div className="flex flex-col items-center gap-1">
             <p className="text-xs" style={{ color: 'var(--portal-text-dim)' }}>
-              © 2026 SpellPaw. AI 驱动的创作平台。
+              {t('portal.footer.tagline')}
             </p>
             <a
               href="https://beian.miit.gov.cn/"
@@ -34,7 +37,7 @@ export function Footer() {
               className="text-xs transition-colors"
               style={{ color: 'var(--portal-text-dim)' }}
             >
-              浙ICP备2026042372号
+              {t('portal.footer.beian')}
             </a>
           </div>
 
@@ -45,14 +48,14 @@ export function Footer() {
               className="text-xs transition-colors"
               style={{ color: 'var(--portal-text-muted)' }}
             >
-              登录
+              {t('portal.footer.login')}
             </Link>
             <Link
               to="/projects"
               className="text-xs transition-colors"
               style={{ color: 'var(--portal-text-muted)' }}
             >
-              创作工作台
+              {t('portal.footer.studio')}
             </Link>
           </div>
         </div>

@@ -1,8 +1,10 @@
-const stats = [
-  { value: '6+', label: 'AI 模型', desc: '覆盖豆包、DeepSeek、SiliconFlow、OpenAI' },
-  { value: '10+', label: '叙事模板', desc: '悬疑 / 爱情 / 喜剧 / 都市等开箱即用' },
-  { value: '6', label: '内置 Skills', desc: '角色卡 / 分镜 / 节奏分析一键调用' },
-  { value: '24/7', label: '云端同步', desc: '随时随地继续创作，自动保存' },
+import { useTranslation } from 'react-i18next';
+
+const stats: { key: string }[] = [
+  { key: 'models' },
+  { key: 'templates' },
+  { key: 'skills' },
+  { key: 'sync' },
 ];
 
 /**
@@ -10,6 +12,8 @@ const stats = [
  * grid, separated by subtle vertical dividers. Buzzy.now-style.
  */
 export function StatsSection() {
+  const { t } = useTranslation();
+
   return (
     <section
       className="relative py-20 sm:py-24"
@@ -27,7 +31,7 @@ export function StatsSection() {
           <div className="grid grid-cols-2 gap-y-8 gap-x-2 sm:grid-cols-4">
             {stats.map((stat, i) => (
               <div
-                key={stat.label}
+                key={stat.key}
                 className={`text-center sm:text-left ${i > 0 ? 'sm:pl-6 sm:border-l' : ''}`}
                 style={{
                   borderColor: 'oklch(100% 0 0 / 0.06)',
@@ -45,19 +49,19 @@ export function StatsSection() {
                     letterSpacing: '-0.025em',
                   }}
                 >
-                  {stat.value}
+                  {t(`portal.stats.${stat.key}.value`)}
                 </div>
                 <div
                   className="mb-1 text-sm font-semibold text-white"
                   style={{ fontFamily: 'var(--font-family-display)' }}
                 >
-                  {stat.label}
+                  {t(`portal.stats.${stat.key}.label`)}
                 </div>
                 <div
                   className="text-xs leading-relaxed"
                   style={{ color: 'var(--portal-text-dim)' }}
                 >
-                  {stat.desc}
+                  {t(`portal.stats.${stat.key}.desc`)}
                 </div>
               </div>
             ))}

@@ -25,9 +25,7 @@ export function ConsoleLayout({ activeTab, onChangeTab, children }: ConsoleLayou
       <header
         className="flex h-14 shrink-0 items-center gap-3 border-b px-6"
         style={{
-          background: 'oklch(13% 0.015 270 / 0.72)',
-          backdropFilter: 'blur(16px) saturate(140%)',
-          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+          background: 'oklch(13% 0.015 270 / 0.92)',
           borderColor: 'oklch(100% 0 0 / 0.06)',
         }}
       >

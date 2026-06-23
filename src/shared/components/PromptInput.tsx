@@ -72,12 +72,14 @@ export function PromptInput({
         style={{
           background: isFloating
             ? 'linear-gradient(170deg, oklch(22% 0.025 275 / 0.95) 0%, oklch(15% 0.02 270 / 0.95) 100%)'
-            : 'linear-gradient(170deg, oklch(20% 0.02 275 / 0.85) 6%, oklch(15% 0.02 270 / 0.92) 94%)',
+            : 'linear-gradient(170deg, oklch(20% 0.02 275 / 0.88) 6%, oklch(15% 0.02 270 / 0.94) 94%)',
           border: '1px solid oklch(100% 0 0 / 0.16)',
           boxShadow: isFloating
             ? '0 16px 48px oklch(0% 0 0 / 0.55), inset 0 1px oklch(100% 0 0 / 0.06), 0 0 0 1px oklch(55% 0.22 275 / 0.08)'
             : '0 8px 32px oklch(0% 0 0 / 0.5), inset 0 1px oklch(100% 0 0 / 0.06), inset 0 -1px oklch(0% 0 0 / 0.3)',
-          backdropFilter: 'blur(12px)',
+          // backdrop blur radius reduced from 12px → 4px: keeps the
+          // glassy feel without the dominant scroll-time GPU cost.
+          backdropFilter: 'blur(4px)',
         }}
       >
         {/* 浮动版左侧 Sparkles icon */}

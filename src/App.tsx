@@ -6,6 +6,9 @@ import { WorkspacePage } from '@drama/pages/WorkspacePage';
 import { TemplateMarketPage } from '@drama/pages/TemplateMarketPage';
 import { ConsolePage } from '@console/pages/ConsolePage';
 import { CopilotLabPage } from '@drama/pages/CopilotLabPage';
+import { BootstrapShell } from '@/shared/components/BootstrapShell';
+import { bootstrapDrama } from '@drama/bootstrap';
+import { bootstrapConsole } from '@console/bootstrap';
 import { useAuthStore } from '@/shared/stores/authStore';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -16,14 +19,24 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <Routes>
+      {/* Portal — no app bootstrap, paints immediately */}
       <Route path="/" element={<PortalPage />} />
+
+      {/* Drama Login — no Drama bootstrap needed (no projects yet) */}
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/project" element={<Navigate to="/projects" replace />} />
+
+      {/* Drama routes — bootstrap IndexedDB + sync engine + canvas toolkit */}
+      <Route
+        path="/project"
+        element={<Navigate to="/projects" replace />}
+      />
       <Route
         path="/projects"
         element={
           <RequireAuth>
-            <ProjectListPage />
+            <BootstrapShell bootstrap={bootstrapDrama}>
+              <ProjectListPage />
+            </BootstrapShell>
           </RequireAuth>
         }
       />
@@ -31,7 +44,9 @@ function App() {
         path="/project/:projectId"
         element={
           <RequireAuth>
-            <WorkspacePage />
+            <BootstrapShell bootstrap={bootstrapDrama}>
+              <WorkspacePage />
+            </BootstrapShell>
           </RequireAuth>
         }
       />
@@ -39,15 +54,9 @@ function App() {
         path="/templates"
         element={
           <RequireAuth>
-            <TemplateMarketPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/console"
-        element={
-          <RequireAuth>
-            <ConsolePage />
+            <BootstrapShell bootstrap={bootstrapDrama}>
+              <TemplateMarketPage />
+            </BootstrapShell>
           </RequireAuth>
         }
       />
@@ -55,7 +64,21 @@ function App() {
         path="/copilot-lab"
         element={
           <RequireAuth>
-            <CopilotLabPage />
+            <BootstrapShell bootstrap={bootstrapDrama}>
+              <CopilotLabPage />
+            </BootstrapShell>
+          </RequireAuth>
+        }
+      />
+
+      {/* Console route — bootstrap server-side user settings */}
+      <Route
+        path="/console"
+        element={
+          <RequireAuth>
+            <BootstrapShell bootstrap={bootstrapConsole}>
+              <ConsolePage />
+            </BootstrapShell>
           </RequireAuth>
         }
       />

@@ -46,9 +46,7 @@ export function Navbar() {
     <header
       className="flex h-12 shrink-0 items-center justify-between border-b px-4"
       style={{
-        background: 'oklch(13% 0.015 270 / 0.85)',
-        backdropFilter: 'blur(16px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+        background: 'oklch(13% 0.015 270 / 0.95)',
         borderColor: 'oklch(100% 0 0 / 0.06)',
       }}
     >

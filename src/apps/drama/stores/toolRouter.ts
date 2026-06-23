@@ -792,7 +792,7 @@ export const toolRouter: ToolRouter = {
     if (cards.length === 0) return '(画布为空)';
     const lines: string[] = [`画布共 ${cards.length} 张卡片：`];
     for (const c of cards) {
-      const typeIcon = { storyline: '📖', moodboard: '🎨', videoClip: '🎬', asset: '📦', task: '📋', art: '🖼️', character: '👤', script: '📝', deliverable: '📦', sceneCard: '🎬' }[c.type] ?? '📄';
+      const typeIcon = { storyline: '📖', moodboard: '🎨', videoClip: '🎬', asset: '📦', task: '📋', art: '🖼️', character: '👤', script: '📝', deliverable: '📦', sceneCard: '🎬', copilotCard: '🤖' }[c.type] ?? '📄';
       const statusMark = c.data.status === 'done' ? '✅' : c.data.status === 'in_progress' ? '🔄' : '';
       lines.push(`  ${typeIcon} ${c.type}「${c.data.title}」${statusMark} (${c.id})`);
       if (c.data.description) lines.push(`    描述：${c.data.description.slice(0, 80)}`);

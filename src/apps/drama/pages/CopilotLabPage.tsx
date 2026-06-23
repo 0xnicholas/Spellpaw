@@ -41,7 +41,7 @@ export function CopilotLabPage() {
   const isLoading = useChatStore((s) => s.isLoading);
 
   const handleSend = async (content: string) => {
-    await useChatStore.getState().sendMessage(content);
+    await useChatStore.getState().sendMessage(content, LAB_PROJECT_ID);
   };
 
   const handleClearSession = () => {

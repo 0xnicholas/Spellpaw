@@ -91,6 +91,14 @@ function SseRow({
   isOpen: boolean;
   onToggle: () => void;
 }) {
+  // SSEEvent is `Record<string, unknown>`, so narrow `type` and `delta`
+  // to concrete strings before using them as ReactNodes / arg to colorFor.
+  const evtType = typeof evt.type === 'string' ? evt.type : '';
+  const deltaStr =
+    typeof (evt as { delta?: unknown }).delta === 'string'
+      ? (evt as { delta?: string }).delta
+      : '';
+
   return (
     <div className="border-b border-[var(--color-border-default)]">
       <button
@@ -98,10 +106,10 @@ function SseRow({
         className="flex w-full items-center gap-2 px-3 py-1 text-left hover:bg-[var(--color-bg-secondary)]"
       >
         <span className="w-6 shrink-0 text-right text-[10px] text-[var(--color-text-tertiary)]">{index + 1}</span>
-        <span className={cn('shrink-0', colorFor(evt.type))}>{evt.type}</span>
-        {!isOpen && (evt as unknown as { delta?: string }).delta && (
+        <span className={cn('shrink-0', colorFor(evtType))}>{evtType}</span>
+        {!isOpen && deltaStr && (
           <span className="truncate text-[var(--color-text-tertiary)]">
-            {((evt as unknown as { delta?: string }).delta ?? '').slice(0, 40)}
+            {deltaStr.slice(0, 40)}
           </span>
         )}
         <span className="ml-auto shrink-0 text-[10px] text-[var(--color-text-tertiary)]">

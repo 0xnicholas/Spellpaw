@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useLabCopilotSSE } from './useLabCopilotSSE';
 import { useChatStore } from '@drama/stores/chatStore';
-import { useCopilotLabStore } from '@drama/stores/copilotLabStore';
+import { useCopilotLabStore, LAB_PROJECT_ID } from '@drama/stores/copilotLabStore';
 import * as llmModule from '@drama/lib/llm';
 import type { SSEEvent } from '@drama/lib/llm/types';
 
@@ -60,7 +60,7 @@ describe('useLabCopilotSSE', () => {
     renderHook(() => useLabCopilotSSE());
 
     await act(async () => {
-      await useChatStore.getState().sendMessage('hello lab');
+      await useChatStore.getState().sendMessage('hello lab', LAB_PROJECT_ID);
     });
 
     expect(fakeProvider.createSession).toHaveBeenCalledTimes(1);
@@ -75,7 +75,7 @@ describe('useLabCopilotSSE', () => {
     renderHook(() => useLabCopilotSSE());
 
     await act(async () => {
-      await useChatStore.getState().sendMessage('ping');
+      await useChatStore.getState().sendMessage('ping', LAB_PROJECT_ID);
     });
 
     const meta = useCopilotLabStore.getState().sessionMeta;
@@ -90,7 +90,7 @@ describe('useLabCopilotSSE', () => {
     renderHook(() => useLabCopilotSSE());
 
     await act(async () => {
-      await useChatStore.getState().sendMessage('fire');
+      await useChatStore.getState().sendMessage('fire', LAB_PROJECT_ID);
     });
 
     // 清空后再推事件来验证来源是 SSE handler
@@ -112,7 +112,7 @@ describe('useLabCopilotSSE', () => {
     renderHook(() => useLabCopilotSSE());
 
     await act(async () => {
-      await useChatStore.getState().sendMessage('check persistence');
+      await useChatStore.getState().sendMessage('check persistence', LAB_PROJECT_ID);
     });
 
     const messages = useChatStore.getState().messages;
@@ -127,7 +127,7 @@ describe('useLabCopilotSSE', () => {
     renderHook(() => useLabCopilotSSE());
 
     await act(async () => {
-      await useChatStore.getState().sendMessage('will fail');
+      await useChatStore.getState().sendMessage('will fail', LAB_PROJECT_ID);
     });
 
     const messages = useChatStore.getState().messages;

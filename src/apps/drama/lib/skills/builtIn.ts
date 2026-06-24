@@ -10,6 +10,7 @@
  * by Node, so subsequent calls are effectively synchronous.
  */
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import { addEnrichedCard } from '@drama/stores/toolRouter/cards';
 import type { Skill, SkillResult } from './types';
 
 // ─── analyze-pacing ──────────────────────────────────────────────
@@ -270,7 +271,6 @@ export const characterProfileSkill: Skill = {
     if (!name) {
       return { summary: '请提供角色姓名，例如 /character-profile 姓名:林小夏' };
     }
-    const { toolRouter } = await import('@drama/stores/toolRouter');
     const age = (args['年龄'] as string | undefined)?.trim() || '未知';
     const occupation = (args['职业'] as string | undefined)?.trim() || '未知';
     const personality = (args['性格'] as string | undefined)?.trim() || '待补充';
@@ -283,14 +283,10 @@ export const characterProfileSkill: Skill = {
     const description = userDesc
       ? `${meta}\n\n${userDesc}`
       : `${meta}\n\n关于「${name}」的背景故事待你补充。`;
-    await toolRouter.add_canvas_card({
-      action: 'add_canvas_card',
-      cardType: 'character',
-      data: {
-        title: name,
-        description,
-        tags: ['角色', occupation, personality].filter(Boolean),
-      },
+    await addEnrichedCard('character', {
+      title: name,
+      description,
+      tags: ['角色', occupation, personality].filter(Boolean),
     });
     return {
       summary: `已创建角色卡「${name}」：${occupation}，${age} 岁，性格：${personality}。`,
@@ -356,17 +352,12 @@ export const brainstormVariantsSkill: Skill = {
     if (!theme) {
       return { summary: '请提供主题，例如 /brainstorm-variants 主题:时间旅行' };
     }
-    const { toolRouter } = await import('@drama/stores/toolRouter');
     const created: string[] = [];
     for (const variant of VARIANT_ANGLES) {
-      await toolRouter.add_canvas_card({
-        action: 'add_canvas_card',
-        cardType: 'storyline',
-        data: {
-          title: `${variant.emoji} ${theme}（${variant.angle}）`,
-          description: variant.premise(theme),
-          tags: variant.tags(theme),
-        },
+      await addEnrichedCard('storyline', {
+        title: `${variant.emoji} ${theme}（${variant.angle}）`,
+        description: variant.premise(theme),
+        tags: variant.tags(theme),
       });
       created.push(variant.angle);
     }

@@ -3,6 +3,7 @@ import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useCustomTemplateStore } from '@drama/stores/customTemplateStore';
 import { toolRouter } from '@drama/stores/toolRouter';
+import { addEnrichedCard } from '@drama/stores/toolRouter/cards';
 import * as syncEngine from '@drama/lib/syncEngine';
 import type { NarrativeTemplate } from '@drama/types';
 
@@ -50,11 +51,7 @@ describe('clear_canvas', () => {
   it('adds 17 cards then clear_canvas empties them all atomically', async () => {
     useProjectStore.getState().createProject('proj', '', '#6366f1');
     for (let i = 0; i < 17; i++) {
-      await toolRouter.add_canvas_card({
-        action: 'add_canvas_card',
-        cardType: 'sceneCard',
-        data: { title: `卡片 ${i + 1}` },
-      });
+      await addEnrichedCard('sceneCard', { title: `卡片 ${i + 1}` });
     }
     expect(useCanvasStore.getState().getCurrentNodes().length).toBe(17);
 
@@ -70,9 +67,9 @@ describe('clear_canvas', () => {
 
   it('clear_canvas with filter: only sceneCard', async () => {
     useProjectStore.getState().createProject('proj', '', '#6366f1');
-    await toolRouter.add_canvas_card({ action: 'add_canvas_card', cardType: 'sceneCard', data: { title: 'A' } });
-    await toolRouter.add_canvas_card({ action: 'add_canvas_card', cardType: 'script', data: { title: 'B' } });
-    await toolRouter.add_canvas_card({ action: 'add_canvas_card', cardType: 'sceneCard', data: { title: 'C' } });
+    await addEnrichedCard('sceneCard', { title: 'A' });
+    await addEnrichedCard('script', { title: 'B' });
+    await addEnrichedCard('sceneCard', { title: 'C' });
     expect(useCanvasStore.getState().getCurrentNodes().length).toBe(3);
 
     vi.spyOn(syncEngine, 'triggerPushNow').mockResolvedValue();

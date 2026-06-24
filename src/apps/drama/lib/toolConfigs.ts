@@ -69,8 +69,39 @@ export const SPELLPAW_TOOL_CONFIGS = [
 		},
 		endpoint: TOOL_ENDPOINT,
 	},
+	{
+		name: "spellpaw_clear_canvas",
+		description:
+			"Atomically remove multiple canvas cards in one operation. PREFER this over looping delete_card for batch removal — it triggers a single force-push to the server so a refresh during the operation cannot restore deleted cards. Use the optional `filter` to scope removal by type / status / titleContains; omit filter to remove everything.",
+		parameters: {
+			type: "object",
+			properties: {
+				filter: {
+					type: "object",
+					description: "Optional filter — only matching cards are removed.",
+					properties: {
+						type: {
+							type: "string",
+							enum: ["storyline", "moodboard", "videoClip", "asset", "task", "art", "character", "script", "sceneCard", "deliverable", "copilotCard"],
+							description: "Match cards of this type only",
+						},
+						status: {
+							type: "string",
+							enum: ["draft", "in_progress", "review", "done"],
+							description: "Match cards with this status only",
+						},
+						titleContains: {
+							type: "string",
+							description: "Match cards whose title contains this substring",
+						},
+					},
+				},
+			},
+		},
+		endpoint: TOOL_ENDPOINT,
+	},
 
-	// ── Legacy tree tools (kept for backward compat, prefer card tools above) ──
+	// ── Tree tools (act/scene/shot backbone) ──
 	{
 		name: "spellpaw_add_node",
 		description:
@@ -387,75 +418,6 @@ export const SPELLPAW_TOOL_CONFIGS = [
 		},
 		endpoint: TOOL_ENDPOINT,
 	},
-	{
-		name: "spellpaw_add_canvas_card",
-		description:
-			"Add a card to the flow canvas. Use when the user asks to create a visual card for a scene, character, art reference, or deliverable, or when generating scene cards after creating project structure. For scene cards, use cardType=sceneCard and set linkedTreeNodeId to the corresponding scene node id.",
-		parameters: {
-			type: "object",
-			properties: {
-				cardType: {
-					type: "string",
-					enum: ["storyline", "moodboard", "videoClip", "asset", "task", "art", "character", "script", "sceneCard", "deliverable"],
-					description: "Canvas card type",
-				},
-				data: {
-					type: "object",
-					description:
-						"Card content. Must include title. Optional: description, status, tags, linkedTreeNodeId, duration, dialogue, deliverableType, thumbnail, generatedPrompt, etc.",
-				},
-				position: {
-					type: "object",
-					properties: {
-						x: { type: "number" },
-						y: { type: "number" },
-					},
-					description:
-						"Optional fixed position. If omitted, auto-layout is applied.",
-				},
-			},
-			required: ["cardType", "data"],
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
-		name: "spellpaw_update_canvas_card",
-		description:
-			"Update an existing canvas card by cardId. Can change title, description, status, thumbnail, generatedPrompt, tags, or linkedTreeNodeId.",
-		parameters: {
-			type: "object",
-			properties: {
-				cardId: {
-					type: "string",
-					description: "ID of the canvas card to update",
-				},
-				data: {
-					type: "object",
-					description:
-						"Fields to update. Same optional fields as add_canvas_card.",
-				},
-			},
-			required: ["cardId", "data"],
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
-		name: "spellpaw_delete_canvas_card",
-		description:
-			"Delete a canvas card by cardId. CAREFUL: irreversible. Ask user first if not explicitly requested.",
-		parameters: {
-			type: "object",
-			properties: {
-				cardId: {
-					type: "string",
-					description: "ID of the canvas card to delete",
-				},
-			},
-			required: ["cardId"],
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
-
 	// ── Skill tools (composed workflows) ──
 	// Each skill becomes one tool with name `spellpaw_skill_*` and a
 	// single `input` object argument. The LLM can invoke them like

@@ -38,9 +38,10 @@ export function useCopilotSSE() {
     'spellpaw_edit_asset',
     'spellpaw_apply_style',
     'spellpaw_batch_apply_style',
-    'spellpaw_add_canvas_card',
-    'spellpaw_update_canvas_card',
-    'spellpaw_delete_canvas_card',
+    'spellpaw_add_card',
+    'spellpaw_update_card',
+    'spellpaw_delete_card',
+    'spellpaw_clear_canvas',
     'spellpaw_kickstart_project',
     'spellpaw_generate_storyboard',
   ]);

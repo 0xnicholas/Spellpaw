@@ -1,8 +1,10 @@
 /**
  * Canvas card LLM payload schema & validation
  *
- * Defines the structured format LLM must output for spellpaw_add_canvas_card.
- * Keeps the spec close to existing CanvasNode / CanvasNodeData types.
+ * Defines the structured format for programmatic card creation. Used by
+ * `addEnrichedCard` in `toolRouter/cards.ts` (the shared helper that
+ * kickstart_project and built-in skills call). The LLM-facing surface is
+ * `add_card` in the same module — simpler signature, no enrichment.
  */
 import type { CanvasNodeType, CanvasNodeData } from '@drama/types';
 import { useProjectStore } from '@drama/stores/projectStore';

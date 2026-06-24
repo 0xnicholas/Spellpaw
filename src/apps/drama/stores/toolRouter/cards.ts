@@ -12,7 +12,7 @@ import { useProjectStore } from '@drama/stores/projectStore';
 import { logger } from '@shared/lib/logger';
 import { addCanvasCardHandler } from '@drama/lib/builderHandlers';
 import { findNode } from '@drama/lib/treeUtils';
-import { normalizeCardData } from '@drama/lib/canvasCardSchema';
+import { normalizeCardData, validateCanvasCardPayload, validateCanvasCardUpdateData } from '@drama/lib/canvasCardSchema';
 import type { CanvasNodeType, CanvasNode, TreeNode } from '@drama/types';
 import type { ToolRouter } from './types';
 
@@ -88,25 +88,63 @@ function enrichCardDataFromTreeNode(
   return enriched;
 }
 
-// ── Shared helper: addEnrichedCard ──
+// ── Shared helpers: programmatic card CRUD with validation ──
 //
-// The programmatic counterpart to add_card. Validates the payload, normalizes
-// it, enriches it from any linked tree node, and adds the resulting card to
-// the canvas. Used by kickstart_project and built-in skills.
+// The programmatic counterpart to add_card / update_card / delete_card.
+// All three validate their input (matching the previous
+// add_canvas_card / update_canvas_card / delete_canvas_card alias behavior)
+// so callers like kickstart_project and built-in skills can't silently
+// produce bad data.
 //
-// NOT a tool handler — callers import this directly. The LLM-facing surface
-// is add_card (simpler signature, no linked-tree enrichment).
+// NOT tool handlers — callers import these directly. The LLM-facing surface
+// stays simpler (no validation) because the LLM only sees schema-validated
+// tool configs.
 
 export async function addEnrichedCard(
   cardType: CanvasNodeType,
   data: Record<string, unknown>,
   position?: { x: number; y: number },
 ): Promise<CanvasNode> {
+  const validation = validateCanvasCardPayload({ cardType, data, position });
+  if (!validation.valid) {
+    throw new Error(`画布卡片参数错误: ${validation.error}`);
+  }
   const enrichedData = enrichCardDataFromTreeNode(cardType, data);
   const normalizedData = normalizeCardData(cardType, enrichedData);
-  return addCanvasCardHandler(cardType, normalizedData as Record<string, unknown>, {
-    position,
-  });
+  const card = await addCanvasCardHandler(
+    cardType,
+    normalizedData as Record<string, unknown>,
+    { position },
+  );
+  return card;
+}
+
+export async function updateEnrichedCard(
+  cardId: string,
+  data: Record<string, unknown>,
+): Promise<CanvasNode> {
+  const canvasStore = useCanvasStore.getState();
+  const existing = canvasStore.getCurrentNodes().find((n) => n.id === cardId);
+  if (!existing) {
+    throw new Error(`未找到画布卡片: ${cardId}`);
+  }
+  const validation = validateCanvasCardUpdateData(existing.type, data);
+  if (!validation.valid) {
+    throw new Error(`画布卡片更新参数错误: ${validation.error}`);
+  }
+  // normalizeCardUpdateData only merges known fields; fallback to data as-is
+  canvasStore.updateNodeData(cardId, data as Partial<CanvasNode['data']>);
+  return existing;
+}
+
+export async function removeEnrichedCard(cardId: string): Promise<string> {
+  const canvasStore = useCanvasStore.getState();
+  const existing = canvasStore.getCurrentNodes().find((n) => n.id === cardId);
+  if (!existing) {
+    throw new Error(`未找到画布卡片: ${cardId}`);
+  }
+  canvasStore.removeNode(cardId);
+  return existing.data.title ?? cardId;
 }
 
 // ── cardHandlers: the 5 canvas card tool handlers ──

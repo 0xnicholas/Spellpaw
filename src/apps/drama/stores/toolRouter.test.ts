@@ -5,6 +5,7 @@ import { useProjectStore } from './projectStore';
 import { useCanvasStore } from './canvasStore';
 import { useCustomTemplateStore } from './customTemplateStore';
 import { toolRouter } from './toolRouter';
+import { addEnrichedCard, updateEnrichedCard, removeEnrichedCard } from './toolRouter/cards';
 import { providerRegistry, useTaskStore } from '@drama/lib/canvasToolkit';
 import type { GenerationProvider } from '@drama/lib/canvasToolkit';
 import type { NarrativeTemplate } from '@drama/types';
@@ -133,24 +134,20 @@ describe('toolRouter — 写入 tool', () => {
     expect(result).toMatch(/已移动/);
   });
 
-  it('add_canvas_card 创建画布卡片并关联树节点', async () => {
+  it('addEnrichedCard 创建画布卡片并关联树节点', async () => {
     seedTree();
     useCanvasStore.setState({ canvases: {} });
 
-    const result = await toolRouter.add_canvas_card({
-      action: 'add_canvas_card',
-      cardType: 'script',
-      data: {
-        title: '场景 1 剧本卡',
-        description: '第一场戏剧本',
-        status: 'draft',
-        linkedTreeNodeId: 'scene-1',
-      },
+    const card = await addEnrichedCard('script', {
+      title: '场景 1 剧本卡',
+      description: '第一场戏剧本',
+      status: 'draft',
+      linkedTreeNodeId: 'scene-1',
     });
 
-    expect(result).toContain('已创建 script 卡片');
-    expect(result).toContain('场景 1 剧本卡');
-    expect(result).toContain('scene-1');
+    expect(card.type).toBe('script');
+    expect(card.data.title).toBe('场景 1 剧本卡');
+    expect(card.data.linkedTreeNodeId).toBe('scene-1');
 
     const nodes = useCanvasStore.getState().getCurrentNodes();
     expect(nodes.length).toBe(1);
@@ -159,36 +156,31 @@ describe('toolRouter — 写入 tool', () => {
     expect(nodes[0].data.linkedTreeNodeId).toBe('scene-1');
   });
 
-  it('add_canvas_card 支持指定 position', async () => {
+  it('addEnrichedCard 支持指定 position', async () => {
     seedTree();
     useCanvasStore.setState({ canvases: {} });
 
-    await toolRouter.add_canvas_card({
-      action: 'add_canvas_card',
-      cardType: 'character',
-      data: { title: '角色 A' },
-      position: { x: 500, y: 600 },
-    });
+    await addEnrichedCard(
+      'character',
+      { title: '角色 A' },
+      { x: 500, y: 600 },
+    );
 
     const nodes = useCanvasStore.getState().getCurrentNodes();
     expect(nodes[0].position).toEqual({ x: 500, y: 600 });
   });
 
-  it('add_canvas_card 支持 sceneCard 类型', async () => {
+  it('addEnrichedCard 支持 sceneCard 类型', async () => {
     seedTree();
     useCanvasStore.setState({ canvases: {} });
 
-    const result = await toolRouter.add_canvas_card({
-      action: 'add_canvas_card',
-      cardType: 'sceneCard',
-      data: {
-        title: '雨夜重逢',
-        description: '男女主角在旧巷相遇',
-        linkedTreeNodeId: 'scene-1',
-      },
+    const card = await addEnrichedCard('sceneCard', {
+      title: '雨夜重逢',
+      description: '男女主角在旧巷相遇',
+      linkedTreeNodeId: 'scene-1',
     });
 
-    expect(result).toContain('已创建 sceneCard 卡片');
+    expect(card.type).toBe('sceneCard');
 
     const nodes = useCanvasStore.getState().getCurrentNodes();
     expect(nodes.length).toBe(1);
@@ -197,7 +189,7 @@ describe('toolRouter — 写入 tool', () => {
     expect(nodes[0].data.linkedTreeNodeId).toBe('scene-1');
   });
 
-  it('add_canvas_card 自动从关联树节点填充 scene 元数据', async () => {
+  it('addEnrichedCard 自动从关联树节点填充 scene 元数据', async () => {
     seedTree();
     useProjectStore.getState().updateTreeNode('scene-1', {
       metadata: {
@@ -214,10 +206,9 @@ describe('toolRouter — 写入 tool', () => {
     });
     useCanvasStore.setState({ canvases: {} });
 
-    await toolRouter.add_canvas_card({
-      action: 'add_canvas_card',
-      cardType: 'script',
-      data: { title: '场景 1 剧本卡', linkedTreeNodeId: 'scene-1' },
+    await addEnrichedCard('script', {
+      title: '场景 1 剧本卡',
+      linkedTreeNodeId: 'scene-1',
     });
 
     const scriptCard = useCanvasStore.getState().getCurrentNodes()[0];
@@ -230,7 +221,7 @@ describe('toolRouter — 写入 tool', () => {
     expect(scriptCard.data.notes).toBe('注意光影');
   });
 
-  it('add_canvas_card 自动从关联树节点生成 sceneCard 的 tags 和 prompt', async () => {
+  it('addEnrichedCard 自动从关联树节点生成 sceneCard 的 tags 和 prompt', async () => {
     seedTree();
     useProjectStore.getState().updateTreeNode('scene-1', {
       metadata: {
@@ -244,10 +235,9 @@ describe('toolRouter — 写入 tool', () => {
     });
     useCanvasStore.setState({ canvases: {} });
 
-    await toolRouter.add_canvas_card({
-      action: 'add_canvas_card',
-      cardType: 'sceneCard',
-      data: { title: '雨夜重逢', linkedTreeNodeId: 'scene-1' },
+    await addEnrichedCard('sceneCard', {
+      title: '雨夜重逢',
+      linkedTreeNodeId: 'scene-1',
     });
 
     const card = useCanvasStore.getState().getCurrentNodes()[0];
@@ -257,25 +247,22 @@ describe('toolRouter — 写入 tool', () => {
     expect(card.data.generatedPrompt).toContain('男女主角相遇');
   });
 
-  it('update_canvas_card 更新已有卡片', async () => {
+  it('updateEnrichedCard 更新已有卡片', async () => {
     seedTree();
     useCanvasStore.setState({ canvases: {} });
 
-    await toolRouter.add_canvas_card({
-      action: 'add_canvas_card',
-      cardType: 'script',
-      data: { title: '旧标题', linkedTreeNodeId: 'scene-1' },
+    await addEnrichedCard('script', {
+      title: '旧标题',
+      linkedTreeNodeId: 'scene-1',
     });
 
     const cardId = useCanvasStore.getState().getCurrentNodes()[0].id;
 
-    const result = await toolRouter.update_canvas_card({
-      action: 'update_canvas_card',
-      cardId,
-      data: { title: '新标题', description: '更新后的描述', status: 'in_progress' },
+    await updateEnrichedCard(cardId, {
+      title: '新标题',
+      description: '更新后的描述',
+      status: 'in_progress',
     });
-
-    expect(result).toContain('已更新画布卡片');
 
     const card = useCanvasStore.getState().getCurrentNodes()[0];
     expect(card.data.title).toBe('新标题');
@@ -283,106 +270,79 @@ describe('toolRouter — 写入 tool', () => {
     expect(card.data.status).toBe('in_progress');
   });
 
-  it('update_canvas_card 对不存在的卡片报错', async () => {
+  it('updateEnrichedCard 对不存在的卡片报错', async () => {
     seedTree();
     useCanvasStore.setState({ canvases: {} });
 
     await expect(
-      toolRouter.update_canvas_card({
-        action: 'update_canvas_card',
-        cardId: 'non-existent',
-        data: { title: '新标题' },
-      })
+      updateEnrichedCard('non-existent', { title: '新标题' }),
     ).rejects.toThrow(/未找到画布卡片/);
   });
 
-  it('update_canvas_card 校验非法字段并拒绝', async () => {
+  it('updateEnrichedCard 校验非法字段并拒绝', async () => {
     seedTree();
     useCanvasStore.setState({ canvases: {} });
 
-    await toolRouter.add_canvas_card({
-      action: 'add_canvas_card',
-      cardType: 'script',
-      data: { title: '剧本卡', linkedTreeNodeId: 'scene-1' },
+    await addEnrichedCard('script', {
+      title: '剧本卡',
+      linkedTreeNodeId: 'scene-1',
     });
 
     const cardId = useCanvasStore.getState().getCurrentNodes()[0].id;
 
     await expect(
-      toolRouter.update_canvas_card({
-        action: 'update_canvas_card',
-        cardId,
-        data: { status: 'invalid_status' },
-      })
+      updateEnrichedCard(cardId, { status: 'invalid_status' }),
     ).rejects.toThrow(/status 无效/);
   });
 
-  it('update_canvas_card 部分更新时不覆盖未提供字段', async () => {
+  it('updateEnrichedCard 部分更新时不覆盖未提供字段', async () => {
     seedTree();
     useCanvasStore.setState({ canvases: {} });
 
-    await toolRouter.add_canvas_card({
-      action: 'add_canvas_card',
-      cardType: 'sceneCard',
-      data: { title: '原场景卡', description: '原描述', linkedTreeNodeId: 'scene-1' },
+    await addEnrichedCard('sceneCard', {
+      title: '原场景卡',
+      description: '原描述',
+      linkedTreeNodeId: 'scene-1',
     });
 
     const cardId = useCanvasStore.getState().getCurrentNodes()[0].id;
 
-    await toolRouter.update_canvas_card({
-      action: 'update_canvas_card',
-      cardId,
-      data: { description: '新描述' },
-    });
+    await updateEnrichedCard(cardId, { description: '新描述' });
 
     const card = useCanvasStore.getState().getCurrentNodes()[0];
     expect(card.data.title).toBe('原场景卡');
     expect(card.data.description).toBe('新描述');
   });
 
-  it('delete_canvas_card 删除已有卡片', async () => {
+  it('removeEnrichedCard 删除已有卡片', async () => {
     seedTree();
     useCanvasStore.setState({ canvases: {} });
 
-    await toolRouter.add_canvas_card({
-      action: 'add_canvas_card',
-      cardType: 'character',
-      data: { title: '角色 A' },
-    });
+    await addEnrichedCard('character', { title: '角色 A' });
 
     const cardId = useCanvasStore.getState().getCurrentNodes()[0].id;
 
-    const result = await toolRouter.delete_canvas_card({
-      action: 'delete_canvas_card',
-      cardId,
-    });
+    const title = await removeEnrichedCard(cardId);
 
-    expect(result).toContain('已删除画布卡片');
+    expect(title).toBe('角色 A');
     expect(useCanvasStore.getState().getCurrentNodes().length).toBe(0);
   });
 
-  it('delete_canvas_card 对不存在的卡片报错', async () => {
+  it('removeEnrichedCard 对不存在的卡片报错', async () => {
     seedTree();
     useCanvasStore.setState({ canvases: {} });
 
-    await expect(
-      toolRouter.delete_canvas_card({
-        action: 'delete_canvas_card',
-        cardId: 'non-existent',
-      })
-    ).rejects.toThrow(/未找到画布卡片/);
+    await expect(removeEnrichedCard('non-existent')).rejects.toThrow(
+      /未找到画布卡片/,
+    );
   });
 
-  it('add_canvas_card 校验失败时抛出错误', async () => {
+  it('addEnrichedCard 校验失败时抛出错误', async () => {
     seedTree();
     useCanvasStore.setState({ canvases: {} });
 
     await expect(
-      toolRouter.add_canvas_card({
-        action: 'add_canvas_card',
-        cardType: 'script',
-        data: { status: 'draft' },
-      })
+      addEnrichedCard('script', { status: 'draft' }),
     ).rejects.toThrow(/title/);
   });
 });

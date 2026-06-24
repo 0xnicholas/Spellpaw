@@ -45,7 +45,7 @@ function buildCanvasToolkitSection(): string {
 		.join(" / ");
 	return [
 		`## 画布内容生成工具包`,
-		`当用户提到「生成参考图 / 生成分镜 / 为场景生成图片 / 生成视频 / 再来几个版本 / 换个风格 / 编辑这张图」时，直接调用下列工具，不要拆成多个 add_canvas_card：`,
+		`当用户提到「生成参考图 / 生成分镜 / 为场景生成图片 / 生成视频 / 再来几个版本 / 换个风格 / 编辑这张图」时，直接调用下列工具，不要拆成多个 add_card：`,
 		`- spellpaw_generate_asset({ nodeId, mediaType: "image"|"video", prompt?, provider?, count?, cardType? })`,
 		`- spellpaw_generate_variants({ nodeId? | cardId?, mediaType?, prompt?, provider?, count? })`,
 		`- spellpaw_edit_asset({ cardId, prompt, provider? })`,
@@ -105,9 +105,7 @@ export function buildSystemPrompt(
 		`- spellpaw_delete_card (cardId) ⚠️ 先征求用户同意`,
 		`- spellpaw_clear_canvas (filter?) — **原子清空** 画布。filter 可选：{ type?, status?, titleContains? }，例如 { type: 'sceneCard' } 仅清空场景卡。完成会立刻同步到云端，避免逐个删除时刷新导致状态被服务端覆盖`,
 		`- spellpaw_get_canvas — 查看画布全部卡片`,
-		`- spellpaw_add_canvas_card (cardType, data) — 同 add_card，更细粒度控制`,
-		`- spellpaw_update_canvas_card (cardId, data)`,
-		`- spellpaw_delete_canvas_card (cardId)`,
+		`- spellpaw_add_canvas_card / spellpaw_update_canvas_card / spellpaw_delete_canvas_card — 旧别名 handler，已被上方 add_card / update_card / delete_card 取代`,
 		``,
 		`— 画布内容生成 —`,
 		`- spellpaw_generate_asset / spellpaw_generate_variants / spellpaw_edit_asset`,

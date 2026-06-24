@@ -4,29 +4,70 @@
 import { listProviders, providerRegistry } from "@drama/lib/canvasToolkit";
 import type { CanvasNode } from "@drama/types";
 
-/** Infer genre from project title for style adaptation */
-function inferGenre(title: string): string {
+/** Genre keys — kept stable (English) so internal maps + tests can rely on them.
+ *  Both inferGenre() and templateCategory from the registry produce these values. */
+export type GenreKey =
+	| "suspense"
+	| "romance"
+	| "comedy"
+	| "drama"
+	| "action"
+	| "documentary";
+
+/** English guidance is sent to the LLM because (a) most LLMs we route to
+ *  perform best in English, and (b) the rest of the system prompt is already
+ *  English. Chinese guidance was a leftover from the original zh-only era. */
+const GENRE_GUIDANCE: Record<GenreKey, string> = {
+	suspense:
+		"Focus on suspense and information control. Each act ends on a hook; act 3 delivers the twist or reveals the truth. Scene timing tightens then releases; the climactic scenes run longest.",
+	romance:
+		"Light, brisk pacing. Keep scenes short. Build emotional escalation across acts: act 2 establishes the relationship, act 3 confirms it. Bright, warm visuals.",
+	comedy:
+		"Fast pace, short scenes (15-25s). Structure each scene as setup → punchline → twist. Act 3 lands on warmth or a bigger joke.",
+	drama:
+		"Clear three-act structure: struggle → effort → triumph. Act 2 includes the low point; act 3 builds to an uplifting climax. Scene length increases gradually.",
+	action:
+		"Open on conflict; keep pacing tight throughout. Action scenes can run long (40s+); dialogue scenes stay short. Act 3 is the major setpiece.",
+	documentary:
+		"Authenticity first, gentle pacing. Even scene lengths (20-30s). Emphasize visual texture and information density over plot.",
+};
+
+/** Infer genre from project title for style adaptation.
+ *  English keywords are checked first (LLMs work better when the
+ *  inferred label matches the language of the system prompt we feed
+ *  them); Chinese keywords are a legacy fallback. */
+export function inferGenre(title: string): GenreKey {
 	const t = title.toLowerCase();
-	if (/悬疑|密室|反转|侦探|凶杀|失踪|谜|真相|阴谋/.test(t)) return "悬疑";
-	if (/甜宠|恋爱|爱情|霸道|总裁|心动|初恋|约会/.test(t)) return "甜宠";
-	if (/喜剧|搞笑|幽默|段子|笑|荒诞/.test(t)) return "喜剧";
-	if (/励志|逆袭|奋斗|成长|追梦|突破/.test(t)) return "励志";
-	if (/动作|打斗|追逐|枪战|爆破|武侠/.test(t)) return "动作";
-	if (/纪录|纪实|访谈|真实|纪录片/.test(t)) return "纪录";
-	return "剧情";
+
+	// English keywords (preferred — matches the prompt's working language).
+	if (/mystery|murder|detective|thriller|conspir|missing|kidnap|kidnapping|clue|heist|stalker|fugitive/.test(t))
+		return "suspense";
+	if (/romance|love|date|kiss|wedding|valentine|crush|relationship|affair|bride|groom|heartbreak/.test(t))
+		return "romance";
+	if (/comedy|funny|humor|comic|absurd|joke|prank|satire|witty/.test(t))
+		return "comedy";
+	if (/underdog|comeback|rags|rise|triumph|achievement|strive|ambition|overcome|struggle/.test(t))
+		return "drama";
+	if (/action|chase|fight|combat|explosion|martial|kungfu|gunfight|battle|warrior/.test(t))
+		return "action";
+	if (/documentary|document|interview|profile|chronicled|true story|biopic/.test(t))
+		return "documentary";
+
+	// Chinese keywords (legacy support for Chinese-only project titles).
+	if (/悬疑|密室|反转|侦探|凶杀|失踪|谜|真相|阴谋|惊悚|犯罪|追凶/.test(t)) return "suspense";
+	if (/甜宠|恋爱|爱情|霸道|总裁|心动|初恋|约会|浪漫|甜蜜|吻|表白|宠|嫁|娶/.test(t)) return "romance";
+	if (/喜剧|搞笑|幽默|段子|笑|荒诞|讽刺|无厘头|欢乐/.test(t)) return "comedy";
+	if (/励志|逆袭|奋斗|成长|追梦|突破|翻身|成功|努力|拼搏|创业|穷/.test(t)) return "drama";
+	if (/动作|打斗|追逐|枪战|爆破|跑酷|特工|警匪|武侠|高能|燃|快节奏/.test(t)) return "action";
+	if (/纪录|纪实|访谈|真实|纪录片|人文|社会|探索|历史|见证/.test(t)) return "documentary";
+
+	return "drama";
 }
 
 function genreGuidance(genre: string): string {
-	const map: Record<string, string> = {
-		悬疑: "注重悬念铺设和信息控制。每幕结尾留钩子，第三幕给出反转或真相。场景时长前紧后松，高潮部分最长。",
-		甜宠: "节奏轻快，场景不宜过长。注重情感递进，第二幕建立关系，第三幕确认关系。画面明亮温暖。",
-		喜剧: "节奏快，场景短（15-25s）。铺垫→笑点→反转的结构。第三幕回归温情或更大笑点。",
-		励志: "三幕结构清晰：困境→努力→成功。第二幕要有低谷，第三幕高潮 uplifting。场景时长逐渐递增。",
-		动作: "开场即冲突，节奏紧凑。动作场景可较长（40s+），文戏简短。第三幕大高潮。",
-		纪录: "真实感优先，节奏舒缓。场景时长均匀（20-30s）。注重画面质感和信息密度。",
-		剧情: "经典三幕结构，注重人物弧光。场景时长根据戏剧张力灵活调整。",
-	};
-	return map[genre] ?? map["剧情"];
+	// Unknown genres (e.g. template categories 'horror' / 'fantasy' from
+	// BUILTIN_TEMPLATES) fall through to the generic 'drama' guidance.
+	return GENRE_GUIDANCE[genre as GenreKey] ?? GENRE_GUIDANCE.drama;
 }
 
 function buildCanvasToolkitSection(): string {

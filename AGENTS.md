@@ -91,7 +91,7 @@ src/
         │   ├── chatStore.ts
         │   ├── detailStore.ts
         │   ├── customTemplateStore.ts
-        │   └── toolRouter.ts
+        │   └── toolRouter/      # 4 domains: tree / cards / generation / analysis
         ├── hooks/
         │   ├── useCopilotSSE.ts
         │   └── useToolBridge.ts
@@ -181,21 +181,60 @@ Spellpaw Server POST /tool → Vite 插件（HTTP endpoint）
                           → Vite 插件响应 HTTP
 ```
 
-**toolRouter 路由表：**
+**toolRouter 路由表（按 domain 分组，共 23 个 tool）：**
 
-| action | store 调用 |
-|--------|-----------|
-| `add_node` | `projectStore.addTreeNode()` |
-| `update_node` | `projectStore.updateTreeNode()` |
-| `delete_node` | `projectStore.deleteTreeNode()` |
-| `move_node` | `projectStore.moveTreeNode()` |
-| `get_tree` | 只读返回缩进文本 |
-| `get_subtree` | 只读返回子树缩进文本 |
-| `apply_template` | 自定义模板优先查找 → 内置模板 fetch → 批量 addTreeNode |
-| `generate_storyboard` | 调用图像 API → 创建 `art` 卡片 + 写入 `generatedPrompt` |
-| `add_canvas_card` | `canvasStore.addNode()` |
-| `update_canvas_card` | `canvasStore.updateNodeData()` |
-| `delete_canvas_card` | `canvasStore.removeNode()` |
+#### Tree domain（7 个 — 维护项目幕/场景/镜头骨干）
+
+| action | 实现 |
+|--------|------|
+| `get_tree` | `useProjectStore.getCurrentTree()` → `treeToText()` |
+| `get_subtree` | `findNode(tree, nodeId)` → `treeToText(subtree)` |
+| `add_node` | `createNodeHandler(parentId, type, title, metadata)` |
+| `update_node` | `updateNodeHandler(nodeId, changes)` |
+| `delete_node` | `deleteNodeHandler(nodeId)` |
+| `move_node` | `useProjectStore.moveTreeNode(nodeId, newIndex)` |
+| `apply_template` | 复用 `applyTemplateCore(store, templateId, parentId?)` 共享 helper |
+
+#### Cards domain（5 个 — 画布卡片 CRUD）
+
+| action | 实现 |
+|--------|------|
+| `get_canvas` | `useCanvasStore.getCurrentNodes()` → 缩进文本 |
+| `add_card` | `addCanvasCardHandler()` + 自动定位 |
+| `update_card` | `useCanvasStore.updateNodeData(cardId, updates)` |
+| `delete_card` | `useCanvasStore.removeNode(cardId)` |
+| `clear_canvas` | 原子 setState + `triggerPushNow()` 同步 |
+
+#### Generation domain（6 个 — AI 内容生成）
+
+| action | 实现 |
+|--------|------|
+| `generate_asset` / `generate_variants` / `edit_asset` | 转发 `canvasToolkit.*` |
+| `apply_style` / `batch_apply_style` | 转发 `canvasToolkit.*` |
+| `generate_storyboard` | `providerRegistry.select` + `submit` + 创建 `art` 卡片 |
+
+#### Analysis domain（5 个 — 结构 / 节奏诊断 + kickstart）
+
+| action | 实现 |
+|--------|------|
+| `analyze_structure` | `suggestCompletions(tree)` + `analyzePacing(tree)` |
+| `get_pacing_report` | `generatePacingReport(tree)` |
+| `match_template` | `scoreTemplates(corpus)` |
+| `optimize_pacing` | `generatePacingReport(tree)` + 干预 `metadata.duration` |
+| `kickstart_project` | 跨域：调用 `applyTemplateCore` + `addEnrichedCard`（共享 helper） |
+
+#### 共享 helper（不在 tool 表面，供 kickstart/skills 调用）
+
+| helper | 来源 | 用途 |
+|--------|------|------|
+| `applyTemplateCore(store, templateId, parentId?)` | `toolRouter/tree.ts` | 跨域被 kickstart 调用，避免 toolRouter 循环 |
+| `addEnrichedCard(cardType, data, position?)` | `toolRouter/cards.ts` | 带验证+富化的卡片创建，被 kickstart + skills 调用 |
+
+#### Skill tools（N — 动态注册）
+
+| action | 实现 |
+|--------|------|
+| `spellpaw_skill_*` | `skills/registry.ts` 的 `registerSkillTools(router)` 运行时注册 |
 
 ### 6.3 上下文管理：两层策略
 

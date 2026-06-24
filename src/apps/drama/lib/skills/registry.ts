@@ -7,6 +7,9 @@
  */
 import { BUILT_IN_SKILLS } from './builtIn';
 import type { Skill } from './types';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { useCanvasStore } from '@drama/stores/canvasStore';
+import type { ToolRouter } from '@drama/stores/toolRouter/types';
 
 // Custom-skill support placeholder. Future: persist user-defined skills
 // to a Zustand store (mirror the customTemplateStore pattern) and merge
@@ -93,4 +96,38 @@ export function skillToToolConfig(skill: Skill): {
 
 export function getAllSkillToolConfigs() {
   return ALL_SKILLS.map(skillToToolConfig);
+}
+
+/**
+ * Register each built-in skill as a `spellpaw_skill_<id>` tool on the
+ * given router. The skill's `invoke` does the real work; this wrapper
+ * just adapts the tool-call payload and surfaces the skill's summary.
+ *
+ * Previously inlined at the bottom of toolRouter.ts. Lifted out so the
+ * router no longer needs to know about the skills module.
+ *
+ * Type-only import of ToolRouter breaks the static cycle that would
+ * otherwise form (registry → router → registry).
+ */
+export function registerSkillTools(router: ToolRouter): void {
+  for (const cfg of getAllSkillToolConfigs()) {
+    if (router[cfg.name]) continue;
+    router[cfg.name] = async (params) => {
+      const skillId = cfg.name.replace(/^spellpaw_skill_/, '');
+      const skill = getSkillById(skillId);
+      if (!skill) return `Unknown skill: ${skillId}`;
+      const input = (params as { input?: Record<string, unknown> })?.input ?? {};
+      const projectId = useProjectStore.getState().currentProjectId ?? '';
+      if (!projectId) {
+        return `Skill「${skill.name}」失败：当前没有打开的项目。`;
+      }
+      const ctx = {
+        projectId,
+        getProjectTree: () => useProjectStore.getState().getCurrentTree(),
+        getCanvasCardCount: () => useCanvasStore.getState().getCurrentNodes().length,
+      };
+      const result = await skill.invoke(input, ctx);
+      return result.summary;
+    };
+  }
 }

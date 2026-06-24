@@ -5,6 +5,7 @@
  *   POST   /api/v1/sessions
  *   POST   /api/v1/sessions/:id/messages
  *   GET    /api/v1/sessions/:id/events
+ *   DELETE /api/v1/sessions/:id
  */
 import { Router, type Request, type Response } from 'express';
 import type { PrismaClient } from '@prisma/client';
@@ -21,9 +22,43 @@ interface SessionState {
   tools: ToolConfig[];
   messages: LLMMessage[];
   userId: string;
+  /** Epoch ms — updated on every access. Used for idle cleanup. */
+  lastAccessedAt: number;
 }
 
 const sessions = new Map<string, SessionState>();
+
+/** Sessions idle longer than this are evicted on the periodic sweep. */
+const SESSION_IDLE_MS = 30 * 60 * 1000; // 30 minutes
+/** How often the idle sweep runs. */
+const SESSION_SWEEP_INTERVAL_MS = 60 * 1000; // 1 minute
+
+let sweepTimer: NodeJS.Timeout | null = null;
+
+/** Periodic sweep — drops sessions that have been idle for SESSION_IDLE_MS.
+ *  Started lazily on first session create; never stopped (server lifetime). */
+function ensureSweepRunning(): void {
+  if (sweepTimer) return;
+  sweepTimer = setInterval(() => {
+    const now = Date.now();
+    let evicted = 0;
+    for (const [id, session] of sessions) {
+      if (now - session.lastAccessedAt > SESSION_IDLE_MS) {
+        sessions.delete(id);
+        evicted++;
+      }
+    }
+    if (evicted > 0) {
+      logger.log(`[llm route] idle sweep evicted ${evicted} session(s) (${sessions.size} remaining)`);
+    }
+  }, SESSION_SWEEP_INTERVAL_MS);
+  // Allow the process to exit naturally during tests / shutdown.
+  sweepTimer.unref?.();
+}
+
+function touch(session: SessionState): void {
+  session.lastAccessedAt = Date.now();
+}
 
 function sanitizeSession(s: SessionState) {
   return { id: s.id, title: s.title, model: s.model };
@@ -48,9 +83,11 @@ export function llmRoutes(prisma: PrismaClient): Router {
       tools,
       messages: [{ role: 'system', content: system_prompt }],
       userId,
+      lastAccessedAt: Date.now(),
     };
 
     sessions.set(session.id, session);
+    ensureSweepRunning();
     res.status(201).json(sanitizeSession(session));
   });
 
@@ -61,6 +98,7 @@ export function llmRoutes(prisma: PrismaClient): Router {
     const session = sessions.get(req.params.id as string);
     if (!session) { res.status(404).json({ error: 'Session not found' }); return; }
     if (session.userId !== userId) { res.status(403).json({ error: 'Forbidden' }); return; }
+    touch(session);
 
     const { content } = req.body;
     if (!content || !Array.isArray(content)) { res.status(400).json({ error: 'content required' }); return; }
@@ -79,6 +117,7 @@ export function llmRoutes(prisma: PrismaClient): Router {
     const session = sessions.get(req.params.id as string);
     if (!session) { res.status(404).json({ error: 'Session not found' }); return; }
     if (session.userId !== userId) { res.status(403).json({ error: 'Forbidden' }); return; }
+    touch(session);
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -117,6 +156,24 @@ export function llmRoutes(prisma: PrismaClient): Router {
     } finally {
       res.end();
     }
+  });
+
+  router.delete('/sessions/:id', (req: Request, res: Response) => {
+    const userId = getUserId(req);
+    if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
+
+    const session = sessions.get(req.params.id as string);
+    if (!session) {
+      // Idempotent: deleting a missing session is a no-op so the client can
+      // call this defensively on cleanup paths.
+      res.status(204).end();
+      return;
+    }
+    if (session.userId !== userId) { res.status(403).json({ error: 'Forbidden' }); return; }
+
+    sessions.delete(session.id);
+    logger.log(`[llm route] session ${session.id} deleted (${sessions.size} remaining)`);
+    res.status(204).end();
   });
 
   return router;

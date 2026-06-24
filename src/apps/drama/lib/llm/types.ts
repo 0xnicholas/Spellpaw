@@ -44,6 +44,16 @@ export interface LLMProvider {
 
   /** Subscribe to server-sent events for a session. */
   subscribeSSE(sessionId: string, onEvent: (event: SSEEvent) => void): SSESubscription;
+
+  /**
+   * Delete a session on the server. Idempotent — deleting an unknown id
+   * resolves successfully so callers can invoke this defensively on
+   * unmount / abort / project-switch cleanup paths without first
+   * checking existence.
+   *
+   * MUST NOT throw on a 404 (treat as success).
+   */
+  deleteSession(sessionId: string): Promise<void>;
 }
 
 // Supported back-end models. The front-end currently routes all of them through the

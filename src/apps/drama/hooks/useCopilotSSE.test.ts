@@ -18,12 +18,15 @@ describe('useCopilotSSE', () => {
     createSession: vi.fn(),
     sendMessage: vi.fn(),
     subscribeSSE: vi.fn(() => ({ close: vi.fn() })),
+    deleteSession: vi.fn().mockResolvedValue(undefined),
   };
 
   beforeEach(() => {
     fakeProvider.createSession.mockReset();
     fakeProvider.sendMessage.mockReset();
     fakeProvider.subscribeSSE.mockReset();
+    fakeProvider.deleteSession.mockReset();
+    fakeProvider.deleteSession.mockResolvedValue(undefined);
     vi.mocked(llmModule.getLLMProvider).mockReturnValue(fakeProvider as unknown as ReturnType<typeof llmModule.getLLMProvider>);
 
     useChatStore.setState({
@@ -81,5 +84,78 @@ describe('useCopilotSSE', () => {
     });
     await waitFor(() => expect(fakeProvider.sendMessage).toHaveBeenCalledTimes(2));
     expect(fakeProvider.createSession).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useCopilotSSE — session cleanup', () => {
+  const fakeProvider = {
+    createSession: vi.fn(),
+    sendMessage: vi.fn(),
+    subscribeSSE: vi.fn(() => ({ close: vi.fn() })),
+    deleteSession: vi.fn().mockResolvedValue(undefined),
+  };
+
+  beforeEach(() => {
+    fakeProvider.createSession.mockReset();
+    fakeProvider.sendMessage.mockReset();
+    fakeProvider.subscribeSSE.mockReset();
+    fakeProvider.deleteSession.mockReset();
+    fakeProvider.deleteSession.mockResolvedValue(undefined);
+    vi.mocked(llmModule.getLLMProvider).mockReturnValue(fakeProvider as unknown as ReturnType<typeof llmModule.getLLMProvider>);
+
+    useChatStore.setState({
+      messages: [],
+      streamingMessage: null,
+      streamingMessageId: null,
+      toolCalls: [],
+      isLoading: false,
+      inputValue: '',
+      filterNodeId: null,
+    });
+    useProjectStore.setState({
+      trees: {},
+      currentProjectId: 'p1',
+      selectedNodeId: null,
+      projects: [{ id: 'p1', title: 'P', description: '', coverColor: '#000', updatedAt: '', sceneCount: 0, duration: 0, version: 1 }],
+    });
+  });
+
+  it('calls deleteSession on the server when the project changes (effect cleanup)', async () => {
+    fakeProvider.createSession.mockResolvedValue({ id: 'session-leak' });
+
+    const { rerender } = renderHook(
+      ({ projectId }) => {
+        useProjectStore.setState({ currentProjectId: projectId });
+        return useCopilotSSE();
+      },
+      { initialProps: { projectId: 'p1' } },
+    );
+
+    await act(async () => {
+      useChatStore.getState().sendMessage('hi', 'p1');
+    });
+    await waitFor(() => expect(fakeProvider.createSession).toHaveBeenCalledTimes(1));
+
+    // Project switch triggers effect cleanup
+    rerender({ projectId: 'p2' });
+
+    await waitFor(() => expect(fakeProvider.deleteSession).toHaveBeenCalledWith('session-leak'));
+  });
+
+  it('calls deleteSession when abort-turn event fires', async () => {
+    fakeProvider.createSession.mockResolvedValue({ id: 'session-abort' });
+
+    renderHook(() => useCopilotSSE());
+
+    await act(async () => {
+      useChatStore.getState().sendMessage('hi', 'p1');
+    });
+    await waitFor(() => expect(fakeProvider.createSession).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent('spellpaw:abort-turn'));
+    });
+
+    await waitFor(() => expect(fakeProvider.deleteSession).toHaveBeenCalledWith('session-abort'));
   });
 });

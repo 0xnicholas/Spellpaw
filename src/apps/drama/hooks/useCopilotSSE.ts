@@ -32,6 +32,30 @@ export function useCopilotSSE() {
   const toolCallsInTurnRef = useRef<string[]>([]);
   const currentIntentRef = useRef<CanvasIntent | null>(null);
 
+  /** Epoch ms — updated on every sendMessage to drive the idle timeout. */
+  const lastActivityRef = useRef<number | null>(null);
+
+  /** Sessions idle longer than this on the client get a server DELETE
+   *  so we don't leak memory on the Spellpaw Server between user sessions.
+   *  Server-side has its own 30 min sweep as a safety net (server/src/routes/llm.ts). */
+  const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function scheduleIdleCleanup(): void {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    idleTimerRef.current = setTimeout(() => {
+      const id = sessionRef.current;
+      logger.log('[useCopilotSSE] idle timeout reached, deleting session:', id);
+      if (id) {
+        void providerRef.current.deleteSession(id);
+      }
+      sseRef.current?.close();
+      sseRef.current = null;
+      sessionRef.current = null;
+      idleTimerRef.current = null;
+    }, IDLE_TIMEOUT_MS);
+  }
+
   const CANVAS_TOOL_NAMES = new Set([
     'spellpaw_generate_asset',
     'spellpaw_generate_variants',
@@ -57,6 +81,9 @@ export function useCopilotSSE() {
     const originalSend = useChatStore.getState().sendMessage;
     const provider = providerRef.current;
     const projectId = currentProjectId;
+    // Snapshot providerRef for the cleanup closure so the lint rule sees a
+    // stable reference (it warns about reading .current at unmount time).
+    const providerForCleanup = provider;
 
     const subscribeToSession = (sessionId: string) => {
       sseRef.current?.close();
@@ -259,6 +286,10 @@ export function useCopilotSSE() {
         };
         appendMessage(userMsg, projectId);
 
+        // Reset idle timer on every user-initiated activity.
+        lastActivityRef.current = Date.now();
+        scheduleIdleCleanup();
+
         // Lazy init LLM session
         if (!sessionRef.current && !creatingSessionRef.current) {
           creatingSessionRef.current = true;
@@ -315,9 +346,21 @@ export function useCopilotSSE() {
 
     return () => {
       useChatStore.setState({ sendMessage: originalSend });
+      // Best-effort: tell the server to free the session's memory when
+      // the user navigates away (project switch / unmount). Without this,
+      // sessions live forever in the Spellpaw Server's in-memory Map and
+      // accumulate conversation history unboundedly.
+      const id = sessionRef.current;
+      if (id) {
+        void providerForCleanup.deleteSession(id);
+      }
       sseRef.current?.close();
       sessionRef.current = null;
       creatingSessionRef.current = false;
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProjectId]);
@@ -325,16 +368,25 @@ export function useCopilotSSE() {
   // ── Abort listener ──
   // chatStore.abortTurn() dispatches a 'spellpaw:abort-turn' event. We close
   // the SSE subscription and reset the session so the next user message
-  // starts a fresh turn (avoids re-using a stale session id).
+  // starts a fresh turn (avoids re-using a stale session id). We also
+  // explicitly delete the server-side session so its memory is freed.
   useEffect(() => {
     const handler = () => {
       logger.log('[useCopilotSSE] abort-turn received, closing SSE + resetting session');
+      const id = sessionRef.current;
+      if (id) {
+        void providerRef.current.deleteSession(id);
+      }
       sseRef.current?.close();
       sseRef.current = null;
       sessionRef.current = null;
       creatingSessionRef.current = false;
       toolCallsInTurnRef.current = [];
       currentIntentRef.current = null;
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
     };
     window.addEventListener('spellpaw:abort-turn', handler);
     return () => window.removeEventListener('spellpaw:abort-turn', handler);

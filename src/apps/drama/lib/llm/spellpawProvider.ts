@@ -78,6 +78,20 @@ export const spellpawProvider: LLMProvider = {
     }
   },
 
+  async deleteSession(sessionId: string): Promise<void> {
+    try {
+      await fetch(`${BASE_URL}/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      // 204 No Content is the success path; 404 also resolves (idempotent).
+      // Network errors are logged but never thrown — deleteSession is a
+      // best-effort cleanup that callers must not block on.
+    } catch (err) {
+      logger.warn('[spellpawProvider] deleteSession failed (best-effort):', err);
+    }
+  },
+
   subscribeSSE(sessionId: string, onEvent: (event: SSEEvent) => void): SSESubscription {
     let aborted = false;
     const controller = new AbortController();

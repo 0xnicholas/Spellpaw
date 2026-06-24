@@ -55,4 +55,34 @@ describe('spellpawProvider', () => {
     expect(headers['X-LLM-Base-URL']).toBe('https://api.deepseek.com/v1');
     expect(headers['X-LLM-Model']).toBe('deepseek-v4-pro');
   });
+
+  describe('deleteSession', () => {
+    it('calls DELETE on the session endpoint', async () => {
+      fetchMock.mockResolvedValue({ ok: true, status: 204 });
+      await spellpawProvider.deleteSession('session-xyz');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe('http://localhost:3002/api/v1/sessions/session-xyz');
+      expect((init as RequestInit).method).toBe('DELETE');
+    });
+
+    it('treats 404 as success (idempotent)', async () => {
+      fetchMock.mockResolvedValue({ ok: false, status: 404 });
+      await expect(spellpawProvider.deleteSession('gone')).resolves.toBeUndefined();
+    });
+
+    it('does not throw on network error (best-effort cleanup)', async () => {
+      fetchMock.mockRejectedValue(new TypeError('fetch failed'));
+      await expect(spellpawProvider.deleteSession('session-net')).resolves.toBeUndefined();
+    });
+
+    it('sends the same auth headers as other endpoints', async () => {
+      fetchMock.mockResolvedValue({ ok: true, status: 204 });
+      await spellpawProvider.deleteSession('session-h');
+      const init = fetchMock.mock.calls[0][1] as RequestInit;
+      const headers = init.headers as Record<string, string>;
+      expect(headers.Authorization).toBe('Bearer test-token');
+      expect(headers['X-LLM-Provider']).toBe('deepseek');
+    });
+  });
 });

@@ -78,8 +78,17 @@ export function useCopilotSSE() {
             toolCallsInTurnRef.current.push(String(event.name));
             startToolCall(event.call_id as string, event.name as string);
             break;
-          case 'tool_call_done':
-            endToolCall(event.call_id as string);
+          case 'tool_call_done': {
+            // Spellpaw Server emits is_error + content on failed tool calls.
+            const isError = Boolean((event as { is_error?: boolean }).is_error);
+            const errorText = isError
+              ? String((event as { content?: unknown }).content ?? 'Tool call failed')
+              : undefined;
+            endToolCall(
+              event.call_id as string,
+              isError ? 'error' : 'success',
+              errorText,
+            );
             // Highlight affected canvas cards for visual feedback
             if (CANVAS_TOOL_NAMES.has(String(event.name))) {
               const cards = useCanvasStore.getState().getCurrentNodes();
@@ -88,6 +97,7 @@ export function useCopilotSSE() {
               }
             }
             break;
+          }
           case 'turn_end':
             endStreaming(projectId!, event.stop_reason as string);
             // Client guardrail: enforce the canvas intent even if the LLM only
@@ -311,6 +321,24 @@ export function useCopilotSSE() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProjectId]);
+
+  // ── Abort listener ──
+  // chatStore.abortTurn() dispatches a 'spellpaw:abort-turn' event. We close
+  // the SSE subscription and reset the session so the next user message
+  // starts a fresh turn (avoids re-using a stale session id).
+  useEffect(() => {
+    const handler = () => {
+      logger.log('[useCopilotSSE] abort-turn received, closing SSE + resetting session');
+      sseRef.current?.close();
+      sseRef.current = null;
+      sessionRef.current = null;
+      creatingSessionRef.current = false;
+      toolCallsInTurnRef.current = [];
+      currentIntentRef.current = null;
+    };
+    window.addEventListener('spellpaw:abort-turn', handler);
+    return () => window.removeEventListener('spellpaw:abort-turn', handler);
+  }, []);
 }
 
 // canvasToPromptText 现在在 @drama/lib/systemPrompt 里导出，这里不再定义。

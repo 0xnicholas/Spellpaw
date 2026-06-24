@@ -19,6 +19,8 @@ import { useCanvasStore } from "./canvasStore";
 interface InFlightToolCall {
 	callId: string;
 	name: string;
+	status: 'running' | 'success' | 'error';
+	errorMessage?: string;
 }
 
 interface ChatState {
@@ -42,6 +44,12 @@ interface ChatState {
 	clearMessages: () => void;
 	setFilterNodeId: (nodeId: string | null) => void;
 
+	// Chat control: stop the in-flight turn / regenerate the last response.
+	// Both delegate to the SSE bridge (useCopilotSSE) which owns the
+	// actual AbortController + session ref.
+	abortTurn: () => void;
+	regenerateLast: (projectId: string) => void;
+
 	// Phase 3+: Proactive insights
 	pushProactiveInsights: (projectId: string) => ProactiveInsight[];
 
@@ -49,7 +57,7 @@ interface ChatState {
 	startStreaming: (messageId: string) => void;
 	appendDelta: (delta: string) => void;
 	startToolCall: (callId: string, name: string) => void;
-	endToolCall: (callId: string) => void;
+	endToolCall: (callId: string, status?: 'success' | 'error', errorMessage?: string) => void;
 	endStreaming: (projectId: string, stopReason?: string) => void;
 }
 
@@ -327,12 +335,19 @@ export const useChatStore = create<ChatState>()((set) => ({
 
 	startToolCall: (callId, name) =>
 		set((state) => ({
-			toolCalls: [...state.toolCalls, { callId, name }],
+			toolCalls: [
+				...state.toolCalls,
+				{ callId, name, status: 'running' as const },
+			],
 		})),
 
-	endToolCall: (callId) =>
+	endToolCall: (callId, status = 'success', errorMessage) =>
 		set((state) => ({
-			toolCalls: state.toolCalls.filter((t) => t.callId !== callId),
+			toolCalls: state.toolCalls.map((t) =>
+				t.callId === callId
+					? { ...t, status, ...(errorMessage ? { errorMessage } : {}) }
+					: t,
+			),
 		})),
 
 	endStreaming: (projectId, _stopReason) => {
@@ -362,5 +377,52 @@ export const useChatStore = create<ChatState>()((set) => ({
 				isLoading: false,
 			});
 		}
+	},
+
+	abortTurn: () => {
+		// Reset streaming state immediately so the UI updates.
+		set({
+			isLoading: false,
+			streamingMessage: null,
+			streamingMessageId: null,
+			toolCalls: [],
+		});
+		// useCopilotSSE listens for a custom event to close the SSE
+		// subscription and reset its session ref. The store stays decoupled.
+		if (typeof window !== 'undefined') {
+			window.dispatchEvent(new CustomEvent('spellpaw:abort-turn'));
+		}
+	},
+
+	regenerateLast: (projectId) => {
+		if (!projectId) return;
+		const state = useChatStore.getState();
+		// Walk backwards to find the last user message.
+		let lastUserIdx = -1;
+		for (let i = state.messages.length - 1; i >= 0; i--) {
+			if (state.messages[i].role === 'user') {
+				lastUserIdx = i;
+				break;
+			}
+		}
+		if (lastUserIdx < 0) return;
+		const lastUserMsg = state.messages[lastUserIdx];
+
+		// Drop everything after the last user message (agent replies, tool
+		// indicators, etc.) so we get a clean regenerate.
+		const trimmed = state.messages.slice(0, lastUserIdx);
+
+		set({
+			messages: trimmed,
+			isLoading: false,
+			streamingMessage: null,
+			streamingMessageId: null,
+			toolCalls: [],
+		});
+		void saveChatMessages(trimmed, projectId);
+
+		// Re-send via the same path as a fresh message (delegates to the
+		// SSE bridge via the store action).
+		useChatStore.getState().sendMessage(lastUserMsg.content, projectId);
 	},
 }));

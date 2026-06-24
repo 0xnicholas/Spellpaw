@@ -25,6 +25,12 @@ export interface CopilotChatProps {
   inputRows?: number;
   /** 透传给 MessageInput 的外层 className 覆盖 */
   inputClassName?: string;
+  /** 当前项目 id — regenerate 需要 */
+  projectId?: string;
+  /** 触发 abort 的回调 */
+  onStop?: () => void;
+  /** 触发 regenerate 的回调 */
+  onRegenerate?: () => void;
 }
 
 export function CopilotChat({
@@ -40,6 +46,9 @@ export function CopilotChat({
   inputLeftToolbar,
   inputRows,
   inputClassName,
+  projectId,
+  onStop,
+  onRegenerate,
 }: CopilotChatProps) {
   return (
     <div className="flex h-full flex-col">
@@ -50,6 +59,9 @@ export function CopilotChat({
         toolCalls={toolCalls}
         emptyState={emptyState}
         onActionClick={onActionClick}
+        onStop={onStop}
+        onRegenerate={onRegenerate}
+        projectId={projectId}
       />
       <SkillChips
         onInsert={(cmd) => {

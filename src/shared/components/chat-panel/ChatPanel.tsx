@@ -246,6 +246,12 @@ export function ChatPanel() {
 						placeholder="输入创作想法…"
 						emptyState={<WorkflowGuide />}
 						contextChip={contextChip}
+						projectId={currentProjectId ?? undefined}
+						onStop={() => useChatStore.getState().abortTurn()}
+						onRegenerate={() => {
+							// regenerateLast is called from inside MessageList; the
+							// onRegenerate prop is a no-op hook for telemetry.
+						}}
 						inputLeftToolbar={
 							<>
 								<FileUploadButton

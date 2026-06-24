@@ -3,6 +3,7 @@ import {
   ReactFlow,
   Background,
   Controls,
+  MiniMap,
   useNodesState,
   useEdgesState,
   type Node,
@@ -23,6 +24,7 @@ import { GenericCardNode } from './nodes/GenericCardNode';
 import { CopilotCardNode } from './nodes/CopilotCardNode';
 import { CardDetailDrawer } from './CardDetailDrawer';
 import { PaneContextMenu, type CopilotKind } from './PaneContextMenu';
+import { NodeContextMenu, type NodeAction } from './NodeContextMenu';
 import { generateId } from '@/shared/lib/utils';
 
 const nodeTypes: NodeTypes = {
@@ -64,6 +66,7 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
   const addEdge = useCanvasStore((s) => s.addEdge);
   const duplicateNode = useCanvasStore((s) => s.duplicateNode);
   const removeNode = useCanvasStore((s) => s.removeNode);
+  const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   const setSelectedCardId = useCanvasStore((s) => s.setSelectedCardId);
   const currentProjectId = useProjectStore((s) => s.currentProjectId);
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
@@ -197,6 +200,30 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
 
   const closeContextMenu = () => setContextMenu(null);
 
+  const handleContextAction = (action: NodeAction) => {
+    if (!contextMenu) return;
+    switch (action) {
+      case 'duplicate':
+        duplicateNode(contextMenu.nodeId);
+        break;
+      case 'delete':
+        removeNode(contextMenu.nodeId);
+        break;
+      case 'rename': {
+        const currentTitle = String(contextMenu.data.title ?? '');
+        const next = window.prompt('Rename card', currentTitle);
+        if (next !== null && next.trim() !== '' && next !== currentTitle) {
+          updateNodeData(contextMenu.nodeId, { title: next.trim() });
+        }
+        break;
+      }
+      case 'copy-id':
+        void navigator.clipboard.writeText(contextMenu.nodeId);
+        break;
+    }
+    closeContextMenu();
+  };
+
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       // Skip if clicking interactive elements (thumbnails, inputs, buttons)
@@ -218,19 +245,6 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
     },
     [setSelectedCardId]
   );
-
-  const handleContextAction = (action: string) => {
-    if (!contextMenu) return;
-    switch (action) {
-      case 'duplicate':
-        duplicateNode(contextMenu.nodeId);
-        break;
-      case 'delete':
-        removeNode(contextMenu.nodeId);
-        break;
-    }
-    closeContextMenu();
-  };
 
   return (
     <div className="flex h-full flex-col">
@@ -255,11 +269,36 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
             closeContextMenu();
             setSelectedCardId(null);
           }}
+          selectionOnDrag
+          panOnDrag={[1, 2]}
+          multiSelectionKeyCode={['Shift', 'Meta']}
           className="bg-[var(--color-bg-secondary)]"
           proOptions={{ hideAttribution: true }}
         >
           <Background gap={20} size={1} color="var(--color-border-subtle)" />
           <Controls className="!rounded-[var(--radius-base)] !border !border-[var(--color-border-default)] !shadow-sm" />
+          <MiniMap
+            pannable
+            zoomable
+            maskColor="rgba(0, 0, 0, 0.4)"
+            nodeColor={(node) => {
+              const typeColors: Record<string, string> = {
+                storyline: '#a78bfa',
+                moodboard: '#f472b6',
+                videoClip: '#60a5fa',
+                asset: '#fbbf24',
+                task: '#94a3b8',
+                art: '#34d399',
+                character: '#fb7185',
+                script: '#818cf8',
+                sceneCard: '#22d3ee',
+                deliverable: '#facc15',
+                copilotCard: '#a3a3a3',
+              };
+              return typeColors[node.type ?? ''] ?? '#94a3b8';
+            }}
+            className="!bg-[var(--color-bg-primary)] !border !border-[var(--color-border-default)] !rounded-[var(--radius-base)]"
+          />
         </ReactFlow>
 
         {/* Card Detail Drawer */}
@@ -280,22 +319,15 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
           />
         )}
 
-        {/* Context Menu */}
+        {/* Node Context Menu */}
         {contextMenu && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={closeContextMenu} />
-            <div
-              className="fixed z-50 min-w-[140px] rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] py-1 shadow-lg"
-              style={{ left: contextMenu.x, top: contextMenu.y }}
-            >
-              <button onClick={() => handleContextAction('duplicate')} className="block w-full px-3 py-1.5 text-left text-xs hover:bg-[var(--color-bg-secondary)]">
-                复制
-              </button>
-              <button onClick={() => handleContextAction('delete')} className="block w-full px-3 py-1.5 text-left text-xs text-red-500 hover:bg-[var(--color-bg-secondary)]">
-                删除
-              </button>
-            </div>
-          </>
+          <NodeContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            nodeId={contextMenu.nodeId}
+            onAction={handleContextAction}
+            onClose={closeContextMenu}
+          />
         )}
       </div>
     </div>

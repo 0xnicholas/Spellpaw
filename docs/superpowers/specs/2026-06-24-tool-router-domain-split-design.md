@@ -230,8 +230,8 @@ export async function applyTemplateCore(
   templateId: string,
   parentId?: string,
 ): Promise<{ template: NarrativeTemplate; nodeCount: number }> {
-  // 当前 apply_template handler 的核心逻辑（约 50 行）
-  // 自定义模板 → 内置模板查找、fetch、递归 createNodes
+  // 当前 apply_template handler 的核心逻辑（约 85 行）
+  // 自定义模板 → 内置模板查找、fetch、递归 createNodes、错误处理
 }
 ```
 
@@ -309,6 +309,9 @@ kickstart_project: async (params) => {
 | `lib/skills/builtIn.ts:362`（storyboard card creation） | `toolRouter.add_canvas_card({...})` | 同上 |
 | `analysis.ts` 的 `kickstart_project` | `toolRouter.apply_template` + `toolRouter.add_canvas_card` | 改为 `applyTemplateCore(store, ...)` + `addEnrichedCard(cardType, data)` |
 | `toolConfigs.ts` | 缺 `spellpaw_clear_canvas` 配置 | **新增** tool config（spec 内说明） |
+| `hooks/useCopilotSSE.ts:41-43` | `CANVAS_TOOL_NAMES` Set 含 3 个 alias tool 名 | 从 Set 中移除 `add_canvas_card` / `update_canvas_card` / `delete_canvas_card` |
+| `lib/systemPrompt.ts:48, 108-110` | Prompt 文本引用 alias tool 名 | §6.2 重写覆盖；但需确保改写后这 3 行不再出现 alias |
+| `lib/canvasCardSchema.ts:4` | Doc comment「LLM must output for `spellpaw_add_canvas_card`」 | 更新 doc comment 为「addEnrichedCard helper 用于 programmatic card creation」 |
 
 ---
 
@@ -589,7 +592,7 @@ toolRouter/index.ts
 | # | 风险 | 概率 | 影响 | 缓解 |
 |---|------|:---:|:---:|------|
 | 1 | 砍 alias 后，LLM 在已有 session 缓存老 tool 名 | 低 | 低 | LLM 每 turn 重读 toolConfigs，无持久化；下次新建 session 即生效 |
-| 2 | 4 个 domain 拆分后跨域调用（kickstart_project 调 apply_template） | 中 | 中 | 在 analysis.ts 内展开 kickstart_project 的 template 应用逻辑，不调 toolRouter.apply_template |
+| 2 | kickstart_project 跨域调用 helper（applyTemplateCore + addEnrichedCard） | 中 | 中 | helper 都在 `stores/toolRouter/` 同 module 内，分析域用 `import { applyTemplateCore } from './tree'` + `import { addEnrichedCard } from './cards'`，无 path import 循环 |
 | 3 | Skill 注册移到 registry 后引入新的循环依赖 | 低 | 高 | type-only import stores/toolRouter/types，无运行时循环；build 时 `npm run lint:server` 验证 |
 | 4 | systemPrompt 工具段重写让 LLM 行为微妙变化 | 中 | 中 | 5 类手工复测高频 query；保留 5 分钟可回滚 |
 | 5 | toolRouter.test.ts 792 行测试在新结构下失败 | 低 | 高 | 测试只改 import 路径（无需改）；拆分前后跑一遍验证 |
@@ -607,12 +610,12 @@ toolRouter/index.ts
 | 1 | 建 `stores/toolRouter/` 目录：types.ts + 4 个 domain 文件 + index.ts；删除 `toolRouter.ts` 旧文件 | `npm test` 全过（test 文件已含 alias，临时允许 fail） |
 | 1 | 提取 `applyTemplateCore`（tree.ts）和 `addEnrichedCard`（cards.ts）两个共享 helper | 各自可被直接调用 |
 | 1 | `analysis.ts` 的 `kickstart_project` 改用两个 helper（不再调 toolRouter.apply_template / add_canvas_card） | kickstart 行为不变 |
-| 2 | 砍 3 个 alias tool；更新 test 文件 16+ 处 + `clearCanvas.test.ts` + `skills/builtIn.ts` 2 处为新 helper | grep 返回 0 匹配 |
+| 2 | 砍 3 个 alias tool；更新 test 文件 16+ 处 + `clearCanvas.test.ts` + `skills/builtIn.ts` 2 处为新 helper | 本步后续 grep 验证；终验放 Day 5 |
 | 2 | 重写 `SPELLPAW_TOOL_CONFIGS` 23 条 description（含 when-to-use + example）；**新增 `spellpaw_clear_canvas` tool config** | 视觉检查 |
 | 3 | 重写 `systemPrompt.ts` 工具说明段（按 6 级优先级） | 长度变化检查 |
 | 3 | Skill 注册迁移到 `skills/registry.ts`；toolRouter/index.ts 调用 `registerSkillTools` | 无 TS 错 |
 | 4 | AGENTS.md Section 6.2 更新；写 commit message（含 pre-existing `spellpaw_build_ui` 孤儿条目的 flag） | 文档一致性 |
-| 5 | 集成测试 + 手动验证：开项目 → 与 Agent 对话 5 个高频 query → 确认 tool 选择符合预期 | 5 个 query 全过 |
+| 5 | 集成测试 + 手动验证：开项目 → 与 Agent 对话 5 个高频 query → 确认 tool 选择符合预期 + **全项目 grep `add_canvas_card` / `update_canvas_card` / `delete_canvas_card` 返回 0 匹配** | 5 个 query 全过 + grep 0 匹配 |
 
 ### 5 个高频 query（手动验证清单）
 

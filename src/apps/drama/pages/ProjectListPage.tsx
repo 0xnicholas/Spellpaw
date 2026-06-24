@@ -57,7 +57,7 @@ export function ProjectListPage() {
   const handleCreateFromTemplate = async (template: NarrativeTemplate) => {
     const projectId = createProject(template.name, template.description, template.stylePresets.colorPalette[0]);
     try {
-      const { toolRouter } = await import('../stores/toolRouter');
+      const { toolRouter } = await import('@drama/stores/toolRouter');
       await toolRouter.apply_template({ action: 'apply_template', templateId: template.id, parentId: undefined });
       setCurrentProject(projectId);
       navigate(`/project/${projectId}`);

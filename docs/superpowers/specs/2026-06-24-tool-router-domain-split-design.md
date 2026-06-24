@@ -12,8 +12,8 @@
 
 `src/apps/drama/stores/toolRouter.ts` 经过 Phase 2 多次迭代后：
 
-- **966 行单文件**，含 25 个 tool handler + 末尾动态 skill 注册循环
-- **3 个 alias tool**：`add_canvas_card` / `update_canvas_card` / `delete_canvas_card` 与 `add_card` / `update_card` / `delete_card` 行为完全等价（纯 token 浪费）
+- **966 行单文件**，含 **26 个 tool handler**（4 + 4 + 4 + 6 + 4 + 5 + 3 alias = 26）+ 末尾动态 skill 注册循环
+- **3 个 alias tool**：`add_canvas_card` / `update_canvas_card` / `delete_canvas_card` **与 `add_card` / `update_card` / `delete_card` 行为有重叠但不等价**——`add_canvas_card` 多一层 `validateCanvasCardPayload` + `normalizeCardData` + `enrichCardDataFromTreeNode` 富化逻辑（用于 `kickstart_project` 和 skills 的「基于 tree 场景构造场景卡」场景）
 - **systemPrompt 与 toolConfigs 自相矛盾**：
   - `systemPrompt.ts` 写"❌ avoid `spellpaw_add_node` / `spellpaw_kickstart_project`"
   - 但 `toolConfigs.ts` 把 tree tools 标为 "Legacy (kept for backward compat, prefer card tools above)"
@@ -24,12 +24,12 @@
 
 | # | 目标 | 成功标准 |
 |---|------|---------|
-| 1 | 按领域拆分 toolRouter | 25 个 tool 分布在 4 个 domain 文件，每个文件 < 300 行 |
-| 2 | 砍 3 个 alias tool | 25 → 22 tool；无外部调用方需要改 |
+| 1 | 按领域拆分 toolRouter | 26 个 handler（不含 alias）分布在 4 个 domain 文件，每个文件 < 300 行 |
+| 2 | 砍 3 个 alias tool | 26 → 23 tool；新增 1 条 tool config（`spellpaw_clear_canvas`）补齐之前漏掉的 LLM 暴露 |
 | 3 | systemPrompt 工具段重写 | 不再"❌ avoid"，改为按场景优先级推荐；6 个分类清晰 |
 | 4 | Tool description 升级 | 每条含用途 + when-to-use + example |
-| 5 | Skill 注册解耦 | `toolRouter.ts` 不再 import `skills/registry`；注册代码搬到 `skills/registry.ts` |
-| 6 | 测试全过 | 现有 792 行 `toolRouter.test.ts` 不动，仅 import 路径不变 → 292+ tests passing |
+| 5 | Skill 注册解耦 | `toolRouter/` 不再 import `skills/registry`；注册代码搬到 `skills/registry.ts` |
+| 6 | 测试通过 | 现有 792 行 `toolRouter.test.ts` 内部小改（call sites 替换），通过 → 292+ tests passing |
 
 ### 1.3 不在本 spec 范围
 
@@ -37,6 +37,9 @@
 - 工具调用分析 Dashboard → 留 Phase 4 MCP
 - TreeView 复活（AGENTS.md 列了但代码不存在）→ 留作单独任务
 - Phase 2 prompt engineering 微调（除工具说明段外）→ 不在本 spec
+- `spellpaw_build_ui` 是 toolConfigs 中已注册但 toolRouter 无 handler 的孤儿条目（pre-existing bug）→ 不在本 spec；待 PR 时另行 flag
+- `inferGenre` / `genreGuidance` 中英文 i18n → 不在本 spec（属 prompt engineering 范畴）
+- TreeView 复活（AGENTS.md 列了但代码不存在）→ 留作单独任务
 
 ---
 
@@ -46,10 +49,10 @@
 |------|------|------|
 | 方案 | **B · 领域拆分**（5 天） | 砍 alias + 修描述 + 拆文件，单 PR 即可；不为 Phase 4 MCP 提前做智能化 |
 | systemPrompt 改造 | **明确优先级** | "首选 add_card；查场景细节 / 修改元数据才用 get_subtree / update_node"，可执行而非禁止 |
-| 测试策略 | **保持现有 792 行覆盖** | 拆分后测试不动，只调 import；不为 4 个新 domain 各自建 test 文件 |
+| 测试策略 | **现有测试小改后通过** | `toolRouter.test.ts` 中 16+ 处 `add_canvas_card` / `update_canvas_card` 引用需替换为新内部 helper；不为 4 个新 domain 各自建 test 文件 |
 | Skill 注册位置 | **收进 registry** | `toolRouter/` 不再 import `skills/registry`；打破循环依赖 |
 | Tree API 保留 | **保留全部 7 个 tree tool** | Builder panel / apply_template / kickstart_project / generate_storyboard / 4 个 analysis 工具都在用，是脊柱不是 legacy |
-| Alias 砍除 | **3 个 alias 全部删除** | 行为等价，无外部调用方，节省 ~150 token/turn |
+| Alias 砍除 | **3 个 alias 全部删除** | 行为重叠但不等价——`add_canvas_card` 的富化逻辑抽到 `addEnrichedCard` helper，公共 handler 只剩 `add_card`；test/skills 调用点改用 helper |
 | 文件组织 | **`stores/toolRouter/` 目录** | 替代单文件 `toolRouter.ts`；保持 `import { toolRouter } from '@drama/stores/toolRouter'` 公开 API 不变 |
 
 ---
@@ -122,9 +125,9 @@ export const toolRouter: ToolRouter = {
 };
 
 registerSkillTools(toolRouter);
-
-export default toolRouter;
 ```
+
+**只导出命名导出，不导出 default**（保持与现状一致，避免悄悄扩大公开 API）。
 
 公开 import 路径不变：
 ```typescript
@@ -199,30 +202,113 @@ export interface ToolRouter {
 
 **依赖**：`useProjectStore`、`useCanvasStore`、`@drama/lib/projectAnalysis`、`@drama/lib/templateMatching`、`useCustomTemplateStore`、`toolRouter`（同 module 内部引用，无需 import path）
 
-### 4.6 跨域调用处理
+### 4.6 跨域调用与共享 helper
 
-`kickstart_project` 内部需要：
-- `apply_template`（tree domain）
-- `add_canvas_card` → **改为 `add_card`**（cards domain）
+`kickstart_project` 是跨域操作：
+- 需要调用 `apply_template`（tree domain）来批量创建 tree 节点
+- 需要调用「富化」版 add_canvas_card 逻辑来批量创建场景卡（带 `validateCanvasCardPayload` + `normalizeCardData` + `enrichCardDataFromTreeNode` 处理）
 
-**实现方式**：因为 4 个 domain 都由 `index.ts` 聚合到同一个 `toolRouter` 对象，跨域调用通过 `this` 或模块级 `toolRouter` 引用：
+**两个别名 handler 不能简单合并——它们的语义层不同：**
+
+| Handler | 用途 | 富化逻辑 |
+|---------|------|---------|
+| `add_card`（LLM 公共入口） | LLM 用，简洁：`{ type, title, description }` → 卡片 | 无 |
+| `add_canvas_card`（被 kickstart/skills 用） | 程序化调用，需要支持 `linkedTreeNodeId` / `tags` / `generatedPrompt` / script-vs-sceneCard 分支 | **有** |
+
+**采用共享 helper 方案**（避免 50+ 行逻辑复制到 analysis.ts，也避免 skills（builtIn.ts）改造时再复制一次）：
+
+#### 4.6.1 `tree.ts` 导出 `applyTemplateCore`
 
 ```typescript
-// analysis.ts
-import { toolRouter } from './index';  // ⚠️ 循环风险
+// stores/toolRouter/tree.ts
+/**
+ * Pure helper extracted from apply_template handler.
+ * Mutates the project store. No router / tool-layer dependency.
+ */
+export async function applyTemplateCore(
+  store: ProjectStoreApi,
+  templateId: string,
+  parentId?: string,
+): Promise<{ template: NarrativeTemplate; nodeCount: number }> {
+  // 当前 apply_template handler 的核心逻辑（约 50 行）
+  // 自定义模板 → 内置模板查找、fetch、递归 createNodes
+}
 ```
 
-**解决方案**：把 `kickstart_project` 的 `apply_template` 内部调用改为**直接 import tree handler 函数**，避免循环：
+`apply_template` handler 改为：
+```typescript
+apply_template: async (params) => {
+  const store = useProjectStore.getState();
+  const { nodeCount } = await applyTemplateCore(store, params.templateId as string, params.parentId as string | undefined);
+  return `已套用模板，创建 ${nodeCount} 个节点`;
+};
+```
+
+#### 4.6.2 `cards.ts` 导出 `addEnrichedCard`
 
 ```typescript
-// analysis.ts
-import { applyTemplateHandler } from './tree';
-// ... internal use of applyTemplateHandler instead of toolRouter.apply_template
+// stores/toolRouter/cards.ts
+/**
+ * Private helper for programmatic rich-card creation.
+ * Used by kickstart_project (analysis.ts) and built-in skills (skills/builtIn.ts).
+ * NOT exposed as a tool handler.
+ */
+export async function addEnrichedCard(
+  cardType: CanvasNodeType,
+  data: Record<string, unknown>,
+  position?: { x: number; y: number },
+): Promise<CanvasNode> {
+  // 当前 add_canvas_card handler 的核心逻辑（约 30 行）
+  // validateCanvasCardPayload → enrichCardDataFromTreeNode → normalizeCardData → addCanvasCardHandler
+}
 ```
 
-或更简单：`kickstart_project` 的 tree 部分逻辑（添加场景到 tree）直接写在 analysis.ts 里（~30 行），不调 `apply_template`。
+`add_card` handler（LLM 公共入口）继续用自己的简化逻辑，不调 `addEnrichedCard`。
 
-**最终决定**：选择第二种方案——直接展开 `kickstart_project` 内的 template 应用逻辑到 analysis.ts，删除对 `toolRouter.apply_template` 的调用依赖。无循环 import 风险。
+#### 4.6.3 `analysis.ts` 的 `kickstart_project` 实现
+
+```typescript
+import { applyTemplateCore } from './tree';
+import { addEnrichedCard } from './cards';
+
+kickstart_project: async (params) => {
+  const store = useProjectStore.getState();
+  const theme = params.theme as string;
+  // 1. pick template
+  const best = findBestTemplate(theme, params.genre as string | undefined);
+  if (!best) throw new Error('未找到合适的叙事模板');
+  // 2. snapshot existing scenes
+  const existingSceneIds = new Set(collectScenes(store.getCurrentTree()).map((s) => s.id));
+  // 3. apply template via shared helper
+  await applyTemplateCore(store, best.id, store.getCurrentTree()?.id);
+  // 4. collect new scenes
+  const freshTree = store.getCurrentTree();
+  const scenes = collectScenes(freshTree).filter((s) => !existingSceneIds.has(s.id));
+  // 5. create enriched canvas cards via shared helper
+  for (const scene of scenes) {
+    await addEnrichedCard(cardType, buildBaseData(scene));
+  }
+  return `已基于「${best.name}」创建项目结构：共 ${scenes.length} 个场景，并生成 ${scenes.length} 张${cardType === 'script' ? '剧本卡' : '场景卡'}。`;
+};
+```
+
+**收益：**
+- `kickstart_project` 不再有跨域调用 → 无循环 import 风险
+- `applyTemplateCore` 和 `addEnrichedCard` 都是**纯函数**（接受 store 引用，mutate 后返回）→ 易测试
+- `builtIn.ts`（skills）也用 `addEnrichedCard` → 砍 alias 后 skills 不破
+
+### 4.7 受 alias 移除影响的调用点
+
+需要在 Day 0.5 全面 audit 并在 Day 2 同步更新：
+
+| 调用点 | 当前行为 | 重构后 |
+|--------|---------|--------|
+| `toolRouter.test.ts`（16+ 处：lines 140, 162, 166, 177, 181, 200, 217, 233, 247, 260, 264, 272, 296 等） | `toolRouter.add_canvas_card({...})` | 改为 `toolRouter.add_card({...})` 或直接调内部 `addEnrichedCard` helper |
+| `clearCanvas.test.ts`（lines 53, 73-75） | `toolRouter.add_canvas_card({...})` | 同上 |
+| `lib/skills/builtIn.ts:286`（character card creation with `cardType: 'character'`, `tags`） | `toolRouter.add_canvas_card({...})` | 改为 `addEnrichedCard(cardType, data)` |
+| `lib/skills/builtIn.ts:362`（storyboard card creation） | `toolRouter.add_canvas_card({...})` | 同上 |
+| `analysis.ts` 的 `kickstart_project` | `toolRouter.apply_template` + `toolRouter.add_canvas_card` | 改为 `applyTemplateCore(store, ...)` + `addEnrichedCard(cardType, data)` |
+| `toolConfigs.ts` | 缺 `spellpaw_clear_canvas` 配置 | **新增** tool config（spec 内说明） |
 
 ---
 
@@ -258,7 +344,9 @@ import { applyTemplateHandler } from './tree';
 2. "PREFERRED / Use X when ... / NOT for ..."
 3. 一个 example call
 
-### 5.3 重写清单（22 条）
+### 5.3 重写清单（按 domain 分组，23 条）
+
+#### Cards domain (5)
 
 | Tool | 描述重点 |
 |------|---------|
@@ -266,7 +354,12 @@ import { applyTemplateHandler } from './tree';
 | `add_card` | 添加卡片；优选 add_node 当创建视觉内容 |
 | `update_card` | 更新卡片任意字段 |
 | `delete_card` | 删除单卡；批量用 clear_canvas |
-| `clear_canvas` | 原子清空；支持 filter；批量删除优于此 |
+| `clear_canvas` | 原子清空；支持 filter；批量删除优于此。**本次新增 tool config**（之前 handler 存在但未暴露给 LLM） |
+
+#### Tree domain (7)
+
+| Tool | 描述重点 |
+|------|---------|
 | `add_node` | 修改项目脊柱（act/scene/shot）；不要用于纯视觉内容 |
 | `update_node` | 修改节点标题/元数据；查场景细节用 get_subtree |
 | `delete_node` | 删除节点（不可恢复） |
@@ -274,17 +367,31 @@ import { applyTemplateHandler } from './tree';
 | `get_tree` | 项目结构概览 |
 | `get_subtree` | 查场景级元数据（shotType / cameraMovement / dialogue） |
 | `apply_template` | 引导项目从模板创建结构 |
+
+#### Generation domain (6)
+
+| Tool | 描述重点 |
+|------|---------|
 | `generate_asset` | 生成图/视频并落画布为卡 |
 | `generate_variants` | 多版本生成 |
 | `edit_asset` | 编辑已有卡片的图 |
 | `apply_style` | 单卡风格迁移 |
 | `batch_apply_style` | 多 scene/shot 批量风格统一 |
 | `generate_storyboard` | tree 场景 → AI 参考图（连接到该场景） |
+
+#### Analysis domain (5)
+
+| Tool | 描述重点 |
+|------|---------|
 | `analyze_structure` | 结构诊断 |
 | `get_pacing_report` | 节奏分析 |
 | `match_template` | 模板匹配 |
 | `optimize_pacing` | 节奏优化（dryRun 预览） |
 | `kickstart_project` | 模板引导 + 自动建场景卡 |
+
+#### Skill tools (N，动态注册)
+
+由 `registerSkillTools` 从 `skills/builtIn.ts` 动态注入，不在 SPELLPAW_TOOL_CONFIGS 静态列表中。
 
 ---
 
@@ -338,16 +445,9 @@ spellpaw_skill_* — multi-step workflows. Prefer when user names a skill.
 - 每个分类附"何时用"场景
 - 砍掉破损注释 `（这些是旧的树 API，）`
 
-### 6.3 题材判断段（保留 + 小修）
+### 6.3 题材判断段（不在本 spec 改动）
 
-`inferGenre` 中英文判断逻辑保留，但补 i18n：
-- 中文项目标题用现有中文正则
-- 英文项目标题用英文关键词正则（新增 ~10 行）
-- 都失败时回退 "剧情 / Drama"
-
-`genreGuidance` 文案改为英文为主（与 LLM 工作语言一致），中文作为 fallback。
-
-`buildScenePrompt` / `buildDefaultPrompt` 不在本 spec 改动范围。
+`inferGenre` 中文正则判断、`genreGuidance` 中英文案保持现状。English 题材判断的 i18n 改造属于 prompt engineering 范畴，已在 Section 1.3 排除。`buildScenePrompt` / `buildDefaultPrompt` 不在本 spec 改动范围。
 
 ---
 
@@ -494,7 +594,8 @@ toolRouter/index.ts
 | 4 | systemPrompt 工具段重写让 LLM 行为微妙变化 | 中 | 中 | 5 类手工复测高频 query；保留 5 分钟可回滚 |
 | 5 | toolRouter.test.ts 792 行测试在新结构下失败 | 低 | 高 | 测试只改 import 路径（无需改）；拆分前后跑一遍验证 |
 | 6 | AGENTS.md 更新遗漏导致文档继续误导 | 低 | 低 | Section 6.2 全段重写，删 alias 行，加 domain 分组表 |
-| 7 | 9.5KB 单文件测试运行时间增加 | 低 | 低 | 仍单文件运行；如未来需要可拆 |
+| 7 | `spellpaw_build_ui` 是 toolConfigs 孤儿条目 | 低 | 低 | 在 PR description 中 flag 为 pre-existing bug，不在本 spec 处理 |
+| 8 | `applyTemplateCore` / `addEnrichedCard` 内部 helper 与 tool handler 行为漂移 | 低 | 中 | helper 复用 handler 核心代码，handler 调用 helper；单元测试覆盖两条路径 |
 
 ---
 
@@ -502,13 +603,15 @@ toolRouter/index.ts
 
 | Day | 工作 | 验证 |
 |-----|------|------|
-| 1 | 建 `stores/toolRouter/` 目录：types.ts + 4 个 domain 文件 + index.ts；删除 `toolRouter.ts` 旧文件 | `npm test` 全过 |
-| 1 | 跨域处理：analysis.ts 内展开 `kickstart_project` 的 template 应用逻辑 | 单元测试过 |
-| 2 | 重写 `SPELLPAW_TOOL_CONFIGS` 22 条 description（含 when-to-use + example） | 视觉检查 |
-| 2 | 砍 3 个 alias tool；扫描所有调用点更新 | grep `add_canvas_card` / `update_canvas_card` / `delete_canvas_card` 返回 0 匹配 |
+| **0.5** | **Pre-audit**：grep 全项目 `add_canvas_card` / `update_canvas_card` / `delete_canvas_card` 调用点（test 文件 + skills/builtIn.ts + toolRouter 内部），输出受影响文件清单 | 列出全部 ~21 处 |
+| 1 | 建 `stores/toolRouter/` 目录：types.ts + 4 个 domain 文件 + index.ts；删除 `toolRouter.ts` 旧文件 | `npm test` 全过（test 文件已含 alias，临时允许 fail） |
+| 1 | 提取 `applyTemplateCore`（tree.ts）和 `addEnrichedCard`（cards.ts）两个共享 helper | 各自可被直接调用 |
+| 1 | `analysis.ts` 的 `kickstart_project` 改用两个 helper（不再调 toolRouter.apply_template / add_canvas_card） | kickstart 行为不变 |
+| 2 | 砍 3 个 alias tool；更新 test 文件 16+ 处 + `clearCanvas.test.ts` + `skills/builtIn.ts` 2 处为新 helper | grep 返回 0 匹配 |
+| 2 | 重写 `SPELLPAW_TOOL_CONFIGS` 23 条 description（含 when-to-use + example）；**新增 `spellpaw_clear_canvas` tool config** | 视觉检查 |
 | 3 | 重写 `systemPrompt.ts` 工具说明段（按 6 级优先级） | 长度变化检查 |
 | 3 | Skill 注册迁移到 `skills/registry.ts`；toolRouter/index.ts 调用 `registerSkillTools` | 无 TS 错 |
-| 4 | AGENTS.md Section 6.2 更新；写 commit message | 文档一致性 |
+| 4 | AGENTS.md Section 6.2 更新；写 commit message（含 pre-existing `spellpaw_build_ui` 孤儿条目的 flag） | 文档一致性 |
 | 5 | 集成测试 + 手动验证：开项目 → 与 Agent 对话 5 个高频 query → 确认 tool 选择符合预期 | 5 个 query 全过 |
 
 ### 5 个高频 query（手动验证清单）
@@ -525,12 +628,18 @@ toolRouter/index.ts
 
 - [ ] `src/apps/drama/stores/toolRouter.ts` 已删除
 - [ ] `src/apps/drama/stores/toolRouter/{index,types,tree,cards,generation,analysis}.ts` 全部存在
-- [ ] `toolRouter/index.ts` 聚合所有 domain + 调用 `registerSkillTools`
+- [ ] `toolRouter/tree.ts` 导出 `applyTemplateCore(store, templateId, parentId?)` 共享 helper
+- [ ] `toolRouter/cards.ts` 导出 `addEnrichedCard(cardType, data, position?)` 共享 helper（未暴露为 tool handler）
+- [ ] `toolRouter/index.ts` 聚合所有 domain + 调用 `registerSkillTools`；**只命名导出，无 default export**
 - [ ] `src/apps/drama/lib/skills/registry.ts` 导出 `registerSkillTools(router)`
-- [ ] `SPELLPAW_TOOL_CONFIGS` 22 条（不含 skill），每条 description 含 when-to-use + example
-- [ ] 0 处 `add_canvas_card` / `update_canvas_card` / `delete_canvas_card` 引用（grep 验证）
+- [ ] `SPELLPAW_TOOL_CONFIGS` **23 条**（不含 skill），每条 description 含 when-to-use + example
+- [ ] `SPELLPAW_TOOL_CONFIGS` 新增 `spellpaw_clear_canvas`（之前 handler 存在但未暴露）
+- [ ] 0 处 `add_canvas_card` / `update_canvas_card` / `delete_canvas_card` 引用（grep 验证，含 test 文件 + skills/builtIn.ts + toolRouter 旧引用）
+- [ ] `toolRouter.test.ts`（16+ 处）和 `clearCanvas.test.ts`（3+ 处）已替换为 `toolRouter.add_card` 或 `addEnrichedCard` helper
+- [ ] `lib/skills/builtIn.ts`（lines 286, 362）已替换为 `addEnrichedCard` helper
 - [ ] `systemPrompt.ts` 工具段已重写为 6 级优先级
 - [ ] `AGENTS.md` Section 6.2 已更新（4 domain + 无 legacy 措辞）
+- [ ] PR description flag `spellpaw_build_ui` 是 toolConfigs 孤儿条目（pre-existing bug，不在本 PR 修复）
 - [ ] `npm test` 全过：292+ tests passing
 - [ ] `npm run lint` 全过（前端）
 - [ ] `npm run build` 全过

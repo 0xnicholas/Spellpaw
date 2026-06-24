@@ -371,24 +371,6 @@ export const SPELLPAW_TOOL_CONFIGS = [
 		endpoint: TOOL_ENDPOINT,
 	},
 	{
-		name: "spellpaw_build_ui",
-		description:
-			"Build interactive UI components (character maps, dashboards, storyboard grids). Use when user asks for visual elements like character relationship diagrams.",
-		parameters: {
-			type: "object",
-			properties: {
-				component: { type: "string", enum: ["character_map"] },
-				data: { type: "object" },
-				target: {
-					type: "string",
-					enum: ["canvas", "detail_panel", "tree_placeholder"],
-				},
-			},
-			required: ["component", "data"],
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
 		name: "spellpaw_kickstart_project",
 		description:
 			"Create a complete narrative structure (acts, scenes, shots) from a theme and generate canvas cards for every scene. Use this whenever the user asks to create a project structure and generate scene cards in one go.",

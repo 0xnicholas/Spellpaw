@@ -1,18 +1,6 @@
-import type { CanvasNode, CanvasNodeType } from '@drama/types';
-
-const KIND_TO_CARD_TYPE: Record<string, CanvasNodeType> = {
-  image: 'art',
-  video: 'videoClip',
-  text: 'storyline',
-  upload: 'asset',
-};
-
-const DEFAULT_TITLES: Record<string, string> = {
-  image: '新美术',
-  video: '新视频',
-  text: '新故事线',
-  upload: '新素材',
-};
+import type { CanvasNode } from '@drama/types';
+import { kindToCardType, defaultTitle } from '@shared/components/canvas/helpers/kindInference';
+import type { CopilotKind } from '@shared/components/canvas/PaneContextMenu';
 
 /**
  * 迁移老的 copilotCard 节点到对应正式类型。
@@ -25,15 +13,15 @@ export function migrateCopilotCards(nodes: CanvasNode[]): CanvasNode[] {
   return nodes.map((node) => {
     if (node.type !== 'copilotCard') return node;
     const data = node.data as Record<string, unknown>;
-    const kind = (data.kind as string) ?? 'text';
-    const newType = KIND_TO_CARD_TYPE[kind] ?? 'storyline';
+    const kind = (data.kind as CopilotKind | undefined) ?? 'text';
+    const newType = kindToCardType(kind);
     const result = data.result as Record<string, unknown> | undefined;
     const hasResult = data.status === 'done' && result?.url;
     return {
       ...node,
       type: newType,
       data: {
-        title: DEFAULT_TITLES[kind] ?? '未命名卡片',
+        title: defaultTitle(kind),
         isPlaceholder: !hasResult,
         ...(hasResult && {
           thumbnail: result!.url as string,

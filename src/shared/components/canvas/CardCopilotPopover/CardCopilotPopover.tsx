@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Upload } from 'lucide-react';
 import { useCopilotGenerate, type FileRefData } from '@shared/components/canvas/hooks/useCopilotGenerate';
@@ -21,13 +21,27 @@ export interface CardCopilotPopoverProps {
 export function CardCopilotPopover({ cardId, kind, screenPosition, onClose }: CardCopilotPopoverProps) {
   const [prompt, setPrompt] = useState('');
   const [fileRef, setFileRef] = useState<FileRefData | null>(null);
+  // Track auto-close timeout so re-generation can cancel it (I-1 fix).
+  const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { status, progress, error, generate, cancel } = useCopilotGenerate({
     cardId,
     kind,
     onSuccess: () => {
-      setTimeout(onClose, POPOVER_AUTOCLOSE_DELAY_MS);
+      // Clear any previous auto-close timer to avoid race with re-generation.
+      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+      autoCloseTimerRef.current = setTimeout(() => {
+        autoCloseTimerRef.current = null;
+        onClose();
+      }, POPOVER_AUTOCLOSE_DELAY_MS);
     },
   });
+
+  // Cleanup auto-close timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -86,6 +100,9 @@ export function CardCopilotPopover({ cardId, kind, screenPosition, onClose }: Ca
       role="dialog"
       aria-label="Copilot tool panel"
       data-testid="card-copilot-popover"
+      // 阻止冒泡到 canvas pane，避免误关弹窗 (M-8 fix)
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       style={{
         position: 'fixed',
         left,

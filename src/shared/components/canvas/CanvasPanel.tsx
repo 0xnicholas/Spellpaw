@@ -89,7 +89,7 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
   const setSelectedCardId = useCanvasStore((s) => s.setSelectedCardId);
   const currentProjectId = useProjectStore((s) => s.currentProjectId);
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
-  const [zoom, setZoom] = useState(1);
+  // Zoom badge reads from useViewport (vpZoom declared below).
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [paneMenu, setPaneMenu] = useState<PaneMenuState | null>(null);
@@ -372,9 +372,8 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
           nodeTypes={nodeTypes}
           onInit={(instance: ReactFlowInstance) => {
             reactFlowRef.current = instance;
-            setZoom(instance.getZoom());
           }}
-          onMove={(_: unknown, viewport: { zoom: number }) => setZoom(viewport.zoom)}
+          onMove={() => {}}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChangeWrapper}
           onConnect={onConnect}
@@ -423,7 +422,7 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
         <CardDetailDrawer />
 
         <div className="absolute bottom-2 left-2 z-10 rounded-[var(--radius-sm)] bg-[var(--color-bg-primary)]/80 px-2 py-0.5 text-[10px] text-[var(--color-text-tertiary)] backdrop-blur-sm border border-[var(--color-border-default)]">
-          {Math.round(zoom * 100)}%
+          {Math.round(vpZoom * 100)}%
         </div>
 
         {/* Pane Context Menu */}

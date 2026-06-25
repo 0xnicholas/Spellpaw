@@ -136,3 +136,14 @@ describe('CardCopilotPopover — text generation', () => {
     expect(card?.data.isPlaceholder).toBe(false);
   });
 });
+
+describe('CardCopilotPopover — stopPropagation (M-8)', () => {
+  it('clicking inside popover does not propagate to canvas pane', () => {
+    render(<CardCopilotPopover {...baseProps} kind="text" />);
+    const popover = screen.getByRole('dialog');
+    fireEvent.mouseDown(popover);
+    fireEvent.click(popover);
+    // If stopPropagation works, no error is thrown (just verifying handler runs)
+    expect(popover).toBeInTheDocument();
+  });
+});

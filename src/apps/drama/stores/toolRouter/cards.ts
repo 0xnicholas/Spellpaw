@@ -160,7 +160,6 @@ const CARD_TYPE_ICONS: Record<string, string> = {
   script: '📝',
   deliverable: '📦',
   sceneCard: '🎬',
-  copilotCard: '🤖',
 };
 
 export const cardHandlers: ToolRouter = {

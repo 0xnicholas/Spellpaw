@@ -1,3 +1,11 @@
+/**
+ * @deprecated Since 2026-06-25. Generation logic moved to `useCopilotGenerate` hook
+ * and `CardCopilotPopover` component. This component is no longer registered in
+ * `nodeTypes` (see CanvasPanel.tsx). The file is kept for the existing test suite
+ * (`CopilotCardNode.test.tsx`) which validates the isolated component logic.
+ *
+ * TODO: Remove this file and its test in v3 cleanup.
+ */
 import { useRef, useEffect, useCallback } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { Upload, Type, Image as ImageIcon, Video, X } from 'lucide-react';

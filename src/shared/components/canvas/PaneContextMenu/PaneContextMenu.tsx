@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Upload, Type, Image as ImageIcon, Video } from 'lucide-react';
+import { Z_INDEX } from '@shared/lib/zIndex';
 
 export type CopilotKind = 'upload' | 'text' | 'image' | 'video';
 
@@ -31,13 +32,14 @@ export function PaneContextMenu({ x, y, flowPosition, onClose, onCreate }: PaneC
     <>
       <div
         data-testid="pane-context-overlay"
-        className="fixed inset-0 z-40"
+        className="fixed inset-0"
+        style={{ zIndex: Z_INDEX.cardCopilotPopover - 1 }}
         onClick={onClose}
       />
       <div
         data-testid="pane-context-menu"
-        className="fixed z-50 min-w-[180px] rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] py-1 shadow-lg"
-        style={{ left: x, top: y }}
+        className="fixed min-w-[180px] rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] py-1 shadow-lg"
+        style={{ left: x, top: y, zIndex: Z_INDEX.paneContextMenu }}
       >
         {MENU_ITEMS.map(({ kind, label, icon: Icon, hint }) => (
           <button

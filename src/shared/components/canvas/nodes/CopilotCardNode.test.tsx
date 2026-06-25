@@ -31,7 +31,7 @@ function setupProjectAndAddCopilot(id: string, data: CopilotCardNodeData) {
   useCanvasStore.setState({
     canvases: {
       'proj_1': {
-        nodes: [{ id, type: 'copilotCard', position: { x: 100, y: 100 }, data: data as never }],
+        nodes: [{ id, type: 'copilotCard' as never, position: { x: 100, y: 100 }, data: data as never }],
         edges: [],
         viewport: { x: 0, y: 0, zoom: 1 },
       },

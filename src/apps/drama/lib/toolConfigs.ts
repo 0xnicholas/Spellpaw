@@ -82,7 +82,7 @@ export const SPELLPAW_TOOL_CONFIGS = [
 					properties: {
 						type: {
 							type: "string",
-							enum: ["storyline", "moodboard", "videoClip", "asset", "task", "art", "character", "script", "sceneCard", "deliverable", "copilotCard"],
+							enum: ["storyline", "moodboard", "videoClip", "asset", "task", "art", "character", "script", "sceneCard", "deliverable"],
 							description: "Match cards of this type only",
 						},
 						status: {

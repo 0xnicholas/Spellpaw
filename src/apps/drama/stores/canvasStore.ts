@@ -4,6 +4,7 @@ import type { CanvasNode, CanvasEdge } from '@drama/types';
 import { generateId } from '@/shared/lib/utils';
 import { createIDBStorage } from '@/shared/lib/idbStorage';
 import { useProjectStore } from './projectStore';
+import { migrateCopilotCards } from '@drama/lib/migrateCopilotCards';
 
 interface Viewport {
   x: number;
@@ -361,7 +362,7 @@ export const useCanvasStore = create<CanvasState>()(
     }),
     {
       name: 'spellpaw_canvas',
-      version: 3,
+      version: 4,
       storage: createIDBStorage<CanvasState>('canvasStore'),
       migrate: (persistedState: unknown, version) => {
         const state = persistedState as Record<string, unknown>;
@@ -401,6 +402,25 @@ export const useCanvasStore = create<CanvasState>()(
                 if (node.data.description && node.data.description in descMap) {
                   node.data.description = descMap[node.data.description];
                 }
+              }
+            }
+          }
+        }
+        if (version < 4) {
+          const canvases = state.canvases as Record<string, CanvasEntry> | undefined;
+          if (canvases) {
+            for (const key of Object.keys(canvases)) {
+              const entry = canvases[key];
+              // Legacy copilotCard type check: 'copilotCard' was removed from
+              // CanvasNodeType union in v2, but may exist in persisted state.
+              const toMigrate = entry.nodes.filter(
+                (n) => (n.type as string) === 'copilotCard'
+              ).length;
+              if (toMigrate > 0) {
+                if (import.meta.env.DEV) {
+                  console.info(`[canvasStore v3→v4] migrating ${toMigrate} copilotCard nodes in ${key}`);
+                }
+                entry.nodes = migrateCopilotCards(entry.nodes as never);
               }
             }
           }

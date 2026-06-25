@@ -531,7 +531,7 @@ import { useCanvasStore } from './canvasStore';
 
 describe('canvasStore persist migrate v3→v4', () => {
   // Zustand persist 直接暴露 getOptions()。这是项目现有模式
-  // （见 canvasStore.test.ts:131），避免使用 __testHelpers 间接访问。
+  // （见 canvasStore.test.ts:131）。
   const getMigrate = () => useCanvasStore.persist.getOptions().migrate!;
 
   it('converts copilotCard nodes in v3 persisted state', () => {
@@ -1565,7 +1565,6 @@ import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { CanvasPanel } from './CanvasPanel';
 import { useCanvasStore } from '@drama/stores/canvasStore';
-
 import { useProjectStore } from '@drama/stores/projectStore';
 // Mock React Flow viewport + screenToFlowPosition
 vi.mock('@xyflow/react', async () => {
@@ -1808,7 +1807,7 @@ useEffect(() => {
 }, [copilotTarget, vpX, vpY, zoom, recomputePopoverPosition]);
 ```
 
-> **说明**：`useViewport` 内部已经处理 viewport 变化。如果 resize 不触发 viewport 变化（它不会），上述手动 listener 用 spread 触发 popoverScreenPos 重算会让现有 useEffect 因为依赖未变而不跑。可改为在 resize 中调用 reactFlowRef.current.flowToScreenPosition 重新计算并 setPopoverScreenPos（避免依赖变更）。简化方案：v1 不强求 resize 完美跟随。
+> **说明**：`useViewport` 内部处理 pan/zoom，但 window resize 不触发 viewport 变化。resize listener 手动调用 `recomputePopoverPosition` 重新计算 position。
 
 **d) 修改 onNodeClick（单击/双击分离）**：
 
@@ -2228,7 +2227,7 @@ git commit -m "docs: update references from CopilotCardNode to CardCopilotPopove
 **关键风险点**：
 1. React Flow `useViewport` 在测试环境的 mock（可能需要在 `setup.ts` 中添加 mock）
 2. portal 测试需要 `document.body` 作为 target（已在 setup.ts 中确认可用）
-3. `migrateCopilotCards` 集成测试需要导出 `__testHelpers`（或重构为纯函数导出）
+3. ~~`migrateCopilotCards` 集成测试需要导出 `__testHelpers`~~（已用 `useCanvasStore.persist.getOptions().migrate` 直接访问，见 Task 5）
 
 **后续优化（v2 范畴）**：
 - `useViewport()` 性能优化（pan 期间高频重渲染 → requestAnimationFrame 节流）

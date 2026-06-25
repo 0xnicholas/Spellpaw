@@ -284,8 +284,8 @@ const style: React.CSSProperties = {
 ```
 
 **Ref 按钮适用范围**：image / video / upload 都显示（text 不显示，因为 LLM 文本生成不需要参考）。Ref 上传后：
-- image: 作为 `referenceImageUrl` 传给 provider（参考图生图）
-- video: 作为 `referenceImageUrl` 传给 provider（关键帧参考）
+- image: 作为 `referenceUrl` 传给 provider（参考图生图，capability=image2image）
+- video: 作为 `referenceUrl` 传给 provider（关键帧参考，capability=image2video）
 - upload: 写入卡片 data.thumbnail + fileRef（资源入库，无 AI 调用）
 
 **内部状态机**：
@@ -1039,7 +1039,8 @@ export function countCopilotCards(nodes: CanvasNode[]): number {
 ✅ **`canvasStore` persist middleware 的 `migrate` 函数**：Zustand persist 在 hydration 阶段调用 `migrate`，运行在 CanvasPanel 挂载之前。CanvasPanel 读到的已经是迁移后的状态，不存在闪现问题。`canvasStore.ts:381-409` 已经有 v2→v3 迁移 precedent。
 
 ```ts
-// CanvasPanel.tsx useEffect
+// （useEffect 方案被废弃——会导致“v1 节点丢失 → 迁移后重新出现”的闪现。
+//   新方案在下方：集成进 canvasStore.ts Zustand persist migrate 函数）
 useEffect(() => {
   const current = useCanvasStore.getState().getCurrentNodes();
   const toMigrate = countCopilotCards(current);
@@ -1052,13 +1053,49 @@ useEffect(() => {
 }, [currentProjectId]);                                         // 切换项目时也跑一次（防御性）
 ```
 
-> **决策调整**（v3 review feedback）：上述 useEffect 方案会导致用户看到“v1 节点丢失 → 迁移后重新出现”的闪现。改为将 migration 集成进 `canvasStore.ts` 的 Zustand persist `migrate` 函数（version 3 → 4）。详见下方「调用时机决策」。
+**集成进 `canvasStore.ts` 的 Zustand persist `migrate` 函数**（version 从 3 提升到 4）：
 
+```ts
+// src/apps/drama/stores/canvasStore.ts
+import { migrateCopilotCards } from '@drama/lib/migrateCopilotCards';
+
+persist(
+  (set, get) => ({ /* store creator */ }),
+  {
+    name: 'spellpaw_canvas',
+    version: 4,                          // ← 从 3 提升到 4
+    storage: createIDBStorage<CanvasState>('canvasStore'),
+    migrate: (persistedState: unknown, version) => {
+      const state = persistedState as Record<string, unknown>;
+      // 现有 v2→v3 迁移逻辑保留（不重复列出，见 canvasStore.ts:366-409）
+      
+      // 新增 v3→v4 迁移：copilotCard 节点转换
+      if (version < 4) {
+        const canvases = state.canvases as Record<string, CanvasEntry> | undefined;
+        if (canvases) {
+          for (const key of Object.keys(canvases)) {
+            const entry = canvases[key];
+            const toMigrate = entry.nodes.filter((n) => n.type === 'copilotCard').length;
+            if (toMigrate > 0) {
+              if (import.meta.env.DEV) {
+                console.info(`[canvasStore v3→v4] migrating ${toMigrate} copilotCard nodes in ${key}`);
+              }
+              entry.nodes = migrateCopilotCards(entry.nodes);
+            }
+          }
+        }
+      }
+      return state as CanvasState;
+    },
+  }
+);
 ```
 
-**幂等性**：`migrateCopilotCards` 检查 `type !== 'copilotCard'` 直接返回原节点，所以重复执行也是安全的。
+**幂等性**：迁移仅在 `version < 4` 时执行；`migrateCopilotCards` 对非 copilotCard 节点 pass-through，所以重复执行也安全。
 
-**测试**：单测 `migrateCopilotCards` 4 种 kind × 3 种状态（idle / generating / done）+ 边界（非 copilotCard pass-through、undefined kind 兜底）= ~14 个 case。
+**测试**：
+- `migrateCopilotCards` 函数单测：4 种 kind × 3 种状态（idle / generating / done）+ 边界（非 copilotCard pass-through、undefined kind 兜底）= ~14 个 case
+- `canvasStore` persist.migrate 集成测试：装载 v3 持久化状态（含 copilotCard 节点）→ hydrate 后全部转为对应正式类型 = ~3 个 case
 
 ---
 

@@ -21,7 +21,14 @@ vi.mock('@xyflow/react', async () => {
       onPaneContextMenu,
       nodes,
       onNodeDrag,
-    }: any) => {
+    }: {
+      children?: React.ReactNode;
+      onNodeClick?: (e: React.MouseEvent, n: { id: string; type?: string; position: { x: number; y: number }; data: Record<string, unknown> }) => void;
+      onPaneClick?: (e: React.MouseEvent) => void;
+      onPaneContextMenu?: (e: React.MouseEvent) => void;
+      nodes?: Array<{ id: string; type?: string; position: { x: number; y: number }; data: Record<string, unknown> }>;
+      onNodeDrag?: (e: React.MouseEvent, n: { id: string }) => void;
+    }) => {
       return (
         <div>
           <div
@@ -34,7 +41,7 @@ vi.mock('@xyflow/react', async () => {
           >
             Pane
           </div>
-          {(nodes || []).map((n: any) => (
+          {(nodes || []).map((n) => (
             <div
               key={n.id}
               data-testid={`node-${n.id}`}
@@ -42,7 +49,7 @@ vi.mock('@xyflow/react', async () => {
               onClick={(e) => onNodeClick?.(e, n)}
               onMouseDown={(e) => onNodeDrag?.(e as never, n)}
             >
-              {n.data?.title || n.id}
+              {String(n.data?.title ?? n.id)}
             </div>
           ))}
           {children}
@@ -54,7 +61,7 @@ vi.mock('@xyflow/react', async () => {
 
 // Wrap all renders in ReactFlowProvider so CanvasPanel's internal useViewport
 // hook has the required zustand store context.
-const WrapWithProvider = ({ children }: { children: React.ReactNode }) => (
+const WrapWithProvider = ({ children }: React.PropsWithChildren) => (
   <ReactFlowProvider>{children}</ReactFlowProvider>
 );
 

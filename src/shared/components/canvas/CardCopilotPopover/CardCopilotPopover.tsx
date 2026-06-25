@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Upload } from 'lucide-react';
 import { useCopilotGenerate, type FileRefData } from '@shared/components/canvas/hooks/useCopilotGenerate';
+import { listProviders } from '@drama/lib/canvasToolkit';
 import type { CopilotKind } from '@shared/components/canvas/PaneContextMenu';
 import { Z_INDEX } from '@shared/lib/zIndex';
 
@@ -45,6 +46,13 @@ export function CardCopilotPopover({ cardId, kind, screenPosition, onClose }: Ca
   );
   const top = Math.max(NAVBAR_HEIGHT, screenPosition.y);
 
+  // 默认使用第一个已配置的 provider。
+  // 未来可以扩展为 model selector UI（spec §10 future extension）
+  const defaultProviderId = useMemo(() => {
+    const providers = listProviders();
+    return providers[0]?.id;
+  }, []);
+
   const handleGenerate = () => {
     if (kind === 'upload') {
       if (!fileRef) return;
@@ -52,7 +60,7 @@ export function CardCopilotPopover({ cardId, kind, screenPosition, onClose }: Ca
       return;
     }
     if (!prompt.trim()) return;
-    generate({ prompt, providerId: 'default', fileRef: fileRef ?? undefined });
+    generate({ prompt, providerId: defaultProviderId, fileRef: fileRef ?? undefined });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

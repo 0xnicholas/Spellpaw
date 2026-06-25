@@ -140,26 +140,15 @@ describe('useCopilotGenerate — error path', () => {
 describe('useCopilotGenerate — abort', () => {
   it('cancel() resets status to idle', async () => {
     setupProjectAndCard('card_5', 'art');
-    // pollUntilDone mock returns an unresolved promise — simulates long-running
-    // generation. The abort path must trigger and reset to idle.
-    let rejectPoll: (reason?: unknown) => void = () => {};
-    vi.doMock('@drama/lib/canvasToolkit/shared', () => ({
-      pollUntilDone: vi.fn(
-        () =>
-          new Promise((_, reject) => {
-            rejectPoll = reject;
-          })
-      ),
-    }));
-    // Re-import the module to pick up the new mock — but in vitest, this is
-    // complex. Instead, we use a simpler approach: make submit slow enough that
-    // cancel runs while it's pending.
+    // submit returns a promise that rejects with AbortError after 50ms when
+    // signal is aborted. cancel() triggers AbortController.abort() which causes
+    // the submit promise to reject, the catch block detects AbortError, and
+    // status resets to 'idle'.
     vi.mocked(providerRegistry.get).mockReturnValue({
       ...mockProviderDone(),
       submit: vi.fn(
         () =>
-          new Promise((_, reject) => {
-            // never resolves; simulates a stuck submission
+          new Promise((_resolve, reject) => {
             setTimeout(() => reject(new DOMException('Aborted', 'AbortError')), 50);
           })
       ),
@@ -173,6 +162,5 @@ describe('useCopilotGenerate — abort', () => {
     await waitFor(() => expect(result.current.status).toBe('generating'));
     act(() => result.current.cancel());
     await waitFor(() => expect(result.current.status).toBe('idle'));
-    void rejectPoll; // suppress unused warning
   });
 });

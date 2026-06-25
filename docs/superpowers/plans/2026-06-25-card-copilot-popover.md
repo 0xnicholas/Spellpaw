@@ -165,7 +165,7 @@ Expected: FAIL with "Cannot find module"
 ```ts
 // src/shared/components/canvas/helpers/kindInference.ts
 import type { CanvasNode, CanvasNodeType } from '@drama/types';
-import type { CopilotKind } from '@drama/components/canvas/PaneContextMenu';
+import type { CopilotKind } from '@shared/components/canvas/PaneContextMenu';
 
 const KIND_TO_CARD_TYPE: Record<CopilotKind, CanvasNodeType> = {
   text: 'storyline',
@@ -212,7 +212,7 @@ export function inferKindFromCard(node: CanvasNode): CopilotKind {
 }
 ```
 
-> **注**：上面 import 用了 `@drama/...` 路径别名（项目已配置）。如果运行时遇到循环依赖，可改为从 `@shared/components/canvas/PaneContextMenu` 内部 export `CopilotKind`，或者把 `CopilotKind` 移到 `src/shared/lib/copilot.ts`。
+> **注**：上面 import 用了 `@shared/...` 路径别名（项目已配置）。`CopilotKind` 从 `PaneContextMenu.tsx` 直接导出，与现有代码保持一致。
 
 - [ ] **Step 4: 运行测试验证通过**
 
@@ -287,7 +287,7 @@ Expected: FAIL
 ```ts
 // src/shared/components/canvas/helpers/capability.ts
 import type { Capability } from '@drama/lib/canvasToolkit';
-import type { CopilotKind } from '@drama/components/canvas/PaneContextMenu';
+import type { CopilotKind } from '@shared/components/canvas/PaneContextMenu';
 
 /**
  * 根据 kind 和是否上传参考图推断 GenerationInput.capability。
@@ -527,10 +527,13 @@ git commit -m "feat(canvas): add migrateCopilotCards for v1→v2 node type migra
 ```ts
 // src/apps/drama/stores/canvasStore.migrate.test.ts
 import { describe, it, expect } from 'vitest';
-// @ts-expect-error -- accessing internal migrate fn
-import { __testHelpers } from './canvasStore';
+import { useCanvasStore } from './canvasStore';
 
 describe('canvasStore persist migrate v3→v4', () => {
+  // Zustand persist 直接暴露 getOptions()。这是项目现有模式
+  // （见 canvasStore.test.ts:131），避免使用 __testHelpers 间接访问。
+  const getMigrate = () => useCanvasStore.persist.getOptions().migrate!;
+
   it('converts copilotCard nodes in v3 persisted state', () => {
     const v3State = {
       canvases: {
@@ -560,8 +563,7 @@ describe('canvasStore persist migrate v3→v4', () => {
         },
       },
     };
-    // @ts-expect-error
-    const migrated = __testHelpers.migrate(v3State, 3);
+    const migrated = getMigrate()(v3State, 3) as typeof v3State;
     expect(migrated.canvases.proj_1.nodes[0].type).toBe('art');
     expect(migrated.canvases.proj_1.nodes[0].data.thumbnail).toBe('http://img.png');
     expect(migrated.canvases.proj_1.nodes[1].type).toBe('videoClip');
@@ -581,29 +583,17 @@ describe('canvasStore persist migrate v3→v4', () => {
         },
       },
     };
-    // @ts-expect-error
-    const result = __testHelpers.migrate(v4State, 4);
+    const result = getMigrate()(v4State, 4) as typeof v4State;
     expect(result.canvases.proj_1.nodes[0]).toEqual(v4State.canvases.proj_1.nodes[0]);
   });
 });
 ```
 
-- [ ] **Step 2: 暴露 migrate 测试钩子**
+- [ ] **Step 2: 验证测试可访问 migrate（无需额外导出）**
 
-在 `canvasStore.ts` 末尾（persist 配置之后）添加：
+Zustand persist 默认暴露 `getOptions()`，测试可以直接通过 `useCanvasStore.persist.getOptions().migrate` 访问（参见 `src/apps/drama/stores/canvasStore.test.ts:131` 的现有用法）。
 
-```ts
-// canvasStore.ts 末尾
-// Test-only export for migrate (see canvasStore.migrate.test.ts)
-// 不导出到外部 — 仅测试用
-export const __testHelpers = {
-  migrate: (state: unknown, version: number) =>
-    (canvasStore as unknown as { persist: { getOptions: () => { migrate: (s: unknown, v: number) => unknown } } })
-      .persist.getOptions().migrate(state, version),
-};
-```
-
-> **注**：上面用 `__testHelpers` 模式导出 migrate 函数。如果 Zustand persist API 不可直接访问，改为把 migrate 函数提到模块顶部作为独立 export（仍然是 persist 配置内的同一个引用），更简单。
+**无需在 `canvasStore.ts` 加任何导出代码。** 如果测试运行时找不到 `migrate`，说明 persist 配置未正确应用，按报错检查。
 
 - [ ] **Step 3: 运行测试验证失败**
 
@@ -782,7 +772,32 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useCopilotGenerate } from './useCopilotGenerate';
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import type { CanvasNodeType } from '@drama/types';
 import { providerRegistry } from '@drama/lib/canvasToolkit';
+
+// 设置项目状态与画布节点（参照 canvasStore.test.ts:7-20 的现有模式）
+function setupProjectAndCard(cardId: string, type: CanvasNodeType = 'storyline') {
+  useProjectStore.setState({
+    projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
+    trees: { 'proj_1': { id: 'root', type: 'project', title: 'Test', status: 'draft' as const } },
+    currentProjectId: 'proj_1',
+    selectedNodeId: null,
+  });
+  useCanvasStore.setState({
+    canvases: {
+      proj_1: {
+        nodes: [{ id: cardId, type, position: { x: 0, y: 0 }, data: { title: 'pre-existing', isPlaceholder: true } }],
+        edges: [],
+        viewport: { x: 0, y: 0, zoom: 1 },
+      },
+    },
+  });
+}
+
+beforeEach(() => {
+  // 每个 test 独立环境
+});
 
 // Mock provider registry
 vi.mock('@drama/lib/canvasToolkit', async () => {
@@ -804,6 +819,7 @@ vi.mock('@drama/lib/canvasToolkit', async () => {
 
 describe('useCopilotGenerate — text kind', () => {
   it('updates card title/description without provider call', async () => {
+    setupProjectAndCard('card_1');
     const { result } = renderHook(() =>
       useCopilotGenerate({ cardId: 'card_1', kind: 'text' })
     );
@@ -834,6 +850,7 @@ describe('useCopilotGenerate — image kind + ref', () => {
   });
 
   it('infers capability=image2image when ref present', async () => {
+    setupProjectAndCard('card_2', 'art');
     const { result } = renderHook(() =>
       useCopilotGenerate({ cardId: 'card_2', kind: 'image' })
     );
@@ -849,14 +866,23 @@ describe('useCopilotGenerate — image kind + ref', () => {
   });
 
   it('infers capability=text2image when no ref', async () => {
+    setupProjectAndCard('card_3', 'art');
+    const submitSpy = vi.fn(async () => ({ taskId: 't2', status: 'processing' as const }));
+    vi.mocked(providerRegistry.get).mockReturnValue({
+      id: 'mock',
+      name: 'mock',
+      supportedMedia: ['image'],
+      capabilities: ['text2image', 'image2image'],
+      requiredConfigKeys: [],
+      isConfigured: () => true,
+      configure: vi.fn(),
+      estimateCost: vi.fn(() => ({ amount: 0, unit: '' })),
+      submit: submitSpy,
+      poll: vi.fn(),
+    } as never);
     const { result } = renderHook(() =>
       useCopilotGenerate({ cardId: 'card_3', kind: 'image' })
     );
-    const submitSpy = vi.fn(async () => ({ taskId: 't2', status: 'processing' as const }));
-    vi.mocked(providerRegistry.get).mockReturnValue({
-      ...vi.mocked(providerRegistry.get).mock.results[0]?.value,
-      submit: submitSpy,
-    } as never);
     await act(async () => {
       await result.current.generate({ prompt: 'a cat', providerId: 'mock' });
     });
@@ -879,6 +905,7 @@ describe('useCopilotGenerate — error path', () => {
       submit: vi.fn(async () => { throw new Error('API error'); }),
       poll: vi.fn(),
     } as never);
+    setupProjectAndCard('card_4', 'art');
     const { result } = renderHook(() =>
       useCopilotGenerate({ cardId: 'card_4', kind: 'image' })
     );
@@ -892,6 +919,7 @@ describe('useCopilotGenerate — error path', () => {
 
 describe('useCopilotGenerate — abort', () => {
   it('cancel() resets status to idle', async () => {
+    setupProjectAndCard('card_5', 'art');
     const { result } = renderHook(() =>
       useCopilotGenerate({ cardId: 'card_5', kind: 'image' })
     );
@@ -931,9 +959,11 @@ Expected: FAIL
 // src/shared/components/canvas/hooks/useCopilotGenerate.ts
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCanvasStore } from '@drama/stores/canvasStore';
-import { providerRegistry, pollUntilDone } from '@drama/lib/canvasToolkit';
-import type { CopilotKind } from '@drama/components/canvas/PaneContextMenu';
-import { inferCapability } from '@drama/components/canvas/helpers/capability';
+import type { CanvasNodeType } from '@drama/types';
+import { providerRegistry } from '@drama/lib/canvasToolkit';
+import { pollUntilDone } from '@drama/lib/canvasToolkit/shared';
+import type { CopilotKind } from '@shared/components/canvas/PaneContextMenu';
+import { inferCapability } from '@shared/components/canvas/helpers/capability';
 
 export interface FileRefData {
   name: string;
@@ -1052,7 +1082,7 @@ export function useCopilotGenerate(opts: {
 }
 ```
 
-> **注**：`@drama/components/canvas/PaneContextMenu` 是已有路径别名。如果 helper 文件在 `src/shared/components/canvas/helpers/` 下，导入路径需用 `@shared/components/canvas/helpers/capability`。根据实际路径别名配置调整。
+> **注**：`@shared/components/canvas/PaneContextMenu` 是已有路径别名。如果 helper 文件在 `src/shared/components/canvas/helpers/` 下，导入路径需用 `@shared/components/canvas/helpers/capability`。根据实际路径别名配置调整。
 
 - [ ] **Step 4: 运行测试验证通过**
 
@@ -1311,8 +1341,8 @@ Expected: FAIL
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Upload } from 'lucide-react';
-import { useCopilotGenerate, type FileRefData } from '@drama/components/canvas/hooks/useCopilotGenerate';
-import type { CopilotKind } from '@drama/components/canvas/PaneContextMenu';
+import { useCopilotGenerate, type FileRefData } from '@shared/components/canvas/hooks/useCopilotGenerate';
+import type { CopilotKind } from '@shared/components/canvas/PaneContextMenu';
 import { Z_INDEX } from '@shared/lib/zIndex';
 
 const POPOVER_AUTOCLOSE_DELAY_MS = 1200;
@@ -1536,6 +1566,7 @@ import userEvent from '@testing-library/user-event';
 import { CanvasPanel } from './CanvasPanel';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 
+import { useProjectStore } from '@drama/stores/projectStore';
 // Mock React Flow viewport + screenToFlowPosition
 vi.mock('@xyflow/react', async () => {
   const actual = await vi.importActual('@xyflow/react');
@@ -1573,6 +1604,14 @@ vi.mock('@xyflow/react', async () => {
 });
 
 beforeEach(() => {
+  // 必须设置 currentProjectId + project + tree，否则 getCurrentNodes() 返回空数组
+  // （参照 canvasStore.test.ts:7-20 的现有项目设置模式）
+  useProjectStore.setState({
+    projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
+    trees: { 'proj_1': { id: 'root', type: 'project', title: 'Test', status: 'draft' as const } },
+    currentProjectId: 'proj_1',
+    selectedNodeId: null,
+  });
   useCanvasStore.setState({
     canvases: {
       proj_1: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
@@ -1737,8 +1776,9 @@ useEffect(() => {
   }
 }, [nodes, copilotTarget]);
 
-// popover 位置重算
-useEffect(() => {
+// resize 监听：手动重算（useViewport 在 v12 不响应 resize）
+// 提取为 helper 以避免重复逻辑
+const recomputePopoverPosition = useCallback(() => {
   if (!copilotTarget || !reactFlowRef.current) return;
   const CARD_WIDTH = 240;
   const CARD_HEIGHT_ESTIMATE = 200;
@@ -1754,18 +1794,18 @@ useEffect(() => {
     x: Math.max(16, Math.min(cardCenter.x - POPOVER_WIDTH / 2, window.innerWidth - POPOVER_WIDTH - 16)),
     y: Math.max(NAVBAR_HEIGHT, cardCenter.y),
   });
-}, [copilotTarget, vpX, vpY, zoom]);
+}, [copilotTarget]);
 
-// resize 监听
 useEffect(() => {
   if (!copilotTarget) return;
-  const onResize = () => {
-    // 触发重算：useViewport 在 v12 不会自动响应 resize，需要手动重算
-    setPopoverScreenPos((prev) => (prev ? { ...prev } : null));
-  };
-  window.addEventListener('resize', onResize);
-  return () => window.removeEventListener('resize', onResize);
-}, [copilotTarget]);
+  window.addEventListener('resize', recomputePopoverPosition);
+  return () => window.removeEventListener('resize', recomputePopoverPosition);
+}, [copilotTarget, recomputePopoverPosition]);
+
+// 同时在 viewport 变化（pan/zoom）时重算
+useEffect(() => {
+  recomputePopoverPosition();
+}, [copilotTarget, vpX, vpY, zoom, recomputePopoverPosition]);
 ```
 
 > **说明**：`useViewport` 内部已经处理 viewport 变化。如果 resize 不触发 viewport 变化（它不会），上述手动 listener 用 spread 触发 popoverScreenPos 重算会让现有 useEffect 因为依赖未变而不跑。可改为在 resize 中调用 reactFlowRef.current.flowToScreenPosition 重新计算并 setPopoverScreenPos（避免依赖变更）。简化方案：v1 不强求 resize 完美跟随。
@@ -2066,10 +2106,20 @@ git commit -m "refactor(canvas): remove copilotCard export from nodes/index"
 
 ```tsx
 // src/shared/components/canvas/integration.test.tsx
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { CanvasPanel } from './CanvasPanel';
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+
+beforeEach(() => {
+  useProjectStore.setState({
+    projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
+    trees: { 'proj_1': { id: 'root', type: 'project', title: 'Test', status: 'draft' as const } },
+    currentProjectId: 'proj_1',
+    selectedNodeId: null,
+  });
+});
 
 describe('end-to-end: right-click → card → popover → close', () => {
   it('full flow', async () => {

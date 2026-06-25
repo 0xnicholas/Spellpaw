@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { Badge } from "@/shared/components/ui/Badge";
 import { useCanvasStore } from "@drama/stores/canvasStore";
 import { useProjectStore } from "@drama/stores/projectStore";
+import { Z_INDEX } from "@shared/lib/zIndex";
 import { useHotkeys } from "@/shared/hooks/useHotkeys";
 import { computeDisplayNumbers } from "@drama/lib/numbering";
 import { formatBytes } from "@drama/lib/canvasToolkit";
@@ -461,12 +462,16 @@ export function CardDetailDrawer() {
 	return (
 		<>
 			{/* Mask — purely visual, pointer-events: none so events pass through */}
-			<div className="absolute inset-0 z-10 bg-black/10 pointer-events-none" />
+			<div
+				className="absolute inset-0 bg-black/10 pointer-events-none"
+				style={{ zIndex: Z_INDEX.cardDetailDrawerMask }}
+			/>
 
 			{/* Drawer */}
 			<div
-				className="absolute right-0 top-0 bottom-0 z-20 w-[340px] bg-[var(--color-bg-primary)] border-l border-[var(--color-border-default)] shadow-lg flex flex-col"
+				className="absolute right-0 top-0 bottom-0 w-[340px] bg-[var(--color-bg-primary)] border-l border-[var(--color-border-default)] shadow-lg flex flex-col"
 				style={{
+					zIndex: Z_INDEX.cardDetailDrawer,
 					transform: slideIn ? "translateX(0)" : "translateX(100%)",
 					transition: "transform 0.2s ease-out",
 				}}

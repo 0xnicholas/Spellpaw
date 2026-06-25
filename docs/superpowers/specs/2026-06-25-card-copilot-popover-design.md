@@ -64,10 +64,14 @@ Canvas 右键菜单（`PaneContextMenu`）现提供 4 个 AI 生成入口（Uplo
 | 卡片初始状态 | **空容器 + "Output will appear here..." 占位** | buzzy.now 风格 |
 | 生成结果处理 | **更新当前卡片**（不创建新卡片） | 卡片即结果容器，text→title/description, image/video→thumbnail |
 | 复用代码 | **从 CopilotCardNode 抽取 `useCopilotGenerate` hook** | 复用 provider 调用、polling、取消逻辑 |
-| CopilotCardNode | **保留但不再使用**（从 nodeTypes 移除注册） | 避免破坏现有 toolRouter 等可能引用 |
+| CopilotCardNode | **保留文件但从 nodeTypes / types / toolConfigs 全链路移除** | 见 §13 完整清理清单 |
 | 空状态卡片渲染 | **复用 `GenericCardNode`**，data 字段新增 `isPlaceholder: true` | 零新增节点类型 |
 | 弹窗 ref 上传 | **FileReader 本地读取为 dataURL**，存入卡片 data.fileRef | 与现有 upload 流程一致，无需后端 |
 | 模型/质量选择 | **ProviderRegistry 现有 provider + capability 元数据驱动** | 复用现有 registry，不新增配置 |
+| Ref 按钮作用域 | **image / video / upload 都支持**（参考图/参考视频上传） | buzzy.now 截图显示 Ref 用于 image-gen，本地不可省略 |
+| 切换卡片时的生成 | **取消进行中的生成**，popover 按 `nodeId` key 重新挂载 | 简化状态、避免跨卡片状态污染；用户期望"一张卡片 = 一个会话" |
+| Z-index 层级 | **新增 `z-index.ts` 集中管理**：PaneContextMenu(60) > CardCopilotPopover(55) > CardDetailDrawer(20) | 避免浮层互相遮挡 |
+| 已存在的 copilotCard 节点 | **应用加载时一次性迁移：转换为对应 kind 的正式卡片** | 旧项目持久化数据兼容，避免 React Flow "node type not found" 警告 |
 
 ---
 
@@ -198,7 +202,7 @@ function inferKindFromCard(node: CanvasNode): CopilotKind {
 
 ```tsx
 interface CardCopilotPopoverProps {
-  card: CanvasNode;                    // 关联卡片（用于读取/写入 data）
+  cardId: string;                     // 关联卡片 id（用于读 data + 写 updateNodeData）
   kind: CopilotKind;                   // 'upload' | 'text' | 'image' | 'video'
   screenPosition: { x: number; y: number };  // 屏幕坐标（基于 flow + viewport 实时计算）
   onClose: () => void;
@@ -207,7 +211,7 @@ interface CardCopilotPopoverProps {
 
 interface PopoverLocalState {
   prompt: string;
-  fileRef: File | null;                // 上传的参考文件（仅 upload）
+  fileRef: { name: string; size: number; kind: 'image'|'video'|'audio'; dataUrl: string } | null;
   providerId: string;                  // 选中的模型（image/video）
   capability: Capability | null;       // 来自 provider metadata
 }
@@ -222,7 +226,7 @@ const style: React.CSSProperties = {
   left: Math.max(16, Math.min(screenPosition.x - popoverWidth / 2, window.innerWidth - popoverWidth - 16)),
   top: Math.max(64, screenPosition.y),  // 64 = 顶部 navbar 高度
   width: popoverWidth,
-  zIndex: 50,
+  zIndex: Z_INDEX.cardCopilotPopover,   // = 55（从 z-index.ts 导入，见 §13）
 };
 ```
 
@@ -231,7 +235,7 @@ const style: React.CSSProperties = {
 ```
 ┌──────────────────────────────────────────┐
 │ ┌───┐                                    │
-│ │ + │ ← Ref 按钮（上传参考图，upload 模式显示）│
+│ │ + │ ← Ref 按钮（image / video / upload 都显示）│
 │ │Ref│                                    │
 │ └───┘                                    │
 ├──────────────────────────────────────────┤
@@ -242,13 +246,18 @@ const style: React.CSSProperties = {
 └──────────────────────────────────────────┘
 ```
 
+**Ref 按钮适用范围**：image / video / upload 都显示（text 不显示，因为 LLM 文本生成不需要参考）。Ref 上传后：
+- image: 作为 `referenceImageUrl` 传给 provider（参考图生图）
+- video: 作为 `referenceImageUrl` 传给 provider（关键帧参考）
+- upload: 写入卡片 data.thumbnail + fileRef（资源入库，无 AI 调用）
+
 **内部状态机**：
 
 | State | UI | 转换条件 |
 |-------|----|---------|
 | `idle` | 输入框可用，Generate 按钮可用 | → `generating` (点击 Generate) |
 | `generating` | 进度条 + 取消按钮，禁用输入 | → `done` (success) / → `error` (fail) / → `idle` (cancel) |
-| `done` | ✓ 完成提示，自动关闭弹窗 | → 卸载 |
+| `done` | ✓ 完成提示，1200ms 后自动关闭弹窗 | → 卸载 |
 | `error` | 错误信息 + 重试按钮 | → `idle` (retry) |
 
 ### 4.4 useCopilotGenerate hook
@@ -257,7 +266,7 @@ const style: React.CSSProperties = {
 
 ```ts
 function useCopilotGenerate(opts: {
-  card: CanvasNode;
+  cardId: string;          // 直接传 id，避免整个 card 对象的闭包污染
   kind: CopilotKind;
   onSuccess?: (result: GenerationResult) => void;
 }) {
@@ -265,12 +274,13 @@ function useCopilotGenerate(opts: {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const updateNodeData = useCanvasStore((s) => s.updateNodeData);
+  // 不订阅 updateNodeData，避免每次 store 更新都重渲染 popover
+  const updateNodeData = useCanvasStore.getState().updateNodeData;
 
   const generate = useCallback(async (params: {
     prompt: string;
     providerId?: string;
-    file?: { dataUrl: string; name: string; size: number; kind: 'image'|'video'|'audio' };
+    fileRef?: { dataUrl: string; name: string; size: number; kind: 'image'|'video'|'audio' };
   }) => {
     abortRef.current = new AbortController();
     setStatus('generating');
@@ -279,9 +289,8 @@ function useCopilotGenerate(opts: {
     
     try {
       if (opts.kind === 'text') {
-        // 本地直接写入卡片，不调外部 API
-        updateNodeData(opts.card.id, { 
-          title: params.prompt.slice(0, 30) || '新故事线', 
+        updateNodeData(opts.cardId, {
+          title: params.prompt.slice(0, 30) || '新故事线',
           description: params.prompt,
           isPlaceholder: false,
         });
@@ -290,11 +299,12 @@ function useCopilotGenerate(opts: {
       }
       
       if (opts.kind === 'upload') {
-        if (!params.file) throw new Error('未选择文件');
-        updateNodeData(opts.card.id, {
-          title: params.file.name,
-          thumbnail: params.file.dataUrl,
-          fileSize: params.file.size,
+        if (!params.fileRef) throw new Error('未选择文件');
+        updateNodeData(opts.cardId, {
+          title: params.fileRef.name,
+          thumbnail: params.fileRef.dataUrl,
+          fileSize: params.fileRef.size,
+          fileRef: params.fileRef,
           isPlaceholder: false,
         });
         setStatus('done');
@@ -305,13 +315,20 @@ function useCopilotGenerate(opts: {
       const provider = providerRegistry.get(params.providerId ?? '');
       if (!provider) throw new Error(`Provider ${params.providerId} 未配置`);
       const capability: Capability = opts.kind === 'image' ? 'text2image' : 'text2video';
+      // 参考图（Ref）目前作为额外参数透传；provider API 是否支持由各 provider 自行决定
       const task = await provider.submit({
         type: opts.kind,
         capability,
         prompt: params.prompt,
+        referenceImageUrl: params.fileRef?.dataUrl,
       });
-      const final = await pollUntilDone(provider, task.taskId, setProgress, abortRef.current.signal);
-      updateNodeData(opts.card.id, {
+      const final = await pollUntilDone(
+        provider,
+        task.taskId,
+        setProgress,
+        abortRef.current.signal,
+      );
+      updateNodeData(opts.cardId, {
         thumbnail: final.resultUrl,
         generatedPrompt: params.prompt,
         sourceProvider: params.providerId,
@@ -327,13 +344,13 @@ function useCopilotGenerate(opts: {
       setError(err instanceof Error ? err.message : String(err));
       setStatus('error');
     }
-  }, [opts, updateNodeData]);
+  }, [opts.cardId, opts.kind, opts.onSuccess, updateNodeData]);
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();
   }, []);
 
-  // 卸载时清理
+  // 卸载时清理（卡片切换 / popover 关闭都会触发）
   useEffect(() => {
     return () => abortRef.current?.abort();
   }, []);
@@ -346,7 +363,34 @@ function useCopilotGenerate(opts: {
 - CopilotCardNode 中的 polling、cancel、status 逻辑（~50 行）需要在 `CardCopilotPopover` 中复用
 - 抽到 hook 后两个组件都轻量化，且未来 toolRouter 也可以直接调用
 
-### 4.5 占位卡片渲染（GenericCardNode 修改）
+**关键设计点**：
+- **只接收 `cardId` 不接收整个 `card` 对象**：避免父组件每次重渲染时 hook 内部 `useCallback` 因 opts 对象引用变化而失效
+- **`updateNodeData` 用 `getState()` 而非 selector**：避免 popover 因 store 更新无谓重渲染
+- **依赖数组扁平化**：`[opts.cardId, opts.kind, opts.onSuccess, updateNodeData]` 都是稳定引用（`getState()` 返回的方法引用稳定）
+
+### 4.5 kindToCardType / defaultTitle 辅助函数
+
+`handlePaneCreate` 用到的两个映射函数：
+
+```ts
+// src/shared/components/canvas/CanvasPanel.tsx 内部
+function kindToCardType(kind: CopilotKind): CanvasNodeType {
+  return ({ text: 'storyline', image: 'art', video: 'videoClip', upload: 'asset' } as const)[kind];
+}
+
+function defaultTitle(kind: CopilotKind): string {
+  return ({
+    text: '新故事线',
+    image: '新美术',
+    video: '新视频',
+    upload: '新素材',
+  } as const)[kind];
+}
+```
+
+测试覆盖：单元测试 `kindToCardType` 4 个分支，`defaultTitle` 4 个分支（覆盖未来 i18n 抽取）。
+
+### 4.6 占位卡片渲染（GenericCardNode 修改）
 
 `isPlaceholder: true` 时显示 buzzy.now 风格占位：
 
@@ -368,7 +412,9 @@ const isPlaceholder = (data as Record<string, unknown>).isPlaceholder as boolean
 
 占位状态下隐藏 description、metadata row、children、linkedCardIds 列表，只显示顶部 type header 和占位中心区域。
 
-### 4.6 单击 / 双击分离逻辑
+**假设**：所有用 `GenericCardCardNode` 渲染的卡片（storyline / moodboard / videoClip / asset / task）宽度一致为 `w-[240px]`（已在 CanvasPanel.tsx 与 GenericCardNode.tsx 验证）。其他卡片类型（Script / Art / Character / Deliverable / SceneCard）宽度也是 `w-[240px]`（已 grep 确认）。**因此 `kindToCardType` 映射只会落到 GenericCardNode，popover 位置计算可以硬编码 `cardWidth = 240`**。
+
+### 4.7 单击 / 双击分离逻辑
 
 ```tsx
 // CanvasPanel.tsx
@@ -397,20 +443,27 @@ const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
   if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
   clickTimerRef.current = setTimeout(() => {
     // 单击生效
+    // Self-click guard：同一卡片的弹窗已打开时跳过，避免无谓的 re-render
+    if (copilotTarget?.nodeId === node.id) {
+      pendingClickRef.current = null;
+      return;
+    }
     const kind = inferKindFromCard(node);
     setCopilotTarget({ nodeId: node.id, kind, flowPosition: node.position });
     setSelectedCardId(null);         // 关闭 drawer（如果有）
     pendingClickRef.current = null;
   }, 250);
-}, [setSelectedCardId]);
+}, [setSelectedCardId, copilotTarget]);
 ```
 
-### 4.7 右键创建流程（修改后）
+**Self-click guard 理由**：见 review B4。同一卡片已有 popover 时，单击只是"重新定位"，无需触发 React 重渲染。节省一次 setState。
+
+### 4.8 右键创建流程（修改后）
 
 ```tsx
 // CanvasPanel.tsx
 const handlePaneCreate = useCallback((kind: CopilotKind, flowPos: { x: number; y: number }) => {
-  const cardType = kindToCardType(kind);                  // 'asset' | 'storyline' | 'art' | 'videoClip'
+  const cardType = kindToCardType(kind);                  // 见 §4.5
   const newNode: CanvasNode = {
     id: generateId(cardType + '_'),
     type: cardType,
@@ -426,11 +479,66 @@ const handlePaneCreate = useCallback((kind: CopilotKind, flowPos: { x: number; y
 }, []);
 ```
 
-`defaultTitle` 映射：
-- text → '新故事线'
-- image → '新美术'
-- video → '新视频'
-- upload → '新素材'
+**Popover keyed by nodeId**（见 §4.9）：传 `key={newNode.id}` 确保卡片切换时强制重新挂载，触发 useEffect 清理 abortRef，取消前一张卡片的生成任务。
+
+### 4.9 位置计算与 viewport 跟随
+
+```ts
+// CanvasPanel.tsx — popover screen position 计算
+const [popoverScreenPos, setPopoverScreenPos] = useState<{ x: number; y: number } | null>(null);
+
+const CARD_WIDTH = 240;
+const CARD_HEIGHT_ESTIMATE = 200;     // GenericCardNode 实际高度（约 200px）
+const POPOVER_WIDTH = 480;
+const POPOVER_GAP = 8;
+const NAVBAR_HEIGHT = 64;             // WorkspaceLayout 顶部 navbar
+
+useEffect(() => {
+  if (!copilotTarget || !reactFlowRef.current) return;
+  const rf = reactFlowRef.current;
+  
+  const recompute = () => {
+    if (!rf || !copilotTarget) return;
+    const cardCenter = rf.flowToScreenPosition({
+      x: copilotTarget.flowPosition.x + CARD_WIDTH / 2,
+      y: copilotTarget.flowPosition.y + CARD_HEIGHT_ESTIMATE + POPOVER_GAP,
+    });
+    setPopoverScreenPos({
+      x: Math.max(16, Math.min(cardCenter.x - POPOVER_WIDTH / 2, window.innerWidth - POPOVER_WIDTH - 16)),
+      y: Math.max(NAVBAR_HEIGHT, cardCenter.y),
+    });
+  };
+  
+  recompute();
+  // 订阅 viewport 变化（pan / zoom / fitView）
+  // onMove 已有（CanvasPanel.tsx:142-144）
+  // 我们需要重新触发 recompute → 用 useEffect 依赖 zoom + viewport.x + viewport.y
+  
+}, [copilotTarget, zoom, viewport]);
+```
+
+**为什么不监听 onMove**：避免每帧都 setState（pan 期间会高频触发），只在 viewport 停止后更新。但用户体验上需要"跟手"——通过订阅 React Flow 的 `onMoveEnd` + 拖拽期间的 RAF 平滑实现（v1 简化：每次 onMove 都更新；如性能不达标再优化）。
+
+**节点拖拽时的位置更新**：通过 React Flow 的 `onNodeDrag`（drag 期间）+ `onNodeDragStop`（drop 时）同步更新 `copilotTarget.flowPosition`：
+
+```ts
+const onNodeDrag = useCallback((_event: React.MouseEvent, node: Node) => {
+  if (copilotTarget?.nodeId === node.id) {
+    setCopilotTarget({ ...copilotTarget, flowPosition: node.position });
+  }
+}, [copilotTarget]);
+```
+
+`onNodeDrag` 在 React Flow 中每帧触发，会导致 popover 每帧重定位（可能影响性能）。v1 简化：仅在 `onNodeDragStop` 时更新（drop 瞬间跳到新位置）。如果 UX 反馈"拖拽时 popover 不跟随"再升级到 `onNodeDrag`。
+
+### 4.10 自动关闭延迟
+
+```ts
+// CardCopilotPopover.tsx
+const POPOVER_AUTOCLOSE_DELAY_MS = 1200;  // 生成成功后延迟关闭弹窗，让用户看到 ✓ 反馈
+```
+
+不用 magic number 800ms。1200ms 给用户足够时间看 ✓ 完成提示。
 
 ---
 
@@ -471,12 +579,21 @@ const handlePaneCreate = useCallback((kind: CopilotKind, flowPos: { x: number; y
    onNodeClick → pendingClick 记录
 
 2. 250ms 后无第二次点击 → 单击生效
-   ├─ 关闭当前 copilotTarget（如果指向其他卡片）
+   ├─ 如果当前 copilotTarget 指向不同卡片：
+   │   ├─ 旧卡片的 popover 卸载（key 变化）→ useCopilotGenerate useEffect cleanup → abortRef.abort() 
+   │   │   → 取消进行中的生成任务
+   │   └─ 新卡片的 popover 挂载（初始 status='idle'）
    ├─ inferKindFromCard(node) → 'text'
-   └─ setCopilotTarget({ nodeId: currentId, kind: 'text', flowPosition })
+   └─ setCopilotTarget({ nodeId: newId, kind: 'text', flowPosition: node.position })
 
 3. 弹窗重新渲染，绑定到新卡片
    弹窗显示: text kind 的 textarea + Generate 按钮
+
+**关键：取消进行中的生成**
+- popover 用 `key={copilotTarget.nodeId}` 强制 re-mount（见 §4.8）
+- 旧实例卸载触发 `useCopilotGenerate` 的 cleanup → abortRef.abort()
+- pollUntilDone 抛 AbortError → catch 中 setStatus('idle')，**不写入卡片**
+- 旧卡片仍保持原状态（如果之前未生成过，仍是 isPlaceholder: true）
 ```
 
 ### 5.3 双击打开 drawer
@@ -484,7 +601,7 @@ const handlePaneCreate = useCallback((kind: CopilotKind, flowPos: { x: number; y
 ```
 1. P 双击卡片（250ms 内两次 click）
    └─ 第二次 click 触发双击分支
-       ├─ setCopilotTarget(null)        // 关闭弹窗
+       ├─ setCopilotTarget(null)        // 关闭弹窗（同时取消进行中的生成）
        └─ setSelectedCardId(node.id)    // 打开 drawer
 ```
 
@@ -624,10 +741,10 @@ const nodeTypes: NodeTypes = {
 
 **CopilotCardNode.test.tsx**（不变）：保留以验证组件本身的逻辑（虽然不再被画布注册）。
 
-**GenericCardNode.test.tsx**（修改）：
-- isPlaceholder: true 时显示 "Output will appear here..."
+**GenericCardNode.test.tsx**（**新**，原不存在）：
+- isPlaceholder: true 时显示 "Output will appear here..." + 隐藏 description/metadata/children
 - isPlaceholder: false 时显示正常 body
-- 现有非占位测试不变
+- type 徽标和状态徽标在占位状态下仍正常渲染
 
 ### 8.2 集成测试
 
@@ -642,10 +759,18 @@ const nodeTypes: NodeTypes = {
 - CardCopilotPopover: ~15 tests
 - useCopilotGenerate: ~10 tests  
 - CanvasPanel 扩展: ~5 tests
-- GenericCardNode 扩展: ~2 tests
+- GenericCardNode 扩展: ~3 tests（**新文件**，原不存在）
 - 集成测试: ~3 tests
+- migrateCopilotCards: ~12 tests（§14）
 
-目标：总计 **≥ 325 tests passing**。
+目标：总计 **≥ 340 tests passing**。
+
+新增必测：
+- popover 与 PaneContextMenu z-index 不冲突（同时打开两个，菜单在上层）
+- popover 与 CardDetailDrawer 互斥（双击切换）
+- 切换卡片时旧卡片的 abortRef 触发（cancel-on-switch）
+- 已有 copilotCard 节点迁移（done / generating / idle 三状态）
+- popover 位置在卡片拖拽后更新
 
 ---
 
@@ -662,6 +787,8 @@ const nodeTypes: NodeTypes = {
 | `types/index.ts` | CanvasNodeData 现有字段 | 新增 isPlaceholder, fileRef 可选字段 | 低 |
 | `CopilotCardNode.test.tsx` | 现有 4 kind 测试 | 不变（验证组件内部逻辑） | 无 |
 | `PaneContextMenu.test.tsx` | 现有测试 | 不变 | 无 |
+
+完整 `copilotCard` 清理点见 §13。
 
 ---
 
@@ -684,6 +811,142 @@ const nodeTypes: NodeTypes = {
 - 现有 `CanvasPanel`：`src/shared/components/canvas/CanvasPanel.tsx`
 - Provider Registry：`src/apps/drama/lib/canvasToolkit/providerRegistry.ts`
 - Canvas Tooltip 设计：`src/apps/drama/lib/canvasToolkit/`
+- React Flow v12 API：`reactflow` package `general.d.ts:171` 验证 `flowToScreenPosition` 与 `onNodeDoubleClick` 均可用
+
+---
+
+## 12. Z-index 层级集中管理
+
+新建 `src/shared/styles/z-index.ts`（或 `src/shared/lib/zIndex.ts`），集中定义浮层 z-index，避免散落硬编码：
+
+```ts
+// src/shared/lib/zIndex.ts
+export const Z_INDEX = {
+  cardDetailDrawer: 20,
+  cardDetailDrawerMask: 10,
+  cardCopilotPopover: 55,    // 新增
+  paneContextMenu: 60,        // 提升（原来 50，被 popover 遮住有问题）
+  chatPanel: 40,
+  floatingToolbar: 50,
+  toast: 70,
+} as const;
+```
+
+替换点：
+- `PaneContextMenu.tsx:39` — `z-50` → `zIndex: Z_INDEX.paneContextMenu`（= 60）
+- `CardDetailDrawer.tsx:464,468` — `z-10` → `Z_INDEX.cardDetailDrawerMask`，`z-20` → `Z_INDEX.cardDetailDrawer`
+- `CardCopilotPopover` 新组件 — 用 `Z_INDEX.cardCopilotPopover`（= 55）
+- 其它组件如有 z-index 硬编码，一并抽取
+
+**为什么 PaneContextMenu 要比 CardCopilotPopover 高**：用户在 popover 打开时右击画布，应能看到 PaneMenu 而不是被 popover 遮挡。popover 是"会话级"、菜单是"命令级"，菜单优先。
+
+---
+
+## 13. `copilotCard` 全链路清理清单
+
+`grep -rn "copilotCard" src/` 验证出以下清理点（不限于测试）：
+
+| 文件 | 行 | 现状 | 清理动作 |
+|------|----|----|---------|
+| `src/shared/components/canvas/CanvasPanel.tsx` | 24, 41, 186-192, 296 | 运行时引用 | 删 import + nodeTypes entry + MiniMap color map |
+| `src/shared/components/canvas/nodes/CopilotCardNode.tsx` | 全文 | 运行时组件 | **保留文件**（测试仍引用），仅从 nodeTypes 移除 |
+| `src/shared/components/canvas/nodes/index.ts` | 6-7 | re-export | 可选保留（如果外部 import）或删除（如果零外部引用） |
+| `src/shared/components/canvas/nodes/CopilotCardNode.test.tsx` | 全文 | 测试文件 | **保留不变**（隔离测试，不依赖注册） |
+| `src/apps/drama/types/index.ts` | 72 | `'copilotCard'` union | **必须删除**，否则 TypeScript 允许但不存在的类型 |
+| `src/apps/drama/stores/toolRouter/cards.ts` | 163 | `CARD_TYPE_ICONS.copilotCard` | 可删除（死代码），或保留以防御 |
+| `src/apps/drama/lib/toolConfigs.ts` | 85 | LLM tool schema enum | **必须删除**，否则 LLM 可能生成 copilotCard 类型，运行时无 handler |
+
+**强删 vs 弱删**：
+- 强删（必须）：types union、CanvasPanel 注册、toolConfigs schema enum
+- 弱删（推荐但非必需）：toolRouter 图标、nodes/index.ts re-export
+
+---
+
+## 14. 已有 `copilotCard` 节点迁移
+
+**问题**：旧版本生成的 `copilotCard` 节点会持久化在 canvasStore（IDB + Zustand persist middleware）。新版本启动时，`copilotCard` 已从 `nodeTypes` 移除，React Flow 会输出 "node type not found" 警告，节点无法渲染。
+
+**迁移方案**：应用启动时一次性转换。
+
+```ts
+// src/apps/drama/lib/migrateCopilotCards.ts
+import type { CanvasNode } from '@drama/types';
+
+const kindToCardType = (kind: string): CanvasNode['type'] => {
+  switch (kind) {
+    case 'image': return 'art';
+    case 'video': return 'videoClip';
+    case 'text':  return 'storyline';
+    case 'upload': return 'asset';
+    default: return 'storyline';
+  }
+};
+
+const defaultTitleByKind = (kind: string): string => {
+  return ({ image: '新美术', video: '新视频', text: '新故事线', upload: '新素材' } as Record<string, string>)[kind] ?? '未命名卡片';
+};
+
+/**
+ * 迁移老的 copilotCard 节点：
+ * - 如果有已完成的结果（status='done'）→ 转换为对应正式类型 + 写入结果数据
+ * - 如果在生成中（status='generating'）→ 转换为对应正式类型 + 状态变为 'draft' + isPlaceholder=true（用户需要手动重试）
+ * - 如果 idle / error → 转换为对应正式类型 + isPlaceholder=true
+ *
+ * 这样用户不会丢失任何已开始的工作，只是从内嵌生成节点变成普通占位卡片 + 可点击重新生成。
+ */
+export function migrateCopilotCards(nodes: CanvasNode[]): {
+  migrated: CanvasNode[];
+  removed: string[];
+} {
+  const migrated: CanvasNode[] = [];
+  const removed: string[] = [];
+  for (const node of nodes) {
+    if (node.type !== 'copilotCard') {
+      migrated.push(node);
+      continue;
+    }
+    const data = node.data as Record<string, unknown>;
+    const kind = (data.kind as string) ?? 'text';
+    const newType = kindToCardType(kind);
+    const hasResult = data.status === 'done' && data.result;
+    migrated.push({
+      ...node,
+      type: newType,
+      data: {
+        title: defaultTitleByKind(kind),
+        isPlaceholder: !hasResult,
+        ...(hasResult && {
+          thumbnail: (data.result as Record<string, unknown>)?.url,
+          generatedPrompt: data.prompt,
+          sourceProvider: data.providerId,
+        }),
+        // 清掉 copilotCard 特有字段
+        status: 'draft',
+      },
+    });
+  }
+  return { migrated, removed };
+}
+```
+
+**调用时机**：`CanvasPanel` 挂载时（或更早，在 WorkspaceLayout 加载项目时）。一次性执行，之后不再需要：
+
+```ts
+// CanvasPanel.tsx useEffect
+useEffect(() => {
+  const migrated = useCanvasStore.getState().getCurrentNodes().map(migrateCopilotCards).flat();
+  useCanvasStore.getState().syncNodes(migrated);
+}, [currentProjectId]);  // 切换项目时也跑一次（防御性）
+```
+
+**测试**：单测 `migrateCopilotCards` 4 种 kind × 3 种状态（idle / generating / done）= 12 个 case。
+
+---
+
+## 15. 设计文档历史
+
+- v1 (2026-06-22): `2026-06-22-canvas-pane-context-menu-design.md` — 内嵌 CopilotCardNode 方案
+- v2 (2026-06-25): 当前文档 — Portal 浮层 + 占位卡片 + 工具面板解耦模型
 
 ---
 

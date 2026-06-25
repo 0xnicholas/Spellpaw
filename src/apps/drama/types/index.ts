@@ -68,8 +68,7 @@ export type CanvasNodeType =
   // Legacy — still valid, migrated on read
   | 'script'       // → storyline children
   | 'deliverable'  // → videoClip | asset
-  | 'sceneCard'    // → storyline
-  | 'copilotCard'; // 内联 AI 生成卡片（pane 右键菜单创建）
+  | 'sceneCard';   // → storyline
 
 export type DeliverableType = 'image' | 'video' | 'audio';
 
@@ -147,6 +146,17 @@ export interface CanvasNodeData {
 
   // Card children (inline items, not separate React Flow nodes)
   children?: CardChild[];
+
+  // 占位标记（v2+）：true 时 GenericCardNode 显示 "Output will appear here..."
+  isPlaceholder?: boolean;
+
+  // Ref 文件引用（v2+）：用户通过 CardCopilotPopover 上传的本地预览
+  fileRef?: {
+    name: string;
+    size: number;
+    kind: 'image' | 'video' | 'audio';
+    dataUrl: string;
+  };
 
   // Allow arbitrary extensions
   [key: string]: unknown;

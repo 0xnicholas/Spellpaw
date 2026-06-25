@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   Controls,
   MiniMap,
@@ -364,6 +365,9 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
   );
 
   return (
+    // ReactFlowProvider 让父组件中的 useViewport() / useReactFlow() 能在
+    // <ReactFlow> 渲染之前访问 store context。
+    <ReactFlowProvider>
     <div className="flex h-full flex-col">
       <div className="flex-1 relative overflow-hidden">
         <ReactFlow
@@ -459,5 +463,6 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
         )}
       </div>
     </div>
+    </ReactFlowProvider>
   );
 }

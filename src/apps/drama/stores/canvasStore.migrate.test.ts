@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { useCanvasStore } from './canvasStore';
 
+// Legacy 'copilotCard' type 已从 CanvasNodeType union 移除（v2 重构）。
+// 测试中的 v3 state 仍包含遗留节点，所以需要通过 unknown 转换。
 describe('canvasStore persist migrate v3→v4', () => {
   const getMigrate = () => useCanvasStore.persist.getOptions().migrate!;
 
@@ -33,11 +35,17 @@ describe('canvasStore persist migrate v3→v4', () => {
         },
       },
     };
-    const migrated = getMigrate()(v3State, 3) as typeof v3State;
-    expect(migrated.canvases.proj_1.nodes[0].type).toBe('art');
-    expect(migrated.canvases.proj_1.nodes[0].data.thumbnail).toBe('http://img.png');
-    expect(migrated.canvases.proj_1.nodes[1].type).toBe('videoClip');
-    expect(migrated.canvases.proj_1.nodes[1].data.isPlaceholder).toBe(true);
+    // 通过 unknown 转换：v3 state 包含遗留 copilotCard literal
+    const migratedRaw = getMigrate()(v3State as never, 3);
+    const migrated = (Array.isArray(migratedRaw) ? migratedRaw[0] : migratedRaw) as typeof v3State;
+    const firstNode = migrated.canvases.proj_1.nodes[0];
+    expect(firstNode.type).toBe('art');
+    expect((firstNode.data as Record<string, unknown>).thumbnail).toBe('http://img.png');
+
+    const secondNode = migrated.canvases.proj_1.nodes[1];
+    expect(secondNode.type).toBe('videoClip');
+    expect((secondNode.data as Record<string, unknown>).isPlaceholder).toBe(true);
+
     expect(migrated.canvases.proj_1.nodes[2]).toEqual(v3State.canvases.proj_1.nodes[2]);
   });
 
@@ -53,7 +61,8 @@ describe('canvasStore persist migrate v3→v4', () => {
         },
       },
     };
-    const result = getMigrate()(v4State, 4) as typeof v4State;
+    const resultRaw = getMigrate()(v4State as never, 4);
+    const result = (Array.isArray(resultRaw) ? resultRaw[0] : resultRaw) as typeof v4State;
     expect(result.canvases.proj_1.nodes[0]).toEqual(v4State.canvases.proj_1.nodes[0]);
   });
 });

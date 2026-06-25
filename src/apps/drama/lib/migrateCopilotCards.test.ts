@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { migrateCopilotCards, countCopilotCards } from './migrateCopilotCards';
-import type { CanvasNode } from '@drama/types';
+import { migrateCopilotCards, countCopilotCards, type LegacyNodeLike } from './migrateCopilotCards';
 
-function makeCopilotNode(kind: string, status: string, result?: { url: string }): CanvasNode {
+function makeCopilotNode(
+  kind: string,
+  status: string,
+  result?: { url: string }
+): LegacyNodeLike {
   return {
     id: `copilot_${kind}_${status}`,
     type: 'copilotCard',
@@ -14,7 +17,7 @@ function makeCopilotNode(kind: string, status: string, result?: { url: string })
       prompt: 'a cat',
       providerId: 'mock',
       ...(result ? { result } : {}),
-    } as never,
+    },
   };
 }
 
@@ -63,7 +66,7 @@ describe('migrateCopilotCards — upload kind', () => {
 
 describe('migrateCopilotCards — pass-through', () => {
   it('non-copilotCard node passes through unchanged', () => {
-    const story: CanvasNode = {
+    const story: LegacyNodeLike = {
       id: 'story_1',
       type: 'storyline',
       position: { x: 0, y: 0 },
@@ -76,11 +79,11 @@ describe('migrateCopilotCards — pass-through', () => {
 
 describe('migrateCopilotCards — fallback', () => {
   it('undefined kind → storyline (fallback)', () => {
-    const node: CanvasNode = {
+    const node: LegacyNodeLike = {
       id: 'c1',
       type: 'copilotCard',
       position: { x: 0, y: 0 },
-      data: { kind: undefined, status: 'idle' } as never,
+      data: { kind: undefined, status: 'idle' },
     };
     const out = migrateCopilotCards([node]);
     expect(out[0].type).toBe('storyline');
@@ -89,10 +92,10 @@ describe('migrateCopilotCards — fallback', () => {
 
 describe('countCopilotCards', () => {
   it('counts only copilotCard nodes', () => {
-    const nodes = [
+    const nodes: LegacyNodeLike[] = [
       makeCopilotNode('image', 'idle'),
       makeCopilotNode('video', 'done'),
-      { id: 's1', type: 'storyline', position: { x: 0, y: 0 }, data: {} } as CanvasNode,
+      { id: 's1', type: 'storyline', position: { x: 0, y: 0 }, data: { title: 'x' } },
     ];
     expect(countCopilotCards(nodes)).toBe(2);
   });

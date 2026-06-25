@@ -184,15 +184,20 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
 
   const handlePaneCreate = useCallback(
     (kind: CopilotKind, flowPos: { x: number; y: number }) => {
-      const copilotNode: CanvasNode = {
-        id: generateId('copilot_'),
-        type: 'copilotCard',
+      // v2 重构：右键菜单现在直接创建正式类型的卡片作为占位，
+      // 同时设置 copilotTarget 打开 CardCopilotPopover。不再创建 copilotCard 节点。
+      // （kindToCardType / defaultTitle 在 Task 2 中定义；helper 引入将在 Task 10 中加。）
+      const cardType = ({ text: 'storyline', image: 'art', video: 'videoClip', upload: 'asset' } as const)[kind];
+      const newNode: CanvasNode = {
+        id: generateId(cardType + '_'),
+        type: cardType,
         position: flowPos,
-        // Cast data: copilotCard has its own status enum ('idle' | 'generating' | 'done' | 'error')
-        // that is broader than CanvasNodeData['status']; cast the whole payload.
-        data: { kind, status: 'idle' as never } as never,
+        data: {
+          title: ({ text: '新故事线', image: '新美术', video: '新视频', upload: '新素材' } as const)[kind],
+          isPlaceholder: true,
+        },
       };
-      useCanvasStore.getState().addNode(copilotNode);
+      useCanvasStore.getState().addNode(newNode);
       setPaneMenu(null);
     },
     []

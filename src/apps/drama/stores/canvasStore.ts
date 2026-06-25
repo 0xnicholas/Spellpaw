@@ -411,12 +411,16 @@ export const useCanvasStore = create<CanvasState>()(
           if (canvases) {
             for (const key of Object.keys(canvases)) {
               const entry = canvases[key];
-              const toMigrate = entry.nodes.filter((n) => n.type === 'copilotCard').length;
+              // Legacy copilotCard type check: 'copilotCard' was removed from
+              // CanvasNodeType union in v2, but may exist in persisted state.
+              const toMigrate = entry.nodes.filter(
+                (n) => (n.type as string) === 'copilotCard'
+              ).length;
               if (toMigrate > 0) {
                 if (import.meta.env.DEV) {
                   console.info(`[canvasStore v3→v4] migrating ${toMigrate} copilotCard nodes in ${key}`);
                 }
-                entry.nodes = migrateCopilotCards(entry.nodes);
+                entry.nodes = migrateCopilotCards(entry.nodes as never);
               }
             }
           }

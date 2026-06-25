@@ -70,7 +70,7 @@ Canvas 右键菜单（`PaneContextMenu`）现提供 4 个 AI 生成入口（Uplo
 | 模型/质量选择 | **ProviderRegistry 现有 provider + capability 元数据驱动** | 复用现有 registry，不新增配置 |
 | Ref 按钮作用域 | **image / video / upload 都支持**（参考图/参考视频上传） | buzzy.now 截图显示 Ref 用于 image-gen，本地不可省略 |
 | 切换卡片时的生成 | **取消进行中的生成**，popover 按 `nodeId` key 重新挂载 | 简化状态、避免跨卡片状态污染；用户期望"一张卡片 = 一个会话" |
-| Z-index 层级 | **新增 `z-index.ts` 集中管理**：PaneContextMenu(60) > CardCopilotPopover(55) > CardDetailDrawer(20) | 避免浮层互相遮挡 |
+| Z-index 层级 | **新增 `z-index.ts` 集中管理**：PaneContextMenu(60) > CardCopilotPopover(50) > CardDetailDrawer(20) | 避免浮层互相遮挡；popover 保持 50 以与现有 Modal 系列共存 |
 | 已存在的 copilotCard 节点 | **应用加载时一次性迁移：转换为对应 kind 的正式卡片** | 旧项目持久化数据兼容，避免 React Flow "node type not found" 警告 |
 
 ---
@@ -246,7 +246,7 @@ const style: React.CSSProperties = {
   left: Math.max(16, Math.min(screenPosition.x - popoverWidth / 2, window.innerWidth - popoverWidth - 16)),
   top: Math.max(64, screenPosition.y),  // 64 = 顶部 navbar 高度
   width: popoverWidth,
-  zIndex: Z_INDEX.cardCopilotPopover,   // = 55（从 z-index.ts 导入，见 §13）
+  zIndex: Z_INDEX.cardCopilotPopover,   // = 50（从 z-index.ts 导入，见 §12）
 };
 ```
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { ReactFlowProvider } from '@xyflow/react';
 import { Navbar } from '@drama/layouts/Navbar';
 import { ChatPanel } from '@chat/ChatPanel';
 import { CanvasPanel } from '@canvas/CanvasPanel';
@@ -76,13 +77,18 @@ export function WorkspacePage() {
         <div className="flex-1 overflow-hidden relative">
           {/* Canvas 占据全部背景 */}
           <div className="absolute inset-0">
-            <CanvasPanel
-              onAIAction={(prompt) => {
-                if (currentProjectId) {
-                  useChatStore.getState().sendMessage(prompt, currentProjectId);
-                }
-              }}
-            />
+            {/* ReactFlowProvider 必须作为 CanvasPanel 的祖先组件提供，
+                否则 CanvasPanel 内部的 useViewport() / useReactFlow() 会报错
+                "Seems like you have not used zustand provider as an ancestor"。 */}
+            <ReactFlowProvider>
+              <CanvasPanel
+                onAIAction={(prompt) => {
+                  if (currentProjectId) {
+                    useChatStore.getState().sendMessage(prompt, currentProjectId);
+                  }
+                }}
+              />
+            </ReactFlowProvider>
           </div>
           {/* Copilot 浮在左侧 */}
           <div className="absolute left-3 top-3 bottom-3 w-[400px] z-10">

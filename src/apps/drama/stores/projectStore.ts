@@ -252,6 +252,7 @@ export const useProjectStore = create<ProjectState>()(
       },
       partialize: (state) => ({
         projects: state.projects,
+        currentProjectId: state.currentProjectId,
       }) as unknown as ProjectState,
     }
   )

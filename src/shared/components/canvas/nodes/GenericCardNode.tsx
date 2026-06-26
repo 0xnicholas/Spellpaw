@@ -3,8 +3,11 @@ import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { BuzzyCard, getCardLabel, getCardTypeConfig } from '../BuzzyCard';
 import type { CanvasNodeData } from '@drama/types';
 
-export const GenericCardNode = memo(({ data, selected }: NodeProps<Node<CanvasNodeData>>) => {
-  const cardType = data.type as string;
+export const GenericCardNode = memo(({ data, type, selected }: NodeProps<Node<CanvasNodeData>>) => {
+  // IMPORTANT: `type` is on the Node (from NodeProps), NOT on data. CanvasNodeData
+  // does not have a `type` field. Previously this read `data.type` which is always
+  // undefined and caused every card to render the fallback label "卡片".
+  const cardType = type ?? (data.type as string | undefined) ?? 'storyline';
   const isPlaceholder = (data as Record<string, unknown>).isPlaceholder as boolean | undefined;
   const PlaceholderIcon = getCardTypeConfig(cardType).icon;
 

@@ -72,11 +72,35 @@ interface CanvasPanelProps {
 
 // Popover positioning constants
 const CARD_WIDTH = 240;
-const CARD_HEIGHT_ESTIMATE = 200;
 const POPOVER_WIDTH = 480;
-const POPOVER_GAP = 8;
+const POPOVER_GAP = 16;  // visual gap between card bottom and popover top (matches buzzy)
 const NAVBAR_HEIGHT = 64;
 const VIEWPORT_PAD = 16;
+
+/**
+ * Get the actual rendered card dimensions from the DOM.
+ * Returns null if the card element isn't yet in the DOM (e.g. mid-render or in tests).
+ *
+ * We use the actual DOM measurement because the card height varies dramatically
+ * by content: script cards are ~80px, while art/sceneCard with 9:16 thumbnails
+ * are ~400-500px. A fixed estimate would misposition the popover.
+ */
+function getCardScreenRect(nodeId: string): { top: number; bottom: number; left: number; right: number; centerX: number } | null {
+  // React Flow renders each node inside a wrapper with class `react-flow__node`
+  // and a `data-id` attribute containing the node id.
+  const wrapper = document.querySelector(`.react-flow__node[data-id="${CSS.escape(nodeId)}"]`);
+  if (!wrapper) return null;
+  // The actual card content is inside the wrapper as a child (e.g., the BuzzyCard div).
+  // Use the wrapper's rect — it bounds the card including the React Flow node border.
+  const rect = wrapper.getBoundingClientRect();
+  return {
+    top: rect.top,
+    bottom: rect.bottom,
+    left: rect.left,
+    right: rect.right,
+    centerX: rect.left + rect.width / 2,
+  };
+}
 
 export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
   const getCurrentNodes = useCanvasStore((s) => s.getCurrentNodes);
@@ -309,45 +333,75 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
       setPopoverScreenPos(null);
       return;
     }
-    const rf = reactFlowRef.current;
-    // Fallback when reactFlowRef is null (e.g., in tests before onInit): use flow coords as screen coords
-    const rawX = rf
-      ? rf.flowToScreenPosition({
-          x: copilotTarget.flowPosition.x + CARD_WIDTH / 2,
-          y: copilotTarget.flowPosition.y + CARD_HEIGHT_ESTIMATE + POPOVER_GAP,
-        }).x
-      : copilotTarget.flowPosition.x + CARD_WIDTH / 2;
-    const rawY = rf
-      ? rf.flowToScreenPosition({
-          x: copilotTarget.flowPosition.x + CARD_WIDTH / 2,
-          y: copilotTarget.flowPosition.y + CARD_HEIGHT_ESTIMATE + POPOVER_GAP,
-        }).y
-      : copilotTarget.flowPosition.y + CARD_HEIGHT_ESTIMATE + POPOVER_GAP;
+
+    // Prefer the actual rendered card position from the DOM — card height varies
+    // dramatically by content (script: ~80px, art with 9:16 thumb: ~480px) so a
+    // fixed flow-coordinate estimate is unreliable. Fall back to flow coords if
+    // the DOM element isn't yet rendered (e.g. immediately after card creation).
+    const cardRect = getCardScreenRect(copilotTarget.nodeId);
+
+    let popoverCenterX: number;
+    let popoverTop: number;
+
+    if (cardRect) {
+      popoverCenterX = cardRect.centerX;
+      popoverTop = cardRect.bottom + POPOVER_GAP;
+    } else {
+      const rf = reactFlowRef.current;
+      popoverCenterX = rf
+        ? rf.flowToScreenPosition({
+            x: copilotTarget.flowPosition.x + CARD_WIDTH / 2,
+            y: copilotTarget.flowPosition.y,
+          }).x
+        : copilotTarget.flowPosition.x + CARD_WIDTH / 2;
+      popoverTop = rf
+        ? rf.flowToScreenPosition({
+            x: copilotTarget.flowPosition.x + CARD_WIDTH / 2,
+            y: copilotTarget.flowPosition.y,
+          }).y
+        : copilotTarget.flowPosition.y;
+    }
+
     setPopoverScreenPos({
       x: Math.max(
         VIEWPORT_PAD,
-        Math.min(rawX - POPOVER_WIDTH / 2, window.innerWidth - POPOVER_WIDTH - VIEWPORT_PAD),
+        Math.min(popoverCenterX - POPOVER_WIDTH / 2, window.innerWidth - POPOVER_WIDTH - VIEWPORT_PAD),
       ),
-      y: Math.max(NAVBAR_HEIGHT, rawY),
+      y: Math.max(NAVBAR_HEIGHT, popoverTop),
     });
   }, [copilotTarget, vpX, vpY, vpZoom]);
 
   // Recompute on window resize
   useEffect(() => {
-    if (!copilotTarget || !reactFlowRef.current) return;
+    if (!copilotTarget) return;
     const onResize = () => {
-      const rf = reactFlowRef.current;
-      if (!rf) return;
-      const cardCenter = rf.flowToScreenPosition({
-        x: copilotTarget.flowPosition.x + CARD_WIDTH / 2,
-        y: copilotTarget.flowPosition.y + CARD_HEIGHT_ESTIMATE + POPOVER_GAP,
-      });
+      const cardRect = getCardScreenRect(copilotTarget.nodeId);
+      let popoverCenterX: number;
+      let popoverTop: number;
+      if (cardRect) {
+        popoverCenterX = cardRect.centerX;
+        popoverTop = cardRect.bottom + POPOVER_GAP;
+      } else {
+        const rf = reactFlowRef.current;
+        popoverCenterX = rf
+          ? rf.flowToScreenPosition({
+              x: copilotTarget.flowPosition.x + CARD_WIDTH / 2,
+              y: copilotTarget.flowPosition.y,
+            }).x
+          : copilotTarget.flowPosition.x + CARD_WIDTH / 2;
+        popoverTop = rf
+          ? rf.flowToScreenPosition({
+              x: copilotTarget.flowPosition.x + CARD_WIDTH / 2,
+              y: copilotTarget.flowPosition.y,
+            }).y
+          : copilotTarget.flowPosition.y;
+      }
       setPopoverScreenPos({
         x: Math.max(
           VIEWPORT_PAD,
-          Math.min(cardCenter.x - POPOVER_WIDTH / 2, window.innerWidth - POPOVER_WIDTH - VIEWPORT_PAD),
+          Math.min(popoverCenterX - POPOVER_WIDTH / 2, window.innerWidth - POPOVER_WIDTH - VIEWPORT_PAD),
         ),
-        y: Math.max(NAVBAR_HEIGHT, cardCenter.y),
+        y: Math.max(NAVBAR_HEIGHT, popoverTop),
       });
     };
     window.addEventListener('resize', onResize);

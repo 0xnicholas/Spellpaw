@@ -38,15 +38,21 @@ export function PaneContextMenu({ x, y, flowPosition, onClose, onCreate }: PaneC
       />
       <div
         data-testid="pane-context-menu"
-        className="fixed min-w-[180px] rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] py-1 shadow-lg"
-        style={{ left: x, top: y, zIndex: Z_INDEX.paneContextMenu }}
+        className="fixed min-w-[180px] rounded-lg py-1 shadow-2xl"
+        style={{
+          left: x,
+          top: y,
+          zIndex: Z_INDEX.paneContextMenu,
+          backgroundColor: 'oklch(12% 0.015 250)',
+          border: '1px solid oklch(28% 0.02 250)',
+        }}
       >
         {MENU_ITEMS.map(({ kind, label, icon: Icon, hint }) => (
           <button
             key={kind}
             onClick={() => onCreate(kind, flowPosition)}
             title={hint}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)]"
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-white/80 hover:bg-white/5 hover:text-white"
           >
             <Icon className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]" />
             <span>{label}</span>

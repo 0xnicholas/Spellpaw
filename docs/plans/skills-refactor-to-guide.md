@@ -318,9 +318,100 @@ tools_suggested:
 2. 返回确认信息
 ```
 
-## 5. 新增 / 保留 / 删除
+## 5. Skills 在 `public/skills/` — 内容，不是代码
 
-### 新增文件（工具扩展）
+### 位置
+
+```
+public/skills/
+├── index.json                  ← Vite 插件自动生成（build 时 scan）
+├── analyze-pacing.md
+├── batch-storyboard.md
+├── character-profile.md
+├── brainstorm-variants.md
+├── duplicate-project.md
+└── export-storyboard-pdf.md
+```
+
+### 与 `public/templates/` 同类
+
+Templates 已经是静态内容文件（`public/templates/*.spellpaw-template.json`）。`public/skills/*.md` 是同一种东西 — 静态文本资源，Vite 原样复制到 `dist/`，不编译，不 bundle。
+
+### 加载方式
+
+```typescript
+// shared/copilot/skills/loader.ts
+// 启动时 fetch manifest，异步加载所有 skill MD
+
+let skills: Skill[] = [];
+
+export async function loadSkills(): Promise<Skill[]> {
+  const manifest = await fetch('/skills/index.json').then(r => r.json());
+  const loaded: Skill[] = [];
+  for (const id of manifest.skills) {
+    const res = await fetch(`/skills/${id}.md`);
+    const md = await res.text();
+    const { meta, body } = parseFrontmatter(md);
+    loaded.push({
+      id: meta.id as string,
+      name: meta.name as string,
+      description: meta.description as string,
+      slashCommand: meta.slashCommand as string,
+      examples: (meta.examples as string[]) ?? [],
+      tools_suggested: (meta.tools_suggested as string[]) ?? [],
+      instructions: body,
+    });
+  }
+  skills = loaded;
+  return skills;
+}
+
+export function getSkills(): Skill[] { return skills; }
+```
+
+### 新增 skill 的流程
+
+```bash
+touch public/skills/my-skill.md    # 写 YAML frontmatter + LLM 指导文本
+# 重启 dev server（Vite 插件重新扫描 → 更新 index.json）
+```
+
+零 TypeScript，零 import，零注册。
+
+### Vite 插件（自动 index.json）
+
+新增 `vite-plugin-skill-manifest.ts`：
+
+```typescript
+export function skillManifestPlugin(): Plugin {
+  return {
+    name: 'skill-manifest',
+    configureServer(server) {
+      // Dev 模式：文件变化时重生成 index.json
+      const regenerate = () => {
+        const skillsDir = path.resolve(__dirname, 'public/skills');
+        const files = fs.readdirSync(skillsDir).filter(f => f.endsWith('.md'));
+        const ids = files.map(f => f.replace('.md', ''));
+        fs.writeFileSync(path.join(skillsDir, 'index.json'), JSON.stringify({ skills: ids }));
+      };
+      regenerate();
+      server.watcher.on('add', regenerate);
+      server.watcher.on('unlink', regenerate);
+    },
+    generateBundle() {
+      // Build 模式：构建时生成一次
+      const skillsDir = path.resolve(__dirname, 'public/skills');
+      const files = fs.readdirSync(skillsDir).filter(f => f.endsWith('.md'));
+      const ids = files.map(f => f.replace('.md', ''));
+      this.emitFile({ type: 'asset', fileName: 'skills/index.json', source: JSON.stringify({ skills: ids }) });
+    },
+  };
+}
+```
+
+## 6. 新增 / 保留 / 删除
+
+### 新增文件（工具扩展 + skill 基础设施）
 
 | 文件 | 内容 |
 |------|------|
@@ -335,38 +426,23 @@ tools_suggested:
 | `shared/copilot/skills/types.ts` | 删 `invoke`/`parameters`/`SkillContext`/`SkillResult`，保留 `id/name/description/slashCommand/examples/tools_suggested/instructions` |
 | `shared/copilot/skills/frontmatter.ts` | 不变（YAML 解析不依赖 skill 类型变更） |
 | `shared/copilot/skills/registry.ts` | 删 `skillToToolConfig`、`getAllSkillToolConfigs`。保留 lookup + parse + argTokens |
-| `shared/copilot/skills/loader.ts` | 只加载 MD（解析 frontmatter → Skill[]）。不需要配对 TS |
-| `drama/skills/chat.ts` | `tryRunSkill` 不变（只做匹配）；`executeSkill` 变为注入上下文后的 `sendMessage` |
-| `drama/skills/registry.ts` | 薄 wrapper：`getAllSkills()` → 从 loader 的 Skills[] |
-| `SkillChips.tsx` | 恢复 import `getAllSkills`（现在 Skill 是纯数据，无 deps 违规） |
-| `CopilotChat.tsx` / `ChatPanel.tsx` / `CopilotLabPage.tsx` | 去掉 `skills` prop（回退之前的手动传递链） |
+| `shared/copilot/skills/loader.ts` | 重写为 fetch-based（读 `public/skills/index.json` → 逐个 fetch MD） |
+| `SkillChips.tsx` | 调 `getSkills()` from shared/copilot/skills/loader |
+| `CopilotChat.tsx` / `ChatPanel.tsx` / `CopilotLabPage.tsx` | 去掉 `skills` prop（回退之前的 prop 传递链） |
+| `drama/stores/chatStore.ts` | `sendMessage` 里的 slash-command 短路路径改为调用 runtime 的 `tryRunSkill` + `sendMessage` |
+| `drama/hooks/useCopilotSSE.ts` | 同上 |
 | `drama/lib/toolConfigs.ts` | 删 `getAllSkillToolConfigs()` spread |
 | `drama/stores/toolRouter/index.ts` | 删 `registerSkillTools(toolRouter)` 调用 |
 
-### 删除文件（12 个）
+### 删除
 
-```
-src/apps/drama/skills/analyze-pacing.ts
-src/apps/drama/skills/duplicate-project.ts
-src/apps/drama/skills/batch-storyboard.ts
-src/apps/drama/skills/character-profile.ts
-src/apps/drama/skills/brainstorm-variants.ts
-src/apps/drama/skills/export-storyboard-pdf.ts
-src/apps/drama/skills/loader.ts
-src/apps/drama/skills/builtIn.ts
-src/apps/drama/skills/types.ts
-src/shared/copilot/skills/chat.ts
-src/apps/drama/skills/frontmatter.test.ts  ← 合并到 shared 下
-src/apps/drama/skills/skills.test.ts       ← 重写以测试匹配逻辑
-```
-
-### 保留不变
-
-```
-shared/copilot/skills/frontmatter.ts         ← YAML 解析
-shared/copilot/skills/frontmatter.test.ts    ← 从 drama 移过来的测试
-drama/skills/ (6 个 .md 文件)                ← 重写为指导文本
-```
+| 文件 | 原因 |
+|------|------|
+| `src/apps/drama/skills/` 整个目录 | skills 搬到 `public/skills/` 了 |
+| `src/shared/copilot/skills/chat.ts` | `isSlashCommand` / `buildSkillResultMessage` 保留需要的几个函数，其余删除 |
+| 6 个 `.ts` invoke 文件 | 不存在了 |
+| `loader.ts` / `builtIn.ts` (drama) | 不存在了 |
+| `drama/skills/types.ts` | shared 的够用 |
 
 ## 6. 实现阶段
 

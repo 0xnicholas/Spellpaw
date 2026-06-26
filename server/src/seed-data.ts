@@ -1,6 +1,7 @@
 /**
- * Seed data — mirror of frontend mocks, kept server-side so the backend
- * can hydrate demo accounts without relying on frontend builds.
+ * Seed data — Phase 4 canvas-first: all project data is canvas cards.
+ * Tree data removed. Project structure is represented as storyline (act) +
+ * sceneCard (scene) canvas cards with CardChild (shots).
  */
 
 export const seedProjects = [
@@ -26,185 +27,87 @@ export const seedProjects = [
   },
 ];
 
-export const seedTrees: Record<string, unknown> = {
-  proj_1: {
-    id: 'tree_root',
-    type: 'project',
-    title: '都市奇缘',
-    status: 'in_progress',
-    expanded: true,
-    metadata: {
-      duration: 180,
-      description: '一部都市白领爱情短剧',
-      createdAt: '2026-05-01T00:00:00Z',
-      updatedAt: '2026-05-18T10:30:00Z',
-    },
-    children: [
-      {
-        id: 'tree_act_1',
-        type: 'act',
-        title: '第一幕：相遇',
-        status: 'in_progress',
-        expanded: true,
-        metadata: { createdAt: '2026-05-01T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' },
+/** Canvas cards that encode the narrative structure (acts + scenes + shots). */
+export const seedProjectCards: Record<string, unknown[]> = {
+  proj_1: [
+    // ── Act 1 ──
+    { id: 'seed_act_1', type: 'storyline', position: { x: 50, y: 50 },
+      data: { title: '第一幕：相遇', description: '', status: 'draft', metadata: { type: 'act' }, tags: [], colors: [] } },
+    { id: 'seed_scene_1_1', type: 'sceneCard', position: { x: 50, y: 300 },
+      data: { title: '场景 1-1：咖啡厅邂逅', description: '男女主角在咖啡厅初次相遇', status: 'done', duration: 45, location: '咖啡厅', timeOfDay: 'morning',
+        metadata: { type: 'scene' }, tags: [], colors: [],
         children: [
-          {
-            id: 'tree_scene_1_1',
-            type: 'scene',
-            title: '场景 1-1：咖啡厅邂逅',
-            status: 'done',
-            expanded: true,
-            metadata: { duration: 45, description: '男女主角在咖啡厅初次相遇', createdAt: '2026-05-01T00:00:00Z', updatedAt: '2026-05-10T10:30:00Z' },
-            children: [
-              { id: 'tree_shot_1_1_1', type: 'shot', title: '镜头 1： establishing wide', status: 'done', metadata: { duration: 5, createdAt: '2026-05-01T00:00:00Z', updatedAt: '2026-05-10T10:30:00Z' } },
-              { id: 'tree_shot_1_1_2', type: 'shot', title: '镜头 2：男主特写', status: 'done', metadata: { duration: 8, createdAt: '2026-05-01T00:00:00Z', updatedAt: '2026-05-10T10:30:00Z' } },
-              { id: 'tree_shot_1_1_3', type: 'shot', title: '镜头 3：女主反应', status: 'done', metadata: { duration: 6, createdAt: '2026-05-01T00:00:00Z', updatedAt: '2026-05-10T10:30:00Z' } },
-            ],
-          },
-          {
-            id: 'tree_scene_1_2',
-            type: 'scene',
-            title: '场景 1-2：街头重逢',
-            status: 'in_progress',
-            expanded: false,
-            metadata: { duration: 30, description: '他们在街头再次相遇，空气中弥漫着紧张感', createdAt: '2026-05-05T00:00:00Z', updatedAt: '2026-05-15T14:20:00Z' },
-            children: [
-              { id: 'tree_shot_1_2_1', type: 'shot', title: '镜头 1：跟踪镜头', status: 'in_progress', metadata: { duration: 10, createdAt: '2026-05-05T00:00:00Z', updatedAt: '2026-05-15T14:20:00Z' } },
-              { id: 'tree_shot_1_2_2', type: 'shot', title: '镜头 2：眼神交汇特写', status: 'draft', metadata: { duration: 8, createdAt: '2026-05-05T00:00:00Z', updatedAt: '2026-05-15T14:20:00Z' } },
-            ],
-          },
-        ],
-      },
-      {
-        id: 'tree_act_2',
-        type: 'act',
-        title: '第二幕：误会',
-        status: 'draft',
-        expanded: false,
-        metadata: { createdAt: '2026-05-10T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' },
+          { id: 'seed_shot_1_1_1', type: 'shot', title: '镜头 1', data: { shotType: 'wide', duration: 5 } },
+          { id: 'seed_shot_1_1_2', type: 'shot', title: '镜头 2', data: { shotType: 'close-up', duration: 8 } },
+          { id: 'seed_shot_1_1_3', type: 'shot', title: '镜头 3', data: { shotType: 'medium', duration: 6 } },
+        ] } },
+    { id: 'seed_scene_1_2', type: 'sceneCard', position: { x: 50, y: 580 },
+      data: { title: '场景 1-2：街头重逢', description: '他们在街头再次相遇', status: 'in_progress', duration: 30, location: '街道', timeOfDay: 'day',
+        metadata: { type: 'scene' }, tags: [], colors: [],
         children: [
-          {
-            id: 'tree_scene_2_1',
-            type: 'scene',
-            title: '场景 2-1：办公室走廊',
-            status: 'draft',
-            expanded: false,
-            metadata: { duration: 25, description: '误会发生的关键场景', createdAt: '2026-05-10T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' },
-            children: [
-              { id: 'tree_shot_2_1_1', type: 'shot', title: '镜头 1：走廊全景', status: 'draft', metadata: { duration: 5, createdAt: '2026-05-10T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' } },
-              { id: 'tree_shot_2_1_2', type: 'shot', title: '镜头 2：偷听到的对话', status: 'draft', metadata: { duration: 12, createdAt: '2026-05-10T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' } },
-            ],
-          },
-          {
-            id: 'tree_scene_2_2',
-            type: 'scene',
-            title: '场景 2-2：雨中对峙',
-            status: 'draft',
-            expanded: false,
-            metadata: { duration: 35, description: '雨中激烈对峙，情绪爆发', createdAt: '2026-05-12T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' },
-            children: [
-              { id: 'tree_shot_2_2_1', type: 'shot', title: '镜头 1：雨景 wide', status: 'draft', metadata: { duration: 8, createdAt: '2026-05-12T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' } },
-              { id: 'tree_shot_2_2_2', type: 'shot', title: '镜头 2：正反打对峙', status: 'draft', metadata: { duration: 15, createdAt: '2026-05-12T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' } },
-              { id: 'tree_shot_2_2_3', type: 'shot', title: '镜头 3：转身离去剪影', status: 'draft', metadata: { duration: 6, createdAt: '2026-05-12T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' } },
-            ],
-          },
-        ],
-      },
-      {
-        id: 'tree_act_3',
-        type: 'act',
-        title: '第三幕：和解',
-        status: 'draft',
-        expanded: false,
-        metadata: { createdAt: '2026-05-15T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' },
+          { id: 'seed_shot_1_2_1', type: 'shot', title: '镜头 1', data: { shotType: 'wide', duration: 10 } },
+          { id: 'seed_shot_1_2_2', type: 'shot', title: '镜头 2', data: { shotType: 'close-up', duration: 8 } },
+        ] } },
+    // ── Act 2 ──
+    { id: 'seed_act_2', type: 'storyline', position: { x: 470, y: 50 },
+      data: { title: '第二幕：误会', description: '', status: 'draft', metadata: { type: 'act' }, tags: [], colors: [] } },
+    { id: 'seed_scene_2_1', type: 'sceneCard', position: { x: 470, y: 300 },
+      data: { title: '场景 2-1：办公室走廊', description: '误会发生的关键场景', status: 'draft', duration: 25, location: '办公室', timeOfDay: 'day',
+        metadata: { type: 'scene' }, tags: [], colors: [],
         children: [
-          {
-            id: 'tree_scene_3_1',
-            type: 'scene',
-            title: '场景 3-1：天台告白',
-            status: 'draft',
-            expanded: false,
-            metadata: { duration: 50, description: '浪漫的天台告白，误会解开', createdAt: '2026-05-15T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' },
-            children: [
-              { id: 'tree_shot_3_1_1', type: 'shot', title: '镜头 1：天台全景', status: 'draft', metadata: { duration: 5, createdAt: '2026-05-15T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' } },
-              { id: 'tree_shot_3_1_2', type: 'shot', title: '镜头 2：男主独白', status: 'draft', metadata: { duration: 12, createdAt: '2026-05-15T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' } },
-              { id: 'tree_shot_3_1_3', type: 'shot', title: '镜头 3：女主走近', status: 'draft', metadata: { duration: 8, createdAt: '2026-05-15T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' } },
-              { id: 'tree_shot_3_1_4', type: 'shot', title: '镜头 4：拥抱特写', status: 'draft', metadata: { duration: 10, createdAt: '2026-05-15T00:00:00Z', updatedAt: '2026-05-18T10:30:00Z' } },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  proj_2: {
-    id: 'tree_root_proj_2',
-    type: 'project',
-    title: '密室逃脱',
-    status: 'draft',
-    expanded: true,
-    metadata: { duration: 120, description: '悬疑解谜短视频系列', createdAt: '2026-05-15T00:00:00Z', updatedAt: '2026-05-15T14:20:00Z' },
-    children: [],
-  },
+          { id: 'seed_shot_2_1_1', type: 'shot', title: '镜头 1', data: { shotType: 'wide', duration: 5 } },
+          { id: 'seed_shot_2_1_2', type: 'shot', title: '镜头 2', data: { shotType: 'medium', duration: 12 } },
+        ] } },
+    { id: 'seed_scene_2_2', type: 'sceneCard', position: { x: 470, y: 580 },
+      data: { title: '场景 2-2：雨中对峙', description: '雨中激烈对峙，情绪爆发', status: 'draft', duration: 35, location: '街道', timeOfDay: 'night',
+        metadata: { type: 'scene' }, tags: [], colors: [],
+        children: [
+          { id: 'seed_shot_2_2_1', type: 'shot', title: '镜头 1', data: { shotType: 'wide', duration: 8 } },
+          { id: 'seed_shot_2_2_2', type: 'shot', title: '镜头 2', data: { shotType: 'medium', duration: 15 } },
+          { id: 'seed_shot_2_2_3', type: 'shot', title: '镜头 3', data: { shotType: 'close-up', duration: 6 } },
+        ] } },
+    // ── Act 3 ──
+    { id: 'seed_act_3', type: 'storyline', position: { x: 890, y: 50 },
+      data: { title: '第三幕：和解', description: '', status: 'draft', metadata: { type: 'act' }, tags: [], colors: [] } },
+    { id: 'seed_scene_3_1', type: 'sceneCard', position: { x: 890, y: 300 },
+      data: { title: '场景 3-1：天台告白', description: '浪漫的天台告白，误会解开', status: 'draft', duration: 50, location: '天台', timeOfDay: 'evening',
+        metadata: { type: 'scene' }, tags: [], colors: [],
+        children: [
+          { id: 'seed_shot_3_1_1', type: 'shot', title: '镜头 1', data: { shotType: 'wide', duration: 5 } },
+          { id: 'seed_shot_3_1_2', type: 'shot', title: '镜头 2', data: { shotType: 'medium', duration: 12 } },
+          { id: 'seed_shot_3_1_3', type: 'shot', title: '镜头 3', data: { shotType: 'medium', duration: 8 } },
+          { id: 'seed_shot_3_1_4', type: 'shot', title: '镜头 4', data: { shotType: 'close-up', duration: 10 } },
+        ] } },
+    // ── Visual assets (art, character, deliverable) ──
+    { id: 'seed_art_1', type: 'art', position: { x: 50, y: 860 },
+      data: { title: '场景 1-1 分镜', description: '咖啡馆阳光氛围', status: 'draft', generatedPrompt: 'cozy cafe, warm sunlight, Japanese anime style', tags: ['室内', '温暖', '日系'], colors: [] } },
+    { id: 'seed_art_2', type: 'art', position: { x: 300, y: 860 },
+      data: { title: '场景 1-2 街头', description: '城市黄昏', status: 'draft', generatedPrompt: 'city street, evening, warm tones', tags: ['室外', '黄昏'], colors: [] } },
+    { id: 'seed_art_3', type: 'art', position: { x: 300, y: 1100 },
+      data: { title: '场景 2-2 雨夜', description: '雨夜对峙', status: 'draft', generatedPrompt: 'rainy street at night, confrontation, dramatic lighting', tags: ['雨景', '夜景'], colors: [] } },
+    { id: 'seed_char_1', type: 'character', position: { x: 550, y: 860 },
+      data: { title: '林小夏', description: '女主，咖啡师', status: 'draft', role: '女主', traits: ['温柔', '坚韧', '敏感'], tags: [], colors: [] } },
+    { id: 'seed_char_2', type: 'character', position: { x: 800, y: 860 },
+      data: { title: '陈默', description: '男主', status: 'draft', role: '男主', traits: ['内敛', '执着'], tags: [], colors: [] } },
+  ],
+  proj_2: [], // Empty canvas for new project
 };
 
-export const seedCanvases: Record<string, unknown> = {
-  proj_1: {
-    nodes: [
-      {
-        id: 'cn_script_1',
-        type: 'script',
-        position: { x: 100, y: 100 },
-        data: { title: '场景 1-1 · 咖啡馆邂逅', description: '男主推开咖啡馆的门，铃铛响起。她坐在靠窗的位置，阳光透过玻璃洒在她的侧脸…', status: 'draft', duration: 15, location: '咖啡馆', timeOfDay: 'morning' },
-      },
-      {
-        id: 'cn_art_1',
-        type: 'art',
-        position: { x: 400, y: 100 },
-        data: { title: '场景 1-1 分镜', prompt: '咖啡馆, 阳光, 温暖氛围, 女生靠窗', tags: ['室内', '温暖', '日系'], thumbnail: '' },
-      },
-      {
-        id: 'cn_art_2',
-        type: 'art',
-        position: { x: 400, y: 280 },
-        data: { title: '场景 1-2 街头', prompt: '城市街道, 黄昏, 暖色调', tags: ['室外', '黄昏'], thumbnail: '' },
-      },
-      {
-        id: 'cn_char_1',
-        type: 'character',
-        position: { x: 400, y: 400 },
-        data: { title: '林小夏', name: '林小夏', role: '女主', age: 25, occupation: '咖啡师', personality: '温柔坚韧，内心敏感' },
-      },
-      {
-        id: 'cn_deliverable_img',
-        type: 'deliverable',
-        position: { x: 700, y: 80 },
-        data: { title: '咖啡馆场景概念图', description: '场景 1-1 主视觉概念', deliverableType: 'image', resolution: '2048×1152', fileSize: 2457600 },
-      },
-      {
-        id: 'cn_deliverable_video',
-        type: 'deliverable',
-        position: { x: 700, y: 260 },
-        data: { title: '场景 1-1 粗剪', description: '第一幕素材粗剪版本', deliverableType: 'video', duration: 45, resolution: '1920×1080', fileSize: 52428800 },
-      },
-      {
-        id: 'cn_deliverable_audio',
-        type: 'deliverable',
-        position: { x: 700, y: 420 },
-        data: { title: '咖啡馆环境音', description: '背景音效：咖啡机、轻音乐、人声', deliverableType: 'audio', duration: 120, fileSize: 3145728 },
-      },
-    ],
-    edges: [
-      { id: 'e1-2', source: 'cn_script_1', target: 'cn_art_1', animated: true },
-      { id: 'e2-3', source: 'cn_script_1', target: 'cn_art_2', animated: true },
-      { id: 'e4-5', source: 'cn_char_1', target: 'cn_script_1' },
-    ],
-    viewport: { x: 0, y: 0, zoom: 1 },
-  },
-  proj_2: {
-    nodes: [],
-    edges: [],
-    viewport: { x: 0, y: 0, zoom: 1 },
-  },
+/** Canvas cards from seed are stored separately (edges in data). */
+export const seedProjectEdges: Record<string, unknown[]> = {
+  proj_1: [
+    { id: 'e_a1_s11', source: 'seed_act_1', target: 'seed_scene_1_1' },
+    { id: 'e_a1_s12', source: 'seed_act_1', target: 'seed_scene_1_2' },
+    { id: 'e_a2_s21', source: 'seed_act_2', target: 'seed_scene_2_1' },
+    { id: 'e_a2_s22', source: 'seed_act_2', target: 'seed_scene_2_2' },
+    { id: 'e_a3_s31', source: 'seed_act_3', target: 'seed_scene_3_1' },
+    { id: 'e_s11_art1', source: 'seed_scene_1_1', target: 'seed_art_1' },
+    { id: 'e_s12_art2', source: 'seed_scene_1_2', target: 'seed_art_2' },
+    { id: 'e_s22_art3', source: 'seed_scene_2_2', target: 'seed_art_3' },
+    { id: 'e_s11_char1', source: 'seed_scene_1_1', target: 'seed_char_1' },
+    { id: 'e_char2_s11', source: 'seed_char_2', target: 'seed_scene_1_1' },
+  ],
+  proj_2: [],
 };
 
 const now = '2026-06-02T08:00:00.000Z';
@@ -320,7 +223,7 @@ export const seedChatMessages = [
   {
     id: 'msg_1',
     role: 'agent',
-    content: '欢迎来到 SpellPaw！我已加载项目「都市奇缘」的结构。该项目目前有 3 幕、8 场景、18 镜头。有什么可以帮你的？',
+    content: '欢迎来到 SpellPaw！我是你的 AI 创作助手。当前项目「都市奇缘」的画布上有 3 幕、6 场景、18 镜头。有什么可以帮你的？',
     type: 'text',
     timestamp: '2026-05-19T09:00:00Z',
   },
@@ -334,12 +237,8 @@ export const seedChatMessages = [
   {
     id: 'msg_3',
     role: 'agent',
-    content: '这是第一幕「邂逅」的当前结构：\n\n1. 咖啡馆邂逅（3 镜头）— ~45 秒\n2. 街头邂逅（2 镜头）— ~30 秒\n\n**分析：**\n- 开场建立镜头很好地快速设定了场景\n- 建议增加「错过」插曲来提升张力\n- 第一幕总时长 75 秒，符合短视频节奏',
+    content: '这是第一幕「邂逅」的画布结构：\n\n1. 场景 1-1：咖啡馆邂逅（3 镜头）— ~45 秒\n2. 场景 1-2：街头重逢（2 镜头）— ~30 秒\n\n**分析：**\n- 开场镜头很好地设定了氛围\n- 建议在画布上添加一个「错过」场景卡来提升张力\n- 第一幕总时长 75 秒，符合短视频节奏',
     type: 'text',
     timestamp: '2026-05-19T09:01:30Z',
-    actions: [
-      { id: 'act_1', label: '添加「错过」场景', type: 'insert_scene' },
-      { id: 'act_2', label: '优化镜头分布', type: 'custom' },
-    ],
   },
 ];

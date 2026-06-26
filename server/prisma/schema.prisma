@@ -65,7 +65,7 @@ model Project {
   title       String
   description String   @default("")
   coverColor  String   @default("#6366f1")
-  data        String   // JSON: { tree: TreeNode, canvas: CanvasEntry }
+  data        String   // JSON: { cards: CanvasNode[], edges: CanvasEdge[] }
   version     Int      @default(1)
   isPublic    Boolean  @default(false)
   createdAt   DateTime @default(now())

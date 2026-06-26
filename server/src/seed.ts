@@ -4,7 +4,7 @@
  */
 import bcrypt from 'bcryptjs';
 import type { PrismaClient } from '@prisma/client';
-import { seedProjects, seedTrees, seedCanvases, seedChatMessages } from './seed-data';
+import { seedProjects, seedProjectCards, seedProjectEdges, seedChatMessages } from './seed-data';
 
 /**
  * Canonical demo account credentials. The demo user lives in the DB so the
@@ -64,8 +64,8 @@ export async function seedUser(prisma: PrismaClient, userId: string): Promise<vo
   for (const project of seedProjects) {
     if (existingIds.has(project.id)) continue;
 
-    const tree = seedTrees[project.id] ?? null;
-    const canvas = seedCanvases[project.id] ?? { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
+    const cards = seedProjectCards[project.id] ?? [];
+    const edges = seedProjectEdges[project.id] ?? [];
     await prisma.project.create({
       data: {
         id: project.id,
@@ -74,7 +74,7 @@ export async function seedUser(prisma: PrismaClient, userId: string): Promise<vo
         description: project.description,
         coverColor: project.coverColor,
         version: project.version,
-        data: JSON.stringify({ tree, canvas }),
+        data: JSON.stringify({ cards, edges }),
       },
     });
   }

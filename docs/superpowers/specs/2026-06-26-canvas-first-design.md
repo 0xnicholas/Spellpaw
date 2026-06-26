@@ -47,7 +47,7 @@
 | 2 | 模板应用改写为画布 | `applyTemplateCore` → `applyTemplateToCanvas` |
 | 3 | kickstart_project 改写为画布 | `kickstart_project` 直接遍历 template 生成画布卡 |
 | 4 | 节奏分析改写为画布 | `projectAnalysis.ts` 基于 CanvasNode |
-| 5 | 风格锁重写为画布机制 | 锁状态迁到 `CanvasNode.metadata.lockedStylePrompt`；锁的 ID 用 `canvasCardId` 而非 `treeNodeId` |
+| 5 | 风格锁重写为画布机制 | 锁状态迁到独立 `useStyleLockStore`（全局锁定一个卡片）；删掉 tree.metadata 上的旧锁字段 |
 | 6 | 三个 skill 重写为画布 | duplicate-project / export-storyboard-pdf / analyze-pacing 全部基于画布 |
 | 7 | proactiveInsights 重写 | 基于画布卡片推算建议；空画布友好降级 |
 | 8 | SnapshotModal diff 重写 | `diffCanvases` 替代 `diffTrees`；保留对比 UI |
@@ -195,7 +195,7 @@ shared/components/canvas/
 ├── CardDetailDrawer.tsx         ← 风格锁改用 canvasCardId
 ├── nodes/ArtCardNode.tsx        ← 风格锁改用 canvasCardId
 ├── nodes/SceneCardNode.tsx      ← 风格锁改用 canvasCardId
-└── chat-panel/MessageList.tsx / MessageItem.tsx  ← ToolCallDetails 是旧名，实际在此
+└── chat-panel/copilot/MessageList.tsx / MessageItem.tsx  ← 在此渲染 tool call 结果（新增 ToolCallResults 组件做折叠行）
 ```
 
 ### 3.4 数据流（典型路径）

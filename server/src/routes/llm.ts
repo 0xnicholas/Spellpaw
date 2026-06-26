@@ -8,7 +8,6 @@
  *   DELETE /api/v1/sessions/:id
  */
 import { Router, type Request, type Response } from 'express';
-import type { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { auth, getUserId } from '../middleware';
 import { streamChat, type ToolConfig, type LLMMessage } from '../lib/llmClient';
@@ -64,9 +63,9 @@ function sanitizeSession(s: SessionState) {
   return { id: s.id, title: s.title, model: s.model };
 }
 
-export function llmRoutes(prisma: PrismaClient): Router {
+export function llmRoutes(): Router {
   const router = Router();
-  router.use(auth(prisma));
+  router.use(auth());
 
   router.post('/sessions', (req: Request, res: Response) => {
     const userId = getUserId(req);

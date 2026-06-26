@@ -4,7 +4,7 @@ import { auth, getUserId } from '../middleware';
 
 export function chatRoutes(prisma: PrismaClient): Router {
   const router = Router();
-  router.use(auth(prisma));
+  router.use(auth());
 
   router.get('/:projectId', async (req: Request, res: Response) => {
     const userId = getUserId(req);

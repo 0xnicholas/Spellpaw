@@ -10,7 +10,7 @@ interface AuthState {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
@@ -31,15 +31,6 @@ export const useAuthStore = create<AuthState>()(
       token: null,
 
       login: async (email, password) => {
-        // Demo account bypass for development
-        if (email === 'demo@spellpaw.xyz' && password === 'password123') {
-          set({
-            isAuthenticated: true,
-            user: { id: 'demo-user', name: 'Demo User', email: 'demo@spellpaw.xyz' },
-            token: 'demo-token',
-          });
-          return { success: true };
-        }
         try {
           const res = await fetch(`${API_BASE}/api/auth/login`, {
             method: 'POST',
@@ -62,12 +53,12 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (email, password, name) => {
+      register: async (email, password) => {
         try {
           const res = await fetch(`${API_BASE}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password, name }),
+            body: JSON.stringify({ email, password }),
           });
           if (!res.ok) {
             const err = await res.json().catch(() => ({}));

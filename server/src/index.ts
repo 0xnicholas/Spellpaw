@@ -7,6 +7,7 @@ import { projectRoutes } from './routes/projects';
 import { chatRoutes } from './routes/chat';
 import { llmRoutes } from './routes/llm';
 import { proxyRoutes } from './routes/proxy';
+import { seedDemoUser } from './seed';
 import { logger } from './lib/logger';
 
 config(); // Load .env
@@ -45,11 +46,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/api/auth', authRoutes(prisma));
 app.use('/api/projects', projectRoutes(prisma));
 app.use('/api/chat', chatRoutes(prisma));
-app.use('/api/v1', llmRoutes(prisma));
-app.use('/api/v1/proxy', proxyRoutes(prisma));
+app.use('/api/v1', llmRoutes());
+app.use('/api/v1/proxy', proxyRoutes());
 
 async function main() {
   await prisma.$connect();
+  await seedDemoUser(prisma);
   app.listen(PORT, () => {
     logger.log(`🧙 Spellpaw Server running on http://localhost:${PORT}`);
   });

@@ -10,7 +10,6 @@
  * The caller must provide the provider API key in the X-Provider-API-Key header.
  */
 import { Router, type Request, type Response } from 'express';
-import type { PrismaClient } from '@prisma/client';
 import { auth, getUserId } from '../middleware';
 import { logger } from '../lib/logger';
 
@@ -27,9 +26,9 @@ function providerUrl(provider: string, wildcard: string): string | undefined {
   return `${base}${path}`;
 }
 
-export function proxyRoutes(prisma: PrismaClient): Router {
+export function proxyRoutes(): Router {
   const router = Router();
-  router.use(auth(prisma));
+  router.use(auth());
 
   router.all('/:provider/{*splat}', async (req: Request, res: Response) => {
     const userId = getUserId(req);

@@ -14,15 +14,37 @@
     "register": "Create account",
     "email": "Email",
     "password": "Password",
-    "name": "Name",
+    "welcomeBack": "Welcome back",
+    "createYourAccount": "Create your Spellpaw account",
     "signIn": "Sign in",
     "signUp": "Sign up",
+    "signingIn": "Signing in…",
+    "signingUp": "Signing up…",
     "switchToRegister": "Don't have an account? Sign up",
     "switchToLogin": "Already have an account? Sign in",
+    "demoHint": {
+      "label": "Try the demo",
+      "ariaLabel": "Use the demo account"
+    },
+    "welcomeHeading": "Welcome to Spellpaw",
+    "tagline": "Sign in or create an account to start crafting short drama with AI.",
+    "terms": {
+      "prefix": "By signing in, you agree to our",
+      "tos": "Terms of Use",
+      "and": "and",
+      "privacy": "Privacy Policy"
+    },
+    "collage": {
+      "canvas": "Canvas",
+      "projects": "Projects",
+      "templates": "Templates",
+      "workspace": "Workspace"
+    },
     "errors": {
       "invalidCredentials": "Invalid email or password",
       "emailExists": "Email already registered",
-      "network": "Network error"
+      "network": "Network error",
+      "generic": "Something went wrong. Please try again."
     }
   },
   "project": {

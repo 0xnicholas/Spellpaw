@@ -9,6 +9,18 @@ function normalizeLlmProvider(value: unknown): SupportedLLMProvider {
   return isSupportedLLMProvider(value) ? value : DEFAULT_LLM_PROVIDER;
 }
 
+/**
+ * Fallback display name when a registration request omits the `name` field.
+ * Uses the local-part of the email (e.g. "alice" from "alice@example.com"),
+ * with the first letter capitalized. The user can change this later from
+ * the profile settings.
+ */
+function deriveNameFromEmail(email: string): string {
+  const local = email.split('@')[0] ?? email;
+  if (!local) return email;
+  return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
 type LlmApiKeys = Partial<Record<SupportedLLMProvider, string>>;
 
 function parseLlmApiKeys(raw: string | null): LlmApiKeys {
@@ -42,12 +54,13 @@ export function authRoutes(prisma: PrismaClient): Router {
 
   router.post('/register', async (req, res) => {
     try {
-      const { email, password, name } = req.body;
-      if (!email || !password || !name) { res.status(400).json({ error: 'Missing fields' }); return; }
+      const { email, password, name } = req.body as { email?: string; password?: string; name?: string };
+      if (!email || !password) { res.status(400).json({ error: 'Missing fields' }); return; }
       const existing = await prisma.user.findUnique({ where: { email } });
       if (existing) { res.status(409).json({ error: 'Email already registered' }); return; }
       const passwordHash = await bcrypt.hash(password, 10);
-      const user = await prisma.user.create({ data: { email, passwordHash, name } });
+      const displayName = (typeof name === 'string' && name.trim()) ? name.trim() : deriveNameFromEmail(email);
+      const user = await prisma.user.create({ data: { email, passwordHash, name: displayName } });
       res.status(201).json({ token: signToken(user), user: { id: user.id, email: user.email, name: user.name } });
     } catch { res.status(500).json({ error: 'Registration failed' }); }
   });
@@ -63,13 +76,13 @@ export function authRoutes(prisma: PrismaClient): Router {
     } catch { res.status(500).json({ error: 'Login failed' }); }
   });
 
-  router.get('/me', auth(prisma), async (req, res) => {
+  router.get('/me', auth(), async (req, res) => {
     const user = await prisma.user.findUnique({ where: { id: getUserId(req) } });
     if (!user) { res.status(404).json({ error: 'Not found' }); return; }
     res.json({ id: user.id, email: user.email, name: user.name, avatar: user.avatar });
   });
 
-  router.patch('/profile', auth(prisma), async (req, res) => {
+  router.patch('/profile', auth(), async (req, res) => {
     try {
       const { name, avatar } = req.body;
       if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -86,11 +99,11 @@ export function authRoutes(prisma: PrismaClient): Router {
     }
   });
 
-  router.patch('/password', auth(prisma), async (_req, res) => {
+  router.patch('/password', auth(), async (_req, res) => {
     res.status(403).json({ error: 'Password change is currently disabled' });
   });
 
-  router.get('/settings', auth(prisma), async (req, res) => {
+  router.get('/settings', auth(), async (req, res) => {
     try {
       const user = await prisma.user.findUnique({
         where: { id: getUserId(req) },
@@ -125,7 +138,7 @@ export function authRoutes(prisma: PrismaClient): Router {
     }
   });
 
-  router.patch('/settings', auth(prisma), async (req, res) => {
+  router.patch('/settings', auth(), async (req, res) => {
     try {
       const { openaiApiKey, doubaoApiKey, minimaxApiKey, llmProvider, llmApiKey, llmApiKeys, llmBaseUrl, llmModel } = req.body;
       const updateData: Record<string, string | null> = {};

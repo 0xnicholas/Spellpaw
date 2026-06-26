@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
+import { X, Image as ImageIcon, Video, type LucideIcon } from "lucide-react";
 import { useCanvasStore } from "@drama/stores/canvasStore";
 import { useProjectStore } from "@drama/stores/projectStore";
 import { Z_INDEX } from "@shared/lib/zIndex";

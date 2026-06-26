@@ -6,6 +6,7 @@ import type { ChatMessage, ChatAction } from '@shared/types';
 import type { ToolCall } from './CopilotChat';
 import { useChatStore } from '@drama/stores/chatStore';
 import { toolDisplayName } from '../toolDisplayName';
+import { ToolCallResults } from './ToolCallResults';
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -99,36 +100,9 @@ export function MessageList({
       )}
 
       {/* Tool call indicators */}
-      {toolCalls.map((tc) => {
-        const failed = (tc as { status?: string }).status === 'error';
-        return (
-          <div
-            key={tc.callId}
-            data-testid={`tool-call-${tc.callId}`}
-            data-status={(tc as { status?: string }).status ?? 'running'}
-            className={`px-3 py-1 ${failed ? 'bg-red-50/50' : ''}`}
-          >
-            <div
-              className={`flex items-center gap-1.5 text-[10px] ${
-                failed ? 'text-red-500' : 'text-[var(--color-text-tertiary)]'
-              }`}
-            >
-              {failed ? (
-                <AlertCircle className="h-3 w-3" />
-              ) : (
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--color-bg-accent)] animate-pulse" />
-              )}
-              <Wrench className="h-3 w-3 opacity-60" />
-              <span>{toolDisplayName(tc.name)}</span>
-              {failed && (tc as { errorMessage?: string }).errorMessage && (
-                <span className="ml-1 truncate max-w-[200px]">
-                  — {(tc as { errorMessage?: string }).errorMessage}
-                </span>
-              )}
-            </div>
-          </div>
-        );
-      })}
+      {toolCalls.map((tc) => (
+        <ToolCallResults key={tc.callId} tc={tc} />
+      ))}
 
       {/* Loading indicator (fallback when no streaming) */}
       {isLoading && streamingMessage === null && toolCalls.length === 0 && (

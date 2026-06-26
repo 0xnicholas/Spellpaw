@@ -16,15 +16,6 @@ interface ProjectState {
   deduplicateProjects: () => void;
 }
 
-, /* dead code — tree deleted */
-// function bumpProjectUpdatedAt(state: ProjectState): void {
-  const id = state.currentProjectId;
-  if (!id) return;
-  const idx = state.projects.findIndex((p) => p.id === id);
-  if (idx !== -1) {
-    state.projects[idx] = { ...state.projects[idx], updatedAt: new Date().toISOString() };
-  }
-}
 
 export const useProjectStore = create<ProjectState>()(
   persist(

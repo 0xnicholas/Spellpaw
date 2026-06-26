@@ -5,7 +5,7 @@
  * configs (`spellpaw_skill_*` prefix) so the model can call skills
  * just like atomic tools.
  */
-import { BUILT_IN_SKILLS } from './builtIn';
+import { BUILT_IN_SKILLS } from '@drama/skills/builtIn';
 import type { Skill } from './types';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';

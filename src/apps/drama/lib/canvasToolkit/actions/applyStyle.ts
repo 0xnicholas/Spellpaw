@@ -125,7 +125,7 @@ export async function applyStyle(
 		title,
 		description: combinedPrompt,
 		generatedPrompt: combinedPrompt,
-		linkedTreeNodeId: linkedNode?.id,
+		 linkedNode?.id,
 		status: "draft",
 		sourceProvider: provider.id,
 	});

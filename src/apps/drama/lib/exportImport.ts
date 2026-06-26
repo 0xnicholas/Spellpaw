@@ -6,7 +6,7 @@ export interface ExportData {
   _schemaVersion: number;
   title: string;
   description: string;
-  tree: TreeNode;
+  canvasNodes: CanvasNode[];
   canvas?: {
     nodes: CanvasNode[];
     edges: CanvasEdge[];
@@ -15,7 +15,7 @@ export interface ExportData {
 
 export function exportProjectToJSON(
   project: Project,
-  tree: TreeNode,
+  canvasNodes: CanvasNode[],
   canvasNodes?: CanvasNode[],
   canvasEdges?: CanvasEdge[],
 ) {

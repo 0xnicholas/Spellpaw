@@ -190,7 +190,7 @@ interface ScriptRow {
   description: string;
 }
 
-function buildScriptRows(tree: TreeNode): ScriptRow[] {
+function buildScriptRows(canvasNodes: CanvasNode[]): ScriptRow[] {
   const rows: ScriptRow[] = [];
   for (const act of tree.children ?? []) {
     for (const scene of act.children ?? []) {

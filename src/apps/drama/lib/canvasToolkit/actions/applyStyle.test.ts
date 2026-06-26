@@ -64,7 +64,7 @@ describe('applyStyle', () => {
       id: 'card-1',
       type: 'art',
       position: { x: 0, y: 0 },
-      data: { title: 'Reference', generatedPrompt: 'original prompt', linkedTreeNodeId: 'scene-1', status: 'draft' as const },
+      data: { title: 'Reference', generatedPrompt: 'original prompt',  'scene-1', status: 'draft' as const },
     });
     registerFakeProvider();
 
@@ -80,7 +80,7 @@ describe('applyStyle', () => {
       id: 'card-1',
       type: 'art',
       position: { x: 0, y: 0 },
-      data: { title: 'Reference', generatedPrompt: 'original prompt', linkedTreeNodeId: 'scene-1', status: 'draft' as const },
+      data: { title: 'Reference', generatedPrompt: 'original prompt',  'scene-1', status: 'draft' as const },
     });
     useCanvasStore.getState().addNode({
       id: 'style-card',

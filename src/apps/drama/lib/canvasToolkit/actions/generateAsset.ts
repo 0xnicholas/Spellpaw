@@ -97,7 +97,7 @@ export async function generateAsset(
 			title: `${baseTitle}${titleSuffix}`,
 			description: input.prompt,
 			generatedPrompt: input.prompt,
-			linkedTreeNodeId: node?.id,
+			 node?.id,
 			status: "draft",
 			sourceProvider: provider.id,
 		};

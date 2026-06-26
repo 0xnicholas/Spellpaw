@@ -106,7 +106,7 @@ export async function editAsset(
 		title,
 		description: params.prompt,
 		generatedPrompt: fallbackPrompt,
-		linkedTreeNodeId: linkedNode?.id,
+		 linkedNode?.id,
 		status: "draft",
 		sourceProvider: provider.id,
 	});

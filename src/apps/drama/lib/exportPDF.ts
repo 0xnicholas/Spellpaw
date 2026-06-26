@@ -4,7 +4,7 @@
 import { jsPDF } from 'jspdf';
 import type { TreeNode, Project } from '@drama/types';
 
-export function exportStoryboardPDF(project: Project, tree: TreeNode): void {
+export function exportStoryboardPDF(project: Project, canvasNodes: CanvasNode[]): void {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 15;
@@ -83,7 +83,7 @@ export function exportStoryboardPDF(project: Project, tree: TreeNode): void {
   doc.save(`${project.title}_storyboard.pdf`);
 }
 
-function countNodes(tree: TreeNode, type: string): number {
+function countNodes(canvasNodes: CanvasNode[], type: string): number {
   let count = tree.type === type ? 1 : 0;
   for (const child of tree.children ?? []) {
     count += countNodes(child, type);

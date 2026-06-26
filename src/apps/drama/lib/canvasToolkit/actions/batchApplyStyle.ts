@@ -70,7 +70,7 @@ export async function batchApplyStyle(
 			title: `${node.title}（${params.stylePrompt.slice(0, 12)}）`,
 			description: styledPrompt,
 			generatedPrompt: styledPrompt,
-			linkedTreeNodeId: node.id,
+			 node.id,
 			status: "draft",
 			sourceProvider: provider.id,
 		});

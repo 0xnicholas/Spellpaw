@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { User as UserIcon } from 'lucide-react';
 import { useCanvasStore } from '@drama/stores/canvasStore';
-import { BuzzyCard } from '../BuzzyCard';
+import { CanvasCard } from '../CanvasCard';
 import type { CanvasNodeData } from '@drama/types';
 
 export function CharacterCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeData>>) {
@@ -26,7 +26,7 @@ export function CharacterCardNode({ data, id, selected }: NodeProps<Node<CanvasN
   };
 
   return (
-    <BuzzyCard type="character" data={data} selected={selected} className="w-[220px]" ariaLabel={`角色：${name}`}>
+    <CanvasCard type="character" data={data} selected={selected} className="w-[220px]" ariaLabel={`角色：${name}`}>
       <Handle type="target" position={Position.Left} className="!bg-[var(--color-accent-500)]" />
 
       <div className="p-3">
@@ -53,7 +53,7 @@ export function CharacterCardNode({ data, id, selected }: NodeProps<Node<CanvasN
               />
             ) : (
               <h4
-                className="text-[13px] font-semibold text-[var(--color-text-primary)] cursor-text"
+                className="text-sm font-semibold text-[var(--color-text-primary)] cursor-text"
                 onDoubleClick={() => { setEditValue(data.title); setIsEditing(true); }}
               >
                 {name}
@@ -82,6 +82,6 @@ export function CharacterCardNode({ data, id, selected }: NodeProps<Node<CanvasN
       </div>
 
       <Handle type="source" position={Position.Right} className="!bg-[var(--color-accent-500)]" />
-    </BuzzyCard>
+    </CanvasCard>
   );
 }

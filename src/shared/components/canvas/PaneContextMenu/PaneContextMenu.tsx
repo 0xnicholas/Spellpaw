@@ -43,8 +43,8 @@ export function PaneContextMenu({ x, y, flowPosition, onClose, onCreate }: PaneC
           left: x,
           top: y,
           zIndex: Z_INDEX.paneContextMenu,
-          backgroundColor: 'oklch(12% 0.015 250)',
-          border: '1px solid oklch(28% 0.02 250)',
+          backgroundColor: 'oklch(12% 0 0)',
+          border: '1px solid oklch(28% 0 0)',
         }}
       >
         {MENU_ITEMS.map(({ kind, label, icon: Icon, hint }) => (

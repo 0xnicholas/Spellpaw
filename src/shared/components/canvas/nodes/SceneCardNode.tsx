@@ -6,7 +6,7 @@ import { NodeAIActions } from '../NodeAIActions';
 import { getCardAIActions } from '../cardAIActions';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useProjectStore } from '@drama/stores/projectStore';
-import { BuzzyCard } from '../BuzzyCard';
+import { CanvasCard } from '../CanvasCard';
 import type { CanvasNodeData } from '@drama/types';
 
 export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeData>>) {
@@ -43,7 +43,7 @@ export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
   };
 
   return (
-    <BuzzyCard
+    <CanvasCard
       type="sceneCard"
       data={data}
       selected={selected}
@@ -55,7 +55,7 @@ export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
       {/* Thumbnail area */}
       {hasThumbnail ? (
         <div
-          className="relative aspect-[9/16] w-full overflow-hidden"
+          className="relative w-full flex-1 min-h-0 overflow-hidden"
           onMouseEnter={() => setHoverThumb(true)}
           onMouseLeave={() => setHoverThumb(false)}
         >
@@ -102,7 +102,7 @@ export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
           )}
         </div>
       ) : (
-        <div className="flex aspect-[9/16] w-full items-center justify-center">
+        <div className="flex flex-1 w-full items-center justify-center min-h-0">
           <Film className="h-6 w-6 text-[var(--color-text-tertiary)]" />
         </div>
       )}
@@ -149,6 +149,6 @@ export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
       />
-    </BuzzyCard>
+    </CanvasCard>
   );
 }

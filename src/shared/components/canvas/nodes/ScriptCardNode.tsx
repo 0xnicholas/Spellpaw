@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { useCanvasStore } from '@drama/stores/canvasStore';
-import { BuzzyCard } from '../BuzzyCard';
+import { CanvasCard } from '../CanvasCard';
 import { InlineEditableText } from '../InlineEditableText';
 import type { CanvasNodeData } from '@drama/types';
 
@@ -19,7 +19,7 @@ export function ScriptCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
   };
 
   return (
-    <BuzzyCard type="script" data={data} selected={selected} ariaLabel={`剧本：${data.title}`}>
+    <CanvasCard type="script" data={data} selected={selected} ariaLabel={`剧本：${data.title}`}>
       <Handle type="target" position={Position.Left} className="!bg-[var(--color-accent-500)]" />
 
       <div className="px-3 pb-3 space-y-1.5">
@@ -40,7 +40,7 @@ export function ScriptCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
           />
         ) : (
           <h4
-            className="text-[13px] font-medium text-[var(--color-text-primary)] cursor-text"
+            className="text-sm font-medium text-[var(--color-text-primary)] cursor-text"
             onDoubleClick={(e) => { e.stopPropagation(); setEditTitle(data.title); setIsEditingTitle(true); }}
             title="双击编辑标题"
           >
@@ -56,6 +56,6 @@ export function ScriptCardNode({ data, id, selected }: NodeProps<Node<CanvasNode
       </div>
 
       <Handle type="source" position={Position.Right} className="!bg-[var(--color-accent-500)]" />
-    </BuzzyCard>
+    </CanvasCard>
   );
 }

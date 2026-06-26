@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ReactFlowProvider } from '@xyflow/react';
-import { Navbar } from '@drama/layouts/Navbar';
 import { ChatPanel } from '@chat/ChatPanel';
 import { CanvasPanel } from '@canvas/CanvasPanel';
 import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
@@ -73,7 +72,6 @@ export function WorkspacePage() {
   return (
     <MobileGuard>
       <div className="flex h-screen flex-col">
-        <Navbar />
         <div className="flex-1 overflow-hidden relative">
           {/* Canvas 占据全部背景 */}
           <div className="absolute inset-0">

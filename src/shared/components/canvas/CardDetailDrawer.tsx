@@ -4,9 +4,9 @@
  * Design ref: screenshots/buzzy-canvas-*.png
  *   - Dark theme (no light bg)
  *   - No "标题 / 描述 / 元信息" FieldSection labels
- *   - Header: lucide icon + Chinese type name (from BuzzyCard config)
+ *   - Header: lucide icon + Chinese type name (from CanvasCard config)
  *   - No emoji icons (📝 🎬 🎨 👤 📦)
- *   - Status shown as small dot (consistent with BuzzyCard)
+ *   - Status shown as small dot (consistent with CanvasCard)
  *   - Content blocks: image (full-width), description text, key-value rows
  */
 
@@ -19,12 +19,12 @@ import { useHotkeys } from "@/shared/hooks/useHotkeys";
 import { computeDisplayNumbers } from "@drama/lib/numbering";
 import { formatBytes } from "@drama/lib/canvasToolkit";
 import { findNode } from "@drama/lib/treeUtils";
-import { getCardTypeConfig } from "./BuzzyCard";
+import { getCardTypeConfig } from "./CanvasCard";
 import type { CanvasNodeData, CanvasNodeType, DeliverableType } from "@drama/types";
 
-// ── Status dot (same as BuzzyCard) ──
+// ── Status dot (same as CanvasCard) ──
 const STATUS_DOT_COLOR: Record<string, string> = {
-  draft: 'oklch(50% 0.01 250)',
+  draft: 'oklch(50% 0 0)',
   in_progress: 'oklch(65% 0.15 230)',
   review: 'oklch(80% 0.15 85)',
   done: 'oklch(65% 0.15 145)',
@@ -51,12 +51,12 @@ const DELIVERABLE_SUB_ICONS: Record<DeliverableType, LucideIcon> = {
   audio: Video, // reuse Video icon (no audio icon needed visually)
 };
 
-const PANEL_BG = 'oklch(10% 0.01 250)';
-const PANEL_BORDER = 'oklch(22% 0.015 250)';
-const INPUT_BG = 'oklch(8% 0.01 250)';
-const TEXT_PRIMARY = 'oklch(95% 0.01 250)';
-const TEXT_SECONDARY = 'oklch(70% 0.02 250)';
-const TEXT_TERTIARY = 'oklch(50% 0.02 250)';
+const PANEL_BG = 'oklch(10% 0 0)';
+const PANEL_BORDER = 'oklch(22% 0 0)';
+const INPUT_BG = 'oklch(8% 0 0)';
+const TEXT_PRIMARY = 'oklch(95% 0 0)';
+const TEXT_SECONDARY = 'oklch(70% 0 0)';
+const TEXT_TERTIARY = 'oklch(50% 0 0)';
 
 // ── Content block (replaces FieldSection — no label, just content) ──
 function Block({ children, className = "" }: { children: React.ReactNode; className?: string }) {

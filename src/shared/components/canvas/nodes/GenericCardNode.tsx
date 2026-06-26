@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
-import { BuzzyCard, getCardLabel, getCardTypeConfig } from '../BuzzyCard';
+import { CanvasCard, getCardLabel, getCardTypeConfig } from '../CanvasCard';
 import { InlineEditableText } from '../InlineEditableText';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import type { CanvasNodeData } from '@drama/types';
@@ -28,7 +28,7 @@ export const GenericCardNode = memo(({ data, id, type, selected }: NodeProps<Nod
   };
 
   return (
-    <BuzzyCard
+    <CanvasCard
       type={cardType}
       data={data}
       selected={selected}
@@ -38,8 +38,8 @@ export const GenericCardNode = memo(({ data, id, type, selected }: NodeProps<Nod
 
       {isPlaceholder ? (
         <div className="flex flex-col items-center justify-center py-6 text-center">
-          <PlaceholderIcon className="h-5 w-5 text-[var(--color-text-tertiary)]" aria-hidden="true" />
-          <span className="mt-2 text-[12px] text-[var(--color-text-tertiary)]">
+          <PlaceholderIcon className="h-6 w-6 text-[var(--color-text-tertiary)]" aria-hidden="true" />
+          <span className="mt-2 text-[14px] text-[var(--color-text-tertiary)]">
             Output will appear here...
           </span>
         </div>
@@ -175,6 +175,6 @@ export const GenericCardNode = memo(({ data, id, type, selected }: NodeProps<Nod
       )}
 
       <Handle type="source" position={Position.Right} />
-    </BuzzyCard>
+    </CanvasCard>
   );
 });

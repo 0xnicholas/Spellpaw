@@ -3,7 +3,7 @@ import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { Image, Video, Music, Play, ImageOff, Clock, HardDrive, Maximize, Package } from 'lucide-react';
 import { Lightbox } from '@/shared/components/ui/Lightbox';
 import { useCanvasStore } from '@drama/stores/canvasStore';
-import { BuzzyCard } from '../BuzzyCard';
+import { CanvasCard } from '../CanvasCard';
 import type { CanvasNodeData, DeliverableType } from '@drama/types';
 
 const typeConfig: Record<DeliverableType, {
@@ -76,7 +76,7 @@ export function DeliverableCardNode({ data, id, selected }: NodeProps<Node<Canva
   };
 
   return (
-    <BuzzyCard
+    <CanvasCard
       type="deliverable"
       data={data}
       selected={selected}
@@ -164,7 +164,7 @@ export function DeliverableCardNode({ data, id, selected }: NodeProps<Node<Canva
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
       />
-    </BuzzyCard>
+    </CanvasCard>
   );
 }
 

@@ -4,7 +4,7 @@ import { ImageOff, Lock } from 'lucide-react';
 import { Lightbox } from '@/shared/components/ui/Lightbox';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useProjectStore } from '@drama/stores/projectStore';
-import { BuzzyCard } from '../BuzzyCard';
+import { CanvasCard } from '../CanvasCard';
 import type { CanvasNodeData } from '@drama/types';
 
 export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeData>>) {
@@ -43,12 +43,12 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
   };
 
   return (
-    <BuzzyCard type="art" data={data} selected={selected} ariaLabel={`美术：${data.title}`}>
+    <CanvasCard type="art" data={data} selected={selected} ariaLabel={`美术：${data.title}`}>
       <Handle type="target" position={Position.Left} className="!bg-[var(--color-accent-500)]" />
 
       {hasThumbnail ? (
         <div
-          className="relative aspect-[9/16] w-full overflow-hidden"
+          className="relative w-full flex-1 min-h-0 overflow-hidden"
           onMouseEnter={() => setHoverThumb(true)}
           onMouseLeave={() => setHoverThumb(false)}
         >
@@ -92,7 +92,7 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
           )}
         </div>
       ) : (
-        <div className="flex aspect-[9/16] w-full items-center justify-center">
+        <div className="flex flex-1 w-full items-center justify-center min-h-0">
           <ImageOff className="h-6 w-6 text-[var(--color-text-tertiary)]" />
         </div>
       )}
@@ -108,11 +108,11 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
               if (e.key === 'Enter') handleSave();
               if (e.key === 'Escape') { setEditValue(data.title); setIsEditing(false); }
             }}
-            className="w-full rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-primary)] px-1.5 py-0.5 text-[13px] font-medium text-[var(--color-text-primary)] outline-none"
+            className="w-full rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-primary)] px-1.5 py-0.5 text-sm font-medium text-[var(--color-text-primary)] outline-none"
           />
         ) : (
           <h4
-            className="text-[13px] font-medium text-[var(--color-text-primary)] cursor-text truncate"
+            className="text-sm font-medium text-[var(--color-text-primary)] cursor-text truncate"
             onDoubleClick={() => { setEditValue(data.title); setIsEditing(true); }}
           >
             {data.title}
@@ -145,6 +145,6 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
       />
-    </BuzzyCard>
+    </CanvasCard>
   );
 }

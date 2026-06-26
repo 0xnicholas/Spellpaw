@@ -3,7 +3,7 @@ import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { File, Image, Music, Video, FileText, ImageOff } from 'lucide-react';
 import { Lightbox } from '@/shared/components/ui/Lightbox';
 import { useCanvasStore } from '@drama/stores/canvasStore';
-import { BuzzyCard } from '../BuzzyCard';
+import { CanvasCard } from '../CanvasCard';
 import type { AssetType, CanvasNodeData } from '@drama/types';
 
 const typeIcons: Record<string, typeof File> = {
@@ -38,7 +38,7 @@ export function AssetCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
   };
 
   return (
-    <BuzzyCard type="asset" data={data} selected={selected} className="w-[200px]" ariaLabel={`资产：${data.title}`}>
+    <CanvasCard type="asset" data={data} selected={selected} className="w-[200px]" ariaLabel={`资产：${data.title}`}>
       <Handle type="target" position={Position.Top} className="!bg-[var(--color-accent-500)]" />
 
       <div className="p-3">
@@ -105,6 +105,6 @@ export function AssetCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
       />
-    </BuzzyCard>
+    </CanvasCard>
   );
 }

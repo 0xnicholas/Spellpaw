@@ -5,18 +5,18 @@
 
 @theme {
   /* Base Colors */
-  --color-base-white: oklch(100% 0 250);
-  --color-base-gray-50: oklch(98% 0.005 250);
-  --color-base-gray-100: oklch(95% 0.01 250);
-  --color-base-gray-200: oklch(90% 0.01 250);
-  --color-base-gray-300: oklch(80% 0.015 250);
-  --color-base-gray-400: oklch(70% 0.015 250);
-  --color-base-gray-500: oklch(60% 0.015 250);
-  --color-base-gray-600: oklch(50% 0.02 250);
-  --color-base-gray-700: oklch(40% 0.02 250);
-  --color-base-gray-800: oklch(30% 0.02 250);
-  --color-base-gray-900: oklch(20% 0.015 250);
-  --color-base-black: oklch(0% 0 250);
+  --color-base-white: oklch(100% 0 0);
+  --color-base-gray-50: oklch(98% 0 0);
+  --color-base-gray-100: oklch(95% 0 0);
+  --color-base-gray-200: oklch(90% 0 0);
+  --color-base-gray-300: oklch(80% 0 0);
+  --color-base-gray-400: oklch(70% 0 0);
+  --color-base-gray-500: oklch(60% 0 0);
+  --color-base-gray-600: oklch(50% 0 0);
+  --color-base-gray-700: oklch(40% 0 0);
+  --color-base-gray-800: oklch(30% 0 0);
+  --color-base-gray-900: oklch(20% 0 0);
+  --color-base-black: oklch(0% 0 0);
 
   /* Accent Colors */
   --color-accent-50: oklch(95% 0.05 275);
@@ -133,28 +133,33 @@
 
 /* ===== Dark Theme Overrides ===== */
 html.dark {
-  /* Semantic Backgrounds */
-  --color-bg-primary: oklch(18% 0.015 250);
-  --color-bg-secondary: oklch(22% 0.015 250);
-  --color-bg-tertiary: oklch(28% 0.015 250);
-  --color-bg-inverse: oklch(95% 0.01 250);
+  /* Semantic Backgrounds — EXACT HEX (no OKLCH conversion error) */
+  --color-bg-primary: #0a0a0a;
+  --color-bg-secondary: #1e1e1e;
+  --color-bg-tertiary: #2e2e2e;
+  --color-bg-inverse: oklch(95% 0 0);
   --color-bg-accent: var(--color-accent-500);
   --color-bg-accent-subtle: oklch(25% 0.08 275);
 
+  /* Canvas-specific tokens (exact hex) */
+  --canvas-card-bg: #151515;
+  --canvas-card-border: #3a3a3a;
+  --canvas-card-border-hover: #4d4d4d;
+
   /* Semantic Text */
-  --color-text-primary: oklch(95% 0.01 250);
-  --color-text-secondary: oklch(75% 0.015 250);
-  --color-text-tertiary: oklch(60% 0.015 250);
-  --color-text-inverse: oklch(18% 0.015 250);
+  --color-text-primary: oklch(91% 0 0);
+  --color-text-secondary: oklch(70% 0 0);
+  --color-text-tertiary: oklch(50% 0 0);
+  --color-text-inverse: #0a0a0a;
   --color-text-accent: var(--color-accent-400);
 
-  /* Semantic Borders */
-  --color-border-default: oklch(30% 0.015 250);
-  --color-border-subtle: oklch(25% 0.015 250);
-  --color-border-strong: oklch(40% 0.015 250);
+  /* Semantic Borders — exact hex */
+  --color-border-default: #3a3a3a;
+  --color-border-subtle: #2e2e2e;
+  --color-border-strong: #4d4d4d;
   --color-border-accent: var(--color-accent-400);
 
-  /* Status Semantic Colors — Dark */
+  /* Status Semantic Colors — Dark (keep intentional hue) */
   --color-status-success-bg: oklch(22% 0.08 145);
   --color-status-success-text: oklch(80% 0.1 145);
   --color-status-warning-bg: oklch(22% 0.08 85);
@@ -196,10 +201,10 @@ body {
 }
 
 html.dark ::-webkit-scrollbar-thumb {
-  background: oklch(40% 0.015 250);
+  background: #3a3a3a;
 }
 html.dark ::-webkit-scrollbar-thumb:hover {
-  background: oklch(50% 0.015 250);
+  background: #4d4d4d;
 }
 
 /* Typography (prose) color overrides for dark mode */
@@ -222,9 +227,9 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   --tw-prose-td-borders: var(--color-border-default);
 }
 
-/* React Flow Styles — Buzzy canvas (dark theme) */
+/* React Flow Styles — Buzzy canvas (dark theme, #151515 = buzzy exact) */
 .react-flow {
-  background-color: #000000 !important;
+  background-color: #151515 !important;
 }
 .react-flow__node {
   border-radius: var(--radius-lg);
@@ -241,7 +246,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   width: 6px;
   height: 6px;
   background: oklch(60% 0.05 275);
-  border: 1.5px solid oklch(10% 0.01 250);
+  border: 1.5px solid #0a0a0a;
   opacity: 0.5;
 }
 .react-flow__handle:hover {
@@ -251,12 +256,12 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 
 /* React Flow background dot grid (overrides default line) */
 .react-flow__background {
-  background-color: #000000 !important;
+  background-color: #151515 !important;
 }
 /* The dot is rendered as a <circle> inside the <pattern>; target both for fill */
 .react-flow__background-pattern.dots,
 .react-flow__background-pattern.dots circle {
-  fill: rgba(255, 255, 255, 0.12) !important;
+  fill: rgba(255, 255, 255, 0.35) !important;
 }
 
 /* React Flow Controls — dark mode overrides */
@@ -304,15 +309,15 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   animation: statusPulse 1.4s ease-in-out infinite;
 }
 
-/* Buzzy canvas — dark React Flow node overrides */
-.buzzy-card {
+/* Canvas card — dark React Flow node overrides (buzzy style) */
+.canvas-card {
   /* Override React Flow's default light node box */
-  background-color: oklch(8% 0.01 250) !important;
+  background-color: var(--canvas-card-bg) !important;
   color: var(--color-text-primary);
   box-shadow: none !important;
 }
 
-.buzzy-card .buzzy-card-body {
+.canvas-card .canvas-card-body {
   /* Body inherits the dark bg from parent */
 }
 

@@ -32,7 +32,7 @@ export function MessageItem({ message, onActionClick }: MessageItemProps) {
         className={cn(
           'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold',
           isUser
-            ? 'bg-[var(--color-accent-500)] text-white'
+            ? 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)]'
             : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]'
         )}
       >
@@ -45,8 +45,8 @@ export function MessageItem({ message, onActionClick }: MessageItemProps) {
           className={cn(
             'relative rounded-[var(--radius-base)] px-3.5 py-2.5 text-sm leading-relaxed',
             isUser
-              ? 'bg-[var(--color-accent-50)] text-[var(--color-text-primary)] dark:bg-[var(--color-accent-900)] dark:text-[var(--color-accent-100)]'
-              : 'bg-[var(--color-bg-primary)] border border-[var(--color-border-default)] text-[var(--color-text-primary)] dark:bg-[var(--color-bg-secondary)]'
+              ? 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)]'
+              : 'bg-[var(--color-bg-tertiary)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)]'
           )}
         >
           <div className="prose prose-sm max-w-none">
@@ -95,7 +95,7 @@ export function MessageItem({ message, onActionClick }: MessageItemProps) {
                 <button
                   key={action.id}
                   onClick={() => onActionClick?.(action)}
-                  className="rounded-full border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3 py-1 text-xs font-medium text-[var(--color-accent-700)] transition-colors hover:bg-[var(--color-accent-100)] dark:border-[var(--color-accent-800)] dark:bg-[var(--color-accent-900)] dark:text-[var(--color-accent-300)] dark:hover:bg-[var(--color-accent-800)]"
+                  className="rounded-full border border-[var(--color-border-default)] bg-[var(--color-bg-tertiary)] px-3 py-1 text-xs font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-bg-secondary)]"
                 >
                   {action.label}
                 </button>

@@ -72,7 +72,7 @@ interface CanvasPanelProps {
 
 // Popover positioning constants
 const CARD_WIDTH = 240;
-const POPOVER_WIDTH = 480;
+const POPOVER_WIDTH = 560;
 const POPOVER_GAP = 16;  // visual gap between card bottom and popover top (matches buzzy)
 const NAVBAR_HEIGHT = 64;
 const VIEWPORT_PAD = 16;
@@ -450,7 +450,7 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
           className="bg-black"
           proOptions={{ hideAttribution: true }}
         >
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(255, 255, 255, 0.08)" />
+          <Background variant={BackgroundVariant.Dots} gap={20} size={2} color="rgba(255, 255, 255, 0.12)" />
           <Controls className="!rounded-[var(--radius-base)] !border !border-[var(--color-border-default)] !shadow-sm" />
           <MiniMap
             pannable

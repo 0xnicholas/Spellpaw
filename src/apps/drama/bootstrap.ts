@@ -32,4 +32,15 @@ export async function bootstrapDrama(): Promise<void> {
     const provider = providerRegistry.get(t.providerId);
     if (provider?.poll) startPolling(t.taskId, provider, t.cardId);
   });
+
+  // Dev-only: expose stores on window for Playwright/screenshot verification.
+  // Cheap gate: Vite injects import.meta.env.DEV; this is a no-op in production builds.
+  if (import.meta.env?.DEV) {
+    const { useProjectStore } = await import('./stores/projectStore');
+    const { useCanvasStore } = await import('./stores/canvasStore');
+    (window as unknown as { __SPELLPAW__?: unknown }).__SPELLPAW__ = {
+      useProjectStore,
+      useCanvasStore,
+    };
+  }
 }

@@ -17,13 +17,13 @@ import type { CopilotKind } from '@shared/components/canvas/PaneContextMenu';
 import { Z_INDEX } from '@shared/lib/zIndex';
 
 const POPOVER_AUTOCLOSE_DELAY_MS = 1200;
-const POPOVER_WIDTH = 480;
+const POPOVER_WIDTH = 560;
 const VIEWPORT_PAD = 16;
 const NAVBAR_HEIGHT = 64;
 
-const SEND_BG = 'oklch(85% 0.18 95)';      // buzzy yellow
-const SEND_BG_HOVER = 'oklch(80% 0.20 95)';
-const SEND_TEXT = 'oklch(20% 0.05 95)';    // dark text on yellow
+const SEND_BG = 'oklch(55% 0.2 275)';     // Spellpaw accent purple
+const SEND_BG_HOVER = 'oklch(50% 0.22 275)';
+const SEND_TEXT = 'oklch(98% 0.01 275)';   // light text on purple
 const POPOVER_BG = 'oklch(12% 0.015 250)';
 const POPOVER_BORDER = 'oklch(28% 0.02 250)';
 
@@ -233,12 +233,9 @@ export function CardCopilotPopover({ cardId, kind, screenPosition, onClose }: Ca
         </div>
       )}
 
-      {/* For text kind: only show close button at top */}
+      {/* For text kind: only show close button at top-right (no header label — buzzy style) */}
       {kind === 'text' && (
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] uppercase tracking-wider text-[var(--color-text-tertiary)]">
-            {KIND_LABELS[kind]}
-          </span>
+        <div className="absolute right-2 top-2 z-10">
           <button
             onClick={onClose}
             aria-label="关闭"
@@ -369,16 +366,23 @@ export function CardCopilotPopover({ cardId, kind, screenPosition, onClose }: Ca
             onClick={handleGenerate}
             disabled={!canGenerate}
             data-testid="copilot-generate"
-            className="inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+            className="inline-flex items-center justify-center gap-1 rounded-full font-semibold transition-all hover:scale-[1.03] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
             style={{
               backgroundColor: SEND_BG,
               color: SEND_TEXT,
+              minWidth: 64,
+              height: 36,
+              paddingLeft: 14,
+              paddingRight: 14,
+              fontSize: 13,
+              boxShadow: canGenerate ? '0 2px 8px rgba(85, 70, 230, 0.35)' : 'none',
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = SEND_BG_HOVER; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = SEND_BG; }}
             aria-label="生成"
           >
-            <span>+{creditCost}</span>
+            <span style={{ fontSize: 14 }}>+</span>
+            <span>{creditCost}</span>
           </button>
         )}
       </div>

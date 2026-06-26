@@ -223,6 +223,9 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 /* React Flow Styles — Buzzy canvas (dark theme) */
+.react-flow {
+  background-color: #000000 !important;
+}
 .react-flow__node {
   border-radius: var(--radius-lg);
   background: transparent !important;
@@ -248,10 +251,12 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 
 /* React Flow background dot grid (overrides default line) */
 .react-flow__background {
-  background-color: #000000;
+  background-color: #000000 !important;
 }
-.react-flow__background-pattern.dots {
-  fill: rgba(255, 255, 255, 0.08);
+/* The dot is rendered as a <circle> inside the <pattern>; target both for fill */
+.react-flow__background-pattern.dots,
+.react-flow__background-pattern.dots circle {
+  fill: rgba(255, 255, 255, 0.12) !important;
 }
 
 /* React Flow Controls — dark mode overrides */

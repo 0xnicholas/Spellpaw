@@ -6,7 +6,7 @@
  */
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
-import { addEnrichedCard } from '@drama/lib/builderHandlers';
+import { addEnrichedCard } from './cards';
 import {
   generateAsset,
   generateVariants,

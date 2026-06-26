@@ -2,7 +2,6 @@
  * Invoke for `analyze-pacing`.
  * Pair file: ./analyze-pacing.md (YAML frontmatter is the source of truth).
  */
-import { useCanvasStore } from '@drama/stores/canvasStore';
 import type { Skill, SkillResult } from './types';
 
 export const invoke: Skill['invoke'] = async (args, ctx): Promise<SkillResult> => {
@@ -21,7 +20,6 @@ export const invoke: Skill['invoke'] = async (args, ctx): Promise<SkillResult> =
 
   // Add a per-scene canvas check: scenes that have no art yet are
   // visual gaps that affect pacing on screen
-  const cards = useCanvasStore.getState().getCurrentNodes();
   const sceneCards = cards.filter((c) => c.type === 'sceneCard');
   const missingArt = sceneCards.filter((c) => !(c.data as { thumbnail?: string }).thumbnail).length;
 

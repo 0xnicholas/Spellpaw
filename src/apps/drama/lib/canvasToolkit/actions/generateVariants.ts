@@ -1,7 +1,7 @@
 import { useProjectStore } from "@drama/stores/projectStore";
 import { useCanvasStore } from "@drama/stores/canvasStore";
 import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
-import { findNode } from "@drama/lib/treeUtils";
+
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import {
@@ -15,7 +15,7 @@ import type {
 	Capability,
 	MediaType,
 } from "../types";
-import type { TreeNode } from "@drama/types";
+import type { CanvasNode } from "@drama/types";
 
 export interface GenerateVariantsParams {
 	action: "generate_variants";
@@ -30,44 +30,17 @@ export interface GenerateVariantsParams {
 export async function generateVariants(
 	params: GenerateVariantsParams,
 ): Promise<ToolkitResult> {
-	const store = useProjectStore.getState();
-	const tree = store.getCurrentTree();
-	if (!tree) {
-		return { success: false, message: "当前没有打开的项目", retryable: false };
-	}
+	const canvasNodes = useCanvasStore.getState().getCurrentNodes();
 
-	let node: TreeNode | null = null;
 	let basePrompt = params.prompt;
 
-	if (params.nodeId) {
-		node = findNode(tree, params.nodeId) ?? null;
-		if (!node) {
-			return {
-				success: false,
-				message: `未找到节点: ${params.nodeId}`,
-				retryable: false,
-			};
-		}
-		basePrompt ??= buildDefaultPrompt(node);
-	} else if (params.cardId) {
-		const card = useCanvasStore
-			.getState()
-			.getCurrentNodes()
-			.find((n) => n.id === params.cardId);
+	if (params.nodeId || params.cardId) {
+		const targetId = params.cardId || params.nodeId;
+		const card = canvasNodes.find(n => n.id === targetId);
 		if (!card) {
-			return {
-				success: false,
-				message: `未找到卡片: ${params.cardId}`,
-				retryable: false,
-			};
+			return { success: false, message: `未找到卡片: ${targetId}`, retryable: false };
 		}
-		basePrompt ??=
-			(card.data.generatedPrompt as string | undefined) ||
-			(card.data.description as string | undefined) ||
-			card.data.title;
-		if (card.data.linkedTreeNodeId) {
-			node = findNode(tree, card.data.linkedTreeNodeId) ?? null;
-		}
+		basePrompt ??= (card.data.generatedPrompt as string) || (card.data.description as string) || card.data.title;
 	} else {
 		return {
 			success: false,

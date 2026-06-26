@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useBuilderStore } from '@drama/stores/builderStore';
 import { getBuilderComponent } from './registry';
 import { BuilderErrorBoundary } from './BuilderErrorBoundary';
-import { addCanvasCardHandler } from '@drama/lib/builderHandlers';
+import { addRawCard } from '@drama/stores/toolRouter/cards';
 import type { CanvasNodeType } from '@drama/types';
 
 /** Map BuilderConfig.component to canvas card type */
@@ -47,7 +47,7 @@ export function BuilderPanel() {
       // Write to appropriate target
       if (config.target === 'canvas') {
         const cardType = COMPONENT_TO_CARD_TYPE[config.component] ?? 'character';
-        addCanvasCardHandler(cardType, {
+        addRawCard(cardType, {
           title: mergedData.title as string ?? '角色关系图',
           ...mergedData,
         });

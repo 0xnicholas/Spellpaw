@@ -17,7 +17,7 @@ import type { ToolRouter, ToolResult } from './types';
 
 // ── Internal: add a raw canvas card ──
 
-async function addRawCard(
+export async function addRawCard(
   cardType: CanvasNodeType,
   data: Record<string, unknown>,
 ): Promise<CanvasNode> {

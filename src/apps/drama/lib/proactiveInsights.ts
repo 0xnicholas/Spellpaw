@@ -33,3 +33,10 @@ export function computeProactiveInsights(): ProactiveInsight[] {
 
   return insights;
 }
+
+export function formatInsightsAsMessage(insights: ProactiveInsight[]): string {
+  if (insights.length === 0) return '';
+  return insights
+    .map((i) => `${i.severity === 'warning' ? '⚠️' : '💡'} ${i.message}`)
+    .join('\n');
+}

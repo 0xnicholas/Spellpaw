@@ -1,4 +1,3 @@
-import { useProjectStore } from "@drama/stores/projectStore";
 import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
@@ -29,7 +28,7 @@ export async function generateAsset(
 	params: GenerateAssetParams,
 ): Promise<ToolkitResult> {
 	const store = useProjectStore.getState();
-	const tree = store.getCurrentTree();
+	const tree = null as any; /* Phase 4: tree deleted, canvas-based rewrite pending */
 	if (!tree) {
 		return { success: false, message: "当前没有打开的项目", retryable: false };
 	}

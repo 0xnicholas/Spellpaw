@@ -284,9 +284,11 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
       if (
         target.tagName === 'IMG' ||
         target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
         target.tagName === 'BUTTON' ||
         target.closest('button') ||
-        target.closest('input')
+        target.closest('input') ||
+        target.closest('textarea')
       ) {
         return;
       }

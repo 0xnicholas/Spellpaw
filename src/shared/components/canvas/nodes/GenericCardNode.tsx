@@ -1,15 +1,31 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { BuzzyCard, getCardLabel, getCardTypeConfig } from '../BuzzyCard';
+import { InlineEditableText } from '../InlineEditableText';
+import { useCanvasStore } from '@drama/stores/canvasStore';
 import type { CanvasNodeData } from '@drama/types';
 
-export const GenericCardNode = memo(({ data, type, selected }: NodeProps<Node<CanvasNodeData>>) => {
+export const GenericCardNode = memo(({ data, id, type, selected }: NodeProps<Node<CanvasNodeData>>) => {
   // IMPORTANT: `type` is on the Node (from NodeProps), NOT on data. CanvasNodeData
   // does not have a `type` field. Previously this read `data.type` which is always
   // undefined and caused every card to render the fallback label "卡片".
   const cardType = type ?? (data.type as string | undefined) ?? 'storyline';
   const isPlaceholder = (data as Record<string, unknown>).isPlaceholder as boolean | undefined;
   const PlaceholderIcon = getCardTypeConfig(cardType).icon;
+  const updateNodeData = useCanvasStore((s) => s.updateNodeData);
+  const description = (data.description as string | undefined) ?? '';
+  const isTextCard = cardType === 'storyline' || cardType === 'script';
+
+  // Inline title editing (matches ScriptCardNode for the script type)
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState(data.title);
+
+  const handleSaveTitle = () => {
+    if (editTitle.trim() && editTitle.trim() !== data.title) {
+      updateNodeData(id, { title: editTitle.trim() });
+    }
+    setIsEditingTitle(false);
+  };
 
   return (
     <BuzzyCard
@@ -28,10 +44,48 @@ export const GenericCardNode = memo(({ data, type, selected }: NodeProps<Node<Ca
           </span>
         </div>
       ) : (
-        <div className="p-3">
-          <h4 className="text-[13px] font-medium text-[var(--color-text-primary)] truncate">{data.title}</h4>
-          {data.description && (
-            <p className="text-[10px] text-[var(--color-text-tertiary)] line-clamp-2 mt-1">{data.description}</p>
+        <div className="p-3 space-y-1.5">
+          {/* Title (text cards: double-click to edit inline) */}
+          {isTextCard && isEditingTitle ? (
+            <input
+              autoFocus
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={handleSaveTitle}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveTitle();
+                if (e.key === 'Escape') { setEditTitle(data.title); setIsEditingTitle(false); }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+              className="w-full rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-primary)] px-1.5 py-0.5 text-[13px] font-medium text-[var(--color-text-primary)] outline-none"
+            />
+          ) : (
+            <h4
+              className={`text-[13px] font-medium text-[var(--color-text-primary)] ${isTextCard ? 'cursor-text' : 'truncate'}`}
+              onDoubleClick={
+                isTextCard
+                  ? (e) => { e.stopPropagation(); setEditTitle(data.title); setIsEditingTitle(true); }
+                  : undefined
+              }
+              title={isTextCard ? '双击编辑标题' : undefined}
+            >
+              {data.title}
+            </h4>
+          )}
+
+          {/* Inline-editable description for text/script cards */}
+          {isTextCard ? (
+            <InlineEditableText
+              value={description}
+              placeholder="点击编辑内容…"
+              onSave={(next) => updateNodeData(id, { description: next || undefined })}
+            />
+          ) : (
+            description && (
+              <p className="text-[10px] text-[var(--color-text-tertiary)] line-clamp-2">{description}</p>
+            )
           )}
 
           {/* Type-specific data row (kept minimal — colors / counts) */}

@@ -1,6 +1,4 @@
-import { useProjectStore } from "@drama/stores/projectStore";
-import { addCanvasCardHandler } from "@drama/lib/builderHandlers";
-import { findNode } from "@drama/lib/treeUtils";
+import { addEnrichedCard } from '@drama/stores/toolRouter/cards';
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import {
@@ -21,8 +19,7 @@ export async function batchApplyStyle(
 	params: BatchApplyStyleParams,
 ): Promise<ToolkitResult> {
 	const store = useProjectStore.getState();
-	const tree = store.getCurrentTree();
-	if (!tree) {
+		if (!tree) {
 		return { success: false, message: "当前没有打开的项目", retryable: false };
 	}
 
@@ -66,11 +63,10 @@ export async function batchApplyStyle(
 			continue;
 		}
 
-		const card = await addCanvasCardHandler("art", {
+		const card = await addEnrichedCard("art", {
 			title: `${node.title}（${params.stylePrompt.slice(0, 12)}）`,
 			description: styledPrompt,
 			generatedPrompt: styledPrompt,
-			linkedTreeNodeId: node.id,
 			status: "draft",
 			sourceProvider: provider.id,
 		});

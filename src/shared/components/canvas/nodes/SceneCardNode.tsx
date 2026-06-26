@@ -5,7 +5,6 @@ import { Lightbox } from '@/shared/components/ui/Lightbox';
 import { NodeAIActions } from '../NodeAIActions';
 import { getCardAIActions } from '../cardAIActions';
 import { useCanvasStore } from '@drama/stores/canvasStore';
-import { useProjectStore } from '@drama/stores/projectStore';
 import { CanvasCard } from '../CanvasCard';
 import type { CanvasNodeData } from '@drama/types';
 
@@ -18,10 +17,9 @@ export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
   const [imgLoaded, setImgLoaded] = useState(false);
   const [hoverThumb, setHoverThumb] = useState(false);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
-  const setLockedStyle = useProjectStore((s) => s.setLockedStyle);
-  const getLockedStyle = useProjectStore((s) => s.getLockedStyle);
+  const { lockedCardId, lockedStylePrompt, lockStyle, clearLock } = useStyleLockStore();
   const hasThumbnail = !!data.thumbnail && !imgError;
-  const isLocked = getLockedStyle().nodeId === data.linkedTreeNodeId;
+  const isLocked = lockedCardId === id;
 
   useEffect(() => {
     setImgError(false);
@@ -37,9 +35,7 @@ export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
 
   const handleLockStyle = () => {
     if (!data.generatedPrompt) return;
-    if (data.linkedTreeNodeId) {
-      setLockedStyle(data.generatedPrompt, data.linkedTreeNodeId);
-    }
+    lockStyle(id, data.generatedPrompt);
   };
 
   return (

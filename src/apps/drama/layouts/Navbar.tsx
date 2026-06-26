@@ -4,43 +4,37 @@ import { Bell, Command, ChevronRight, Pencil, Download, FlaskConical } from 'luc
 import { IconButton } from '@/shared/components/ui/IconButton';
 import { ProjectSettingsModal } from '@drama/components/modals/ProjectSettingsModal';
 import { useProjectStore } from '@drama/stores/projectStore';
+import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { exportStoryboardPDF } from '@drama/lib/exportPDF';
 import { useTranslation } from 'react-i18next';
-import type { TreeNode } from '@drama/types';
 
-function findNodePath(node: TreeNode | null, targetId: string, path: string[] = []): string[] | null {
-  if (!node) return null;
-  if (node.id === targetId) return [...path, node.title];
-  if (node.children) {
-    for (const child of node.children) {
-      const result = findNodePath(child, targetId, [...path, node.title]);
-      if (result) return result;
-    }
-  }
-  return null;
+function getCanvasPath(cards: CanvasNode[], selectedId: string | null): string[] {
+  if (!selectedId) return [];
+  const card = cards.find(c => c.id === selectedId);
+  if (!card) return [];
+  return [card.data.title];
 }
 
 export function Navbar() {
   const project = useProjectStore((s) =>
     s.projects.find((p) => p.id === s.currentProjectId)
   );
-  const treeData = useProjectStore((s) => s.getCurrentTree());
-  const selectedNodeId = useProjectStore((s) => s.selectedNodeId);
+  const canvasNodes = useCanvasStore((s) => s.getCurrentNodes());
+  const selectedCardId = useCanvasStore((s) => s.selectedCardId);
   const updateProject = useProjectStore((s) => s.updateProject);
   const user = useAuthStore((s) => s.user);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { i18n } = useTranslation();
 
   const handleExportPDF = () => {
-    if (!project || !treeData) return;
-    exportStoryboardPDF(project, treeData);
+    if (!project || canvasNodes.length === 0) return;
+    exportStoryboardPDF(project, canvasNodes);
   };
 
   const path = useMemo(() => {
-    if (!treeData || !selectedNodeId) return [];
-    return findNodePath(treeData, selectedNodeId) ?? [];
-  }, [treeData, selectedNodeId]);
+    return getCanvasPath(canvasNodes, selectedCardId);
+  }, [canvasNodes, selectedCardId]);
 
   return (
     <header
@@ -96,7 +90,7 @@ export function Navbar() {
         >
           <Download className="h-3 w-3" />
         </button>
-        {path.length > 1 && (
+        {path.length > 0 && (
           <div
             className="flex items-center gap-1 text-xs"
             style={{ color: 'var(--portal-text-dim)' }}

@@ -20,7 +20,8 @@ import {
   batchApplyStyle,
 } from '@drama/lib/canvasToolkit';
 import { logger } from '@shared/lib/logger';
-import { isSlashCommand, tryRunSkill, executeSkill, formatSkillInvocation } from '@drama/skills/chat';
+import { isSlashCommand, tryRunSkill, executeSkill, formatSkillInvocation } from '@drama/lib/skills/chat';
+import { parseToolResult } from '@drama/lib/toolResultFormat';
 import type { CanvasIntent } from '@drama/lib/intentRouter';
 
 export function useCopilotSSE() {
@@ -63,8 +64,18 @@ export function useCopilotSSE() {
     'spellpaw_apply_style',
     'spellpaw_batch_apply_style',
     'spellpaw_add_card',
+    'spellpaw_add_storyline_card',
+    'spellpaw_add_moodboard_card',
+    'spellpaw_add_video_clip_card',
+    'spellpaw_add_asset_card',
+    'spellpaw_add_task_card',
+    'spellpaw_add_art_card',
+    'spellpaw_add_character_card',
     'spellpaw_update_card',
     'spellpaw_delete_card',
+    'spellpaw_batch_update_cards',
+    'spellpaw_batch_delete_cards',
+    'spellpaw_batch_add_cards',
     'spellpaw_clear_canvas',
     'spellpaw_kickstart_project',
     'spellpaw_generate_storyboard',
@@ -108,19 +119,20 @@ export function useCopilotSSE() {
           case 'tool_call_done': {
             // Spellpaw Server emits is_error + content on failed tool calls.
             const isError = Boolean((event as { is_error?: boolean }).is_error);
-            const errorText = isError
-              ? String((event as { content?: unknown }).content ?? 'Tool call failed')
-              : undefined;
+            const rawContent = String((event as { content?: unknown }).content ?? '');
+            const errorText = isError ? (rawContent || 'Tool call failed') : undefined;
             endToolCall(
               event.call_id as string,
               isError ? 'error' : 'success',
               errorText,
             );
-            // Highlight affected canvas cards for visual feedback
+            // Highlight affected canvas cards — parse structured JSON results
             if (CANVAS_TOOL_NAMES.has(String(event.name))) {
-              const cards = useCanvasStore.getState().getCurrentNodes();
-              if (cards.length > 0) {
-                useCanvasStore.getState().triggerHighlight(cards.slice(-3).map((c) => c.id));
+              const parsed = parseToolResult(rawContent);
+              if (parsed.parsed && parsed.result.affectedCardIds?.length) {
+                useCanvasStore.getState().triggerHighlight(
+                  parsed.result.affectedCardIds.slice(-3),
+                );
               }
             }
             break;
@@ -262,7 +274,6 @@ export function useCopilotSSE() {
 
         // Detect canvas toolkit intent and decide whether to force a tool choice.
         const intentResult = detectIntent(content, {
-          selectedNodeId: contextCardId,
           selectedCard: useCanvasStore.getState().getSelectedCard(),
         });
         currentIntentRef.current = intentResult.confidence === 'high' ? intentResult.intent : null;

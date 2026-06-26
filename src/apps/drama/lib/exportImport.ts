@@ -1,4 +1,4 @@
-import type { TreeNode, Project, CanvasNode, CanvasEdge } from '@drama/types';
+import type { Project, CanvasNode, CanvasEdge } from '@drama/types';
 
 const SCHEMA_VERSION = 1;
 
@@ -6,7 +6,7 @@ export interface ExportData {
   _schemaVersion: number;
   title: string;
   description: string;
-  tree: TreeNode;
+  canvasNodes: CanvasNode[];
   canvas?: {
     nodes: CanvasNode[];
     edges: CanvasEdge[];
@@ -15,15 +15,13 @@ export interface ExportData {
 
 export function exportProjectToJSON(
   project: Project,
-  tree: TreeNode,
-  canvasNodes?: CanvasNode[],
+  canvasNodes: CanvasNode[],
   canvasEdges?: CanvasEdge[],
 ) {
   const data: ExportData = {
     _schemaVersion: SCHEMA_VERSION,
     title: project.title,
     description: project.description,
-    tree,
   };
 
   if (canvasNodes || canvasEdges) {

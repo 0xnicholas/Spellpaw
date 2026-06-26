@@ -42,10 +42,8 @@ describe('triggerPushNow — race condition fix', () => {
         sceneCount: 0,
         duration: 0,
         version: 1,
-      }],
-      trees: { proj_race: { id: 'root', type: 'project', title: 'Race', status: 'draft' } },
+      }]},
       currentProjectId: 'proj_race',
-      selectedNodeId: null,
     });
     useCanvasStore.setState({ canvases: { proj_race: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } } }, selectedCardId: null });
     useAuthStore.setState({ token: 'test-token', isAuthenticated: true, user: { id: 'u1', name: 'Test', email: 't@x' } satisfies User });

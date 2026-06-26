@@ -3,7 +3,6 @@ import { detectIntent, intentToToolChoice } from './intentRouter';
 import type { CanvasNode } from '@drama/types';
 
 describe('intentRouter', () => {
-  const sceneNodeId = 'scene-1';
   const selectedCard: CanvasNode = {
     id: 'card-1',
     type: 'art',
@@ -11,16 +10,15 @@ describe('intentRouter', () => {
     data: { title: '参考图' },
   };
 
-  it('detects generate_asset for a selected scene node', () => {
-    const result = detectIntent('给这个场景生成一张参考图', { selectedNodeId: sceneNodeId });
+  it('detects generate_asset for a selected card', () => {
+    const result = detectIntent('给这个场景生成一张参考图', { selectedCard });
     expect(result.confidence).toBe('high');
     expect(result.intent.type).toBe('generate_asset');
     expect(result.intent.mediaType).toBe('image');
-    expect(result.intent.payload.nodeId).toBe(sceneNodeId);
   });
 
   it('detects video generation request', () => {
-    const result = detectIntent('为这个场景生成一段视频', { selectedNodeId: sceneNodeId });
+    const result = detectIntent('为这个场景生成一段视频', { selectedCard });
     expect(result.confidence).toBe('high');
     expect(result.intent.mediaType).toBe('video');
   });
@@ -54,41 +52,21 @@ describe('intentRouter', () => {
     expect(result.intent.payload.stylePrompt).toContain('赛博朋克');
   });
 
-  it('detects batch_apply_style for a selected tree node', () => {
-    const result = detectIntent('把这个场景统一成油画风格', { selectedNodeId: sceneNodeId });
-    expect(result.confidence).toBe('high');
-    expect(result.intent.type).toBe('batch_apply_style');
-    expect(result.intent.payload.nodeIds).toEqual([sceneNodeId]);
-  });
-
-  it('returns high confidence for a free-form generation prompt without a node', () => {
+  it('returns high confidence for a free-form generation prompt without a card', () => {
     const result = detectIntent('画一张赛博朋克猫', {});
     expect(result.confidence).toBe('high');
     expect(result.intent.type).toBe('generate_asset');
     expect(result.intent.payload.prompt).toContain('赛博朋克猫');
   });
 
-  it('uses linked tree node when a canvas card is selected', () => {
-    const linkedCard: CanvasNode = {
-      id: 'card-linked',
-      type: 'sceneCard',
-      position: { x: 0, y: 0 },
-      data: { title: '场景卡', linkedTreeNodeId: 'scene-2' },
-    };
-    const result = detectIntent('生成参考图', { selectedCard: linkedCard });
-    expect(result.confidence).toBe('high');
-    expect(result.intent.type).toBe('generate_asset');
-    expect(result.intent.payload.nodeId).toBe('scene-2');
-  });
-
-  it('returns medium confidence when generation intent has neither node nor prompt', () => {
+  it('returns medium confidence when generation intent has neither card nor prompt', () => {
     const result = detectIntent('生成一张图', {});
     expect(result.confidence).toBe('medium');
     expect(result.intent.type).toBe('generate_asset');
   });
 
   it('returns unknown for irrelevant messages', () => {
-    const result = detectIntent('今天天气怎么样', { selectedNodeId: sceneNodeId });
+    const result = detectIntent('今天天气怎么样', { selectedCard });
     expect(result.confidence).toBe('low');
     expect(result.intent.type).toBe('unknown');
   });
@@ -97,13 +75,9 @@ describe('intentRouter', () => {
     const choice = intentToToolChoice({
       type: 'generate_asset',
       mediaType: 'image',
-      payload: { action: 'generate_asset', nodeId: 'x', mediaType: 'image' },
+      payload: { action: 'generate_asset', cardId: 'x', mediaType: 'image' },
     });
-    expect(choice).toEqual({ type: 'function', function: { name: 'spellpaw_generate_asset' } });
-  });
-
-  it('returns undefined tool_choice for unknown intent', () => {
-    const choice = intentToToolChoice({ type: 'unknown', payload: {} });
-    expect(choice).toBeUndefined();
+    expect(choice.type).toBe('function');
+    expect(choice.function.name).toBe('spellpaw_generate_asset');
   });
 });

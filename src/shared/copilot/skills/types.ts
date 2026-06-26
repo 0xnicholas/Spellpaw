@@ -12,19 +12,18 @@
  * loop — each skill has a defined purpose, parameters, and a bounded
  * execution that returns a summary. This makes skills predictable,
  * testable, and cheap to run (no LLM roundtrip when invoked directly).
- *
- * This module is app-agnostic. App-specific context bindings (TreeNode,
- * Project, etc.) are provided by each app's SkillContext subtype.
  */
+import type { Project } from '@drama/types';
+import type { CanvasNode } from '@drama/types';
 
 export interface SkillContext {
-  /** Current project id (for store mutations) */
+  /** Current project id (for the store mutations) */
   projectId: string;
-  /** Read access to current project tree (app-specific type — cast in invokes) */
-  getProjectTree: () => unknown | null;
-  /** Read access to current project metadata (app-specific type — cast in invokes) */
-  getCurrentProject: () => unknown | null;
   /** Read access to current canvas cards (read-only inside skills) */
+  getCurrentCanvasNodes: () => CanvasNode[];
+  /** Read access to current project metadata (read-only inside skills) */
+  getCurrentProject: () => Project | null;
+  /** Read access to current canvas card count */
   getCanvasCardCount: () => number;
 }
 
@@ -56,6 +55,6 @@ export interface Skill {
     properties: Record<string, { type: string; description: string }>;
     required: string[];
   };
-  /** The skill's actual work. Args are parsed user input; ctx is app-provided. */
+  /** The skill's actual work. Receives user-provided args plus the live project context. */
   invoke: (args: Record<string, unknown>, ctx: SkillContext) => Promise<SkillResult>;
 }

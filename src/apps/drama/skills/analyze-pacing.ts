@@ -2,15 +2,13 @@
  * Invoke for `analyze-pacing`.
  * Pair file: ./analyze-pacing.md (YAML frontmatter is the source of truth).
  */
-import { useCanvasStore } from '@drama/stores/canvasStore';
-import type { TreeNode } from '@drama/types';
 import type { Skill, SkillResult } from './types';
 
 export const invoke: Skill['invoke'] = async (args, ctx): Promise<SkillResult> => {
   const { toolRouter } = await import('@drama/stores/toolRouter');
   const focus = (args.focusArea as string) || 'overall';
-  const tree = ctx.getProjectTree() as TreeNode | null;
-  if (!tree) {
+  const cards = ctx.getCurrentCanvasNodes();
+  if (cards.length === 0) {
     return { summary: '当前项目无内容，无法分析节奏。' };
   }
 
@@ -22,7 +20,6 @@ export const invoke: Skill['invoke'] = async (args, ctx): Promise<SkillResult> =
 
   // Add a per-scene canvas check: scenes that have no art yet are
   // visual gaps that affect pacing on screen
-  const cards = useCanvasStore.getState().getCurrentNodes();
   const sceneCards = cards.filter((c) => c.type === 'sceneCard');
   const missingArt = sceneCards.filter((c) => !(c.data as { thumbnail?: string }).thumbnail).length;
 

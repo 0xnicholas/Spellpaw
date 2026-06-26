@@ -284,16 +284,12 @@ export const useChatStore = create<ChatState>()((set) => ({
 
 	pushProactiveInsights: (projectId) => {
 		const projectState = useProjectStore.getState();
-		const tree = projectState.getCurrentTree();
+		const canvasNodes = useCanvasStore.getState().canvases[projectId]?.nodes ?? [];
 		const project = projectState.projects.find(
 			(p) => p.id === projectState.currentProjectId,
 		);
-		if (!tree || !project) return [];
-		const insights = computeProactiveInsights(
-			tree,
-			project.title,
-			project.description,
-		);
+		if (!project) return [];
+		const insights = computeProactiveInsights(canvasNodes);
 		if (insights.length === 0) return [];
 		const body = formatInsightsAsMessage(insights);
 		const msg: ChatMessage = {

@@ -4,27 +4,26 @@
  * Design ref: screenshots/buzzy-canvas-*.png
  *   - Dark theme (no light bg)
  *   - No "标题 / 描述 / 元信息" FieldSection labels
- *   - Header: lucide icon + Chinese type name (from CanvasCard config)
+ *   - Header: lucide icon + Chinese type name (from BuzzyCard config)
  *   - No emoji icons (📝 🎬 🎨 👤 📦)
- *   - Status shown as small dot (consistent with CanvasCard)
+ *   - Status shown as small dot (consistent with BuzzyCard)
  *   - Content blocks: image (full-width), description text, key-value rows
  */
 
 import { useState, useEffect, useRef } from "react";
-import { X, FileText, Image as ImageIcon, User, Video, Film, Paperclip, Package, type LucideIcon } from "lucide-react";
 import { useCanvasStore } from "@drama/stores/canvasStore";
 import { useProjectStore } from "@drama/stores/projectStore";
 import { Z_INDEX } from "@shared/lib/zIndex";
 import { useHotkeys } from "@/shared/hooks/useHotkeys";
 import { computeDisplayNumbers } from "@drama/lib/numbering";
 import { formatBytes } from "@drama/lib/canvasToolkit";
-import { findNode } from "@drama/lib/treeUtils";
-import { getCardTypeConfig } from "./CanvasCard";
+import { useStyleLockStore } from '@shared/stores/styleLockStore';
+import { getCardTypeConfig } from "./BuzzyCard";
 import type { CanvasNodeData, CanvasNodeType, DeliverableType } from "@drama/types";
 
-// ── Status dot (same as CanvasCard) ──
+// ── Status dot (same as BuzzyCard) ──
 const STATUS_DOT_COLOR: Record<string, string> = {
-  draft: 'oklch(50% 0 0)',
+  draft: 'oklch(50% 0.01 250)',
   in_progress: 'oklch(65% 0.15 230)',
   review: 'oklch(80% 0.15 85)',
   done: 'oklch(65% 0.15 145)',
@@ -51,12 +50,12 @@ const DELIVERABLE_SUB_ICONS: Record<DeliverableType, LucideIcon> = {
   audio: Video, // reuse Video icon (no audio icon needed visually)
 };
 
-const PANEL_BG = 'oklch(10% 0 0)';
-const PANEL_BORDER = 'oklch(22% 0 0)';
-const INPUT_BG = 'oklch(8% 0 0)';
-const TEXT_PRIMARY = 'oklch(95% 0 0)';
-const TEXT_SECONDARY = 'oklch(70% 0 0)';
-const TEXT_TERTIARY = 'oklch(50% 0 0)';
+const PANEL_BG = 'oklch(10% 0.01 250)';
+const PANEL_BORDER = 'oklch(22% 0.015 250)';
+const INPUT_BG = 'oklch(8% 0.01 250)';
+const TEXT_PRIMARY = 'oklch(95% 0.01 250)';
+const TEXT_SECONDARY = 'oklch(70% 0.02 250)';
+const TEXT_TERTIARY = 'oklch(50% 0.02 250)';
 
 // ── Content block (replaces FieldSection — no label, just content) ──
 function Block({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -80,7 +79,6 @@ export function CardDetailDrawer() {
   const setSelectedCardId = useCanvasStore((s) => s.setSelectedCardId);
 
   const card = selectedCardId ? getSelectedCard() : null;
-  const tree = useProjectStore((s) => s.getCurrentTree());
 
   // Slide-in/out animation state
   const [visible, setVisible] = useState(false);
@@ -225,10 +223,10 @@ export function CardDetailDrawer() {
           {/* Type-specific content */}
           {cardType === "script" && <ScriptDetail data={data} />}
           {cardType === "sceneCard" && (
-            <SceneCardDetail data={data} linkedTreeNodeId={data.linkedTreeNodeId as string | undefined} />
+            <SceneCardDetail data={data} canvasCardId={card && card.id} />
           )}
           {cardType === "art" && (
-            <ArtDetail data={data} linkedTreeNodeId={data.linkedTreeNodeId as string | undefined} />
+            <ArtDetail data={data} canvasCardId={card && card.id} />
           )}
           {cardType === "character" && <CharacterDetail data={data} />}
           {cardType === "deliverable" && <DeliverableDetail data={data} />}
@@ -283,8 +281,8 @@ function ScriptDetail({ data }: { data: CanvasNodeData }) {
 function ArtDetail({ data, linkedTreeNodeId }: { data: CanvasNodeData; linkedTreeNodeId?: string }) {
   const prompt = data.prompt as string | undefined;
   const tags = data.tags as string[] | undefined;
-  const getLockedStyle = useProjectStore((s) => s.getLockedStyle);
-  const isLocked = linkedTreeNodeId ? getLockedStyle().nodeId === linkedTreeNodeId : false;
+  const { lockedCardId } = useStyleLockStore();
+  const isLocked = canvasCardId ? lockedCardId === canvasCardId : false;
 
   return (
     <>
@@ -313,7 +311,7 @@ function ArtDetail({ data, linkedTreeNodeId }: { data: CanvasNodeData; linkedTre
           </div>
         </Block>
       )}
-      {linkedTreeNodeId && (
+      {canvasCardId && (
         <Block>
           <div className="rounded-lg p-3 space-y-0.5" style={{ backgroundColor: INPUT_BG }}>
             <KeyValue k="风格" v={isLocked ? '已锁定' : '未锁定'} />
@@ -332,8 +330,7 @@ function SceneCardDetail({ data, linkedTreeNodeId }: { data: CanvasNodeData; lin
   const fileSize = data.fileSize as number | undefined;
   const sourceProvider = data.sourceProvider as string | undefined;
   const getLockedStyle = useProjectStore((s) => s.getLockedStyle);
-  const tree = useProjectStore((s) => s.getCurrentTree());
-  const linkedNode = linkedTreeNodeId && tree ? findNode(tree, linkedTreeNodeId) : null;
+  
   const location = linkedNode?.metadata?.location as string | undefined;
   const timeOfDay = linkedNode?.metadata?.timeOfDay as string | undefined;
   const isLocked = linkedTreeNodeId ? getLockedStyle().nodeId === linkedTreeNodeId : false;
@@ -375,7 +372,7 @@ function SceneCardDetail({ data, linkedTreeNodeId }: { data: CanvasNodeData; lin
             {resolution && <KeyValue k="分辨率" v={resolution} />}
             {fileSize != null && <KeyValue k="大小" v={formatBytes(fileSize)} />}
             {sourceProvider && <KeyValue k="Provider" v={sourceProvider} />}
-            {linkedTreeNodeId && <KeyValue k="风格" v={isLocked ? '已锁定' : '未锁定'} />}
+            {canvasCardId && <KeyValue k="风格" v={isLocked ? '已锁定' : '未锁定'} />}
           </div>
         </Block>
       )}

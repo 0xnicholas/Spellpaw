@@ -1,27 +1,20 @@
-// Tree
-export interface TreeNode {
-  id: string;
-  type: 'project' | 'act' | 'scene' | 'shot';
-  title: string;
-  status: 'draft' | 'in_progress' | 'review' | 'done';
-  children?: TreeNode[];
-  expanded?: boolean;
-  metadata?: {
-    duration?: number;
-    description?: string;
-    location?: string;
-    timeOfDay?: 'morning' | 'day' | 'evening' | 'night';
-    shotType?: 'wide' | 'medium' | 'close-up' | 'insert' | 'pov';
-    cameraMovement?: 'static' | 'pan' | 'tilt' | 'dolly' | 'handheld';
-    dialogue?: string;
-    notes?: string;
-    visualStyle?: string;
-    createdAt: string;
-    updatedAt: string;
-    lockedStylePrompt?: string | null;
-    lockedStyleNodeId?: string | null;
-  };
+// === Canvas Metadata ===
+
+/** Canvas card metadata — common metadata for TemplateScene and CanvasNodeData */
+export interface CardMetadata {
+  type?: 'act' | 'scene' | 'shot';
+  duration?: number;
+  location?: string;
+  timeOfDay?: string;
+  shotType?: string;
+  cameraMovement?: string;
+  dialogue?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+// Tree removed — Phase 4 canvas-first architecture deletes TreeNode entirely
 
 // Asset
 export type AssetType = 'video' | 'image' | 'audio' | 'script' | 'subtitle' | 'other';
@@ -92,6 +85,9 @@ export interface CanvasNodeData {
   fileSize?: number;
   resolution?: string;
 
+  // Canonical metadata (replaces scattered flat fields)
+  metadata?: CardMetadata;
+
   // Relations
   linkedCardIds?: string[];      // 关联的其他卡片
 
@@ -116,8 +112,6 @@ export interface CanvasNodeData {
 
   // Legacy
   deliverableType?: 'image' | 'video' | 'audio';
-  linkedTreeNodeId?: string;     // deprecated — use linkedCardIds
-  linkedStyleNodeId?: string;    // deprecated — use styleRef
 
   // Canvas Node extras (React Flow passes these at runtime)
   _displayNumber?: string;
@@ -137,7 +131,6 @@ export interface CanvasNodeData {
   cameraMovement?: string;
   notes?: string;
   prompt?: string;
-  lockedStyleNodeId?: string;
 
   // Task card fields
   taskType?: 'instruction' | 'feedback' | 'diff';
@@ -217,7 +210,7 @@ export interface TemplateScene {
   description: string;
   suggestedShotTypes?: string[];
   suggestedCameraMovement?: string;
-  metadata?: Partial<TreeNode['metadata']>;
+  metadata?: CardMetadata;
   children?: TemplateScene[];
 }
 

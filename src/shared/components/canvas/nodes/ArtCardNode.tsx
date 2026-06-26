@@ -3,7 +3,6 @@ import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { ImageOff, Lock } from 'lucide-react';
 import { Lightbox } from '@/shared/components/ui/Lightbox';
 import { useCanvasStore } from '@drama/stores/canvasStore';
-import { useProjectStore } from '@drama/stores/projectStore';
 import { CanvasCard } from '../CanvasCard';
 import type { CanvasNodeData } from '@drama/types';
 
@@ -15,15 +14,13 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
   const [imgLoaded, setImgLoaded] = useState(false);
   const [hoverThumb, setHoverThumb] = useState(false);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
-  const setLockedStyle = useProjectStore((s) => s.setLockedStyle);
-  const getLockedStyle = useProjectStore((s) => s.getLockedStyle);
+  const { lockedCardId, lockedStylePrompt, lockStyle, clearLock } = useStyleLockStore();
 
   const thumbnail = data.thumbnail as string | undefined;
   const prompt = data.prompt as string | undefined;
   const tags = data.tags as string[] | undefined;
-  const linkedTreeNodeId = data.linkedTreeNodeId as string | undefined;
   const hasThumbnail = !!thumbnail && !imgError;
-  const isLocked = getLockedStyle().nodeId === linkedTreeNodeId;
+  const isLocked = lockedCardId === id;
 
   useEffect(() => {
     setImgError(false);
@@ -38,8 +35,8 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
   };
 
   const handleLockStyle = () => {
-    if (!prompt || !linkedTreeNodeId) return;
-    setLockedStyle(prompt, linkedTreeNodeId);
+    if (!prompt) return;
+    lockStyle(id, prompt);
   };
 
   return (

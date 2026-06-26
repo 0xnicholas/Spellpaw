@@ -113,9 +113,7 @@ describe('useCopilotSSE — session cleanup', () => {
       filterNodeId: null,
     });
     useProjectStore.setState({
-      trees: {},
       currentProjectId: 'p1',
-      selectedNodeId: null,
       projects: [{ id: 'p1', title: 'P', description: '', coverColor: '#000', updatedAt: '', sceneCount: 0, duration: 0, version: 1 }],
     });
   });

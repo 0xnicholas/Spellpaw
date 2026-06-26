@@ -1,6 +1,4 @@
-import { useProjectStore } from "@drama/stores/projectStore";
-import { addCanvasCardHandler } from "@drama/lib/builderHandlers";
-import { findNode } from "@drama/lib/treeUtils";
+import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import {
@@ -30,7 +28,7 @@ export async function generateAsset(
 	params: GenerateAssetParams,
 ): Promise<ToolkitResult> {
 	const store = useProjectStore.getState();
-	const tree = store.getCurrentTree();
+	const tree = null as any; /* Phase 4: tree deleted, canvas-based rewrite pending */
 	if (!tree) {
 		return { success: false, message: "当前没有打开的项目", retryable: false };
 	}
@@ -97,7 +95,6 @@ export async function generateAsset(
 			title: `${baseTitle}${titleSuffix}`,
 			description: input.prompt,
 			generatedPrompt: input.prompt,
-			linkedTreeNodeId: node?.id,
 			status: "draft",
 			sourceProvider: provider.id,
 		};
@@ -105,7 +102,7 @@ export async function generateAsset(
 			cardData.deliverableType = "video";
 		}
 
-		const card = await addCanvasCardHandler(cardType, cardData);
+		const card = await addEnrichedCard(cardType, cardData);
 		cardIds.push(card.id);
 
 		if (task.status === "done" && task.resultUrl) {

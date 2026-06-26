@@ -78,11 +78,8 @@ function setupProject() {
         coverColor: '#6366f1',
       },
     ],
-    trees: {
-      proj_1: { id: 'root', type: 'project', title: 'Test', status: 'draft' as const },
     },
     currentProjectId: 'proj_1',
-    selectedNodeId: null,
   });
   useCanvasStore.setState({
     canvases: {

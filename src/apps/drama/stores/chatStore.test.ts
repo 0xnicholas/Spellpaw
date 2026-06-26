@@ -16,9 +16,7 @@ import { isSlashCommand } from '@drama/skills/chat';
 describe('chatStore — slash command detection', () => {
   beforeEach(() => {
     useProjectStore.setState({
-      trees: {},
       currentProjectId: 'proj_slash',
-      selectedNodeId: null,
       projects: [{ id: 'proj_slash', title: 'Slash', description: '', coverColor: '#000', updatedAt: '', sceneCount: 0, duration: 0, version: 1 }],
     });
     useCanvasStore.setState({ canvases: { proj_slash: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } } }, selectedCardId: null });
@@ -100,9 +98,7 @@ describe('chatStore — updateMessage', () => {
 describe('chatStore — abortTurn', () => {
   beforeEach(() => {
     useProjectStore.setState({
-      trees: {},
       currentProjectId: 'proj_abort',
-      selectedNodeId: null,
       projects: [{ id: 'proj_abort', title: 'Abort', description: '', coverColor: '#000', updatedAt: '', sceneCount: 0, duration: 0, version: 1 }],
     });
     useCanvasStore.setState({ canvases: {}, selectedCardId: null });
@@ -136,9 +132,7 @@ describe('chatStore — abortTurn', () => {
 describe('chatStore — regenerateLast', () => {
   beforeEach(() => {
     useProjectStore.setState({
-      trees: {},
       currentProjectId: 'proj_regen',
-      selectedNodeId: null,
       projects: [{ id: 'proj_regen', title: 'Regen', description: '', coverColor: '#000', updatedAt: '', sceneCount: 0, duration: 0, version: 1 }],
     });
     useCanvasStore.setState({ canvases: {}, selectedCardId: null });
@@ -187,9 +181,7 @@ describe('chatStore — regenerateLast', () => {
 describe('chatStore — tool call status', () => {
   beforeEach(() => {
     useProjectStore.setState({
-      trees: {},
       currentProjectId: 'proj_tool',
-      selectedNodeId: null,
       projects: [{ id: 'proj_tool', title: 'Tool', description: '', coverColor: '#000', updatedAt: '', sceneCount: 0, duration: 0, version: 1 }],
     });
     useCanvasStore.setState({ canvases: {}, selectedCardId: null });

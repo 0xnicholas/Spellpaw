@@ -1,7 +1,6 @@
-import { useProjectStore } from "@drama/stores/projectStore";
 import { useCanvasStore } from "@drama/stores/canvasStore";
-import { addCanvasCardHandler } from "@drama/lib/builderHandlers";
-import { findNode } from "@drama/lib/treeUtils";
+import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
+
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import { updateCardThumbnail, startPolling } from "../shared";
@@ -18,7 +17,7 @@ export async function editAsset(
 	params: EditAssetParams,
 ): Promise<ToolkitResult> {
 	const store = useProjectStore.getState();
-	const tree = store.getCurrentTree();
+	const tree = null as any; /* Phase 4: tree deleted, canvas-based rewrite pending */
 	if (!tree) {
 		return { success: false, message: "当前没有打开的项目", retryable: false };
 	}
@@ -102,12 +101,10 @@ export async function editAsset(
 	const title = linkedNode
 		? `${linkedNode.title}（编辑版）`
 		: `${sourceCard.data.title}（编辑版）`;
-	const card = await addCanvasCardHandler("art", {
+	const card = await addEnrichedCard("art", {
 		title,
 		description: params.prompt,
-		generatedPrompt: fallbackPrompt,
-		linkedTreeNodeId: linkedNode?.id,
-		status: "draft",
+		generatedPrompt: fallbackPrompt, status: "draft",
 		sourceProvider: provider.id,
 	});
 

@@ -101,87 +101,191 @@ export const SPELLPAW_TOOL_CONFIGS = [
 		endpoint: TOOL_ENDPOINT,
 	},
 
-	// ── Tree tools (act/scene/shot backbone) ──
+	// ── Typed add tools (7 specialized, replacing generic add_card) ──
 	{
-		name: "spellpaw_add_node",
-		description:
-			"Add a node (act/scene/shot) to the project tree. parentId required, type/title required.",
+		name: "spellpaw_add_storyline_card",
+		description: "Add a storyline card for narrative structure (acts, plot points, story beats). Use for 'act' type storylines.",
 		parameters: {
 			type: "object",
 			properties: {
-				parentId: { type: "string" },
-				type: { type: "string", enum: ["act", "scene", "shot"] },
 				title: { type: "string" },
 				description: { type: "string" },
-				duration: { type: "number" },
+				location: { type: "string" },
+				timeOfDay: { type: "string" },
+				duration: { type: "number", description: "Duration in seconds" },
 			},
-			required: ["parentId", "type", "title"],
+			required: ["title"],
 		},
 		endpoint: TOOL_ENDPOINT,
 	},
 	{
-		name: "spellpaw_update_node",
-		description: "Update a node's title or metadata.",
+		name: "spellpaw_add_moodboard_card",
+		description: "Add a moodboard card for visual style references, color palettes, and aesthetic inspiration.",
 		parameters: {
 			type: "object",
 			properties: {
-				nodeId: { type: "string" },
-				changes: { type: "object" },
+				title: { type: "string" },
+				description: { type: "string" },
+				colors: { type: "array", items: { type: "string" }, description: "Color palette hex values" },
+				styleRef: { type: "string", description: "Visual style reference (e.g., cyberpunk, film noir, watercolor)" },
 			},
-			required: ["nodeId", "changes"],
+			required: ["title"],
 		},
 		endpoint: TOOL_ENDPOINT,
 	},
 	{
-		name: "spellpaw_delete_node",
-		description: "Delete a node. CAREFUL: irreversible. Ask user first.",
-		parameters: {
-			type: "object",
-			properties: { nodeId: { type: "string" } },
-			required: ["nodeId"],
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
-		name: "spellpaw_get_tree",
-		description: "Get the full project tree structure.",
-		parameters: { type: "object", properties: {} },
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
-		name: "spellpaw_get_subtree",
-		description: "Get a subtree starting from a specific node.",
-		parameters: {
-			type: "object",
-			properties: { nodeId: { type: "string" } },
-			required: ["nodeId"],
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
-		name: "spellpaw_apply_template",
-		description:
-			"Apply a narrative template to the current project. Creates acts, scenes, and shots from the template structure.",
+		name: "spellpaw_add_video_clip_card",
+		description: "Add a video clip card for video assets or generated video content.",
 		parameters: {
 			type: "object",
 			properties: {
-				templateId: { type: "string" },
-				parentId: { type: "string" },
+				title: { type: "string" },
+				description: { type: "string" },
+				source: { type: "string", enum: ["ai", "upload"], description: "Source of the video" },
+				duration: { type: "number", description: "Duration in seconds" },
 			},
-			required: ["templateId"],
+			required: ["title"],
 		},
 		endpoint: TOOL_ENDPOINT,
 	},
+	{
+		name: "spellpaw_add_asset_card",
+		description: "Add an asset card for materials, logos, subtitles, audio, or other project resources.",
+		parameters: {
+			type: "object",
+			properties: {
+				title: { type: "string" },
+				description: { type: "string" },
+				assetType: { type: "string", description: "Asset type: product/logo/subtitle/audio/image/video/other" },
+				url: { type: "string", description: "Asset URL or path" },
+				tags: { type: "array", items: { type: "string" } },
+			},
+			required: ["title"],
+		},
+		endpoint: TOOL_ENDPOINT,
+	},
+	{
+		name: "spellpaw_add_task_card",
+		description: "Add a task card for instructions, feedback, diffs, or action items.",
+		parameters: {
+			type: "object",
+			properties: {
+				title: { type: "string" },
+				description: { type: "string" },
+				taskType: { type: "string", enum: ["instruction", "feedback", "diff"], description: "Task type" },
+				targetCardId: { type: "string", description: "Which card this task relates to" },
+				dueDate: { type: "string", description: "Optional due date (ISO format)" },
+			},
+			required: ["title"],
+		},
+		endpoint: TOOL_ENDPOINT,
+	},
+	{
+		name: "spellpaw_add_art_card",
+		description: "Add an art card for AI-generated images, concept art, or reference visuals.",
+		parameters: {
+			type: "object",
+			properties: {
+				title: { type: "string" },
+				description: { type: "string" },
+				thumbnail: { type: "string", description: "Thumbnail URL" },
+				generatedPrompt: { type: "string", description: "Prompt used to generate the image" },
+			},
+			required: ["title"],
+		},
+		endpoint: TOOL_ENDPOINT,
+	},
+	{
+		name: "spellpaw_add_character_card",
+		description: "Add a character card for character profiles, casting, and role descriptions.",
+		parameters: {
+			type: "object",
+			properties: {
+				title: { type: "string" },
+				description: { type: "string" },
+				role: { type: "string", description: "Character role (protagonist/antagonist/supporting etc)" },
+				traits: { type: "array", items: { type: "string" }, description: "Character traits" },
+				linkedCardIds: { type: "array", items: { type: "string" }, description: "Related canvas card IDs" },
+			},
+			required: ["title"],
+		},
+		endpoint: TOOL_ENDPOINT,
+	},
+
+	// ── Batch card tools ──
+	{
+		name: "spellpaw_batch_update_cards",
+		description: "Batch update multiple canvas cards at once. Returns success/failure per card.",
+		parameters: {
+			type: "object",
+			properties: {
+				updates: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							cardId: { type: "string" },
+							data: { type: "object", description: "Fields to update on this card" },
+						},
+						required: ["cardId", "data"],
+					},
+					description: "Array of {cardId, data} objects to update",
+				},
+			},
+			required: ["updates"],
+		},
+		endpoint: TOOL_ENDPOINT,
+	},
+	{
+		name: "spellpaw_batch_delete_cards",
+		description: "Atomically delete multiple canvas cards. All-or-nothing: validates all cardIds exist before removing.",
+		parameters: {
+			type: "object",
+			properties: {
+				cardIds: {
+					type: "array",
+					items: { type: "string" },
+					description: "Array of card IDs to delete",
+				},
+			},
+			required: ["cardIds"],
+		},
+		endpoint: TOOL_ENDPOINT,
+	},
+	{
+		name: "spellpaw_batch_add_cards",
+		description: "Batch create multiple canvas cards of the same type at once.",
+		parameters: {
+			type: "object",
+			properties: {
+				cards: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							cardType: { type: "string", enum: ["storyline", "moodboard", "videoClip", "asset", "task", "art", "character", "sceneCard", "script", "deliverable"] },
+							data: { type: "object", description: "Card data fields" },
+						},
+						required: ["cardType", "data"],
+					},
+					description: "Array of {cardType, data} objects to create",
+				},
+			},
+			required: ["cards"],
+		},
+		endpoint: TOOL_ENDPOINT,
+	},
+
 	{
 		name: "spellpaw_generate_asset",
-		description: `Generate an image or video asset and add it to the canvas as a card. Use when the user asks to generate a storyboard, reference image, scene visual, or video. If a scene/shot node is selected, pass its nodeId; otherwise provide an explicit prompt. Produces an 'art' card (image) or 'deliverable' card (video) by default; pass cardType to override. Valid providers: ${providerEnum().join(", ")}. Example: spellpaw_generate_asset({ mediaType: "image", nodeId: "scene-1", prompt: "雨夜小巷，霓虹灯反射，悬疑氛围" }).`,
+		description: `Generate an image or video asset and add it to the canvas as a card. Use when the user asks to generate a storyboard, reference image, scene visual, or video. If a canvas card is selected, pass its cardId; otherwise provide an explicit prompt. Produces an 'art' card (image) or 'deliverable' card (video) by default; pass cardType to override. Valid providers: ${providerEnum().join(", ")}. Example: spellpaw_generate_asset({ mediaType: "image", cardId: "card-1", prompt: "雨夜小巷，霓虹灯反射，悬疑氛围" }).`,
 		parameters: {
 			type: "object",
 			properties: {
-				nodeId: {
+				cardId: {
 					type: "string",
 					description:
-						"ID of the scene or shot node to generate for (optional if prompt is provided)",
+						"ID of the canvas card to generate for (optional if prompt is provided)",
 				},
 				mediaType: {
 					type: "string",
@@ -191,7 +295,7 @@ export const SPELLPAW_TOOL_CONFIGS = [
 				prompt: {
 					type: "string",
 					description:
-						"Generation prompt; required when no nodeId is provided. If nodeId is provided and prompt is omitted, built from node metadata",
+						"Generation prompt; required when no cardId is provided. If cardId is provided and prompt is omitted, built from card metadata",
 				},
 				provider: {
 					type: "string",
@@ -215,19 +319,14 @@ export const SPELLPAW_TOOL_CONFIGS = [
 	},
 	{
 		name: "spellpaw_generate_variants",
-		description: `Generate multiple variant images of an existing scene or canvas card. Useful when the user wants "more options", "a few versions", or "variations of this shot". Produces a new 'art' card for each variant. Example: spellpaw_generate_variants({ nodeId: "scene-2-1", count: 3 }).`,
+		description: `Generate multiple variant images of an existing canvas card. Useful when the user wants "more options", "a few versions", or "variations of this shot". Produces a new 'art' card for each variant. Example: spellpaw_generate_variants({ cardId: "card-xyz", count: 3 }).`,
 		parameters: {
 			type: "object",
 			properties: {
-				nodeId: {
-					type: "string",
-					description:
-						"ID of the scene/shot node to generate variants for (alternative to cardId)",
-				},
 				cardId: {
 					type: "string",
 					description:
-						"ID of an existing canvas card to generate variants from (alternative to nodeId)",
+						"ID of the canvas card to generate variants from",
 				},
 				mediaType: {
 					type: "string",
@@ -310,14 +409,14 @@ export const SPELLPAW_TOOL_CONFIGS = [
 	{
 		name: "spellpaw_batch_apply_style",
 		description:
-			'Batch apply a visual style to multiple scene/shot nodes. Creates one new \'art\' card for each selected node; originals are preserved. Use when the user wants "unify the style of selected scenes" or "apply this style to all selected shots". Example: spellpaw_batch_apply_style({ nodeIds: ["scene-1", "scene-2"], stylePrompt: "noir" }).',
+			'Batch apply a visual style to multiple canvas cards. Creates one new \'art\' card for each selected card; originals are preserved. Use when the user wants "unify the style of selected cards" or "apply this style to all selected shots". Example: spellpaw_batch_apply_style({ cardIds: ["card-1", "card-2"], stylePrompt: "noir" }).',
 		parameters: {
 			type: "object",
 			properties: {
-				nodeIds: {
+				cardIds: {
 					type: "array",
 					items: { type: "string" },
-					description: "IDs of scene/shot nodes to style",
+					description: "IDs of canvas cards to style",
 				},
 				stylePrompt: {
 					type: "string",
@@ -350,7 +449,7 @@ export const SPELLPAW_TOOL_CONFIGS = [
 	{
 		name: "spellpaw_match_template",
 		description:
-			"Match the current project against built-in narrative templates based on title, description, and scene keywords. Returns the best match with similarity score and templateId. After calling this, continue by calling spellpaw_apply_template with the returned templateId.",
+			"Match the current project against built-in narrative templates based on title, description, and scene keywords. Returns the best match with similarity score and templateId.",
 		parameters: { type: "object", properties: {} },
 		endpoint: TOOL_ENDPOINT,
 	},

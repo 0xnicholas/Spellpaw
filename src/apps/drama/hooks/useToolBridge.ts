@@ -9,8 +9,6 @@ import { toolRouter } from '@drama/stores/toolRouter';
 import { useBuilderStore } from '@drama/stores/builderStore';
 import { parseAndValidate } from '@shared/lib/builderSchema';
 import { getTotalSteps } from '@shared/components/builder/registry';
-import { useProjectStore } from '@drama/stores/projectStore';
-import { collectNodeIds } from '@drama/lib/treeUtils';
 import { logger } from '@shared/lib/logger';
 
 interface ToolCallMessage {
@@ -60,8 +58,7 @@ function connect(
       // ③ Builder Renderer channel — spellpaw_build_ui
       if (action === 'build_ui') {
         // Build context for metadata validation (②)
-        const tree = useProjectStore.getState().getCurrentTree();
-        const treeNodes = tree ? collectNodeIds(tree) : [];
+        const treeNodes: string[] = [];
         const result = parseAndValidate(params, { treeNodes });
         if ('error' in result) {
           ws.send(JSON.stringify({

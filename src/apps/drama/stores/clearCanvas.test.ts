@@ -36,7 +36,6 @@ function makeTestTemplate(): NarrativeTemplate {
 
 describe('clear_canvas', () => {
   beforeEach(() => {
-    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null, projects: [] });
     useCanvasStore.setState({ canvases: {}, selectedCardId: null });
     useCustomTemplateStore.setState({ templates: [] });
 
@@ -95,7 +94,6 @@ describe('clear_canvas', () => {
 
 describe('kickstart_project dedup', () => {
   beforeEach(() => {
-    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null, projects: [] });
     useCanvasStore.setState({ canvases: {}, selectedCardId: null });
     useCustomTemplateStore.setState({ templates: [] });
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
@@ -120,8 +118,8 @@ describe('kickstart_project dedup', () => {
     // 3 from first kickstart + 3 new scenes from second = 6 (no duplicates)
     expect(cards2).toBe(6);
 
-    // Each scene should only have one card (no duplicate linkedTreeNodeId)
-    const linkedIds = useCanvasStore.getState().getCurrentNodes().map((n) => n.data.linkedTreeNodeId);
+    // Each scene should only have one card (no duplicate )
+    const linkedIds = useCanvasStore.getState().getCurrentNodes().map((n) => n.data.);
     expect(new Set(linkedIds).size).toBe(linkedIds.length);
   });
 });

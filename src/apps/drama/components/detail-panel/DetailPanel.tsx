@@ -59,7 +59,7 @@ export function DetailPanel() {
   const get = (key: string) => (key in draft ? draft[key as keyof typeof draft] : (data as Record<string, unknown>)[key]);
 
   const typeLabel: Record<string, string> = {
-    storyline: '故事线', moodboard: '情绪板', videoClip: '视频片段',
+    storyline: '文本', moodboard: '情绪板', videoClip: '视频片段',
     asset: '素材', task: '任务', art: '美术', character: '角色',
     script: '剧本', deliverable: '产出物', sceneCard: '场景',
   };

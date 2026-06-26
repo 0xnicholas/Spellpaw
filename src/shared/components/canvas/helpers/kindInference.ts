@@ -9,7 +9,7 @@ const KIND_TO_CARD_TYPE: Record<CopilotKind, CanvasNodeType> = {
 };
 
 const DEFAULT_TITLES: Record<CopilotKind, string> = {
-  text: '新故事线',
+  text: '新文本',
   image: '新美术',
   video: '新视频',
   upload: '新素材',

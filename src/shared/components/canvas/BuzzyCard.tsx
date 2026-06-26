@@ -45,7 +45,7 @@ const CARD_TYPE_CONFIG: Record<CanvasNodeType, CardTypeConfig> = {
   videoClip:    { icon: Video,        label: '视频',   selectedColor: 'yellow' },
   sceneCard:    { icon: Film,         label: '分镜',   selectedColor: 'blue' },
   asset:        { icon: Paperclip,    label: '资产',   selectedColor: 'accent' },
-  storyline:    { icon: BookOpen,     label: '故事线', selectedColor: 'accent' },
+  storyline:    { icon: BookOpen,     label: '文本',   selectedColor: 'accent' },
   moodboard:    { icon: Palette,      label: '情绪板', selectedColor: 'accent' },
   task:         { icon: CheckSquare,  label: '任务',   selectedColor: 'accent' },
 };

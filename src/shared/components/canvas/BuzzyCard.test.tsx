@@ -45,7 +45,7 @@ describe('BuzzyCard — type config', () => {
   });
 
   it('returns Chinese label for storyline type', () => {
-    expect(getCardLabel('storyline')).toBe('故事线');
+    expect(getCardLabel('storyline')).toBe('文本');
   });
 
   it('returns Chinese label for moodboard type', () => {

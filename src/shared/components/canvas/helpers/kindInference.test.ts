@@ -17,8 +17,8 @@ describe('kindToCardType', () => {
 });
 
 describe('defaultTitle', () => {
-  it('text → 新故事线', () => {
-    expect(defaultTitle('text')).toBe('新故事线');
+  it('text → 新文本', () => {
+    expect(defaultTitle('text')).toBe('新文本');
   });
   it('image → 新美术', () => {
     expect(defaultTitle('image')).toBe('新美术');

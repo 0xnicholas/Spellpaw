@@ -51,7 +51,7 @@ export function useCopilotGenerate(opts: {
       try {
         if (kind === 'text') {
           updateNodeData(cardId, {
-            title: params.prompt.slice(0, 30) || '新故事线',
+            title: params.prompt.slice(0, 30) || '新文本',
             description: params.prompt,
             isPlaceholder: false,
           });

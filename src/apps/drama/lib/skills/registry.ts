@@ -43,25 +43,97 @@ export function parseSlashCommand(text: string): { skill: Skill; args: string } 
 }
 
 /**
+ * Split a string into whitespace-separated tokens, while keeping
+ * anything inside matched `"..."` or `'...'` quotes as one token.
+ * Unmatched quotes are treated as literal characters (best effort).
+ */
+function tokenizeRespectingQuotes(text: string): string[] {
+  const tokens: string[] = [];
+  let current = '';
+  let quote: '"' | "'" | null = null;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]!;
+    if (quote) {
+      current += ch;
+      if (ch === quote) quote = null;
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+      current += ch;
+    } else if (/\s/.test(ch)) {
+      if (current) {
+        tokens.push(current);
+        current = '';
+      }
+    } else {
+      current += ch;
+    }
+  }
+  if (current) tokens.push(current);
+  return tokens;
+}
+
+/** Strip a single layer of matched `"` or `'` quotes from both ends. */
+function stripOuterQuotes(s: string): string {
+  if (s.length >= 2) {
+    const first = s[0]!;
+    const last = s[s.length - 1]!;
+    if ((first === '"' || first === "'") && first === last) {
+      return s.slice(1, -1);
+    }
+  }
+  return s;
+}
+
+/**
  * Parse a `key:value` arguments string into a record. Used for the
  * `/duplicate-project 新标题:foo 风格:bar` syntax.
  *
- *   "新标题:foo  风格:bar"  →  { "新标题": "foo", "风格": "bar" }
+ *   '新标题:foo  风格:bar'           →  { 新标题: 'foo', 风格: 'bar' }
+ *   '描述:"一个复杂的故事" 姓名:林'  →  { 描述: '一个复杂的故事', 姓名: '林' }
  *
- * Splits on whitespace between key:value pairs. Values with whitespace
- * are NOT supported (use a different skill parameter style for those).
+ * Splits on whitespace between key:value pairs. Values that contain
+ * whitespace can be wrapped in `"..."` or `'...'` to be preserved.
+ * Escapes inside quoted strings are NOT supported (no `\"` or `\'`).
  */
 export function parseArgTokens(text: string): Record<string, string> {
   const result: Record<string, string> = {};
-  const tokens = text.split(/\s+/).filter(Boolean);
+  const tokens = tokenizeRespectingQuotes(text);
   for (const token of tokens) {
     const idx = token.indexOf(':');
     if (idx <= 0) continue; // no colon, or starts with colon — skip
     const key = token.slice(0, idx);
-    const value = token.slice(idx + 1);
+    const value = stripOuterQuotes(token.slice(idx + 1));
     if (key && value) result[key] = value;
   }
   return result;
+}
+
+/**
+ * Render a skill's parameter schema as a human-readable bullet list,
+ * one line per property. Required keys are marked with `*`. Used in
+ * the LLM tool-call description so the model sees a clean list instead
+ * of an opaque JSON blob.
+ *
+ *   { 姓名: { type: 'string', description: '角色姓名（必填）' },
+ *     年龄: { type: 'string', description: '年龄，如 25 / 二十岁' } },
+ *   required: ['姓名']
+ *
+ * → "  - 姓名* (string): 角色姓名（必填）\n  - 年龄 (string): 年龄，如 25 / 二十岁"
+ */
+function formatParametersForLlm(
+  properties: Record<string, { type: string; description: string }>,
+  required: string[],
+): string {
+  const requiredSet = new Set(required);
+  const entries = Object.entries(properties);
+  if (entries.length === 0) return 'No parameters.';
+  return entries
+    .map(([key, spec]) => {
+      const marker = requiredSet.has(key) ? '*' : '';
+      const desc = spec.description?.trim() ?? '';
+      return desc ? `  - ${key}${marker} (${spec.type}): ${desc}` : `  - ${key}${marker} (${spec.type})`;
+    })
+    .join('\n');
 }
 
 /**
@@ -78,15 +150,16 @@ export function skillToToolConfig(skill: Skill): {
     required: string[];
   };
 } {
+  const paramLines = formatParametersForLlm(skill.parameters.properties, skill.parameters.required);
   return {
     name: `spellpaw_skill_${skill.id}`,
-    description: `${skill.description}。Examples: ${skill.examples.join(' | ')}`,
+    description: `${skill.description}\nSlash command: /${skill.slashCommand}\nExamples: ${skill.examples.join(' | ')}\nParameters:\n${paramLines}`,
     parameters: {
       type: 'object',
       properties: {
         input: {
           type: 'object',
-          description: `Parameters for ${skill.name} (${skill.slashCommand}). Schema: ${JSON.stringify(skill.parameters.properties)}`,
+          description: `Parameters for ${skill.name} (${skill.slashCommand})`,
         },
       },
       required: ['input'],
@@ -124,6 +197,10 @@ export function registerSkillTools(router: ToolRouter): void {
       const ctx = {
         projectId,
         getProjectTree: () => useProjectStore.getState().getCurrentTree(),
+        getCurrentProject: () => {
+          const { projects, currentProjectId } = useProjectStore.getState();
+          return projects.find((p) => p.id === currentProjectId) ?? null;
+        },
         getCanvasCardCount: () => useCanvasStore.getState().getCurrentNodes().length,
       };
       const result = await skill.invoke(input, ctx);

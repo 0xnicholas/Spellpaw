@@ -1,6 +1,6 @@
 /**
  * Tests for the skill system — registry, slash-command parsing, and
- * the 3 built-in skills.
+ * the 6 built-in skills.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useProjectStore } from '@drama/stores/projectStore';
@@ -23,12 +23,23 @@ import {
   duplicateProjectSkill,
   exportStoryboardPdfSkill,
 } from './builtIn';
+import { exportStoryboardPDF } from '@drama/lib/exportPDF';
 import type { SkillContext } from './types';
+
+// Mock the PDF export so the test doesn't try to build a real PDF and
+// we can assert it was called with the right project + tree.
+vi.mock('@drama/lib/exportPDF', () => ({
+  exportStoryboardPDF: vi.fn(),
+}));
 
 function makeCtx(): SkillContext {
   return {
     projectId: 'proj_skill',
     getProjectTree: () => useProjectStore.getState().getCurrentTree(),
+    getCurrentProject: () => {
+      const { projects, currentProjectId } = useProjectStore.getState();
+      return projects.find((p) => p.id === currentProjectId) ?? null;
+    },
     getCanvasCardCount: () => useCanvasStore.getState().getCurrentNodes().length,
   };
 }
@@ -83,11 +94,57 @@ describe('skill registry', () => {
     expect(parseArgTokens('a:1 stray b:2')).toEqual({ a: '1', b: '2' });
   });
 
+  it('parseArgTokens preserves whitespace inside double-quoted values', () => {
+    expect(parseArgTokens('描述:"这是一个复杂的故事" 姓名:林小夏')).toEqual({
+      描述: '这是一个复杂的故事',
+      姓名: '林小夏',
+    });
+  });
+
+  it('parseArgTokens preserves whitespace inside single-quoted values', () => {
+    expect(parseArgTokens("name:'John Doe' age:30")).toEqual({
+      name: 'John Doe',
+      age: '30',
+    });
+  });
+
+  it('parseArgTokens keeps quoted and unquoted values side by side', () => {
+    expect(parseArgTokens('姓名:林 年龄:25 描述:"咖啡师 / 温柔 / 坚韧"')).toEqual({
+      姓名: '林',
+      年龄: '25',
+      描述: '咖啡师 / 温柔 / 坚韧',
+    });
+  });
+
   it('skillToToolConfig generates spellpaw_skill_* prefixed config', () => {
     const cfg = skillToToolConfig(analyzePacingSkill);
     expect(cfg.name).toBe('spellpaw_skill_analyze-pacing');
     expect(cfg.description).toContain('节奏');
     expect(cfg.parameters.required).toEqual(['input']);
+  });
+
+  it('skillToToolConfig description is LLM-friendly (not raw JSON)', () => {
+    // character-profile has 5 params with one required (姓名)
+    const cfg = skillToToolConfig(characterProfileSkill);
+
+    // Description structure: description + slash command + examples + param list
+    expect(cfg.description).toMatch(/Slash command: \/character-profile/);
+    expect(cfg.description).toMatch(/Examples: /);
+    expect(cfg.description).toMatch(/Parameters:\n/);
+
+    // Each parameter rendered as a bullet line; required marked with *
+    expect(cfg.description).toMatch(/-\s*姓名\*\s*\(string\):\s*角色姓名/);
+    expect(cfg.description).toMatch(/-\s*年龄\s*\(string\):/);
+    expect(cfg.description).toMatch(/-\s*职业\s*\(string\):/);
+
+    // Crucially: no raw JSON.stringify artifact
+    expect(cfg.description).not.toMatch(/Schema:/);
+    expect(cfg.description).not.toMatch(/\{"姓名":/);
+  });
+
+  it('skillToToolConfig handles skills with no parameters gracefully', () => {
+    const cfg = skillToToolConfig(exportStoryboardPdfSkill);
+    expect(cfg.description).toContain('No parameters.');
   });
 
   it('getAllSkillToolConfigs returns one config per skill', () => {
@@ -296,9 +353,37 @@ describe('brainstorm-variants skill', () => {
 });
 
 describe('export-storyboard-pdf skill', () => {
-  it('returns a hint about how to export', async () => {
+  beforeEach(() => {
+    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null, projects: [] });
+    vi.mocked(exportStoryboardPDF).mockClear();
+  });
+
+  it('refuses to export when no project is open', async () => {
     const result = await exportStoryboardPdfSkill.invoke({}, makeCtx());
-    // Should mention at least one way to export
-    expect(result.summary).toMatch(/(导出|export|PDF)/i);
+    expect(result.summary).toMatch(/当前没有打开的项目/);
+    expect(exportStoryboardPDF).not.toHaveBeenCalled();
+  });
+
+  it('still exports an empty project (just produces a minimal PDF with title only)', async () => {
+    useProjectStore.getState().createProject('空项目', '', '#000');
+    const result = await exportStoryboardPdfSkill.invoke({}, makeCtx());
+    expect(result.summary).toContain('空项目');
+    expect(exportStoryboardPDF).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls exportStoryboardPDF with the current project + tree', async () => {
+    useProjectStore.getState().createProject('密室逃脱', '', '#6366f1');
+    const root = useProjectStore.getState().getCurrentTree()!;
+    useProjectStore.getState().addTreeNode(root.id, {
+      id: 'a1', type: 'act', title: '第一幕', status: 'draft',
+      metadata: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    });
+
+    const result = await exportStoryboardPdfSkill.invoke({}, makeCtx());
+    expect(result.summary).toContain('密室逃脱');
+    expect(exportStoryboardPDF).toHaveBeenCalledTimes(1);
+    const [project, tree] = vi.mocked(exportStoryboardPDF).mock.calls[0];
+    expect(project.title).toBe('密室逃脱');
+    expect(tree.id).toBe(root.id);
   });
 });

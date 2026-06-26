@@ -1,15 +1,20 @@
 /**
  * Skill integration for the Copilot chat.
  *
- * Provides a single helper, `tryRunSkill`, that both the default
- * `chatStore.sendMessage` (mock/offline) and the `useCopilotSSE`
- * override (real LLM mode) can call as the first step of message
- * processing. If the user input starts with a slash command matching
- * a built-in skill, the skill runs locally and the result is posted
- * as an assistant message — no LLM roundtrip required.
+ * Provides two helpers used by `chatStore.sendMessage` (mock/offline) and
+ * `useCopilotSSE` (real LLM mode) as the first step of message processing:
  *
- * Returns the assistant message on a skill match (caller should
- * short-circuit normal message handling), or null if no skill matched.
+ *   - `tryRunSkill(text)` — parse the slash command and return a pending
+ *     assistant message (spinner). The caller appends it to the chat,
+ *     runs the skill via `executeSkill`, then updates the pending message
+ *     in place with the final result.
+ *   - `executeSkill(text, projectId)` — actually invoke the skill and
+ *     return the final assistant message (or null if the input wasn't a
+ *     known slash command).
+ *
+ * If the user input starts with a slash command matching a built-in
+ * skill, the skill runs locally and the result is posted as an assistant
+ * message — no LLM roundtrip required.
  */
 import { generateId } from '@/shared/lib/utils';
 import { parseSlashCommand, parseArgTokens, getSkillBySlashCommand } from './registry';
@@ -28,16 +33,7 @@ export function isSlashCommand(text: string): boolean {
   return text.trim().startsWith('/');
 }
 
-/** Look up the skill that would handle this input, or null. */
-export function matchSkillByInput(text: string) {
-  return parseSlashCommand(text);
-}
-
-/**
- * Returns the final assistant message for a completed skill run.
- * Call this after tryRunSkill() resolves to update the pending message
- * in the chat to its final content.
- */
+/** Returns the final assistant message for a completed skill run. */
 export function buildSkillResultMessage(
   text: string,
   status: 'done' | 'error' = 'done',
@@ -53,11 +49,7 @@ export function buildSkillResultMessage(
   };
 }
 
-/**
- * Build the pending (running) message for a skill. Posted immediately
- * when the skill starts; the chat UI shows a spinner until the skill
- * completes and the message is updated via updateMessage().
- */
+/** Returns the pending (running) assistant message shown while a skill runs. */
 export function buildSkillPendingMessage(
   _skillId: string,
   text: string,
@@ -73,17 +65,10 @@ export function buildSkillPendingMessage(
 }
 
 /**
- * Run a slash command and return the *pending* assistant message
- * (with a spinner). The caller is responsible for:
- *
- *   1. Appending this pending message to the chat
- *   2. Calling await parsed.skill.invoke(...) and then building
- *      a final message via buildSkillResultMessage()
- *   3. Updating the pending message's content + status via
- *      useChatStore.getState().updateMessage(id, {...})
- *
- * Returns null if the input is not a slash command or the command
- * is unknown. Use `tryRunSkillFull()` for the simpler one-call API.
+ * Parse the slash command and return the pending assistant message.
+ * Returns null if the input is not a slash command or the command is
+ * unknown. The caller is responsible for running the skill via
+ * `executeSkill` and updating the pending message with the final result.
  */
 export function tryRunSkill(
   text: string,
@@ -101,49 +86,8 @@ export function tryRunSkill(
 }
 
 /**
- * One-call API: parse the slash command, run the skill, and return
- * the final result message. The caller is still responsible for
- * updating the chat UI (appending the pending message, then updating
- * it with the final). Provided for tests and code that doesn't care
- * about progress UI.
- */
-export async function tryRunSkillFull(
-  text: string,
-  projectId: string,
-): Promise<{ pendingMessage: ChatMessage; finalMessage: ChatMessage; skillId: string } | null> {
-  const parsed = parseSlashCommand(text);
-  if (!parsed) return null;
-
-  const pendingMessage = buildSkillPendingMessage(
-    parsed.skill.id,
-    `🎯 正在执行 ${parsed.skill.name}…`
-  );
-
-  const args = parseArgTokens(parsed.args);
-  const ctx: SkillContext = {
-    projectId,
-    getProjectTree: () => useProjectStore.getState().getCurrentTree(),
-    getCanvasCardCount: () => useCanvasStore.getState().getCurrentNodes().length,
-  };
-
-  let summary: string;
-  let status: 'done' | 'error';
-  try {
-    const result = await parsed.skill.invoke(args, ctx);
-    summary = result.summary;
-    status = 'done';
-  } catch (err) {
-    summary = `❌ Skill「${parsed.skill.name}」执行失败：${(err as Error).message}`;
-    status = 'error';
-  }
-
-  const finalMessage = buildSkillResultMessage(summary, status, pendingMessage.timestamp);
-  return { pendingMessage, finalMessage, skillId: parsed.skill.id };
-}
-
-/**
  * Generate a short user-facing "invoked" message that names the skill
- * being used. Used by the chat UI to show in the message log.
+ * being used. Shown in the message log next to the pending spinner.
  */
 export function formatSkillInvocation(skillId: string): string {
   const skill = getSkillBySlashCommand(skillId);
@@ -152,18 +96,25 @@ export function formatSkillInvocation(skillId: string): string {
 }
 
 /**
- * Parse the slash command at the start of `text` and return the skill
- * to invoke plus the parsed args. Returns null if no slash command.
+ * Build the SkillContext that skills receive at invocation time.
+ * Reads live state from the project + canvas stores.
  */
-export function parseSkillInvocation(text: string): { skill: import('./types').Skill; args: Record<string, string> } | null {
-  const parsed = parseSlashCommand(text);
-  if (!parsed) return null;
-  return { skill: parsed.skill, args: parseArgTokens(parsed.args) };
+function buildSkillContext(projectId: string): SkillContext {
+  return {
+    projectId,
+    getProjectTree: () => useProjectStore.getState().getCurrentTree(),
+    getCurrentProject: () => {
+      const { projects, currentProjectId } = useProjectStore.getState();
+      return projects.find((p) => p.id === currentProjectId) ?? null;
+    },
+    getCanvasCardCount: () => useCanvasStore.getState().getCurrentNodes().length,
+  };
 }
 
 /**
- * Run a skill and return the final result message. Convenience wrapper
- * for code that doesn't need to manage the pending/final two-step UI.
+ * Parse the slash command, run the skill, and return the final result
+ * message. Returns null if the input is not a slash command or the
+ * command is unknown.
  */
 export async function executeSkill(
   text: string,
@@ -172,11 +123,7 @@ export async function executeSkill(
   const parsed = parseSlashCommand(text);
   if (!parsed) return null;
   const args = parseArgTokens(parsed.args);
-  const ctx: SkillContext = {
-    projectId,
-    getProjectTree: () => useProjectStore.getState().getCurrentTree(),
-    getCanvasCardCount: () => useCanvasStore.getState().getCurrentNodes().length,
-  };
+  const ctx = buildSkillContext(projectId);
   let summary: string;
   let status: 'done' | 'error';
   try {

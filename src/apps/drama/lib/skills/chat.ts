@@ -102,7 +102,7 @@ export function formatSkillInvocation(skillId: string): string {
 function buildSkillContext(projectId: string): SkillContext {
   return {
     projectId,
-    getProjectTree: () => useProjectStore.getState().getCurrentTree(),
+    getCurrentCanvasNodes: () => useCanvasStore.getState().getCurrentNodes(),
     getCurrentProject: () => {
       const { projects, currentProjectId } = useProjectStore.getState();
       return projects.find((p) => p.id === currentProjectId) ?? null;

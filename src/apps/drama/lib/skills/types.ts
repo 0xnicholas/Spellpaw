@@ -13,16 +13,17 @@
  * execution that returns a summary. This makes skills predictable,
  * testable, and cheap to run (no LLM roundtrip when invoked directly).
  */
-import type { TreeNode, Project } from '@drama/types';
+import type { Project } from '@drama/types';
+import type { CanvasNode } from '@drama/types';
 
 export interface SkillContext {
   /** Current project id (for the store mutations) */
   projectId: string;
-  /** Read access to current project tree (read-only inside skills) */
-  getProjectTree: () => TreeNode | null;
+  /** Read access to current canvas cards (read-only inside skills) */
+  getCurrentCanvasNodes: () => CanvasNode[];
   /** Read access to current project metadata (read-only inside skills) */
   getCurrentProject: () => Project | null;
-  /** Read access to current canvas cards (read-only inside skills) */
+  /** Read access to current canvas card count */
   getCanvasCardCount: () => number;
 }
 

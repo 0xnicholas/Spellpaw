@@ -196,7 +196,7 @@ export function registerSkillTools(router: ToolRouter): void {
       }
       const ctx = {
         projectId,
-        getProjectTree: () => useProjectStore.getState().getCurrentTree(),
+        getCurrentCanvasNodes: () => useCanvasStore.getState().getCurrentNodes(),
         getCurrentProject: () => {
           const { projects, currentProjectId } = useProjectStore.getState();
           return projects.find((p) => p.id === currentProjectId) ?? null;

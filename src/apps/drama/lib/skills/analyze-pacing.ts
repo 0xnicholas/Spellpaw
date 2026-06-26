@@ -8,8 +8,8 @@ import type { Skill, SkillResult } from './types';
 export const invoke: Skill['invoke'] = async (args, ctx): Promise<SkillResult> => {
   const { toolRouter } = await import('@drama/stores/toolRouter');
   const focus = (args.focusArea as string) || 'overall';
-  const tree = ctx.getProjectTree();
-  if (!tree) {
+  const cards = ctx.getCurrentCanvasNodes();
+  if (cards.length === 0) {
     return { summary: '当前项目无内容，无法分析节奏。' };
   }
 

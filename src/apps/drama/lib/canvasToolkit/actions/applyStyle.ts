@@ -1,6 +1,6 @@
 import { useProjectStore } from "@drama/stores/projectStore";
 import { useCanvasStore } from "@drama/stores/canvasStore";
-import { addCanvasCardHandler } from "@drama/lib/builderHandlers";
+import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import { updateCardThumbnail, startPolling } from "../shared";
@@ -119,7 +119,7 @@ export async function applyStyle(
 	const title = linkedNode
 		? `${linkedNode.title}（风格化）`
 		: `${sourceCard.data.title}（风格化）`;
-	const card = await addCanvasCardHandler("art", {
+	const card = await addEnrichedCard("art", {
 		title,
 		description: combinedPrompt,
 		generatedPrompt: combinedPrompt,

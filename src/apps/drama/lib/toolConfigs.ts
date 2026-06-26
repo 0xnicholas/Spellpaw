@@ -276,6 +276,7 @@ export const SPELLPAW_TOOL_CONFIGS = [
 		endpoint: TOOL_ENDPOINT,
 	},
 
+	{
 		name: "spellpaw_generate_asset",
 		description: `Generate an image or video asset and add it to the canvas as a card. Use when the user asks to generate a storyboard, reference image, scene visual, or video. If a canvas card is selected, pass its cardId; otherwise provide an explicit prompt. Produces an 'art' card (image) or 'deliverable' card (video) by default; pass cardType to override. Valid providers: ${providerEnum().join(", ")}. Example: spellpaw_generate_asset({ mediaType: "image", cardId: "card-1", prompt: "雨夜小巷，霓虹灯反射，悬疑氛围" }).`,
 		parameters: {

@@ -6,7 +6,7 @@
  */
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
-import { addCanvasCardHandler } from '@drama/lib/builderHandlers';
+import { addEnrichedCard } from '@drama/lib/builderHandlers';
 import {
   generateAsset,
   generateVariants,
@@ -73,7 +73,7 @@ export const generationHandlers: ToolRouter = {
       throw new Error(task.error ?? '分镜生成失败');
     }
 
-    const card = await addCanvasCardHandler('art' as CanvasNodeType, {
+    const card = await addEnrichedCard('art' as CanvasNodeType, {
       title: node.title,
       description: prompt,
       generatedPrompt: prompt,

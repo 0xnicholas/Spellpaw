@@ -1,5 +1,5 @@
 import { useProjectStore } from "@drama/stores/projectStore";
-import { addCanvasCardHandler } from "@drama/lib/builderHandlers";
+import { addEnrichedCard } from '@drama/stores/toolRouter/cards';
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import {
@@ -64,7 +64,7 @@ export async function batchApplyStyle(
 			continue;
 		}
 
-		const card = await addCanvasCardHandler("art", {
+		const card = await addEnrichedCard("art", {
 			title: `${node.title}（${params.stylePrompt.slice(0, 12)}）`,
 			description: styledPrompt,
 			generatedPrompt: styledPrompt,

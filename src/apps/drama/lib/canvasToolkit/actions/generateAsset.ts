@@ -1,5 +1,5 @@
 import { useProjectStore } from "@drama/stores/projectStore";
-import { addCanvasCardHandler } from "@drama/lib/builderHandlers";
+import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import {
@@ -96,7 +96,6 @@ export async function generateAsset(
 			title: `${baseTitle}${titleSuffix}`,
 			description: input.prompt,
 			generatedPrompt: input.prompt,
-			 node?.id,
 			status: "draft",
 			sourceProvider: provider.id,
 		};
@@ -104,7 +103,7 @@ export async function generateAsset(
 			cardData.deliverableType = "video";
 		}
 
-		const card = await addCanvasCardHandler(cardType, cardData);
+		const card = await addEnrichedCard(cardType, cardData);
 		cardIds.push(card.id);
 
 		if (task.status === "done" && task.resultUrl) {

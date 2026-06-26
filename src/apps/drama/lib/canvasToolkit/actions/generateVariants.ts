@@ -1,6 +1,6 @@
 import { useProjectStore } from "@drama/stores/projectStore";
 import { useCanvasStore } from "@drama/stores/canvasStore";
-import { addCanvasCardHandler } from "@drama/lib/builderHandlers";
+import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 import { findNode } from "@drama/lib/treeUtils";
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
@@ -122,7 +122,7 @@ export async function generateVariants(
 		const title = node
 			? `${node.title}${titleSuffix}`
 			: `${basePrompt.slice(0, 20)}${titleSuffix}`;
-		const card = await addCanvasCardHandler("art", {
+		const card = await addEnrichedCard("art", {
 			title,
 			description: basePrompt,
 			generatedPrompt: basePrompt,

@@ -8,7 +8,7 @@ import {
   deleteSnapshot,
   type ProjectSnapshot,
 } from '@drama/lib/projectSnapshot';
-import { diffTrees, type NodeDiff } from '@drama/lib/treeDiff';
+import { diffCanvases, type CanvasDiff } from '@drama/lib/diffCanvases';
 import type { CanvasNode, CanvasEdge } from '@drama/types';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 
@@ -23,7 +23,7 @@ interface SnapshotModalProps {
 
 export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
   const projectId = useProjectStore((s) => s.currentProjectId);
-  const tree = useProjectStore((s) => (projectId ? s.trees[projectId] : null));
+  const tree = useProjectStore((s) => (projectId ? s.trees[projectId] : null));  // kept for diff display only
   const canvasNodes = useCanvasStore((s) => (projectId ? s.canvases[projectId]?.nodes ?? EMPTY_NODES : EMPTY_NODES));
   const canvasEdges = useCanvasStore((s) => (projectId ? s.canvases[projectId]?.edges ?? EMPTY_EDGES : EMPTY_EDGES));
 
@@ -31,7 +31,7 @@ export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [compareBase, setCompareBase] = useState<ProjectSnapshot | null>(null);
-  const [diffs, setDiffs] = useState<NodeDiff[] | null>(null);
+  const [diffs, setDiffs] = useState<CanvasDiff | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -49,11 +49,11 @@ export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
   }, [isOpen, refresh]);
 
   const handleSave = async () => {
-    if (!projectId || !tree || !name.trim()) return;
+    if (!projectId || !name.trim()) return;
     setLoading(true);
     await saveSnapshot(projectId, name.trim(), {
-      tree,
-      canvases: { nodes: canvasNodes, edges: canvasEdges },
+      cards: canvasNodes,
+      edges: canvasEdges,
     });
     setName('');
     await refresh();
@@ -62,26 +62,20 @@ export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
 
   const handleRollback = async (snapshot: ProjectSnapshot) => {
     if (!confirm(`回滚到「${snapshot.name}」?\n当前未保存的修改将丢失。`)) return;
-    useProjectStore.setState((s) => ({
-      trees: { ...s.trees, [snapshot.projectId]: snapshot.data.tree },
-    }));
-    if (snapshot.data.canvases) {
-      useCanvasStore.setState((s) => ({
-        canvases: {
-          ...s.canvases,
-          [snapshot.projectId]: {
-            ...s.canvases[snapshot.projectId],
-            nodes: snapshot.data.canvases!.nodes,
-            edges: snapshot.data.canvases!.edges,
-          },
+    useCanvasStore.setState((s) => ({
+      canvases: {
+        ...s.canvases,
+        [snapshot.projectId]: {
+          ...s.canvases[snapshot.projectId],
+          nodes: snapshot.data.cards ?? [],
+          edges: snapshot.data.edges ?? [],
         },
-      }));
-    }
+      },
+    }));
     onClose();
   };
 
   const handleCompare = (snapshot: ProjectSnapshot) => {
-    if (!tree) return;
     if (compareBase && compareBase.id === snapshot.id) {
       setCompareBase(null);
       setDiffs(null);
@@ -91,9 +85,11 @@ export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
       setCompareBase(snapshot);
       return;
     }
-    // Compare selected snapshot against compareBase
-    const result = diffTrees(compareBase.data.tree, snapshot.data.tree);
-    setDiffs(result.nodeDiffs);
+    const result = diffCanvases(
+      { cards: compareBase.data.cards ?? [] },
+      { cards: snapshot.data.cards ?? [] },
+    );
+    setDiffs(result);
   };
 
   const formatTime = (ts: number) => {

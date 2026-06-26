@@ -5,16 +5,13 @@
  */
 
 import { getSpellpawDB } from '@/shared/lib/idbStorage';
-import type { TreeNode, CanvasNode, CanvasEdge } from '@drama/types';
+import type { CanvasNode, CanvasEdge } from '@drama/types';
 
 const STORE = 'snapshots';
 
 interface SnapshotData {
-  tree: TreeNode;
-  canvases?: {
-    nodes: CanvasNode[];
-    edges: CanvasEdge[];
-  };
+  cards: CanvasNode[];
+  edges: CanvasEdge[];
 }
 
 export interface ProjectSnapshot {

@@ -364,8 +364,8 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
 
     setPopoverScreenPos({
       x: Math.max(
-        VIEWPORT_PAD,
-        Math.min(popoverCenterX - POPOVER_WIDTH / 2, window.innerWidth - POPOVER_WIDTH - VIEWPORT_PAD),
+        POPOVER_WIDTH / 2 + VIEWPORT_PAD,
+        Math.min(popoverCenterX, window.innerWidth - POPOVER_WIDTH / 2 - VIEWPORT_PAD),
       ),
       y: Math.max(NAVBAR_HEIGHT, popoverTop),
     });
@@ -398,8 +398,8 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
       }
       setPopoverScreenPos({
         x: Math.max(
-          VIEWPORT_PAD,
-          Math.min(popoverCenterX - POPOVER_WIDTH / 2, window.innerWidth - POPOVER_WIDTH - VIEWPORT_PAD),
+          POPOVER_WIDTH / 2 + VIEWPORT_PAD,
+          Math.min(popoverCenterX, window.innerWidth - POPOVER_WIDTH / 2 - VIEWPORT_PAD),
         ),
         y: Math.max(NAVBAR_HEIGHT, popoverTop),
       });

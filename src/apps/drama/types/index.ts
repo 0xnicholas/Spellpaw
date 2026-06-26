@@ -1,3 +1,19 @@
+// === Canvas Metadata (replaces Partial<TreeNode['metadata']>) ===
+
+/** Canvas card metadata — common metadata for TemplateScene and CanvasNodeData */
+export interface CardMetadata {
+  type?: 'act' | 'scene' | 'shot';
+  duration?: number;
+  location?: string;
+  timeOfDay?: string;
+  shotType?: string;
+  cameraMovement?: string;
+  dialogue?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // Tree
 export interface TreeNode {
   id: string;
@@ -91,6 +107,9 @@ export interface CanvasNodeData {
   duration?: number;
   fileSize?: number;
   resolution?: string;
+
+  // Canonical metadata (replaces scattered flat fields)
+  metadata?: CardMetadata;
 
   // Relations
   linkedCardIds?: string[];      // 关联的其他卡片
@@ -217,7 +236,7 @@ export interface TemplateScene {
   description: string;
   suggestedShotTypes?: string[];
   suggestedCameraMovement?: string;
-  metadata?: Partial<TreeNode['metadata']>;
+  metadata?: CardMetadata;
   children?: TemplateScene[];
 }
 

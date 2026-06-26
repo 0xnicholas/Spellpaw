@@ -1,4 +1,4 @@
-// === Canvas Metadata (replaces Partial<TreeNode['metadata']>) ===
+// === Canvas Metadata ===
 
 /** Canvas card metadata — common metadata for TemplateScene and CanvasNodeData */
 export interface CardMetadata {
@@ -14,30 +14,7 @@ export interface CardMetadata {
   updatedAt?: string;
 }
 
-// Tree
-export interface TreeNode {
-  id: string;
-  type: 'project' | 'act' | 'scene' | 'shot';
-  title: string;
-  status: 'draft' | 'in_progress' | 'review' | 'done';
-  children?: TreeNode[];
-  expanded?: boolean;
-  metadata?: {
-    duration?: number;
-    description?: string;
-    location?: string;
-    timeOfDay?: 'morning' | 'day' | 'evening' | 'night';
-    shotType?: 'wide' | 'medium' | 'close-up' | 'insert' | 'pov';
-    cameraMovement?: 'static' | 'pan' | 'tilt' | 'dolly' | 'handheld';
-    dialogue?: string;
-    notes?: string;
-    visualStyle?: string;
-    createdAt: string;
-    updatedAt: string;
-    lockedStylePrompt?: string | null;
-    lockedStyleNodeId?: string | null;
-  };
-}
+// Tree removed — Phase 4 canvas-first architecture deletes TreeNode entirely
 
 // Asset
 export type AssetType = 'video' | 'image' | 'audio' | 'script' | 'subtitle' | 'other';
@@ -135,8 +112,6 @@ export interface CanvasNodeData {
 
   // Legacy
   deliverableType?: 'image' | 'video' | 'audio';
-  linkedTreeNodeId?: string;     // deprecated — use linkedCardIds
-  linkedStyleNodeId?: string;    // deprecated — use styleRef
 
   // Canvas Node extras (React Flow passes these at runtime)
   _displayNumber?: string;
@@ -156,7 +131,6 @@ export interface CanvasNodeData {
   cameraMovement?: string;
   notes?: string;
   prompt?: string;
-  lockedStyleNodeId?: string;
 
   // Task card fields
   taskType?: 'instruction' | 'feedback' | 'diff';

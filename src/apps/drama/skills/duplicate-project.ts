@@ -2,6 +2,7 @@
  * Invoke for `duplicate-project`.
  * Pair file: ./duplicate-project.md (YAML frontmatter is the source of truth).
  */
+import type { TreeNode } from '@drama/types';
 import type { Skill, SkillResult } from './types';
 
 export const invoke: Skill['invoke'] = async (args, ctx): Promise<SkillResult> => {
@@ -11,7 +12,7 @@ export const invoke: Skill['invoke'] = async (args, ctx): Promise<SkillResult> =
     return { summary: '请提供新项目标题，例如 /duplicate-project 新标题:都市奇缘 v2' };
   }
 
-  const tree = ctx.getProjectTree();
+  const tree = ctx.getProjectTree() as TreeNode | null;
   if (!tree) {
     return { summary: '当前项目无内容可复制。' };
   }

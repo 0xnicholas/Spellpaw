@@ -17,6 +17,7 @@ import { useChatStore } from "@drama/stores/chatStore";
 import { useCanvasStore } from "@drama/stores/canvasStore";
 import { useDetailStore } from "@drama/stores/detailStore";
 import { useProjectStore } from "@drama/stores/projectStore";
+import { getAllSkills } from "@drama/skills/registry";
 import { useCopilotSSE } from "@drama/hooks/useCopilotSSE";
 import { generateId } from "@/shared/lib/utils";
 import { toolRouter } from "@drama/stores/toolRouter";
@@ -237,6 +238,7 @@ export function ChatPanel() {
 					/>
 					<QuickActions onAction={handleSendMessage} />
 					<CopilotChat
+						skills={getAllSkills()}
 						messages={filteredMessages}
 						streamingText={streamingMessage}
 						toolCalls={toolCalls}

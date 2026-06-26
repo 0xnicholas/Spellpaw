@@ -11,7 +11,7 @@ import { treeHandlers } from './tree';
 import { cardHandlers } from './cards';
 import { generationHandlers } from './generation';
 import { analysisHandlers } from './analysis';
-import { registerSkillTools } from '@drama/lib/skills/registry';
+import { registerSkillTools } from '@drama/skills/registry';
 import type { ToolRouter } from './types';
 
 export const toolRouter: ToolRouter = {

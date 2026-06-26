@@ -2,7 +2,7 @@
  * Tests for the chatStore's slash-command flow (sync parts only).
  *
  * The async part (running the skill, updating the pending message) is
- * covered by the unit tests in @drama/lib/skills/. This file focuses on
+ * covered by the unit tests in @drama/skills/. This file focuses on
  * the synchronous contract: a slash command should be recognized and
  * the user/invocation/pending messages should be appended in the right
  * order. Detailed async timing is intentionally not tested here.
@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useChatStore } from '@drama/stores/chatStore';
-import { isSlashCommand } from '@drama/lib/skills/chat';
+import { isSlashCommand } from '@drama/skills/chat';
 
 describe('chatStore — slash command detection', () => {
   beforeEach(() => {

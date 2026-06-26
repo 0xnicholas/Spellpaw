@@ -3,12 +3,13 @@
  * Pair file: ./analyze-pacing.md (YAML frontmatter is the source of truth).
  */
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import type { TreeNode } from '@drama/types';
 import type { Skill, SkillResult } from './types';
 
 export const invoke: Skill['invoke'] = async (args, ctx): Promise<SkillResult> => {
   const { toolRouter } = await import('@drama/stores/toolRouter');
   const focus = (args.focusArea as string) || 'overall';
-  const tree = ctx.getProjectTree();
+  const tree = ctx.getProjectTree() as TreeNode | null;
   if (!tree) {
     return { summary: '当前项目无内容，无法分析节奏。' };
   }

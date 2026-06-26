@@ -7,11 +7,11 @@
  * continue to work without churn.
  *
  * Preferred new import:
- *   import { BUILT_IN_SKILLS, getSkillById } from '@drama/lib/skills/registry';
+ *   import { BUILT_IN_SKILLS, getSkillById } from '@drama/skills/registry';
  */
 export { BUILT_IN_SKILLS } from './loader';
 import { BUILT_IN_SKILLS } from './loader';
-import type { Skill } from './types';
+import type { Skill } from './types';  // drama's typed SkillContext
 
 export const analyzePacingSkill: Skill = BUILT_IN_SKILLS.find((s) => s.id === 'analyze-pacing')!;
 export const duplicateProjectSkill: Skill = BUILT_IN_SKILLS.find((s) => s.id === 'duplicate-project')!;

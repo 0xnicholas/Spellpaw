@@ -3,11 +3,12 @@
  * Pair file: ./export-storyboard-pdf.md (YAML frontmatter is the source of truth).
  */
 import { exportStoryboardPDF } from '@drama/lib/exportPDF';
+import type { TreeNode, Project } from '@drama/types';
 import type { Skill, SkillResult } from './types';
 
 export const invoke: Skill['invoke'] = async (_args, ctx): Promise<SkillResult> => {
-  const project = ctx.getCurrentProject();
-  const tree = ctx.getProjectTree();
+  const project = ctx.getCurrentProject() as Project | null;
+  const tree = ctx.getProjectTree() as TreeNode | null;
   if (!project) {
     return { summary: '当前没有打开的项目，无法导出 PDF。' };
   }

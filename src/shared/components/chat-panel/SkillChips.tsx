@@ -1,22 +1,25 @@
 /**
- * SkillChips — quick-pick chips for built-in Copilot skills.
+ * SkillChips — quick-pick chips for Copilot skills.
  *
  * Clicking a chip inserts the slash command into the chat input.
  * Skills are higher-level workflows (vs the QuickActions chips which
  * send a freeform prompt to the LLM).
+ *
+ * The `skills` prop must be provided by the parent (app-specific).
  */
 import { useTranslation } from 'react-i18next';
 import { Sparkles } from 'lucide-react';
-import { getAllSkills } from '@drama/lib/skills/registry';
+import type { Skill } from '@shared/copilot/skills/types';
 
 interface SkillChipsProps {
+  /** Skills to render as clickable chips. Provided by the hosting app. */
+  skills: readonly Skill[];
   /** Called when a skill chip is clicked. The string is the slash command with leading slash. */
   onInsert: (slashCommand: string) => void;
 }
 
-export function SkillChips({ onInsert }: SkillChipsProps) {
+export function SkillChips({ skills, onInsert }: SkillChipsProps) {
   const { t } = useTranslation();
-  const skills = getAllSkills();
 
   return (
     <div className="flex flex-wrap items-center gap-1.5 px-3 py-1.5">

@@ -20,7 +20,7 @@ import {
   batchApplyStyle,
 } from '@drama/lib/canvasToolkit';
 import { logger } from '@shared/lib/logger';
-import { isSlashCommand, tryRunSkill, executeSkill, formatSkillInvocation } from '@drama/lib/skills/chat';
+import { isSlashCommand, tryRunSkill, executeSkill, formatSkillInvocation } from '@drama/skills/chat';
 import type { CanvasIntent } from '@drama/lib/intentRouter';
 
 export function useCopilotSSE() {

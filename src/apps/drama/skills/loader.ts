@@ -12,8 +12,8 @@
  * The loader runs at module init time and produces a frozen
  * `BUILT_IN_SKILLS` array that `registry.ts` consumes.
  */
-import { parseFrontmatter } from './frontmatter';
-import type { Skill } from './types';
+import { parseFrontmatter } from '@shared/copilot/skills/frontmatter';
+import type { Skill } from '@shared/copilot/skills/types';
 
 // ── Pair imports ────────────────────────────────────────────────
 // MD files are imported as raw text (?raw) so the YAML frontmatter

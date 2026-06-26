@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, FlaskConical, Trash2 } from 'lucide-react';
 import { CopilotChat } from '@chat/copilot';
+import { getAllSkills } from '@drama/skills/registry';
 import { Inspector } from '@drama/components/copilot-lab/Inspector';
 import { useChatStore } from '@drama/stores/chatStore';
 import { useCopilotLabStore, LAB_PROJECT_ID } from '@drama/stores/copilotLabStore';
@@ -95,6 +96,7 @@ export function CopilotLabPage() {
           {/* 消息区：只占中间空间 */}
           <div className="flex-1 overflow-hidden">
             <CopilotChat
+              skills={getAllSkills()}
               messages={messages}
               streamingText={streamingMessage}
               toolCalls={toolCalls}

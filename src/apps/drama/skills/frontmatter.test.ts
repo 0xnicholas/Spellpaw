@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseFrontmatter } from './frontmatter';
+import { parseFrontmatter } from '@shared/copilot/skills/frontmatter';
 
 describe('parseFrontmatter', () => {
   it('parses simple key:value pairs', () => {

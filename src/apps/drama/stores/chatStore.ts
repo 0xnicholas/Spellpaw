@@ -12,7 +12,7 @@ import {
   executeSkill,
   formatSkillInvocation,
   isSlashCommand,
-} from "@drama/lib/skills/chat";
+} from "@drama/skills/chat";
 import { useProjectStore } from "./projectStore";
 import { useCanvasStore } from "./canvasStore";
 

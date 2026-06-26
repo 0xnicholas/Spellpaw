@@ -4,7 +4,7 @@
  */
 import { config } from "@/shared/config";
 import { listProviderIds } from "@drama/lib/canvasToolkit";
-import { getAllSkillToolConfigs } from "@drama/lib/skills/registry";
+import { getAllSkillToolConfigs } from "@drama/skills/registry";
 
 const TOOL_ENDPOINT = config.toolServerEndpoint;
 

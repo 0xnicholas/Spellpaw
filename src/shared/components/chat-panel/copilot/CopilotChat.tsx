@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ChatMessage, ChatAction } from '@shared/types';
+import type { Skill } from '@shared/copilot/skills/types';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { SkillChips } from '../SkillChips';
@@ -27,6 +28,8 @@ export interface CopilotChatProps {
   inputClassName?: string;
   /** 当前项目 id — regenerate 需要 */
   projectId?: string;
+  /** 当前 app 的可用 skills — 渲染为 SkillChips */
+  skills: readonly Skill[];
   /** 触发 abort 的回调 */
   onStop?: () => void;
   /** 触发 regenerate 的回调 */
@@ -46,6 +49,7 @@ export function CopilotChat({
   inputLeftToolbar,
   inputRows,
   inputClassName,
+  skills,
   projectId,
   onStop,
   onRegenerate,
@@ -64,6 +68,7 @@ export function CopilotChat({
         projectId={projectId}
       />
       <SkillChips
+        skills={skills}
         onInsert={(cmd) => {
           const ev = new CustomEvent('spellpaw:insert-text', { detail: cmd });
           window.dispatchEvent(ev);

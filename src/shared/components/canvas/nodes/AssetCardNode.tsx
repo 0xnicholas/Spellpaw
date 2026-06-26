@@ -3,6 +3,7 @@ import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { File, Image, Music, Video, FileText, ImageOff } from 'lucide-react';
 import { Lightbox } from '@/shared/components/ui/Lightbox';
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import { BuzzyCard } from '../BuzzyCard';
 import type { AssetType, CanvasNodeData } from '@drama/types';
 
 const typeIcons: Record<string, typeof File> = {
@@ -37,15 +38,10 @@ export function AssetCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
   };
 
   return (
-    <>
-      <div
-        className={`w-[200px] rounded-[var(--radius-base)] border bg-[var(--color-bg-secondary)] p-4 shadow-sm transition-shadow ${
-          selected
-            ? 'border-[var(--color-accent-500)] shadow-md'
-            : 'border-[var(--color-border-default)]'
-        }`}
-      >
-        <Handle type="target" position={Position.Top} className="!bg-[var(--color-accent-500)]" />
+    <BuzzyCard type="asset" data={data} selected={selected} className="w-[200px]" ariaLabel={`资产：${data.title}`}>
+      <Handle type="target" position={Position.Top} className="!bg-[var(--color-accent-500)]" />
+
+      <div className="p-3">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-bg-tertiary)]">
             <Icon className="h-5 w-5 text-[var(--color-text-tertiary)]" />
@@ -61,7 +57,7 @@ export function AssetCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
                   if (e.key === 'Enter') handleSave();
                   if (e.key === 'Escape') { setEditValue(data.title); setIsEditing(false); }
                 }}
-                className="w-full rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-secondary)] px-1 py-0.5 text-sm font-medium outline-none"
+                className="w-full rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-primary)] px-1 py-0.5 text-sm font-medium text-[var(--color-text-primary)] outline-none"
               />
             ) : (
               <p
@@ -76,7 +72,6 @@ export function AssetCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
           </div>
         </div>
 
-        {/* Thumbnail preview for image assets */}
         {hasThumbnail && (
           <button
             onClick={(e) => {
@@ -100,9 +95,9 @@ export function AssetCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
             <ImageOff className="h-5 w-5 text-[var(--color-text-tertiary)]" />
           </div>
         )}
-
-        <Handle type="source" position={Position.Bottom} className="!bg-[var(--color-accent-500)]" />
       </div>
+
+      <Handle type="source" position={Position.Bottom} className="!bg-[var(--color-accent-500)]" />
 
       <Lightbox
         src={data.thumbnail ?? ''}
@@ -110,6 +105,6 @@ export function AssetCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
       />
-    </>
+    </BuzzyCard>
   );
 }

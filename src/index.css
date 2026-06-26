@@ -222,19 +222,36 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   --tw-prose-td-borders: var(--color-border-default);
 }
 
-/* React Flow Styles */
+/* React Flow Styles — Buzzy canvas (dark theme) */
 .react-flow__node {
-  border-radius: var(--radius-base);
-  background: var(--color-bg-secondary) !important;
+  border-radius: var(--radius-lg);
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
 }
 .react-flow__node.selected {
-  box-shadow: 0 0 0 1.5px var(--color-accent-500);
+  box-shadow: none;
 }
 .react-flow__handle {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
+  background: oklch(60% 0.05 275);
+  border: 1.5px solid oklch(10% 0.01 250);
+  opacity: 0.5;
+}
+.react-flow__handle:hover {
+  opacity: 1;
   background: var(--color-accent-500);
-  border: 1.5px solid var(--color-bg-primary);
+}
+
+/* React Flow background dot grid (overrides default line) */
+.react-flow__background {
+  background-color: #000000;
+}
+.react-flow__background-pattern.dots {
+  fill: rgba(255, 255, 255, 0.08);
 }
 
 /* React Flow Controls — dark mode overrides */
@@ -271,5 +288,26 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 
 .animate-card-pulse {
   animation: cardPulse 0.6s ease-in-out 3;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.animate-status-pulse {
+  animation: statusPulse 1.4s ease-in-out infinite;
+}
+
+/* Buzzy canvas — dark React Flow node overrides */
+.buzzy-card {
+  /* Override React Flow's default light node box */
+  background-color: oklch(8% 0.01 250) !important;
+  color: var(--color-text-primary);
+  box-shadow: none !important;
+}
+
+.buzzy-card .buzzy-card-body {
+  /* Body inherits the dark bg from parent */
 }
 

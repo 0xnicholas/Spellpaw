@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
+import { User as UserIcon } from 'lucide-react';
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import { BuzzyCard } from '../BuzzyCard';
 import type { CanvasNodeData } from '@drama/types';
 
 export function CharacterCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeData>>) {
@@ -16,8 +18,6 @@ export function CharacterCardNode({ data, id, selected }: NodeProps<Node<CanvasN
   const appearance = data.appearance as string | undefined;
   const avatar = data.avatar as string | undefined;
 
-  const displayNumber = (data._displayNumber as string) ?? '';
-
   const handleSave = () => {
     if (editValue.trim() && editValue.trim() !== data.title) {
       updateNodeData(id, { title: editValue.trim() });
@@ -26,37 +26,36 @@ export function CharacterCardNode({ data, id, selected }: NodeProps<Node<CanvasN
   };
 
   return (
-    <div
-      className={`w-[220px] rounded-[var(--radius-base)] border bg-[var(--color-bg-secondary)] shadow-sm transition-shadow ${
-        selected ? 'border-[var(--color-accent-500)] shadow-md' : 'border-[var(--color-border-default)]'
-      }`}
-    >
+    <BuzzyCard type="character" data={data} selected={selected} className="w-[220px]" ariaLabel={`角色：${name}`}>
       <Handle type="target" position={Position.Left} className="!bg-[var(--color-accent-500)]" />
-
-      <div className="rounded-t-[var(--radius-base)] bg-[var(--color-status-success-bg)] px-3 py-1.5 border-b border-[var(--color-border-default)] flex items-center gap-1.5">
-        {displayNumber && (
-          <span className="text-[9px] font-mono text-[var(--color-text-tertiary)] tracking-[0.02em] shrink-0">{displayNumber}</span>
-        )}
-        <span className="text-[10px] font-semibold text-[var(--color-status-success-text)] uppercase tracking-wider">👤 人物角色</span>
-      </div>
 
       <div className="p-3">
         <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-xl"
-            style={{ background: avatar ? `url(${avatar}) center/cover` : 'var(--color-bg-tertiary)' }}>
-            {!avatar && '👤'}
+          <div
+            className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-xl bg-[var(--color-bg-tertiary)] overflow-hidden"
+            style={avatar ? { background: `url(${avatar}) center/cover` } : undefined}
+          >
+            {!avatar && <UserIcon className="h-6 w-6 text-[var(--color-text-tertiary)]" />}
           </div>
 
           <div className="min-w-0 flex-1">
             {isEditing ? (
-              <input autoFocus value={editValue}
-                onChange={(e) => setEditValue(e.target.value)} onBlur={handleSave}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setEditValue(data.title); setIsEditing(false); } }}
-                className="w-full rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-secondary)] px-1.5 py-0.5 text-sm font-medium outline-none"
+              <input
+                autoFocus
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={handleSave}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSave();
+                  if (e.key === 'Escape') { setEditValue(data.title); setIsEditing(false); }
+                }}
+                className="w-full rounded-[var(--radius-sm)] border border-[var(--color-accent-500)] bg-[var(--color-bg-primary)] px-1.5 py-0.5 text-sm font-medium text-[var(--color-text-primary)] outline-none"
               />
             ) : (
-              <h4 className="text-[13px] font-semibold text-[var(--color-text-primary)] cursor-text"
-                onDoubleClick={() => { setEditValue(data.title); setIsEditing(true); }}>
+              <h4
+                className="text-[13px] font-semibold text-[var(--color-text-primary)] cursor-text"
+                onDoubleClick={() => { setEditValue(data.title); setIsEditing(true); }}
+              >
                 {name}
               </h4>
             )}
@@ -83,6 +82,6 @@ export function CharacterCardNode({ data, id, selected }: NodeProps<Node<CanvasN
       </div>
 
       <Handle type="source" position={Position.Right} className="!bg-[var(--color-accent-500)]" />
-    </div>
+    </BuzzyCard>
   );
 }

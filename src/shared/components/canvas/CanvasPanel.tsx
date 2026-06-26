@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
   ReactFlow,
   Background,
+  BackgroundVariant,
   Controls,
   MiniMap,
   useNodesState,
@@ -392,10 +393,10 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
           selectionOnDrag
           panOnDrag={[1, 2]}
           multiSelectionKeyCode={['Shift', 'Meta']}
-          className="bg-[var(--color-bg-secondary)]"
+          className="bg-black"
           proOptions={{ hideAttribution: true }}
         >
-          <Background gap={20} size={1} color="var(--color-border-subtle)" />
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(255, 255, 255, 0.08)" />
           <Controls className="!rounded-[var(--radius-base)] !border !border-[var(--color-border-default)] !shadow-sm" />
           <MiniMap
             pannable

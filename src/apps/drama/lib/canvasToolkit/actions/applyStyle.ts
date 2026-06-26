@@ -1,7 +1,6 @@
 import { useProjectStore } from "@drama/stores/projectStore";
 import { useCanvasStore } from "@drama/stores/canvasStore";
 import { addCanvasCardHandler } from "@drama/lib/builderHandlers";
-import { findNode } from "@drama/lib/treeUtils";
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import { updateCardThumbnail, startPolling } from "../shared";
@@ -19,8 +18,7 @@ export async function applyStyle(
 	params: ApplyStyleParams,
 ): Promise<ToolkitResult> {
 	const store = useProjectStore.getState();
-	const tree = store.getCurrentTree();
-	if (!tree) {
+		if (!tree) {
 		return { success: false, message: "当前没有打开的项目", retryable: false };
 	}
 

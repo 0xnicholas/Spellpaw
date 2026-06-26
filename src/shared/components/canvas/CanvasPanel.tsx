@@ -137,7 +137,7 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
   const persistedNodes = useCanvasStore((s) => s.getCurrentNodes());
   const persistedEdges = useCanvasStore((s) => s.getCurrentEdges());
 
-  const currentTree = useProjectStore((s) => s.getCurrentTree());
+  const canvasNodes = useCanvasStore((s) => s.getCurrentNodes());
 
   const [nodes, setNodes, onNodesChange] = useNodesState(persistedNodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(persistedEdges as Edge[]);
@@ -175,7 +175,7 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
   }, [focusCardId, nodes]);
 
   const nodesWithDisplay = useMemo(() => {
-    const map = computeDisplayNumbers(currentTree, getCurrentNodes());
+    const map = computeDisplayNumbers(canvasNodes, getCurrentNodes());
     return nodes.map((n) => ({
       ...n,
       data: { ...n.data, _displayNumber: map.get(n.id) ?? '', _highlighted: highlightSet.has(n.id), _onAIAction: onAIAction },
@@ -321,13 +321,13 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
   );
 
   // 防御：popover 目标卡片被外部删除时关闭
-  const canvasNodes = useCanvasStore((s) => s.getCurrentNodes());
+  const currentNodes = useCanvasStore((s) => s.getCurrentNodes());
   useEffect(() => {
     if (!copilotTarget) return;
-    if (!canvasNodes.some((n) => n.id === copilotTarget.nodeId)) {
+    if (!currentNodes.some((n) => n.id === copilotTarget.nodeId)) {
       setCopilotTarget(null);
     }
-  }, [canvasNodes, copilotTarget]);
+  }, [currentNodes, copilotTarget]);
 
   // Recompute popover screen position (viewport change + target change)
   useEffect(() => {

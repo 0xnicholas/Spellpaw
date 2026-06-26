@@ -47,10 +47,8 @@ const baseProps = {
 
 function setupCard() {
   useProjectStore.setState({
-    projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
-    trees: { 'proj_1': { id: 'root', type: 'project', title: 'Test', status: 'draft' as const } },
+    projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }]},
     currentProjectId: 'proj_1',
-    selectedNodeId: null,
   });
   useCanvasStore.setState({
     canvases: {

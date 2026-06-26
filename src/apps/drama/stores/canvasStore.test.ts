@@ -6,10 +6,8 @@ describe('canvasStore', () => {
   beforeEach(() => {
     // Ensure we have a project set so canvas operations work
     useProjectStore.setState({
-      projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
-      trees: { 'proj_1': { id: 'root', type: 'project', title: 'Test', status: 'draft' as const } },
+      projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }]},
       currentProjectId: 'proj_1',
-      selectedNodeId: null,
     });
     useCanvasStore.setState({
       canvases: {
@@ -64,23 +62,21 @@ describe('canvasStore', () => {
       id: 'test_1',
       type: 'sceneCard',
       position: { x: 0, y: 0 },
-      data: { title: 'Original', linkedTreeNodeId: 'tree_1' },
+      data: { title: 'Original', : 'tree_1' },
     });
     useCanvasStore.getState().duplicateNode('test_1');
     const nodes = useCanvasStore.getState().getCurrentNodes();
     expect(nodes).toHaveLength(2);
     expect(nodes[1].data.title).toBe('Original');
-    expect(nodes[1].data.linkedTreeNodeId).toBeUndefined();
+    expect(nodes[1].data.).toBeUndefined();
   });
 });
 
 describe('selectedCardId', () => {
   beforeEach(() => {
     useProjectStore.setState({
-      projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
-      trees: { 'proj_1': { id: 'root', type: 'project', title: 'Test', status: 'draft' as const } },
+      projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }]},
       currentProjectId: 'proj_1',
-      selectedNodeId: null,
     });
     useCanvasStore.setState({
       canvases: {

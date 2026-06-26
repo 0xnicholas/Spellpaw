@@ -23,8 +23,6 @@ const STATIC_LABELS: Record<string, string> = {
   spellpaw_update_node: 'Updating node…',
   spellpaw_delete_node: 'Deleting node…',
   spellpaw_move_node: 'Reordering…',
-  spellpaw_get_tree: 'Reading project tree…',
-  spellpaw_get_subtree: 'Reading scene details…',
   spellpaw_apply_template: 'Applying template…',
 
   // Generation domain

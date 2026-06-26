@@ -126,7 +126,6 @@ export async function generateVariants(
 			title,
 			description: basePrompt,
 			generatedPrompt: basePrompt,
-			 node?.id,
 			status: "draft",
 			sourceProvider: provider.id,
 		});

@@ -7,7 +7,6 @@
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { addCanvasCardHandler } from '@drama/lib/builderHandlers';
-import { findNode } from '@drama/lib/treeUtils';
 import {
   generateAsset,
   generateVariants,
@@ -30,10 +29,8 @@ export const generationHandlers: ToolRouter = {
     const stylePrompt = params.stylePrompt as string | undefined;
 
     const store = useProjectStore.getState();
-    const tree = store.getCurrentTree();
-    if (!tree) return '(无法生成：当前无项目)';
-
-    const node = findNode(tree, nodeId);
+        
+    const node = null;
     if (!node) return `(未找到节点 ${nodeId})`;
 
     let prompt: string;

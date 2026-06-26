@@ -90,9 +90,7 @@ export function ChatPanel() {
 	const highlightAffectedCards = useCallback((affectedTreeNodeIds: string[]) => {
 		const cards = useCanvasStore.getState().getCurrentNodes();
 		const ids = new Set(affectedTreeNodeIds);
-		const cardIds = cards
-			.filter((c) => c.data.linkedTreeNodeId && ids.has(c.data.linkedTreeNodeId as string))
-			.map((c) => c.id);
+		const cardIds = ids.has('*') ? cards.map(c => c.id) : [...ids].filter(id => cards.some(c => c.id === id));
 		if (cardIds.length > 0) triggerHighlight(cardIds);
 	}, [triggerHighlight]);
 

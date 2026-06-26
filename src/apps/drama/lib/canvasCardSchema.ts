@@ -34,21 +34,6 @@ function validatePosition(position: unknown): string | undefined {
   if (typeof position.y !== 'number') return 'position.y 必须是数字';
 }
 
-function validateLinkedTreeNodeId(nodeId: string | undefined): string | undefined {
-  if (nodeId === undefined) return;
-  const tree = useProjectStore.getState().getCurrentTree();
-  if (!tree) return '当前无项目，无法关联树节点';
-  // Simple top-level check first
-  if (tree.id === nodeId) return;
-  const exists = (tree.children ?? []).some((act) =>
-    act.id === nodeId ||
-    (act.children ?? []).some((scene) =>
-      scene.id === nodeId || (scene.children ?? []).some((shot) => shot.id === nodeId)
-    )
-  );
-  if (!exists) return `linkedTreeNodeId 不存在: ${nodeId}`;
-}
-
 function validateStatus(status: unknown): string | undefined {
   if (status === undefined) return;
   if (typeof status !== 'string') return 'status 必须是字符串';
@@ -119,15 +104,6 @@ export function validateCanvasCardPayload(payload: unknown): ValidationResult {
     if (posErr) return { valid: false, error: posErr };
   }
 
-  const linkedId = typedData.linkedTreeNodeId;
-  if (linkedId !== undefined) {
-    if (typeof linkedId !== 'string') {
-      return { valid: false, error: 'linkedTreeNodeId 必须是字符串' };
-    }
-    const treeErr = validateLinkedTreeNodeId(linkedId);
-    if (treeErr) return { valid: false, error: treeErr };
-  }
-
   return { valid: true };
 }
 
@@ -154,15 +130,6 @@ export function validateCanvasCardUpdateData(
   const typeErr = validateCardTypeData(cardType, typedData);
   if (typeErr) return { valid: false, error: typeErr };
 
-  const linkedId = typedData.linkedTreeNodeId;
-  if (linkedId !== undefined) {
-    if (typeof linkedId !== 'string') {
-      return { valid: false, error: 'linkedTreeNodeId 必须是字符串' };
-    }
-    const treeErr = validateLinkedTreeNodeId(linkedId);
-    if (treeErr) return { valid: false, error: treeErr };
-  }
-
   return { valid: true };
 }
 
@@ -181,7 +148,6 @@ export function normalizeCardData(
   if (typeof raw.description === 'string') common.description = raw.description;
   if (typeof raw.status === 'string') common.status = raw.status as CanvasNodeData['status'];
   if (Array.isArray(raw.tags)) common.tags = raw.tags.filter((t): t is string => typeof t === 'string');
-  if (typeof raw.linkedTreeNodeId === 'string') common.linkedTreeNodeId = raw.linkedTreeNodeId;
   if (typeof raw.sourceProvider === 'string') common.sourceProvider = raw.sourceProvider;
 
   switch (cardType) {
@@ -242,7 +208,6 @@ export function normalizeCardUpdateData(
   if (Array.isArray(raw.tags)) {
     common.tags = raw.tags.filter((t): t is string => typeof t === 'string');
   }
-  if (typeof raw.linkedTreeNodeId === 'string') common.linkedTreeNodeId = raw.linkedTreeNodeId;
   if (typeof raw.sourceProvider === 'string') common.sourceProvider = raw.sourceProvider;
 
   switch (cardType) {

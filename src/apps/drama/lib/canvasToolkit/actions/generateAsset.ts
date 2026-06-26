@@ -1,6 +1,5 @@
 import { useProjectStore } from "@drama/stores/projectStore";
 import { addCanvasCardHandler } from "@drama/lib/builderHandlers";
-import { findNode } from "@drama/lib/treeUtils";
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import {

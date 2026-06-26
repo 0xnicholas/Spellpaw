@@ -35,7 +35,7 @@ vi.mock('@drama/lib/exportPDF', () => ({
 function makeCtx(): SkillContext {
   return {
     projectId: 'proj_skill',
-    getProjectTree: () => useProjectStore.getState().getCurrentTree(),
+    getCurrentCanvasNodes: () => useCanvasStore.getState().getCurrentNodes(),
     getCurrentProject: () => {
       const { projects, currentProjectId } = useProjectStore.getState();
       return projects.find((p) => p.id === currentProjectId) ?? null;
@@ -163,7 +163,6 @@ describe('skill registry', () => {
 
 describe('analyze-pacing skill', () => {
   beforeEach(() => {
-    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null, projects: [] });
     useCanvasStore.setState({ canvases: {}, selectedCardId: null });
     // Mock fetch to prevent actual API calls
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
@@ -179,16 +178,8 @@ describe('analyze-pacing skill', () => {
 
   it('returns composite report on a real project', async () => {
     useProjectStore.getState().createProject('p', '', '#000');
-    // Add some tree content so analyze_structure has something to work with
-    const root = useProjectStore.getState().getCurrentTree()!;
-    useProjectStore.getState().addTreeNode(root.id, {
-      id: 'a1', type: 'act', title: '第一幕', status: 'draft',
-      metadata: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    });
-    useProjectStore.getState().addTreeNode('a1', {
-      id: 's1', type: 'scene', title: '开场', status: 'draft',
-      metadata: { duration: 30, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    });
+    // Add canvas content so analyze_structure has something to work with
+    useCanvasStore.setState({ canvases: { [useProjectStore.getState().currentProjectId!]: { nodes: [{ id: 'a1', type: 'sceneCard', position: { x: 0, y: 0 }, data: { title: '开场', status: 'draft', duration: 30, metadata: { type: 'scene' } } }], edges: [], pushedVersion: 0 } }, selectedCardId: null });
 
     const result = await analyzePacingSkill.invoke({ focusArea: 'first_act' }, makeCtx());
     expect(result.summary).toContain('结构诊断');
@@ -200,7 +191,6 @@ describe('analyze-pacing skill', () => {
 
 describe('duplicate-project skill', () => {
   beforeEach(() => {
-    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null, projects: [] });
     useCanvasStore.setState({ canvases: {}, selectedCardId: null });
   });
 
@@ -219,15 +209,7 @@ describe('duplicate-project skill', () => {
 
   it('duplicates acts and scenes', async () => {
     useProjectStore.getState().createProject('原版', '', '#000');
-    const root = useProjectStore.getState().getCurrentTree()!;
-    useProjectStore.getState().addTreeNode(root.id, {
-      id: 'a1', type: 'act', title: '第一幕', status: 'draft',
-      metadata: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    });
-    useProjectStore.getState().addTreeNode('a1', {
-      id: 's1', type: 'scene', title: '场景 1', status: 'draft',
-      metadata: { duration: 30, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    });
+    useCanvasStore.setState({ canvases: { [useProjectStore.getState().currentProjectId!]: { nodes: [{ id: 'a1', type: 'sceneCard', position: { x: 0, y: 0 }, data: { title: '场景 1', status: 'draft', duration: 30, metadata: { type: 'scene' } } }], edges: [], pushedVersion: 0 } }, selectedCardId: null });
 
     const result = await duplicateProjectSkill.invoke({ newTitle: 'v2' }, makeCtx());
     expect(result.summary).toContain('v2');
@@ -241,7 +223,6 @@ describe('duplicate-project skill', () => {
 
 describe('batch-storyboard skill', () => {
   beforeEach(() => {
-    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null, projects: [] });
     useCanvasStore.setState({ canvases: {}, selectedCardId: null });
     // Mock fetch to prevent actual image generation
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
@@ -279,7 +260,6 @@ describe('batch-storyboard skill', () => {
 
 describe('character-profile skill', () => {
   beforeEach(() => {
-    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null, projects: [] });
     useCanvasStore.setState({ canvases: {}, selectedCardId: null });
   });
 
@@ -323,7 +303,6 @@ describe('character-profile skill', () => {
 
 describe('brainstorm-variants skill', () => {
   beforeEach(() => {
-    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null, projects: [] });
     useCanvasStore.setState({ canvases: {}, selectedCardId: null });
   });
 
@@ -354,7 +333,6 @@ describe('brainstorm-variants skill', () => {
 
 describe('export-storyboard-pdf skill', () => {
   beforeEach(() => {
-    useProjectStore.setState({ trees: {}, currentProjectId: null, selectedNodeId: null, projects: [] });
     vi.mocked(exportStoryboardPDF).mockClear();
   });
 
@@ -371,13 +349,9 @@ describe('export-storyboard-pdf skill', () => {
     expect(exportStoryboardPDF).toHaveBeenCalledTimes(1);
   });
 
-  it('calls exportStoryboardPDF with the current project + tree', async () => {
+  it('calls exportStoryboardPDF with the current project + canvas nodes', async () => {
     useProjectStore.getState().createProject('密室逃脱', '', '#6366f1');
-    const root = useProjectStore.getState().getCurrentTree()!;
-    useProjectStore.getState().addTreeNode(root.id, {
-      id: 'a1', type: 'act', title: '第一幕', status: 'draft',
-      metadata: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    });
+    useCanvasStore.setState({ canvases: { [useProjectStore.getState().currentProjectId!]: { nodes: [{ id: 'a1', type: 'sceneCard', position: { x: 0, y: 0 }, data: { title: '场景', status: 'draft', metadata: { type: 'scene' } } }], edges: [], pushedVersion: 0 } }, selectedCardId: null });
 
     const result = await exportStoryboardPdfSkill.invoke({}, makeCtx());
     expect(result.summary).toContain('密室逃脱');

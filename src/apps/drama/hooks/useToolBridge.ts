@@ -60,8 +60,7 @@ function connect(
       // ③ Builder Renderer channel — spellpaw_build_ui
       if (action === 'build_ui') {
         // Build context for metadata validation (②)
-        const tree = useProjectStore.getState().getCurrentTree();
-        const treeNodes = tree ? collectNodeIds(tree) : [];
+                const treeNodes = tree ? collectNodeIds(tree) : [];
         const result = parseAndValidate(params, { treeNodes });
         if ('error' in result) {
           ws.send(JSON.stringify({

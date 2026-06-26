@@ -85,8 +85,8 @@ describe('computeDisplayNumbers - tree nodes', () => {
 describe('computeDisplayNumbers - canvas cards (mounted)', () => {
   it('numbers mounted script cards', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_s1', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Script 1', linkedTreeNodeId: 'nd_scene1' } },
-      { id: 'cv_s2', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Script 2', linkedTreeNodeId: 'nd_scene1' } },
+      { id: 'cv_s1', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Script 1', : 'nd_scene1' } },
+      { id: 'cv_s2', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Script 2', : 'nd_scene1' } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_s1')).toBe('1-1-S1');
@@ -95,7 +95,7 @@ describe('computeDisplayNumbers - canvas cards (mounted)', () => {
 
   it('numbers mounted art cards', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_a1', type: 'art', position: { x: 0, y: 0 }, data: { title: 'Art 1', linkedTreeNodeId: 'nd_scene1' } },
+      { id: 'cv_a1', type: 'art', position: { x: 0, y: 0 }, data: { title: 'Art 1', : 'nd_scene1' } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_a1')).toBe('1-1-A1');
@@ -103,7 +103,7 @@ describe('computeDisplayNumbers - canvas cards (mounted)', () => {
 
   it('numbers mounted character cards', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_c1', type: 'character', position: { x: 0, y: 0 }, data: { title: 'Char 1', linkedTreeNodeId: 'nd_scene2' } },
+      { id: 'cv_c1', type: 'character', position: { x: 0, y: 0 }, data: { title: 'Char 1', : 'nd_scene2' } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_c1')).toBe('1-2-C1');
@@ -111,9 +111,9 @@ describe('computeDisplayNumbers - canvas cards (mounted)', () => {
 
   it('numbers deliverable cards by subtype', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_d1', type: 'deliverable', position: { x: 0, y: 0 }, data: { title: 'Img 1', linkedTreeNodeId: 'nd_scene1', deliverableType: 'image' } },
-      { id: 'cv_d2', type: 'deliverable', position: { x: 0, y: 0 }, data: { title: 'Vid 1', linkedTreeNodeId: 'nd_scene1', deliverableType: 'video' } },
-      { id: 'cv_d3', type: 'deliverable', position: { x: 0, y: 0 }, data: { title: 'Aud 1', linkedTreeNodeId: 'nd_scene1', deliverableType: 'audio' } },
+      { id: 'cv_d1', type: 'deliverable', position: { x: 0, y: 0 }, data: { title: 'Img 1', : 'nd_scene1', deliverableType: 'image' } },
+      { id: 'cv_d2', type: 'deliverable', position: { x: 0, y: 0 }, data: { title: 'Vid 1', : 'nd_scene1', deliverableType: 'video' } },
+      { id: 'cv_d3', type: 'deliverable', position: { x: 0, y: 0 }, data: { title: 'Aud 1', : 'nd_scene1', deliverableType: 'audio' } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_d1')).toBe('1-1-D-img1');
@@ -123,8 +123,8 @@ describe('computeDisplayNumbers - canvas cards (mounted)', () => {
 
   it('counts separately per tree node + type group', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_s1', type: 'script', position: { x: 0, y: 0 }, data: { title: 'S1', linkedTreeNodeId: 'nd_scene1' } },
-      { id: 'cv_s2', type: 'script', position: { x: 0, y: 0 }, data: { title: 'S2', linkedTreeNodeId: 'nd_scene2' } },
+      { id: 'cv_s1', type: 'script', position: { x: 0, y: 0 }, data: { title: 'S1', : 'nd_scene1' } },
+      { id: 'cv_s2', type: 'script', position: { x: 0, y: 0 }, data: { title: 'S2', : 'nd_scene2' } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_s1')).toBe('1-1-S1');
@@ -133,7 +133,7 @@ describe('computeDisplayNumbers - canvas cards (mounted)', () => {
 });
 
 describe('computeDisplayNumbers - canvas cards (free)', () => {
-  it('numbers cards without linkedTreeNodeId as free', () => {
+  it('numbers cards without  as free', () => {
     const cards: CanvasNode[] = [
       { id: 'cv_s1', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Free Script' } },
     ];
@@ -141,9 +141,9 @@ describe('computeDisplayNumbers - canvas cards (free)', () => {
     expect(map.get('cv_s1')).toBe('Free-S1');
   });
 
-  it('numbers cards with dangling linkedTreeNodeId as free', () => {
+  it('numbers cards with dangling  as free', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_s1', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Ghost', linkedTreeNodeId: 'nonexistent' } },
+      { id: 'cv_s1', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Ghost', : 'nonexistent' } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_s1')).toBe('Free-S1');
@@ -176,8 +176,8 @@ describe('computeDisplayNumbers - edge cases', () => {
 
   it('sorting is determined by canvas array index', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_first', type: 'script', position: { x: 0, y: 0 }, data: { title: 'First', linkedTreeNodeId: 'nd_scene1' } },
-      { id: 'cv_second', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Second', linkedTreeNodeId: 'nd_scene1' } },
+      { id: 'cv_first', type: 'script', position: { x: 0, y: 0 }, data: { title: 'First', : 'nd_scene1' } },
+      { id: 'cv_second', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Second', : 'nd_scene1' } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_first')).toBe('1-1-S1');

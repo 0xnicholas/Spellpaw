@@ -101,7 +101,6 @@ export const SPELLPAW_TOOL_CONFIGS = [
 		endpoint: TOOL_ENDPOINT,
 	},
 
-	{
 	// ── Typed add tools (7 specialized, replacing generic add_card) ──
 	{
 		name: "spellpaw_add_storyline_card",

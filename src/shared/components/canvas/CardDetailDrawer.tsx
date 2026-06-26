@@ -18,7 +18,7 @@ import { Z_INDEX } from "@shared/lib/zIndex";
 import { useHotkeys } from "@/shared/hooks/useHotkeys";
 import { computeDisplayNumbers } from "@drama/lib/numbering";
 import { formatBytes } from "@drama/lib/canvasToolkit";
-import { findNode } from "@drama/lib/treeUtils";
+import { useStyleLockStore } from '@shared/stores/styleLockStore';
 import { getCardTypeConfig } from "./BuzzyCard";
 import type { CanvasNodeData, CanvasNodeType, DeliverableType } from "@drama/types";
 
@@ -80,7 +80,6 @@ export function CardDetailDrawer() {
   const setSelectedCardId = useCanvasStore((s) => s.setSelectedCardId);
 
   const card = selectedCardId ? getSelectedCard() : null;
-  const tree = useProjectStore((s) => s.getCurrentTree());
 
   // Slide-in/out animation state
   const [visible, setVisible] = useState(false);
@@ -225,10 +224,10 @@ export function CardDetailDrawer() {
           {/* Type-specific content */}
           {cardType === "script" && <ScriptDetail data={data} />}
           {cardType === "sceneCard" && (
-            <SceneCardDetail data={data} linkedTreeNodeId={data.linkedTreeNodeId as string | undefined} />
+            <SceneCardDetail data={data} canvasCardId={card && card.id} />
           )}
           {cardType === "art" && (
-            <ArtDetail data={data} linkedTreeNodeId={data.linkedTreeNodeId as string | undefined} />
+            <ArtDetail data={data} canvasCardId={card && card.id} />
           )}
           {cardType === "character" && <CharacterDetail data={data} />}
           {cardType === "deliverable" && <DeliverableDetail data={data} />}
@@ -283,8 +282,8 @@ function ScriptDetail({ data }: { data: CanvasNodeData }) {
 function ArtDetail({ data, linkedTreeNodeId }: { data: CanvasNodeData; linkedTreeNodeId?: string }) {
   const prompt = data.prompt as string | undefined;
   const tags = data.tags as string[] | undefined;
-  const getLockedStyle = useProjectStore((s) => s.getLockedStyle);
-  const isLocked = linkedTreeNodeId ? getLockedStyle().nodeId === linkedTreeNodeId : false;
+  const { lockedCardId } = useStyleLockStore();
+  const isLocked = canvasCardId ? lockedCardId === canvasCardId : false;
 
   return (
     <>
@@ -313,7 +312,7 @@ function ArtDetail({ data, linkedTreeNodeId }: { data: CanvasNodeData; linkedTre
           </div>
         </Block>
       )}
-      {linkedTreeNodeId && (
+      {canvasCardId && (
         <Block>
           <div className="rounded-lg p-3 space-y-0.5" style={{ backgroundColor: INPUT_BG }}>
             <KeyValue k="风格" v={isLocked ? '已锁定' : '未锁定'} />
@@ -332,8 +331,7 @@ function SceneCardDetail({ data, linkedTreeNodeId }: { data: CanvasNodeData; lin
   const fileSize = data.fileSize as number | undefined;
   const sourceProvider = data.sourceProvider as string | undefined;
   const getLockedStyle = useProjectStore((s) => s.getLockedStyle);
-  const tree = useProjectStore((s) => s.getCurrentTree());
-  const linkedNode = linkedTreeNodeId && tree ? findNode(tree, linkedTreeNodeId) : null;
+  
   const location = linkedNode?.metadata?.location as string | undefined;
   const timeOfDay = linkedNode?.metadata?.timeOfDay as string | undefined;
   const isLocked = linkedTreeNodeId ? getLockedStyle().nodeId === linkedTreeNodeId : false;
@@ -375,7 +373,7 @@ function SceneCardDetail({ data, linkedTreeNodeId }: { data: CanvasNodeData; lin
             {resolution && <KeyValue k="分辨率" v={resolution} />}
             {fileSize != null && <KeyValue k="大小" v={formatBytes(fileSize)} />}
             {sourceProvider && <KeyValue k="Provider" v={sourceProvider} />}
-            {linkedTreeNodeId && <KeyValue k="风格" v={isLocked ? '已锁定' : '未锁定'} />}
+            {canvasCardId && <KeyValue k="风格" v={isLocked ? '已锁定' : '未锁定'} />}
           </div>
         </Block>
       )}

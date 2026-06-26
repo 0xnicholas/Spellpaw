@@ -7,7 +7,6 @@
  *
  * Public API unchanged: `import { toolRouter } from '@drama/stores/toolRouter'`
  */
-import { treeHandlers } from './tree';
 import { cardHandlers } from './cards';
 import { generationHandlers } from './generation';
 import { analysisHandlers } from './analysis';
@@ -15,7 +14,6 @@ import { registerSkillTools } from '@drama/lib/skills/registry';
 import type { ToolRouter } from './types';
 
 export const toolRouter: ToolRouter = {
-  ...treeHandlers,
   ...cardHandlers,
   ...generationHandlers,
   ...analysisHandlers,

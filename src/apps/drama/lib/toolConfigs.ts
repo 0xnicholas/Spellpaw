@@ -101,77 +101,6 @@ export const SPELLPAW_TOOL_CONFIGS = [
 		endpoint: TOOL_ENDPOINT,
 	},
 
-	// ── Tree tools (act/scene/shot backbone) ──
-	{
-		name: "spellpaw_add_node",
-		description:
-			"Add a node (act/scene/shot) to the project tree. parentId required, type/title required.",
-		parameters: {
-			type: "object",
-			properties: {
-				parentId: { type: "string" },
-				type: { type: "string", enum: ["act", "scene", "shot"] },
-				title: { type: "string" },
-				description: { type: "string" },
-				duration: { type: "number" },
-			},
-			required: ["parentId", "type", "title"],
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
-		name: "spellpaw_update_node",
-		description: "Update a node's title or metadata.",
-		parameters: {
-			type: "object",
-			properties: {
-				nodeId: { type: "string" },
-				changes: { type: "object" },
-			},
-			required: ["nodeId", "changes"],
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
-		name: "spellpaw_delete_node",
-		description: "Delete a node. CAREFUL: irreversible. Ask user first.",
-		parameters: {
-			type: "object",
-			properties: { nodeId: { type: "string" } },
-			required: ["nodeId"],
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
-		name: "spellpaw_get_tree",
-		description: "Get the full project tree structure.",
-		parameters: { type: "object", properties: {} },
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
-		name: "spellpaw_get_subtree",
-		description: "Get a subtree starting from a specific node.",
-		parameters: {
-			type: "object",
-			properties: { nodeId: { type: "string" } },
-			required: ["nodeId"],
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
-		name: "spellpaw_apply_template",
-		description:
-			"Apply a narrative template to the current project. Creates acts, scenes, and shots from the template structure.",
-		parameters: {
-			type: "object",
-			properties: {
-				templateId: { type: "string" },
-				parentId: { type: "string" },
-			},
-			required: ["templateId"],
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
 	{
 		name: "spellpaw_generate_asset",
 		description: `Generate an image or video asset and add it to the canvas as a card. Use when the user asks to generate a storyboard, reference image, scene visual, or video. If a scene/shot node is selected, pass its nodeId; otherwise provide an explicit prompt. Produces an 'art' card (image) or 'deliverable' card (video) by default; pass cardType to override. Valid providers: ${providerEnum().join(", ")}. Example: spellpaw_generate_asset({ mediaType: "image", nodeId: "scene-1", prompt: "雨夜小巷，霓虹灯反射，悬疑氛围" }).`,
@@ -350,7 +279,7 @@ export const SPELLPAW_TOOL_CONFIGS = [
 	{
 		name: "spellpaw_match_template",
 		description:
-			"Match the current project against built-in narrative templates based on title, description, and scene keywords. Returns the best match with similarity score and templateId. After calling this, continue by calling spellpaw_apply_template with the returned templateId.",
+			"Match the current project against built-in narrative templates based on title, description, and scene keywords. Returns the best match with similarity score and templateId.",
 		parameters: { type: "object", properties: {} },
 		endpoint: TOOL_ENDPOINT,
 	},

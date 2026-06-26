@@ -262,7 +262,6 @@ export function useCopilotSSE() {
 
         // Detect canvas toolkit intent and decide whether to force a tool choice.
         const intentResult = detectIntent(content, {
-          selectedNodeId: contextCardId,
           selectedCard: useCanvasStore.getState().getSelectedCard(),
         });
         currentIntentRef.current = intentResult.confidence === 'high' ? intentResult.intent : null;

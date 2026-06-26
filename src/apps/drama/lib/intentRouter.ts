@@ -24,7 +24,7 @@ export interface CanvasIntent {
 
 export interface IntentContext {
   /** Currently selected tree node id, if any. */
-  selectedNodeId?: string | null;
+  
   /** Currently selected canvas card, if any. */
   selectedCard?: CanvasNode | null;
 }

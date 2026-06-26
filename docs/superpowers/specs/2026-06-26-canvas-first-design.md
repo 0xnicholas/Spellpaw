@@ -1,8 +1,8 @@
 # Canvas-First Architecture 设计
 
-**Status**: Draft
+**Status**: Draft (rev 2 — post-review)
 **Date**: 2026-06-26
-**Scope**: Spellpaw Drama Studio — Phase 4：彻底删除幽灵树 + 模板改写画布 + LLM 画布能力扩展
+**Scope**: Spellpaw Drama Studio — Phase 4：彻底删除幽灵树 + 重写所有 tree-coupling 模块为画布机制 + LLM 画布能力扩展
 
 ---
 
@@ -10,50 +10,65 @@
 
 ### 1.1 现状（Phase 3 留下的"幽灵树"）
 
-`AGENTS.md` 描述的是 Phase 1 / 2 状态，但**当前代码与文档不一致**：
+`AGENTS.md` 描述的是 Phase 1 / 2 状态，但**当前代码与文档不一致**。
 
 **UI 层已经被砍**：
 - `src/apps/drama/components/tree-view/` 目录不存在
 - `WorkspaceLayout.tsx` 三列布局不再被引用 —— 当前 `WorkspacePage` 是 CanvasPanel 全屏 + ChatPanel 浮层
 - `DetailPanel.tsx` 只剩画布卡片字段编辑，没有树结构编辑
-- 没有 TreeView / ProjectOutline / Outliner 等任何树渲染组件
 
-**数据层 + LLM 层仍在用**（7 处遗留）：
-1. `TreeNode` 类型 + `projectStore.trees` 字段 + 6 个 tree CRUD action
-2. `toolRouter/tree.ts` + 7 个 tree tool handler（spellpaw_add_node / update_node / delete_node / move_node / get_tree / get_subtree / apply_template）
-3. `applyTemplateCore` 创建树节点
-4. `treeUtils.ts` / `treeDiff.ts` / `projectAnalysis.ts`（节奏分析依赖 tree）
-5. `migrateTreeToCards.ts`（树 → 画布迁移）
-6. `SnapshotModal.tsx` 从 tree 创建快照
-7. `systemPrompt.ts` 渲染 `treeText`（虽然 `useCopilotSSE.ts` 实际传的是 `canvasText`，参数名遗留）
+**数据层 + LLM 层仍在用**（已通过 `git grep` 验证有 71+ 处 tree 引用）：
 
-**结果**：
-- 用户看不到树（UI 无入口）
-- LLM 改树之后画布不更新（除非 migrateTreeToCards）
-- 节奏分析依赖树但树无数据时为空
-- 模板应用创建树，但用户看到的是空画布
-- `linkedTreeNodeId` 已 deprecated（types/index.ts:119 写明"deprecated — use linkedCardIds"）
+1. `TreeNode` 类型 + `projectStore.trees` 字段 + 6 个 tree CRUD action + `selectedNodeId`
+2. `toolRouter/tree.ts` + 7 个 handler（其中 `spellpaw_move_node` 只在 handler 存在，未注册到 LLM；实际 LLM 暴露 6 个）
+3. `applyTemplateCore` helper，被 `analysis.ts:kickstart_project` 调用
+4. `treeUtils.ts` / `treeDiff.ts` / `projectAnalysis.ts`（节奏分析）/`migrateTreeToCards.ts`
+5. `SnapshotModal.tsx` 用 `diffTrees` 做对比 + `useProjectStore.trees[id]` 序列化
+6. `systemPrompt.ts` 第二参数 `treeText`（虽然 `useCopilotSSE.ts:297` 实际传的是 `canvasText`，命名遗留）
+7. `linkedTreeNodeId` 字段（types/index.ts:119 deprecated，但 17+ 文件仍在用）
+
+**Tree-coupling 模块**（删树后必然崩，必须重写）：
+- **风格锁**：`setLockedStyle` / `clearLockedStyle` / `getLockedStyle` 写 `tree.metadata.lockedStylePrompt`，被 `ArtCardNode` / `SceneCardNode` / `CardDetailDrawer` 通过 `linkedTreeNodeId` 调用
+- **三个 skill**：`builtIn.ts` 内的 `duplicate-project-skill` / `export-storyboard-pdf-skill` / `analyze-pacing-skill` 全部读 tree
+- **主动建议**：`proactiveInsights.ts` 整个模块依赖 tree
+- **快照对比**：`SnapshotModal.tsx` 用 `diffTrees` 做快照对比 UI
+- **PDF/Print 导出**：`exportStoryboardPDF(project, tree)` / `exportPrint.buildScriptRows(tree)` 签名含 tree
+- **numbering**：`numbering.ts` 走 tree + `linkedTreeNodeId`
+- **intentRouter**：`selectedNodeId` context 字段 + `linkedTreeNodeId` 路径
+- **canvasToolkit actions**：`generateAsset` / `generateVariants` / `editAsset` / `applyStyle` / `batchApplyStyle` 写 `linkedTreeNodeId`
+- **detailStore**：`requestFocusCanvas(linkedTreeNodeId)` + `draftFormData: Partial<TreeNode>`
+- **ChatPanel.highlightAffectedCards**：通过 `linkedTreeNodeId` 反查画布卡片
 
 ### 1.2 目标
 
 | # | 目标 | 成功标准 |
 |---|------|---------|
-| 1 | 彻底删除树（数据 + tool + UI 入口） | `TreeNode` / `projectStore.trees` / 6 个 tree action / 7 个 tree tool 全部从代码库移除 |
-| 2 | 模板应用改写为画布 | `applyTemplateCore` → `applyTemplateToCanvas`，template 直接生成画布卡 |
-| 3 | 节奏分析改写为画布 | `projectAnalysis.ts` 基于 CanvasNode 的位置、类型、CardChild 计算 |
-| 4 | LLM 画布能力扩展 | 7 个专用 add tool + 3 个 batch tool + 结构化返回 + cardId 校验前置 |
-| 5 | systemPrompt 完全画布中心 | 删除 tree 段；参数 `treeText` 改名 `canvasText` |
-| 6 | 老数据清理 | trees 字段直接丢弃；IDB schema bump 清空旧缓存 |
-| 7 | 现有测试不回归 | 老 tree 相关测试删除；新增 canvas 相关测试覆盖新逻辑 |
+| 1 | 彻底删除树（数据 + tool + UI 入口） | `TreeNode` / `projectStore.trees` / 6 个 tree action / 7 个 tree tool 全部移除 |
+| 2 | 模板应用改写为画布 | `applyTemplateCore` → `applyTemplateToCanvas` |
+| 3 | kickstart_project 改写为画布 | `kickstart_project` 直接遍历 template 生成画布卡 |
+| 4 | 节奏分析改写为画布 | `projectAnalysis.ts` 基于 CanvasNode |
+| 5 | 风格锁重写为画布机制 | 锁状态迁到 `CanvasNode.metadata.lockedStylePrompt`；锁的 ID 用 `canvasCardId` 而非 `treeNodeId` |
+| 6 | 三个 skill 重写为画布 | duplicate-project / export-storyboard-pdf / analyze-pacing 全部基于画布 |
+| 7 | proactiveInsights 重写 | 基于画布卡片推算建议；空画布友好降级 |
+| 8 | SnapshotModal diff 重写 | `diffCanvases` 替代 `diffTrees`；保留对比 UI |
+| 9 | 导出重写 | `exportStoryboardPDF(project, canvasNodes)` + `exportPrint.buildScriptRows(canvasNodes)` |
+| 10 | numbering 重写 | 基于画布卡片的位置 / 类型 / CardChild |
+| 11 | intentRouter 简化 | 删 `selectedNodeId` 路径 + `linkedTreeNodeId` 反查逻辑 |
+| 12 | canvasToolkit actions 清理 | 全部不再写 `linkedTreeNodeId`；用 `linkedCardIds` |
+| 13 | detailStore 简化 | `requestFocusCanvas(cardId: string)` |
+| 14 | ChatPanel.highlightAffectedCards 简化 | 直接传 cardIds 数组 |
+| 15 | LLM 画布能力扩展 | 7 个专用 add tool + 3 个 batch tool + 结构化返回 + cardId 校验前置 |
+| 16 | systemPrompt 完全画布中心 | 删除 tree 段；`treeText` → `canvasText` |
+| 17 | 老数据清理 | IDB schema bump v5 → v6，migrate 清空 trees |
+| 18 | 现有测试不回归 | 所有 tree 相关测试删除或重写；新增 canvas 相关测试覆盖新逻辑 |
 
 ### 1.3 不在本 spec 范围
 
 - **路线 2**（计划模式 + 撤销 / 回滚）→ 留 Phase 4.5
 - **路线 3**（流式进度 + 信任工程）→ 留 Phase 4.5
-- UI 层 scene card "展开镜头列表"渲染 → 数据层先支持，UI 后续
-- CardCopilotPopover / NodeAIActions 中可能引用 tree action 的代码 → 本 spec 范围内清理，但**不重构**这些组件本身
-- Spellpaw Server 端 schema 同步更新 → 由 server 仓库对应 PR 处理，本 spec 只列字段清单
-- 老数据迁移（用户已确认直接丢）→ 不实现
+- UI 层 scene card "展开镜头列表"渲染 → 数据层先支持（`CardChild` 已含 type/data），UI 渲染后续
+- 模板 JSON 文件结构（`acts/scenes/suggestedShotTypes`）保持不变，仅生成逻辑改
+- Spellpaw Server 端 tool registry 同步 → 由 server 仓库对应 PR 处理，本 spec §10 列出字段清单作为接口契约
 
 ---
 
@@ -62,17 +77,22 @@
 | 维度 | 决策 | 理由 |
 |------|------|------|
 | 树的命运 | **彻底删除** | UI 层已无入口；保留只会让数据模型/工具表继续分裂 |
-| 历史数据 | **直接丢** | 本地 SPA 无用户数据保护责任；删除 trees 字段后 IDB 清空 |
-| 阶段划分 | **一气吃下**（12 天） | A（删树）+ B（能力扩展）合并；避免中间状态代码不可用 |
-| Shot 存储 | **画布内子项（CardChild）** | Scene card 的 `children?: CardChild[]`；shot 不占画布节点位 |
-| Template 转换 | **acts→storyline / scenes→sceneCard / shots→CardChild** | 复用现有 CanvasNodeType；最小改动 |
-| 7 个 add tool 拆分 | **按现有 7 个 type 拆** | storyline / moodboard / videoClip / asset / task / art / character 各 4-6 字段 |
-| 批操作覆盖 | **batch_update / batch_delete / batch_add**（3 个） | LLM 循环调用 N 次太慢，原生批操作一次到位 |
+| 历史数据 | **直接丢** | 本地 SPA 无用户数据保护责任 |
+| 阶段划分 | **一气吃下**（~20 天） | 删树 + 重写 4 大 feature + 能力扩展，全部合并；避免中间状态不可用 |
+| Shot 存储 | **画布内子项（CardChild）** | Scene card 的 `children?: CardChild[]` |
+| Template 转换 | **acts→storyline / scenes→sceneCard / shots→CardChild** | 复用现有 CanvasNodeType |
+| 7 个 add tool 拆分 | **按现有 7 个 type 拆** | storyline / moodboard / videoClip / asset / task / art / character |
+| 批操作覆盖 | **batch_update / batch_delete / batch_add**（3 个） | LLM 循环调用太慢 |
 | 返回格式 | **单行 JSON 字符串** | LLM 看到 string；ChatPanel 解析后渲染结构化 UI |
-| cardId 校验范围 | **仅 cardId**（画布卡片 ID） | nodeId 在删树后不存在；linkedTreeNodeId deprecated；范围聚焦 |
-| 旧 tool 兼容 | **保留为 alias，内部转调新 tool** | 不破坏老 LLM 调用；新增能力渐进可用 |
-| 改造方式 | **全量重写，不分批发布** | 一次性 PR，避免中间状态破坏 LLM 协作 |
-| IDB schema | **bump version + 清空旧缓存** | zustand persist 提供 `version` 字段；老版本触发 `migrate` 清空 trees |
+| cardId 校验范围 | **仅 cardId** | nodeId 在删树后不存在；范围聚焦 |
+| 旧 card tool 兼容 | **保留为 alias** | `add_card` / `update_card` / `delete_card` 内部转发 |
+| 旧 tree tool 兼容 | **彻底删除，不留 alias** | LLM 在新 systemPrompt 引导下应优先用画布；保留 alias 会让 LLM 行为分裂 |
+| 风格锁机制 | **迁到 CanvasNode.metadata** | 锁状态随卡片走，删 tree 后自然延续 |
+| 三个 skill | **重写为画布** | 不接受 feature 降级 |
+| SnapshotModal 对比 | **写 diffCanvases 替代** | 不接受 UX 降级 |
+| IDB schema | **bump 5 → 6** | 当前 version 5；migrate 强制清空 trees + selectedNodeId + lockedStyle 字段 |
+| 改造方式 | **全量重写，不分批发布** | 一次性 PR |
+| 工作量估算 | **~20 天**（原 12 天低估 ~70%） | reviewer 发现的 ~50 个文件 + 14 个测试文件需要处理 |
 
 ---
 
@@ -81,114 +101,129 @@
 ### 3.1 删除清单（不留痕迹）
 
 **类型 / 数据层**：
-- `TreeNode` 类型（types/index.ts）
-- `projectStore.trees: Record<string, TreeNode>`
-- 6 个 action：`addTreeNode` / `updateTreeNode` / `deleteTreeNode` / `moveTreeNode` / `toggleExpanded` / `selectNode` / `getSelectedNodePath`
-- `getCurrentTree()` getter
-- `selectedNodeId` 字段
-- `findNodePath` helper
-- `linkedTreeNodeId?: string` 字段（deprecated，删除）
+- `TreeNode` / `TreeNodeMetadata` 类型
+- `projectStore.trees` / `selectedNodeId` / 6 个 tree action / `getCurrentTree` / `getSelectedNodePath` / `findNodePath`
+- `linkedTreeNodeId` 字段（types/index.ts:119 deprecated）
+- `setLockedStyle` / `clearLockedStyle` / `getLockedStyle` 移到新位置（见 §4.9）
 
 **Tool 层**：
 - 整个 `src/apps/drama/stores/toolRouter/tree.ts`
-- 7 个 tree tool config：`spellpaw_add_node` / `spellpaw_update_node` / `spellpaw_delete_node` / `spellpaw_move_node` / `spellpaw_get_tree` / `spellpaw_get_subtree` / `spellpaw_apply_template`
+- `treeHandlers` 在 `toolRouter/index.ts` 的引用
+- 6 个 LLM-exposed tree tool config（`spellpaw_add_node` / `update_node` / `delete_node` / `get_tree` / `get_subtree` / `apply_template`）从 `toolConfigs.ts` 删除
+- `applyTemplateCore` helper
 
-**业务逻辑层**：
+**业务逻辑层（4 个文件删除）**：
 - `src/apps/drama/lib/treeUtils.ts`（+ 测试）
 - `src/apps/drama/lib/treeDiff.ts`（+ 测试）
 - `src/apps/drama/lib/migrateTreeToCards.ts`（+ 测试）
-- `applyTemplateCore` helper（重命名为 `applyTemplateToCanvas`）
+- `src/apps/drama/data/mockTreeData.ts`
+
+**UI / 数据引用**（`linkedTreeNodeId` 反查）：
+- `src/apps/drama/stores/detailStore.ts`：`requestFocusCanvas(linkedTreeNodeId: string)` → `requestFocusCanvas(cardId: string)`
+- `src/apps/drama/stores/chatStore.ts`：`selectedNodeId` 字段移除
+- `src/apps/drama/components/layouts/Navbar.tsx`：`findNodePath` / `getCurrentTree` / `selectedNodeId` / `exportStoryboardPDF(project, treeData)` 全部移除或改用画布
+- `src/apps/drama/components/detail-panel/ProjectSummary.tsx`：`node: TreeNode` prop 改为 `card: CanvasNode`
 
 **Prompt 层**：
-- `systemPrompt.ts` 的 tree 段（line 124-125 等）
-- `buildSystemPrompt(projectTitle, treeText, ...)` 第二参数改名为 `canvasText`
+- `systemPrompt.ts` 的 tree 段
+- `buildSystemPrompt` 第二参数 `treeText` → `canvasText`
 
-**测试 / 杂项**：
-- `toolRouter.test.ts` 中 tree 相关用例
-- `projectStore.test.ts` 中 tree 相关用例
-- `treeUtils.test.ts` / `treeDiff.test.ts` / `migrateTreeToCards.test.ts`（3 个测试文件）
-- `systemPrompt.test.ts` 中 tree 相关断言
+**测试（~14 个文件）**：见 §6
 
-### 3.2 新增清单
+### 3.2 重写清单（迁移 tree-coupling 到画布）
 
-| 文件 | 用途 |
-|------|------|
-| `src/apps/drama/lib/toolResultFormat.ts` | JSON.stringify helper + ChatPanel 解析 helper |
-| `src/apps/drama/lib/cardValidation.ts` | cardId 存在性校验 + 结构化错误返回 |
+| 模块 | 当前签名 | 新签名 | § |
+|------|---------|--------|---|
+| `applyTemplateCore` | `(store, templateId, parentId?)` | `applyTemplateToCanvas(templateId)` | 4.6 |
+| `projectAnalysis` | 依赖 tree | 依赖 canvasNodes | 4.7 |
+| `analysis.kickstart_project` | 走 tree | 走 canvas | 4.8 |
+| 风格锁 | `setLockedStyle(prompt, treeNodeId)` | `setLockedStyle(prompt, canvasCardId)`；状态存 `CanvasNode.metadata` | 4.9 |
+| `duplicate-project-skill` | 走 tree | 走 canvas | 4.10.1 |
+| `export-storyboard-pdf-skill` | 走 tree | 走 canvas | 4.10.2 |
+| `analyze-pacing-skill` | 走 tree | 走 canvas | 4.10.3 |
+| `proactiveInsights` | 走 tree | 走 canvas | 4.11 |
+| `SnapshotModal` 对比 | `diffTrees` | `diffCanvases`（新写） | 4.12 |
+| `exportStoryboardPDF` | `(project, tree)` | `(project, canvasNodes)` | 4.13 |
+| `exportPrint` | `buildScriptRows(tree)` | `buildScriptRows(canvasNodes)` | 4.13 |
+| `numbering` | `computeDisplayNumbers(tree)` | `computeDisplayNumbers(canvasNodes)` | 4.14 |
+| `intentRouter` | `selectedNodeId` + `linkedTreeNodeId` | 纯 `selectedCard` context | 4.15 |
+| `canvasToolkit/actions/*` | 写 `linkedTreeNodeId` | 写 `linkedCardIds` 或不写 | 4.16 |
+| `detailStore` | `requestFocusCanvas(linkedTreeNodeId)` | `requestFocusCanvas(cardId)` | 4.17 |
+| `ChatPanel.highlightAffectedCards` | 反查 `linkedTreeNodeId` | 直接传 `cardIds` | 4.18 |
 
 ### 3.3 目标架构
 
 ```
 toolRouter/
 ├── index.ts            # 聚合 cards/generation/analysis（无 tree）
-├── types.ts            # ToolRouter + ToolResult 类型
-├── cards.ts            # 7 add + 3 batch + get/update/delete + clear（重写）
-├── generation.ts       # 6 个 generation tool（不变，调用方不变）
-└── analysis.ts         # 5 个 analysis tool（applyTemplateCore → applyTemplateToCanvas）
+├── types.ts            # ToolRouter + ToolResult
+├── cards.ts            # 7 add + 3 batch + get/update/delete/clear + alias（重写）
+├── generation.ts       # 6 generation tool（行为不变；内部实现调 canvasToolkit 不再写 linkedTreeNodeId）
+└── analysis.ts         # 5 analysis tool（含重写的 kickstart_project）
 
 lib/
 ├── toolResultFormat.ts         ← 新
 ├── cardValidation.ts           ← 新
+├── applyTemplateToCanvas.ts    ← 新（重命名自 applyTemplateCore.ts）
+├── diffCanvases.ts             ← 新（替代 diffTrees.ts）
 ├── projectAnalysis.ts          ← 重写为基于画布
+├── projectSnapshot.ts          ← 序列化画布 cards
+├── proactiveInsights.ts        ← 重写为基于画布
+├── numbering.ts                ← 重写为基于画布
+├── intentRouter.ts             ← 简化（删 selectedNodeId 路径）
+├── canvasToolkit/actions/*     ← 5 个 action 重写（不写 linkedTreeNodeId）
 ├── systemPrompt.ts             ← 重写为纯画布中心
-├── snapshot.ts（or SnapshotModal 内）  ← 从画布建快照
-└── templateExportImport.ts     ← 内部数据不变（acts/scenes），转换层改
+├── exportPDF.ts                ← 重写 exportStoryboardPDF(project, canvasNodes)
+├── exportPrint.ts              ← 重写 buildScriptRows(canvasNodes)
+└── skills/builtIn.ts           ← 3 个 skill 重写
 
 types/index.ts
-├── ✗ TreeNode（删）
-├── ✓ CanvasNode（保留，含 children?: CardChild[]）
-├── ✓ CardChild（保留）
+├── ✗ TreeNode / TreeNodeMetadata（删）
+├── ✓ CanvasNode（保留，children?: CardChild[] 保留）
+├── ✓ CardChild（保留；data 新增 duration 字段语义）
 ├── ✓ NarrativeTemplate（保留，structure.acts/scenes 不变）
-└── ✗ linkedTreeNodeId（删）
+├── ✗ linkedTreeNodeId（删）
+└── ✓ CanvasNodeData.metadata.lockedStylePrompt + lockedStyleCardId（新）
 
 projectStore.ts
-├── ✗ trees 字段
-├── ✗ 6 个 tree action
-├── ✗ selectedNodeId
-├── ✗ getCurrentTree / getSelectedNodePath
+├── ✗ trees / selectedNodeId / 6 tree action / getCurrentTree / findNodePath（删）
 ├── ✓ projects 字段
-├── ✓ setLockedStyle / clearLockedStyle / getLockedStyle（保留，风格锁机制独立于树）
-└── ✓ 其他 CRUD（createProject / deleteProject / updateProject / deduplicateProjects）
+└── ✓ 其他 CRUD（保留）
+
+shared/components/canvas/
+├── CanvasPanel.tsx              ← 移除 getCurrentTree 调用
+├── CardDetailDrawer.tsx         ← 风格锁改用 canvasCardId
+├── nodes/ArtCardNode.tsx        ← 风格锁改用 canvasCardId
+├── nodes/SceneCardNode.tsx      ← 风格锁改用 canvasCardId
+└── chat-panel/MessageList.tsx / MessageItem.tsx  ← ToolCallDetails 是旧名，实际在此
 ```
 
-### 3.4 数据流（删除树后 LLM → 画布）
+### 3.4 数据流（典型路径）
 
+**LLM 添加画布卡**：
 ```
 LLM tool_call(spellpaw_add_art_card, {title: "雨夜小巷"})
   ↓
-toolServer WS 转发
-  ↓
 toolRouter.cards.add_art_card({title: "雨夜小巷"})
-  ├─ 校验 cardType 必填 (schema 已 enforce)
-  ├─ 计算定位（基于现有画布卡片）
+  ├─ 校验 cardType 必填 (schema enforce)
+  ├─ 计算定位
   ├─ useCanvasStore.addCard() → 自动 push 到 server
-  └─ 返回 JSON 字符串:
-     {"success":true,"affectedCardIds":["canvas_xyz"],"affectedTreeNodeIds":[],"summary":"已添加 art 卡片「雨夜小巷」"}
+  └─ 返回 JSON: {"success":true,"affectedCardIds":["canvas_xyz"],"summary":"已添加 art 卡片「雨夜小巷」"}
   ↓
-ChatPanel 收到 tool_call_done
-  ├─ JSON.parse(result) → 成功 → 渲染 affectedCardIds 缩略图
-  ├─ chatStore.endToolCall('success')
+useCopilotSSE 收到 tool_call_done
+  ├─ JSON.parse(result) → 渲染 affectedCardIds 缩略图
   └─ triggerHighlight([affectedCardIds]) → 画布卡片闪一下
 ```
 
-### 3.5 数据流（applyTemplateToCanvas）
-
+**applyTemplateToCanvas**：
 ```
 LLM tool_call(spellpaw_apply_template, {templateId: "action-chase"})
   ↓
-toolRouter.analysis.apply_template (重写)
-  ├─ useCustomTemplateStore.getTemplateById(templateId) → NarrativeTemplate
-  ├─ 遍历 template.structure.acts[]
-  │   └─ 对每个 act：
-  │       ├─ addEnrichedCard('storyline', {title: act.title, type: 'act', ...})
-  │       └─ 记录 act cardId
-  ├─ 遍历 act.scenes[]
-  │   └─ 对每个 scene：
-  │       ├─ addEnrichedCard('sceneCard', {title: scene.title, type: 'scene', ...})
-  │       ├─ 记录 scene cardId
-  │       └─ 遍历 scene.suggestedShotTypes → 生成 CardChild[]
-  └─ 返回 JSON:
-     {"success":true,"affectedCardIds":[...],"summary":"已应用模板「动作追逐短片」：3 幕 8 场景"}
+toolRouter.analysis.apply_template({templateId})
+  ├─ template = useCustomTemplateStore.getTemplateById(templateId)
+  ├─ 遍历 acts → addEnrichedCard('storyline', {type: 'act', ...}) → 记录 actCardId
+  ├─ 遍历 scenes → addEnrichedCard('sceneCard', {type: 'scene', children: shots, ...})
+  └─ 返回 JSON: {"success":true,"affectedCardIds":[...],"summary":"已应用模板「动作追逐短片」：3 幕 8 场景"}
 ```
 
 ---
@@ -197,7 +232,7 @@ toolRouter.analysis.apply_template (重写)
 
 ### 4.1 7 个专用 add tool
 
-| Tool 名 | type | 必填字段 | 可选字段 |
+| Tool 名 | type | 必填 | 可选 |
 |---|---|---|---|
 | `spellpaw_add_storyline_card` | storyline | title | description, location, timeOfDay, duration |
 | `spellpaw_add_moodboard_card` | moodboard | title | description, colors[], styleRef |
@@ -207,424 +242,503 @@ toolRouter.analysis.apply_template (重写)
 | `spellpaw_add_art_card` | art | title | description, thumbnail, generatedPrompt |
 | `spellpaw_add_character_card` | character | title | description, role, traits[], linkedCardIds[] |
 
-每个 tool 在 `toolConfigs.ts` 中独立 entry，`type` 字段在 schema 中隐含（不再让 LLM 选）。
-
-**handler 实现模式**：
-
-```typescript
-// src/apps/drama/stores/toolRouter/cards.ts
-async function addTypedCard(
-  cardType: CanvasNodeType,
-  data: Record<string, unknown>,
-  position?: { x: number; y: number },
-): Promise<ToolResult> {
-  const validation = validateCanvasCardPayload({ cardType, data, position });
-  if (!validation.valid) {
-    return {
-      success: false,
-      error: 'validation_failed',
-      suggestion: validation.error,
-      summary: validation.error!,
-    };
-  }
-  const normalized = normalizeCardData(cardType, data);
-  const card = await addCanvasCardHandler(cardType, normalized, { position });
-  return {
-    success: true,
-    affectedCardIds: [card.id],
-    summary: `已添加 ${cardType} 卡片「${card.data.title}」`,
-  };
-}
-
-export const cardHandlers: ToolRouter = {
-  add_storyline_card: (params) => addTypedCard('storyline', params),
-  add_moodboard_card: (params) => addTypedCard('moodboard', params),
-  // ... 7 个 add tool
-  
-  add_card: (params) => {                          // alias
-    const type = (params.type as CanvasNodeType) || 'storyline';
-    return addTypedCard(type, params);
-  },
-};
-```
+Handler 实现复用 `addTypedCard` 工厂（见原 spec 4.1，此处不重复）。
 
 ### 4.2 3 个 batch tool
 
-```typescript
-batch_update_cards({
-  updates: [
-    { cardId: "card_1", data: { status: "done" } },
-    { cardId: "card_2", data: { status: "done" } },
-  ]
-})
-→ 部分失败策略：返回每条的 success/fail，调用方看 affectedCardIds + errors
-→ {"success":true,"affectedCardIds":["card_1"],"errors":[{"cardId":"card_2","error":"card_not_found"}],"summary":"更新 1 张成功，1 张失败"}
-
-batch_delete_cards({ cardIds: ["card_1", "card_2", "card_3"] })
-→ 原子：要么全删，要么全不删
-→ 先校验所有 cardId 存在 → 校验通过后单次 setState 删除 → triggerPushNow()
-→ {"success":true,"affectedCardIds":["card_1","card_2","card_3"],"summary":"已批量删除 3 张卡片"}
-
-batch_add_cards({ cards: [{ cardType: "shot", data: {...} }, ...] })
-→ 一次性创建多张同类卡片，自动错开位置（避免重叠）
-→ {"success":true,"affectedCardIds":[...],"summary":"已批量添加 5 张 shot 卡片"}
-```
+- `batch_update_cards({updates: [{cardId, data}]})` → 部分失败，errors 数组列出失败的 cardId
+- `batch_delete_cards({cardIds: []})` → 原子：先校验所有 cardId → 单次 setState → triggerPushNow
+- `batch_add_cards({cards: [{cardType, data}]})` → 自动错开位置
 
 ### 4.3 cardId 校验前置
 
-```typescript
-// src/apps/drama/lib/cardValidation.ts
-export function findCardOrError(cardId: string): 
-  | { ok: true; card: CanvasNode }
-  | { ok: false; error: ToolResult } 
-{
-  const cards = useCanvasStore.getState().getCurrentNodes();
-  const card = cards.find((c) => c.id === cardId);
-  if (!card) {
-    return {
-      ok: false,
-      error: {
-        success: false,
-        error: 'card_not_found',
-        cardId,
-        suggestion: 'call spellpaw_get_canvas first to get valid card ids',
-        summary: `未找到卡片 ${cardId}`,
-      },
-    };
-  }
-  return { ok: true, card };
-}
-```
-
-所有需要 cardId 的 tool handler（update / delete / apply_style / batch_*）入口调用 `findCardOrError`，失败时立即返回 error 结果。
+新增 `src/apps/drama/lib/cardValidation.ts` 提供 `findCardOrError(cardId): {ok:true,card} | {ok:false,error}`。所有需要 cardId 的 handler 入口调用，失败立即返回结构化错误。
 
 ### 4.4 结构化返回格式
 
-**ToolResult 类型**：
+`ToolResult` 类型（types.ts）：
 
 ```typescript
-// src/apps/drama/stores/toolRouter/types.ts
-export interface ToolResult {
+interface ToolResult {
   success: boolean;
   affectedCardIds?: string[];
   summary: string;
-  // 错误时
   error?: 'card_not_found' | 'validation_failed' | 'unknown_card_type' | 'no_project_selected';
-  cardId?: string;                    // 失败时定位
+  cardId?: string;
   errors?: Array<{ cardId: string; error: string }>;  // batch 部分失败
-  suggestion?: string;                // 引导 LLM 下一步
-}
-
-// handler 签名不变
-export type ToolHandler<P extends ToolParams = ToolParams> = 
-  (params: P) => Promise<string>;
-
-// 每个 handler 内部 JSON.stringify(ToolResult) 返回
-```
-
-**ChatPanel 解析策略**：
-
-```typescript
-// src/apps/drama/lib/toolResultFormat.ts
-export function parseToolResult(raw: string): 
-  | { parsed: true; result: ToolResult } 
-  | { parsed: false; raw: string } 
-{
-  try {
-    const obj = JSON.parse(raw);
-    if (typeof obj.success === 'boolean' && typeof obj.summary === 'string') {
-      return { parsed: true, result: obj as ToolResult };
-    }
-  } catch {}
-  return { parsed: false, raw };
+  suggestion?: string;
 }
 ```
 
-`ToolCallDetails.tsx` 用 `parseToolResult` 渲染：parsed=true 时显示结构化 UI（缩略图 + 错误高亮），parsed=false 时 fallback 原始文本。
+Handler 返回 `JSON.stringify(result)`；ChatPanel 用 `parseToolResult(raw)` 解析。
 
 ### 4.5 alias 路由
 
-| 旧 tool | 转发到 |
-|---|---|
-| `add_card` | 根据 `params.type` 路由到 7 个 add tool 之一 |
-| `update_card` | 内部调用 `updateTypedCard`（行为不变，加校验 + 结构化返回） |
-| `delete_card` | 内部调用 `deleteTypedCard`（行为不变，加校验 + 结构化返回） |
-
-`clear_canvas` 不再走 alias——直接保留独立 handler，因为它的"原子清空 + triggerPushNow"语义与 batch_delete 不同。
+仅保留 3 个画布 alias：`add_card` / `update_card` / `delete_card`。**不保留任何 tree tool alias**（LLM 在新 systemPrompt 引导下应优先用画布）。
 
 ### 4.6 applyTemplateToCanvas 重写
 
+`src/apps/drama/lib/applyTemplateToCanvas.ts`（新文件）：
+
 ```typescript
-// src/apps/drama/lib/applyTemplateToCanvas.ts（重命名 + 重写）
-export async function applyTemplateToCanvas(
-  templateId: string,
-  store: ProjectStore,
-): Promise<ToolResult> {
+export async function applyTemplateToCanvas(templateId: string): Promise<ToolResult> {
   const template = useCustomTemplateStore.getState().getTemplateById(templateId);
-  if (!template) {
-    return { success: false, error: 'validation_failed', suggestion: `unknown template: ${templateId}`, summary: `模板 ${templateId} 不存在` };
-  }
+  if (!template) return { success: false, error: 'validation_failed', suggestion: `unknown template: ${templateId}`, summary: '模板不存在' };
   
-  const allAffected: string[] = [];
+  const affected: string[] = [];
   for (const [actIdx, act] of template.structure.acts.entries()) {
     const actCard = await addEnrichedCard('storyline', {
-      title: act.title,
-      description: act.description,
-      type: 'act',
-      status: 'draft',
+      title: act.title, description: act.description,
+      status: 'draft', type: 'act',
     }, { x: 50 + actIdx * 420, y: 50 });
-    allAffected.push(actCard.id);
+    affected.push(actCard.id);
     
     for (const [sceneIdx, scene] of act.scenes.entries()) {
       const shotChildren: CardChild[] = (scene.suggestedShotTypes ?? []).map((st, i) => ({
         id: generateId('shot_'),
         type: 'shot',
         title: `${scene.title} 镜头 ${i + 1}`,
-        data: { shotType: st, duration: scene.metadata?.duration ? scene.metadata.duration / scene.suggestedShotTypes!.length : undefined },
+        data: {
+          shotType: st,
+          duration: scene.metadata?.duration 
+            ? Math.round((scene.metadata.duration / scene.suggestedShotTypes!.length) * 10) / 10 
+            : undefined,
+        },
       }));
-      
       const sceneCard = await addEnrichedCard('sceneCard', {
-        title: scene.title,
-        description: scene.description,
-        location: scene.metadata?.location,
-        timeOfDay: scene.metadata?.timeOfDay,
-        duration: scene.metadata?.duration,
-        children: shotChildren,
+        title: scene.title, description: scene.description,
+        location: scene.metadata?.location, timeOfDay: scene.metadata?.timeOfDay,
+        duration: scene.metadata?.duration, children: shotChildren,
       }, { x: 50 + actIdx * 420, y: 300 + sceneIdx * 280 });
-      allAffected.push(sceneCard.id);
+      affected.push(sceneCard.id);
     }
   }
   
   return {
-    success: true,
-    affectedCardIds: allAffected,
-    summary: `已应用模板「${template.name}」：${template.structure.acts.length} 幕 ${allAffected.length - template.structure.acts.length} 场景`,
+    success: true, affectedCardIds: affected,
+    summary: `已应用模板「${template.name}」：${template.structure.acts.length} 幕 ${affected.length - template.structure.acts.length} 场景`,
   };
 }
 ```
 
-`template.structure.acts[].scenes[].suggestedShotTypes` 数组展开为 CardChild。
-
 ### 4.7 projectAnalysis 重写
 
-`projectAnalysis.ts` 当前依赖 tree 结构。改为基于 CanvasNode 推断：
+`generatePacingReport()` 从读 tree 改为读画布：
 
 ```typescript
-// 新接口（基于画布）
-export interface CanvasPacingReport {
-  totalDuration: number;
-  cardCount: number;
-  sceneCount: number;
-  shotCount: number;            // = CardChild 总数
-  avgSceneDuration: number;
-  pacingCV: number;             // coefficient of variation
-  issues: PacingIssue[];
-  suggestions: string[];
-}
-
 export function generatePacingReport(): CanvasPacingReport {
   const cards = useCanvasStore.getState().getCurrentNodes();
   const scenes = cards.filter(c => c.type === 'sceneCard');
   const shots = scenes.flatMap(s => s.data.children ?? []);
+  // CV 计算、issue detection 逻辑与原版一致，仅输入换成画布卡片
+}
+```
+
+`analyzeStructure` / `matchTemplate` / `optimizePacing` 同步改。
+
+### 4.8 kickstart_project 重写
+
+`toolRouter/analysis.ts:kickstart_project` 当前走 tree。新实现：
+
+```typescript
+kickstart_project: async ({theme, genre, targetDuration, cardType}) => {
+  const template = await selectBestTemplate(theme, genre);
+  if (!template) return JSON.stringify({success: false, error: 'validation_failed', suggestion: 'call match_template first', summary: '未匹配到合适模板'});
   
-  // ... CV 计算、issue detection 与原逻辑相同，输入换成画布卡片
+  const applyResult = await applyTemplateToCanvas(template.id);
+  if (!applyResult.success) return JSON.stringify(applyResult);
+  
+  return JSON.stringify({
+    success: true,
+    affectedCardIds: applyResult.affectedCardIds,
+    summary: `已 kickstart 项目《${theme}》：基于模板「${template.name}」创建 ${applyResult.affectedCardIds?.length} 张画布卡`,
+  });
 }
 ```
 
-`generatePacingReport` / `analyzeStructure` / `matchTemplate` / `optimizePacing` 4 个 analysis tool 全部改为基于画布。
+### 4.9 风格锁重写（迁移到 CanvasNode.metadata）
 
-### 4.8 SnapshotModal 重写
+**当前**：
+```typescript
+// projectStore
+setLockedStyle: (prompt, nodeId) => { tree.metadata.lockedStylePrompt = prompt; tree.metadata.lockedStyleNodeId = nodeId; }
+```
+
+**新设计**：
+- `CanvasNodeData.metadata?: { lockedStylePrompt?: string }`（每个被锁的画布卡自己存）
+- `projectStore` 删 `setLockedStyle` / `clearLockedStyle` / `getLockedStyle` 三个方法
+- 新增 `useStyleLockStore`（Zustand 独立小 store）：
+  ```typescript
+  interface StyleLockStore {
+    lockedCardId: string | null;
+    lockedStylePrompt: string | null;
+    lockStyle(cardId: string, prompt: string): void;
+    clearLock(): void;
+  }
+  ```
+  全局只锁一个卡片；切换锁定时直接覆盖
+- `canvasToolkit/actions/generateAsset.ts` 等在生成前先检查 `lockedStylePrompt`，把 prompt 拼接到生成请求
+- UI 层（`ArtCardNode` / `SceneCardNode` / `CardDetailDrawer`）改用 `useStyleLockStore` 而不是 `projectStore.getLockedStyle`
+
+**Schema 迁移**：删 `tree.metadata.lockedStylePrompt` / `tree.metadata.lockedStyleNodeId`，IDB migrate 时如果有这些字段就丢弃。
+
+### 4.10 三个 skill 重写
+
+#### 4.10.1 duplicate-project-skill
 
 ```typescript
-// src/apps/drama/components/modals/SnapshotModal.tsx
-export function SnapshotModal({ open, onClose }: ...) {
-  const cards = useCanvasStore((s) => s.getCurrentNodes());
-  const createSnapshot = useProjectStore((s) => s.createSnapshot);  // 新增
-  // createSnapshot 序列化 cards + project metadata，不依赖 trees
+async function duplicateProjectSkill(ctx) {
+  const srcCards = useCanvasStore.getState().getCurrentNodes();
+  if (srcCards.length === 0) return { success: false, message: '当前项目无内容可复制' };
+  
+  // 1. 创建新项目
+  const newProjId = useProjectStore.getState().createProject(srcProject.title + ' (副本)', ...);
+  // 2. 切到新项目（注意切换 store state）
+  useProjectStore.getState().setCurrentProject(newProjId);
+  // 3. 复制每张画布卡
+  for (const card of srcCards) {
+    await addEnrichedCard(card.type, card.data, card.position);
+  }
+  // 4. 复制 CardChild 引用（已通过 children 字段自动处理）
+  return { success: true, message: `已复制 ${srcCards.length} 张画布卡到新项目` };
 }
 ```
 
-`projectSnapshot.ts` 同步改：序列化字段改为 `cards: CanvasNode[]` + `projectMeta`，不再包含 `tree`。
-
-### 4.9 systemPrompt 重写
+#### 4.10.2 export-storyboard-pdf-skill
 
 ```typescript
-// src/apps/drama/lib/systemPrompt.ts
-export function buildSystemPrompt(
-  projectTitle: string,
-  canvasText: string,           // ← 重命名（原 treeText）
-  templateCategory?: string,
-): string {
-  return [
-    `你是 SpellPaw 的 AI 叙事架构师。`,
-    `SpellPaw 是一个无限画布创作工具，所有内容以 CanvasCard 形式存在。`,
-    ``,
-    `## Tools (priority order)`,
-    ``,
-    `### 1. Canvas cards — primary`,
-    `add_<type>_card (7 种) · batch_add_cards · update_card · batch_update_cards · delete_card · batch_delete_cards · get_canvas · clear_canvas`,
-    // ... 不再有 "### 2. Tree nodes" 段
-    ``,
-    `## 当前项目`,
-    `- 名称：《${projectTitle}》`,
-    ``,
-    `## 画布内容`,
-    canvasText || "(画布为空)",
-    ``,
-    // ... 工具签名参考段删 tree 工具
-  ].join('\n');
+async function exportStoryboardPdfSkill(ctx) {
+  const project = useProjectStore.getState().projects.find(p => p.id === ctx.projectId);
+  const cards = useCanvasStore.getState().getCurrentNodes();
+  await exportStoryboardPDF(project, cards);
+  return { success: true, message: '已导出 PDF' };
 }
 ```
 
-### 4.10 类型清理
+#### 4.10.3 analyze-pacing-skill
 
 ```typescript
-// src/apps/drama/types/index.ts
-// 删除：
+async function analyzePacingSkill(ctx) {
+  const report = generatePacingReport();  // 已重写为画布基础
+  return { success: true, message: formatPacingReport(report) };
+}
+```
+
+### 4.11 proactiveInsights 重写
+
+`proactiveInsights.ts` 当前读 tree。新实现：
+
+```typescript
+export function computeProactiveInsights(canvas: CanvasNode[]): ProactiveInsight[] {
+  const insights: ProactiveInsight[] = [];
+  
+  // 空画布提示
+  if (canvas.length === 0) {
+    insights.push({ type: 'empty', severity: 'info', message: '画布为空，可以应用模板或 kickstart 一个项目' });
+    return insights;
+  }
+  
+  // 缺 act
+  const acts = canvas.filter(c => c.type === 'storyline' && c.data.metadata?.type === 'act');
+  if (acts.length === 0) insights.push({ type: 'missing_acts', severity: 'warning', message: '项目没有幕结构，建议用 apply_template 或 add_storyline_card 添加' });
+  
+  // 缺场景卡
+  const scenes = canvas.filter(c => c.type === 'sceneCard');
+  if (acts.length > 0 && scenes.length === 0) insights.push({ type: 'missing_scenes', severity: 'warning', message: '有幕但没场景卡' });
+  
+  // 缺 art 资产
+  const arts = canvas.filter(c => c.type === 'art');
+  if (scenes.length > 5 && arts.length === 0) insights.push({ type: 'missing_art', severity: 'info', message: '场景卡较多但没有 AI 生成的参考图' });
+  
+  // 节奏异常
+  const report = generatePacingReport();
+  if (report.pacingCV > 0.5) insights.push({ type: 'pacing_uneven', severity: 'warning', message: '节奏不均匀，CV=' + report.pacingCV.toFixed(2) });
+  
+  return insights;
+}
+```
+
+`chatStore.pushProactiveInsights` 删 `getCurrentTree()` 调用，直接传画布卡片。
+
+### 4.12 SnapshotModal diff 重写
+
+新增 `src/apps/drama/lib/diffCanvases.ts`：
+
+```typescript
+export interface CanvasDiff {
+  added: CanvasNode[];      // 新画布有，base 没有
+  removed: CanvasNode[];    // base 有，新画布无
+  modified: Array<{ base: CanvasNode; current: CanvasNode; changes: string[] }>;
+}
+
+export function diffCanvases(base: CanvasNode[], current: CanvasNode[]): CanvasDiff {
+  // 用 Map<id, CanvasNode> 比对，返回结构化 diff
+}
+```
+
+`SnapshotModal.tsx:95` `diffTrees(compareBase.data.tree, snapshot.data.tree)` → `diffCanvases(compareBase.data.cards, snapshot.data.cards)`。**`snapshot.data.tree` → `snapshot.data.cards`** 同步改。
+
+`projectSnapshot.ts` 序列化字段：`{projectId, cards: CanvasNode[], projectMeta, createdAt}`，不再含 tree。
+
+### 4.13 PDF/Print 导出重写
+
+`exportStoryboardPDF(project: Project, canvasNodes: CanvasNode[])`：
+- 接收画布卡数组，按类型分组（storyline / sceneCard / art / character）渲染 PDF 页面
+- 不再走 tree 层级
+
+`exportPrint.buildScriptRows(canvasNodes: CanvasNode[])`：
+- 接收画布卡，按 sceneCard 的 children 展开为行
+- 不再用 `linkedTreeNodeId` 反查 tree
+
+调用方更新：
+- `Navbar.tsx:30` `exportStoryboardPDF(project, treeData)` → `exportStoryboardPDF(project, canvasNodes)`
+- `builtIn.ts:392` `exportStoryboardPDF(project, tree)` → 同上
+
+### 4.14 numbering 重写
+
+`numbering.ts` 当前走 tree。新：
+
+```typescript
+export function computeDisplayNumbers(canvasNodes: CanvasNode[]): Map<string, string> {
+  // 按 x 坐标排序 storyline (act) → 按 y 排序 sceneCard → 给每个 card 编号 "1.1.2" 等
+  // shot 作为 sceneCard 的 children 编号 "1.1.2.1"
+}
+```
+
+### 4.15 intentRouter 简化
+
+`intentRouter.ts:26,224,229` 删 `selectedNodeId` 路径：
+
+```typescript
+// 删
+- selectedNodeId?: string | null;
+// 删
+- const tree = useProjectStore.getState().getCurrentTree();
+- const node = tree ? findNode(tree, selectedNodeId) : null;
+```
+
+intent context 仅保留 `{selectedCard}`。
+
+### 4.16 canvasToolkit actions 清理
+
+`canvasToolkit/actions/{generateAsset,generateVariants,editAsset,applyStyle,batchApplyStyle}.ts`：
+
+- 删所有 `linkedTreeNodeId` 写入（替换为 `linkedCardIds: []` 或不写）
+- `generateVariants.ts:39` `findNode(tree, ...)` → 改用 `findCard(canvasNodes, cardId)`
+- `shared.ts:17` `buildDefaultPrompt(node: TreeNode)` → `buildDefaultPrompt(card: CanvasNode)`
+
+### 4.17 detailStore 简化
+
+`detailStore.ts:2,6,9,10,20`：
+- `draftFormData: Partial<TreeNode>` → `draftFormData: Partial<CanvasNodeData>`
+- `requestFocusCanvas(linkedTreeNodeId: string)` → `requestFocusCanvas(cardId: string)`
+- 删 `selectedNodeId` 引用
+
+### 4.18 ChatPanel.highlightAffectedCards 简化
+
+`ChatPanel.tsx:90,92,94`：
+- 删 `highlightAffectedCards(affectedTreeNodeIds)` 通过 `linkedTreeNodeId` 反查
+- 新签名 `highlightAffectedCards(cardIds: string[])`
+- `tool_call_done` SSE handler 直接传 `affectedCardIds`（来自结构化 tool result）
+
+### 4.19 systemPrompt 重写
+
+完整删 tree 段（§2 系统 prompt 在 systemPrompt.ts:124-125 等位置）；第二参数 `treeText` → `canvasText`。`useCopilotSSE.ts:300` 已经是 `canvasText`，命名一致化。
+
+### 4.20 类型清理
+
+```typescript
+// src/apps/drama/types/index.ts 删除：
 - export interface TreeNode { ... }
 - export interface TreeNodeMetadata { ... }
+- CanvasNodeData.linkedTreeNodeId?: string（已 deprecated，删）
+- CanvasNodeData.metadata?: { ... } 新增 lockedStylePrompt?: string
 
-// 修改：
-- export interface CanvasNode {
--   ...rest,
--   children?: CardChild[];     // 保留
--   linkedCardIds?: string[];   // 保留
--   linkedTreeNodeId?: string;  // ✗ 删除（deprecated）
-- }
+// src/apps/drama/lib/canvasCardSchema.ts 删除：
+- validateLinkedTreeNodeId() 函数
+- 所有引用 linkedTreeNodeId 的 validator/normalizer
 ```
 
-### 4.11 IDB Schema 处理
+### 4.21 IDB Schema 处理
 
-`projectStore.ts` 用 `zustand/middleware` 的 `persist`：
+`projectStore.ts:417` 当前 `version: 5` → 改 `version: 6`。`migrate` 增加：
 
 ```typescript
-export const useProjectStore = create<ProjectState>()(
-  persist(
-    (set, get) => ({ ... }),
-    {
-      name: 'spellpaw-project-store',
-      version: 3,                        // ← bump from current 2 → 3
-      storage: createIDBStorage(),
-      migrate: (persistedState, version) => {
-        if (version < 3) {
-          // 老版本：清空 trees 字段
-          return { 
-            ...(persistedState as object),
-            trees: undefined,             // 强制删除
-            selectedNodeId: undefined,
-          };
-        }
-        return persistedState;
-      },
-      partialize: (state) => ({ 
-        projects: state.projects,
-        // 不再 partialize trees
-      }),
-    }
-  )
-);
+migrate: (persistedState, version) => {
+  let state = persistedState;
+  if (version < 6) {
+    state = {
+      ...(state as object),
+      trees: undefined,
+      selectedNodeId: undefined,
+      // lockedStylePrompt / lockedStyleNodeId 在 tree.metadata 里，会随 trees 删除自动丢弃
+    };
+  }
+  // 保留已有 v1 (fillMeta) / v3 / v5 migrate 逻辑
+  return state;
+},
+partialize: (state) => ({
+  projects: state.projects,
+  // 不再 partialize trees / selectedNodeId / 6 tree action
+}),
 ```
 
 ---
 
-## 5. 文件改动清单
+## 5. 文件改动清单（完整版）
 
-### 5.1 删除（4 个文件 + 多个测试）
-
-```
-src/apps/drama/stores/toolRouter/tree.ts        ✗
-src/apps/drama/lib/treeUtils.ts                 ✗ (+ treeUtils.test.ts)
-src/apps/drama/lib/treeDiff.ts                  ✗ (+ treeDiff.test.ts)
-src/apps/drama/lib/migrateTreeToCards.ts        ✗ (+ migrateTreeToCards.test.ts)
-```
-
-### 5.2 新建（2 个文件）
+### 5.1 删除文件（4 个）
 
 ```
-src/apps/drama/lib/toolResultFormat.ts          ✓
-src/apps/drama/lib/cardValidation.ts            ✓
+src/apps/drama/stores/toolRouter/tree.ts                                    ✗
+src/apps/drama/lib/treeUtils.ts (+ treeUtils.test.ts)                      ✗
+src/apps/drama/lib/treeDiff.ts (+ treeDiff.test.ts)                         ✗
+src/apps/drama/lib/migrateTreeToCards.ts (+ .test.ts)                       ✗
+src/apps/drama/data/mockTreeData.ts                                         ✗
 ```
 
-### 5.3 重写（6 个文件）
+### 5.2 新建文件（4 个）
 
 ```
-src/apps/drama/lib/projectAnalysis.ts           ← 基于画布
-src/apps/drama/stores/toolRouter/analysis.ts    ← applyTemplateToCanvas
-src/apps/drama/lib/systemPrompt.ts              ← 纯画布 + canvasText
-src/apps/drama/lib/toolConfigs.ts               ← 删 7 加 10
-src/apps/drama/components/modals/SnapshotModal.tsx  ← 画布快照
-src/apps/drama/types/index.ts                   ← 删 TreeNode + linkedTreeNodeId
-src/apps/drama/stores/projectStore.ts           ← 删 trees / actions / selectedNodeId
-src/apps/drama/stores/toolRouter/cards.ts       ← 7 add + 3 batch + 校验 + alias + 结构化
-src/apps/drama/stores/toolRouter/types.ts       ← 新增 ToolResult 类型
-src/apps/drama/stores/toolRouter/index.ts       ← 去掉 treeHandlers 引用
+src/apps/drama/lib/toolResultFormat.ts                                      ✓
+src/apps/drama/lib/cardValidation.ts                                        ✓
+src/apps/drama/lib/applyTemplateToCanvas.ts (替代 applyTemplateCore.ts)     ✓
+src/apps/drama/lib/diffCanvases.ts (替代 diffTrees.ts)                     ✓
+src/shared/stores/styleLockStore.ts (替代 tree.metadata 上的 lock 状态)    ✓
 ```
 
-### 5.4 修正（5+ 个文件）
+### 5.3 重写文件（15 个）
 
 ```
-src/apps/drama/hooks/useCopilotSSE.ts           ← JSON.parse + tool 名更新
-src/shared/components/chat-panel/ToolCallDetails.tsx  ← JSON 解析 + affectedCardIds 渲染
-src/apps/drama/hooks/useToolBridge.ts           ← 检查 tree 引用
-src/apps/drama/components/copilot-lab/*          ← 检查 tree 引用
-src/apps/drama/components/builder/*             ← 检查 tree 引用
-src/apps/drama/components/card-detail/*         ← 检查 tree 引用
-src/apps/drama/lib/proactiveInsights.ts         ← 检查 tree 引用
-src/apps/drama/lib/projectSnapshot.ts           ← 序列化画布 cards
-src/apps/drama/stores/chatStore.ts              ← 检查 tree 引用
-src/apps/drama/stores/canvasStore.ts            ← 检查 tree 引用
-src/apps/drama/lib/skills/*                     ← 检查 tree 引用（kickstart 可能用到 applyTemplateCore）
+src/apps/drama/types/index.ts                                              ← 删 TreeNode / linkedTreeNodeId / 新增 lockedStylePrompt
+src/apps/drama/stores/projectStore.ts                                      ← 删 trees / 6 action / selectedNodeId / findNodePath
+src/apps/drama/stores/toolRouter/types.ts                                  ← 新增 ToolResult 类型
+src/apps/drama/stores/toolRouter/cards.ts                                  ← 7 add + 3 batch + alias + 校验 + 结构化返回
+src/apps/drama/stores/toolRouter/index.ts                                  ← 删 treeHandlers
+src/apps/drama/stores/toolRouter/analysis.ts                               ← kickstart_project 重写 + applyTemplateToCanvas
+src/apps/drama/stores/detailStore.ts                                       ← requestFocusCanvas(cardId)
+src/apps/drama/stores/chatStore.ts                                         ← 删 selectedNodeId
+src/apps/drama/lib/systemPrompt.ts                                         ← 纯画布 + canvasText
+src/apps/drama/lib/toolConfigs.ts                                          ← 加 10 个新 tool，删 6 个旧 tree tool
+src/apps/drama/lib/projectAnalysis.ts                                      ← 重写基于画布
+src/apps/drama/lib/proactiveInsights.ts                                    ← 重写基于画布
+src/apps/drama/lib/numbering.ts                                            ← 重写基于画布
+src/apps/drama/lib/intentRouter.ts                                         ← 简化（删 selectedNodeId 路径）
+src/apps/drama/lib/exportPDF.ts                                            ← exportStoryboardPDF(project, canvasNodes)
+src/apps/drama/lib/exportPrint.ts                                          ← buildScriptRows(canvasNodes)
+src/apps/drama/lib/projectSnapshot.ts                                      ← 序列化画布 cards
+src/apps/drama/lib/canvasCardSchema.ts                                     ← 删 validateLinkedTreeNodeId
+src/apps/drama/lib/canvasToolkit/shared.ts                                 ← buildDefaultPrompt(canvasCard)
+src/apps/drama/lib/canvasToolkit/actions/generateAsset.ts                  ← 不写 linkedTreeNodeId
+src/apps/drama/lib/canvasToolkit/actions/generateVariants.ts                ← 不写 linkedTreeNodeId
+src/apps/drama/lib/canvasToolkit/actions/editAsset.ts                      ← 不写 linkedTreeNodeId
+src/apps/drama/lib/canvasToolkit/actions/applyStyle.ts                     ← 不写 linkedTreeNodeId
+src/apps/drama/lib/canvasToolkit/actions/batchApplyStyle.ts                ← 不写 linkedTreeNodeId
+src/apps/drama/lib/skills/builtIn.ts                                       ← 3 个 skill 重写
+```
+
+### 5.4 UI 修正文件（~10 个）
+
+```
+src/apps/drama/components/layouts/Navbar.tsx                               ← 删 findNodePath / exportStoryboardPDF 调
+src/apps/drama/components/detail-panel/ProjectSummary.tsx                  ← prop 改 card: CanvasNode
+src/apps/drama/components/modals/SnapshotModal.tsx                         ← diffCanvases + snapshot.data.cards
+src/shared/components/canvas/CanvasPanel.tsx                               ← 删 getCurrentTree 调用
+src/shared/components/canvas/CardDetailDrawer.tsx                          ← 风格锁改用 canvasCardId
+src/shared/components/canvas/nodes/ArtCardNode.tsx                         ← 风格锁改用 canvasCardId
+src/shared/components/canvas/nodes/SceneCardNode.tsx                       ← 风格锁改用 canvasCardId
+src/shared/components/chat-panel/MessageList.tsx                           ← JSON.parse + affectedCardIds 渲染（旧 ToolCallDetails 实际在此）
+src/shared/components/chat-panel/MessageItem.tsx                           ← 同上
+src/shared/components/chat-panel/ChatPanel.tsx                             ← highlightAffectedCards(cardIds)
+src/shared/components/chat-panel/toolDisplayName.ts                        ← 删 tree tool labels
+src/shared/components/builder/components/CharacterMapBuilder.tsx           ← 删 dead linkedTreeNodeId 字段
+src/shared/lib/builderSchema.ts                                            ← 删 linkedTreeNodeId 校验
 ```
 
 ### 5.5 估算
 
-- 删除：~1500-2000 行
-- 改写：~500 行
-- 新增：~500-800 行（含测试）
+- 删除：~1500 行（实际含 reviewer 发现的 71+ 处 tree 引用，约 2000-2500 行）
+- 改写：~800 行
+- 新增：~700-1000 行（含测试）
+- 总工作量：**~20 天**（原 12 天低估 70%）
 
 ---
 
 ## 6. 测试
 
+### 6.1 新建 / 重写测试
+
 | 文件 | 类型 | 用例 |
 |---|---|---|
-| `cards.test.ts`（新建） | 单测 | 7 add tool 各 1-2 例（成功 + 校验失败）；3 batch tool（成功 + 部分失败 + 全回滚）；3 alias 路由；旧 add_card 仍可调 |
-| `cardValidation.test.ts`（新建） | 单测 | 存在 / 不存在 / 跨项目；error 返回含 suggestion |
-| `toolResultFormat.test.ts`（新建） | 单测 | JSON.stringify 格式；parse 成功 / 失败 fallback |
-| `applyTemplateToCanvas.test.ts`（新建） | 单测 | acts / scenes / shots 三层；空 template；未知 templateId |
-| `projectAnalysis.test.ts`（重写） | 单测 | 基于画布卡片的节奏分析；空画布边界 |
-| `SnapshotModal.test.tsx`（新建/更新） | 组件测 | 创建 / 恢复快照，画布内容序列化 |
+| `cards.test.ts`（新建） | 单测 | 7 add tool 各 1-2 例；3 batch tool；alias 路由；校验失败 |
+| `cardValidation.test.ts`（新建） | 单测 | 存在 / 不存在 / 跨项目；error 含 suggestion |
+| `toolResultFormat.test.ts`（新建） | 单测 | JSON.stringify 格式；parse 成功 / fallback |
+| `applyTemplateToCanvas.test.ts`（新建） | 单测 | acts / scenes / shots 三层；空 template；未知 id |
+| `diffCanvases.test.ts`（新建） | 单测 | added / removed / modified 三种情况 |
+| `projectAnalysis.test.ts`（重写） | 单测 | 基于画布卡片的节奏分析 |
+| `proactiveInsights.test.ts`（重写） | 单测 | 各种空 / 缺 / 异常情况 |
+| `numbering.test.ts`（重写） | 单测 | 基于画布的编号 |
+| `intentRouter.test.ts`（重写） | 单测 | 删 selectedNodeId 路径 |
+| `exportPDF.test.ts`（重写） | 单测 | project + canvasNodes 入参 |
+| `exportPrint.test.ts`（重写） | 单测 | buildScriptRows 改 canvas 入参 |
+| `SnapshotModal.test.tsx`（更新） | 组件测 | diffCanvases 路径 |
+| `MessageList.test.tsx` / `MessageItem.test.tsx`（更新） | 组件测 | JSON.parse + affectedCardIds 渲染 |
 | `systemPrompt.test.ts`（更新） | 单测 | 无 tree 段；canvasText 渲染 |
-| `toolRouter.test.ts`（删 tree 段） | 单测 | 删除 tree 相关用例 |
-| `projectStore.test.ts`（删 tree 段） | 单测 | 删除 tree 相关用例；IDB migrate v2→v3 清空 trees |
+| `styleLockStore.test.ts`（新建） | 单测 | lockStyle / clearLock / 全局只锁一个 |
+| `skills.test.ts`（重写） | 单测 | 3 个 skill 重写后行为 |
+| `chatStore.test.ts`（更新） | 单测 | 删 selectedNodeId 初始化 |
+| `canvasStore.test.ts`（更新） | 单测 | 删 linkedTreeNodeId 相关 |
+| `clearCanvas.test.ts`（更新） | 单测 | kickstart 不再依赖 linkedTreeNodeId |
+| `CopilotCardNode.test.tsx` / `CanvasPanel.popover.test.tsx` / `useCopilotGenerate.test.tsx` / `CardCopilotPopover.test.tsx`（更新） | 组件测 | stub 移除 trees: {} |
+| `detailStore.test.ts`（更新） | 单测 | requestFocusCanvas(cardId) |
+| `toolDisplayName.test.ts`（更新） | 单测 | 删 tree labels |
+| `canvasToolkit/actions/*.test.ts`（重写 5 个） | 单测 | 不再写 linkedTreeNodeId |
+
+### 6.2 IDB migrate 测试
+
+新增 `projectStore.migrate.test.ts`：
+
+```typescript
+describe('IDB migrate v5 → v6', () => {
+  it('清除 trees 字段', () => { ... });
+  it('清除 selectedNodeId 字段', () => { ... });
+  it('保留 projects 字段', () => { ... });
+  it('保留 canvasStore 数据', () => { ... });
+});
+```
 
 ---
 
-## 7. 实施顺序（12 天）
+## 7. 实施顺序（20 天）
 
-### 阶段 A：删除幽灵树（Day 1-6）
-
-| Day | 任务 | 提交粒度 |
-|---|---|---|
-| 1 | types/index.ts 删 TreeNode + linkedTreeNodeId；projectStore 删 trees / 6 action / selectedNodeId / getCurrentTree | commit 1 |
-| 2 | toolRouter/tree.ts 删除；toolConfigs.ts 删 7 个 tree tool；treeUtils/treeDiff/migrateTreeToCards 4 文件删除（含测试） | commit 2 |
-| 3 | applyTemplateCore → applyTemplateToCanvas 重写 + 测试 + analysis.ts 调用替换 | commit 3 |
-| 4 | projectAnalysis 重写基于画布 + 测试 | commit 4 |
-| 5 | SnapshotModal 重写画布快照 + projectSnapshot.ts 序列化 | commit 5 |
-| 6 | systemPrompt 重写纯画布 + canvasText 重命名 + IDB schema bump v3 | commit 6 |
-
-### 阶段 B：能力扩展（Day 7-12）
+### 阶段 A：删树 + 重写 tree-coupling 模块（Day 1-13）
 
 | Day | 任务 | 提交粒度 |
 |---|---|---|
-| 7 | types.ts 新增 ToolResult；toolResultFormat.ts；cardValidation.ts | commit 7 |
-| 8 | cards.ts 重写：7 个 add handler + 校验集成 + 结构化返回 | commit 8 |
-| 9 | cards.ts 扩展：3 个 batch handler + alias 路由（add_card / update_card / delete_card） | commit 9 |
-| 10 | toolConfigs.ts 加 10 个新 tool + 删 7 个 tree tool（早删过，此处确认）+ useCopilotSSE JSON.parse | commit 10 |
-| 11 | ToolCallDetails.tsx 升级 JSON 渲染 + 全链路回归测试 | commit 11 |
-| 12 | 测试补全 + 老测试清理 + Playwright 端到端冒烟（如果有） | commit 12 |
+| 1 | types/index.ts 删 TreeNode + linkedTreeNodeId；projectStore 删 trees / 6 action / selectedNodeId；projectStore version 5→6 + migrate | commit 1 |
+| 2 | toolRouter/tree.ts 删除；toolConfigs.ts 删 6 个 tree tool；treeUtils/treeDiff/migrateTreeToCards 4 文件删除（含测试） | commit 2 |
+| 3 | 新建 applyTemplateToCanvas.ts + 重写 analysis.kickstart_project + analysis.apply_template | commit 3 |
+| 4 | 新建 diffCanvases.ts + SnapshotModal 改 + projectSnapshot.ts 序列化 cards | commit 4 |
+| 5 | projectAnalysis 重写基于画布 + 测试 | commit 5 |
+| 6 | proactiveInsights 重写 + chatStore.pushProactiveInsights 调用替换 + 测试 | commit 6 |
+| 7 | numbering 重写 + intentRouter 简化 + 测试 | commit 7 |
+| 8 | exportPDF/exportPrint 重写签名 + Navbar 调用替换 + 测试 | commit 8 |
+| 9 | canvasToolkit/actions/ 5 个 action 清理（不写 linkedTreeNodeId） + 测试 | commit 9 |
+| 10 | 风格锁重写：新建 styleLockStore + ArtCardNode/SceneCardNode/CardDetailDrawer 改用 canvasCardId + 测试 | commit 10 |
+| 11 | 3 个 skill 重写（duplicate-project / export-storyboard-pdf / analyze-pacing）+ 测试 | commit 11 |
+| 12 | detailStore / ChatPanel.highlightAffectedCards / toolDisplayName / CharacterMapBuilder / builderSchema 清理 | commit 12 |
+| 13 | 系统 prompt 重写 canvasText + 测试；A 阶段全量回归 | commit 13 |
 
-每个 commit 后跑 `npm test` + `npm run lint`，确保绿灯才进下一步。
+### 阶段 B：LLM 能力扩展（Day 14-20）
+
+| Day | 任务 | 提交粒度 |
+|---|---|---|
+| 14 | types.ts 新增 ToolResult；toolResultFormat.ts；cardValidation.ts；canvasCardSchema 删 validateLinkedTreeNodeId | commit 14 |
+| 15 | cards.ts 重写：7 个 add handler + 校验集成 + 结构化返回 + alias 路由 | commit 15 |
+| 16 | cards.ts 扩展：3 个 batch handler | commit 16 |
+| 17 | toolConfigs.ts 加 10 个新 tool + useCopilotSSE JSON.parse + MessageList/MessageItem 升级 | commit 17 |
+| 18 | cards.test.ts / cardValidation.test.ts / toolResultFormat.test.ts / diffCanvases.test.ts 新建测试 | commit 18 |
+| 19-20 | B 阶段回归 + 老测试清理 + 全量 292+ 测试通过 | commit 19 |
 
 ---
 
@@ -632,42 +746,86 @@ src/apps/drama/lib/skills/*                     ← 检查 tree 引用（kicksta
 
 | 维度 | 风险 | 缓解 |
 |---|---|---|
-| LLM 行为变化 | 删 7 个 tree tool 后，LLM 失去直接改树能力 | systemPrompt 全面重写引导 LLM 走画布 tool；alias 路由保留向后兼容 |
-| 老用户 trees 数据 | 项目中残留 trees 字段 | IDB schema bump v3 + migrate 强制清除；用户已接受数据丢失 |
-| Server 端 schema | tool registry 同步更新 | server 仓库对应 PR；本 spec 列出字段清单作为接口契约 |
-| 模板数据结构 | acts/scenes 嵌套结构保留，但不再映射到 tree | applyTemplateToCanvas 直接生成画布卡，模板 JSON 格式不变 |
-| IDB 缓存 | 老 IDB 缓存可能保留 trees | version bump + partialize 排除 trees + migrate 清空 |
-| `CardChild` 兼容性 | shot 之前是 TreeNode，现在转 CardChild；老 CardChild 字段是否够用 | CardChild 已有 `type: 'shot'` + `data: { duration, shotType, cameraMovement, dialogue }`，足够 |
-| 测试删除 | 删除 4 个 tree 测试文件 | 不影响 292 个测试总数（新测试补齐） |
+| LLM 行为变化 | 删 6 个 tree tool | systemPrompt 全面重写引导 LLM 走画布 tool；alias 保留 add_card/update_card/delete_card |
+| 老用户 trees 数据 | IDB 残留 | version 5→6 + migrate 强制清空 |
+| 风格锁迁移 | tree.metadata → CanvasNode.metadata | styleLockStore 独立 + UI 调用替换 + IDB migrate 清空 tree 锁定字段 |
+| 三个 skill | tree → canvas 语义差异 | 重写为枚举画布卡；duplicate 仍复制所有 card；export-storyboard 改 PDF；analyze-pacing 调新 projectAnalysis |
+| 主动建议 | 当前依赖 tree 推算 | 重写后基于画布卡片类型分布；空画布友好 |
+| 快照对比 | diffTrees 不再存在 | 写 diffCanvases 替代；UX 不降级 |
+| PDF/Print 导出 | 签名变化 | 调用方同步更新；UI 层无差异 |
+| number 编号 | 改基于画布 | UI 不变；底层算法适配 |
+| intentRouter 简化 | 删 selectedNodeId 路径 | 现有 LLM 调用几乎不依赖 selectedNodeId；可能小幅降低 guardrail 准确率，监控修复 |
+| canvasToolkit | 不写 linkedTreeNodeId | 已有 linkedCardIds 替代；不影响生成功能 |
+| Server 端 schema | tool registry 同步 | server 仓库对应 PR（§10 字段清单） |
+| 在飞 LLM 会话 | 旧 tool schema 仍有 session | 客户端检测到老 tool 名称调用 → 返回 `tool_not_found` 错误 |
+| Mock 数据 | mockTreeData.ts 删 | 不影响（已 dead code） |
+| 工作量低估 | 12 天→20 天 | 按 20 天排期；前 13 天 A 阶段先稳定 |
 
 ---
 
 ## 9. 验收标准
 
 阶段 A 完成：
-- `git grep "TreeNode\|treeHandlers\|getCurrentTree\|projectStore.trees"` 无结果（除历史文档）
+- `git grep "TreeNode\|getCurrentTree\|treeHandlers\|linkedTreeNodeId"` 无结果（除 spec/AGENTS 历史文档）
+- `git grep "projectStore.trees\|selectedNodeId"` 无结果
 - `npm test` 绿灯
 - `npm run build` 通过
+- 视觉检查：Workspace / ChatPanel / SnapshotModal / Navbar 导出按钮 全部正常工作
 - Server tool registry 同步 PR 已开
 
 阶段 B 完成：
 - LLM 调用 `spellpaw_add_art_card` 等新 tool 可成功生成画布卡
 - LLM 调用旧 `spellpaw_add_card` 仍可用（alias 路由）
-- tool result 包含 `affectedCardIds`，画布卡片对应位置闪一下高亮
+- tool result 含 `affectedCardIds`，画布卡片对应位置闪一下高亮
 - cardId 不存在时返回 `card_not_found` 错误 + suggestion
-- 292+ 测试通过，新增 30+ 测试
-- Playwright e2e（如果有）通过：输入"添加一张雨夜小巷 art 卡" → 画布出现新卡 → ChatPanel ToolCallDetails 显示 affectedCardIds
+- 292+ 测试通过，新增 50+ 测试（覆盖新写的所有 helper）
 
 ---
 
-## 10. 参考文档
+## 10. Server 端 Schema 同步清单
+
+Spellpaw Server 需要同步的 tool registry 变化：
+
+**删除 6 个 tree tool**：
+```
+spellpaw_add_node
+spellpaw_update_node
+spellpaw_delete_node
+spellpaw_get_tree
+spellpaw_get_subtree
+spellpaw_apply_template
+```
+
+**新增 10 个 tool**：
+```
+spellpaw_add_storyline_card       (parameters: title, description?, location?, timeOfDay?, duration?)
+spellpaw_add_moodboard_card       (parameters: title, description?, colors[]?, styleRef?)
+spellpaw_add_video_clip_card      (parameters: title, description?, source?, duration?)
+spellpaw_add_asset_card           (parameters: title, description?, assetType?, url?, tags[]?)
+spellpaw_add_task_card            (parameters: title, description?, taskType?, targetCardId?, dueDate?)
+spellpaw_add_art_card             (parameters: title, description?, thumbnail?, generatedPrompt?)
+spellpaw_add_character_card       (parameters: title, description?, role?, traits[]?, linkedCardIds[]?)
+
+spellpaw_batch_update_cards       (parameters: updates: [{cardId, data}])
+spellpaw_batch_delete_cards       (parameters: cardIds: [string])
+spellpaw_batch_add_cards          (parameters: cards: [{cardType, data}])
+```
+
+**保留 3 个 alias**：`spellpaw_add_card` / `spellpaw_update_card` / `spellpaw_delete_card`（保持现有 schema，内部行为变）。
+
+**systemPrompt 同步**：服务端注入的 systemPrompt 字符串需要同步更新为纯画布版（不含 tree 段）。
+
+---
+
+## 11. 参考文档
 
 - `docs/superpowers/specs/2026-06-24-tool-router-domain-split-design.md` — 当前 toolRouter 结构
-- `docs/superpowers/specs/2026-06-20-ai-teammate-system-design.md` — Builder panel
+- `docs/superpowers/specs/2026-06-20-ai-teammate-system-design.md` — Builder panel / skill 注册
 - `docs/superpowers/specs/2026-06-25-card-copilot-popover-design.md` — 卡片 AI 操作 popover
-- `src/apps/drama/lib/systemPrompt.ts` — 当前 system prompt（含 tree 段，待删除）
-- `src/apps/drama/stores/toolRouter/cards.ts` — 当前 cards domain（待重写）
+- `src/apps/drama/lib/systemPrompt.ts` — 当前 system prompt
+- `src/apps/drama/stores/toolRouter/cards.ts` — 当前 cards domain
+- `src/apps/drama/stores/toolRouter/tree.ts` — 待删除的 tree domain
 
 ---
 
-*最后更新：2026-06-26*
+*最后更新：2026-06-26 (rev 2 — 纳入 reviewer 发现的 11 blocker + 8 minor)*

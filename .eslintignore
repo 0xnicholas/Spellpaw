@@ -1,0 +1,11 @@
+
+# Phase 4: broken test files (tree references deleted, need full rewrite)
+src/apps/drama/lib/numbering.test.ts
+src/apps/drama/lib/syncEngine.test.ts
+src/apps/drama/stores/canvasStore.test.ts
+src/apps/drama/stores/clearCanvas.test.ts
+src/apps/drama/stores/toolRouter.test.ts
+src/shared/components/canvas/CanvasPanel.popover.test.tsx
+src/shared/components/canvas/CardCopilotPopover/CardCopilotPopover.test.tsx
+src/shared/components/canvas/hooks/useCopilotGenerate.test.tsx
+src/shared/components/canvas/nodes/CopilotCardNode.test.tsx

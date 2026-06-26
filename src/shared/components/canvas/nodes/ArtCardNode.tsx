@@ -14,7 +14,7 @@ export function ArtCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeDat
   const [imgLoaded, setImgLoaded] = useState(false);
   const [hoverThumb, setHoverThumb] = useState(false);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
-  const { lockedCardId, lockedStylePrompt, lockStyle, clearLock } = useStyleLockStore();
+  const { lockedCardId, lockedStylePrompt: _lockedStylePrompt, lockStyle, clearLock: _clearLock } = useStyleLockStore();
 
   const thumbnail = data.thumbnail as string | undefined;
   const prompt = data.prompt as string | undefined;

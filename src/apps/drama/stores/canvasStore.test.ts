@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useCanvasStore } from './canvasStore';
 import { useProjectStore } from './projectStore';

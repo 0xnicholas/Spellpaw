@@ -9,7 +9,6 @@ import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { logger } from '@shared/lib/logger';
 import { generateId } from '@/shared/lib/utils';
-import { normalizeCardData, validateCanvasCardPayload, validateCanvasCardUpdateData } from '@drama/lib/canvasCardSchema';
 import { findCardOrError } from '@drama/lib/cardValidation';
 import { formatResult } from '@drama/lib/toolResultFormat';
 import type { CanvasNodeType, CanvasNode } from '@drama/types';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Storyboard PDF export — 分镜表 PDF 导出
  */

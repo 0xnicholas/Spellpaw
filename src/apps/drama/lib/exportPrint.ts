@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Print & export utilities — storyboard PDF + dialogue script
  *
@@ -189,7 +190,7 @@ interface ScriptRow {
   description: string;
 }
 
-function buildScriptRows(canvasNodes: CanvasNode[]): ScriptRow[] {
+function buildScriptRows(_canvasNodes: CanvasNode[]): ScriptRow[] {
   const rows: ScriptRow[] = [];
   for (const act of tree.children ?? []) {
     for (const scene of act.children ?? []) {

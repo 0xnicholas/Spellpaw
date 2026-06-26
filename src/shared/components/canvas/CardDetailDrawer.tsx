@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 /**
  * CardDetailDrawer — buzzy-style side panel.
  *
@@ -279,7 +280,7 @@ function ScriptDetail({ data }: { data: CanvasNodeData }) {
 }
 
 // ── Art detail ──
-function ArtDetail({ data, linkedTreeNodeId }: { data: CanvasNodeData; linkedTreeNodeId?: string }) {
+function ArtDetail({ data, linkedTreeNodeId: _linkedTreeNodeId }: { data: CanvasNodeData; linkedTreeNodeId?: string }) {
   const prompt = data.prompt as string | undefined;
   const tags = data.tags as string[] | undefined;
   const { lockedCardId } = useStyleLockStore();

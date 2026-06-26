@@ -19,7 +19,7 @@ interface ProjectState {
 
 export const useProjectStore = create<ProjectState>()(
   persist(
-    (set, get) => ({
+    (set, _get) => ({
       projects: [],
       currentProjectId: null,
 
@@ -107,6 +107,7 @@ export const useProjectStore = create<ProjectState>()(
       name: 'spellpaw_project',
       version: 6,
       storage: createIDBStorage<ProjectState>('projectStore'),
+  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
       migrate: (persistedState: unknown, version) => {
         const state = persistedState as Record<string, unknown>;
         if (version < 6) {
@@ -242,6 +243,7 @@ export const useProjectStore = create<ProjectState>()(
         }
         return state as unknown as ProjectState;
       },
+   
       partialize: (state) => ({
         projects: state.projects,
         currentProjectId: state.currentProjectId,

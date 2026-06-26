@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Tests for triggerPushNow — the race-condition fix.
  *

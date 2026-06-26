@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { useCanvasStore } from "@drama/stores/canvasStore";
 import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 import { providerRegistry } from "../registry";

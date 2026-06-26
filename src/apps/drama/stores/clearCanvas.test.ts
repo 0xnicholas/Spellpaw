@@ -1,3 +1,4 @@
+ 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
@@ -119,7 +120,7 @@ describe('kickstart_project dedup', () => {
     expect(cards2).toBe(6);
 
     // Each scene should only have one card (no duplicate )
-    const linkedIds = useCanvasStore.getState().getCurrentNodes().map((n) => n.data.);
+    const linkedIds = useCanvasStore.getState().getCurrentNodes().map((n) => n.data.title);
     expect(new Set(linkedIds).size).toBe(linkedIds.length);
   });
 });

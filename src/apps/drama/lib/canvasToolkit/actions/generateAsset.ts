@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";

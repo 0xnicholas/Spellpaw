@@ -1,5 +1,5 @@
 import { useRef, useEffect, type ReactNode } from 'react';
-import { RefreshCw, Square, AlertCircle, Wrench } from 'lucide-react';
+import { RefreshCw, Square } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { MessageItem } from './MessageItem';
 import type { ChatMessage, ChatAction } from '@shared/types';

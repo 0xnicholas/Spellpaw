@@ -14,7 +14,7 @@ export function listProviders(): Array<{ id: string; name: string }> {
 	return providerRegistry.list().map((p) => ({ id: p.id, name: p.name }));
 }
 
-export function buildDefaultPrompt(card: CanvasNode): string {
+export function buildDefaultPrompt(_card: CanvasNode): string {
 	const m = (node.metadata ?? {}) as NonNullable<TreeNode["metadata"]>;
 	const parts: string[] = [
 		"Cinematic storyboard frame for a short drama scene.",

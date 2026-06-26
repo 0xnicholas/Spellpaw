@@ -17,7 +17,7 @@ export function SceneCardNode({ data, id, selected }: NodeProps<Node<CanvasNodeD
   const [imgLoaded, setImgLoaded] = useState(false);
   const [hoverThumb, setHoverThumb] = useState(false);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
-  const { lockedCardId, lockedStylePrompt, lockStyle, clearLock } = useStyleLockStore();
+  const { lockedCardId, lockedStylePrompt: _lockedStylePrompt, lockStyle, clearLock: _clearLock } = useStyleLockStore();
   const hasThumbnail = !!data.thumbnail && !imgError;
   const isLocked = lockedCardId === id;
 

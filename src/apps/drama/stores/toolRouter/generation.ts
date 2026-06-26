@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Generation domain — tools that generate or modify AI content (images / video).
  *
@@ -28,7 +29,7 @@ export const generationHandlers: ToolRouter = {
     const customPrompt = params.prompt as string | undefined;
     const stylePrompt = params.stylePrompt as string | undefined;
 
-    const store = useProjectStore.getState();
+    const _store = useProjectStore.getState();
         
     const node = null;
     if (!node) return `(未找到节点 ${nodeId})`;

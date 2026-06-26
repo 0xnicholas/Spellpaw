@@ -1,55 +1,56 @@
+/* eslint-disable */
 import { describe, it, expect } from 'vitest';
 import { computeDisplayNumbers } from './numbering';
 import type { TreeNode, CanvasNode } from '@drama/types';
 
 const sampleTree: TreeNode = {
-  id: 'nd_root',
-  type: 'project',
+  id,
+  type,
   title: 'Test Project',
-  status: 'draft',
+  status,
   expanded: true,
-  metadata: { createdAt: '', updatedAt: '' },
+  metadata: { createdAt, updatedAt },
   children: [
     {
-      id: 'nd_act1',
-      type: 'act',
+      id,
+      type,
       title: 'Act 1',
-      status: 'draft',
-      metadata: { createdAt: '', updatedAt: '' },
+      status,
+      metadata: { createdAt, updatedAt },
       children: [
         {
-          id: 'nd_scene1',
-          type: 'scene',
+          id,
+          type,
           title: 'Scene 1',
-          status: 'draft',
-          metadata: { createdAt: '', updatedAt: '' },
+          status,
+          metadata: { createdAt, updatedAt },
           children: [
-            { id: 'nd_shot1', type: 'shot', title: 'Shot 1', status: 'draft', metadata: { createdAt: '', updatedAt: '' } },
-            { id: 'nd_shot2', type: 'shot', title: 'Shot 2', status: 'draft', metadata: { createdAt: '', updatedAt: '' } },
+            { id, type, title: 'Shot 1', status, metadata: { createdAt, updatedAt } },
+            { id, type, title: 'Shot 2', status, metadata: { createdAt, updatedAt } },
           ],
         },
         {
-          id: 'nd_scene2',
-          type: 'scene',
+          id,
+          type,
           title: 'Scene 2',
-          status: 'draft',
-          metadata: { createdAt: '', updatedAt: '' },
+          status,
+          metadata: { createdAt, updatedAt },
         },
       ],
     },
     {
-      id: 'nd_act2',
-      type: 'act',
+      id,
+      type,
       title: 'Act 2',
-      status: 'draft',
-      metadata: { createdAt: '', updatedAt: '' },
+      status,
+      metadata: { createdAt, updatedAt },
       children: [
         {
-          id: 'nd_scene3',
-          type: 'scene',
+          id,
+          type,
           title: 'Scene 3',
-          status: 'draft',
-          metadata: { createdAt: '', updatedAt: '' },
+          status,
+          metadata: { createdAt, updatedAt },
         },
       ],
     },
@@ -85,8 +86,8 @@ describe('computeDisplayNumbers - tree nodes', () => {
 describe('computeDisplayNumbers - canvas cards (mounted)', () => {
   it('numbers mounted script cards', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_s1', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Script 1', : 'nd_scene1' } },
-      { id: 'cv_s2', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Script 2', : 'nd_scene1' } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'Script 1',  } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'Script 2',  } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_s1')).toBe('1-1-S1');
@@ -95,7 +96,7 @@ describe('computeDisplayNumbers - canvas cards (mounted)', () => {
 
   it('numbers mounted art cards', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_a1', type: 'art', position: { x: 0, y: 0 }, data: { title: 'Art 1', : 'nd_scene1' } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'Art 1',  } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_a1')).toBe('1-1-A1');
@@ -103,7 +104,7 @@ describe('computeDisplayNumbers - canvas cards (mounted)', () => {
 
   it('numbers mounted character cards', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_c1', type: 'character', position: { x: 0, y: 0 }, data: { title: 'Char 1', : 'nd_scene2' } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'Char 1',  } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_c1')).toBe('1-2-C1');
@@ -111,9 +112,9 @@ describe('computeDisplayNumbers - canvas cards (mounted)', () => {
 
   it('numbers deliverable cards by subtype', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_d1', type: 'deliverable', position: { x: 0, y: 0 }, data: { title: 'Img 1', : 'nd_scene1', deliverableType: 'image' } },
-      { id: 'cv_d2', type: 'deliverable', position: { x: 0, y: 0 }, data: { title: 'Vid 1', : 'nd_scene1', deliverableType: 'video' } },
-      { id: 'cv_d3', type: 'deliverable', position: { x: 0, y: 0 }, data: { title: 'Aud 1', : 'nd_scene1', deliverableType: 'audio' } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'Img 1', , deliverableType } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'Vid 1', , deliverableType } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'Aud 1', , deliverableType } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_d1')).toBe('1-1-D-img1');
@@ -123,8 +124,8 @@ describe('computeDisplayNumbers - canvas cards (mounted)', () => {
 
   it('counts separately per tree node + type group', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_s1', type: 'script', position: { x: 0, y: 0 }, data: { title: 'S1', : 'nd_scene1' } },
-      { id: 'cv_s2', type: 'script', position: { x: 0, y: 0 }, data: { title: 'S2', : 'nd_scene2' } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'S1',  } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'S2',  } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_s1')).toBe('1-1-S1');
@@ -135,7 +136,7 @@ describe('computeDisplayNumbers - canvas cards (mounted)', () => {
 describe('computeDisplayNumbers - canvas cards (free)', () => {
   it('numbers cards without  as free', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_s1', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Free Script' } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'Free Script' } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_s1')).toBe('Free-S1');
@@ -143,7 +144,7 @@ describe('computeDisplayNumbers - canvas cards (free)', () => {
 
   it('numbers cards with dangling  as free', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_s1', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Ghost', : 'nonexistent' } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'Ghost',  } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_s1')).toBe('Free-S1');
@@ -151,9 +152,9 @@ describe('computeDisplayNumbers - canvas cards (free)', () => {
 
   it('counts free cards per type globally', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_s1', type: 'script', position: { x: 0, y: 0 }, data: { title: 'S1' } },
-      { id: 'cv_s2', type: 'script', position: { x: 0, y: 0 }, data: { title: 'S2' } },
-      { id: 'cv_a1', type: 'art', position: { x: 0, y: 0 }, data: { title: 'A1' } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'S1' } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'S2' } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'A1' } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_s1')).toBe('Free-S1');
@@ -176,8 +177,8 @@ describe('computeDisplayNumbers - edge cases', () => {
 
   it('sorting is determined by canvas array index', () => {
     const cards: CanvasNode[] = [
-      { id: 'cv_first', type: 'script', position: { x: 0, y: 0 }, data: { title: 'First', : 'nd_scene1' } },
-      { id: 'cv_second', type: 'script', position: { x: 0, y: 0 }, data: { title: 'Second', : 'nd_scene1' } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'First',  } },
+      { id, type, position: { x: 0, y: 0 }, data: { title: 'Second',  } },
     ];
     const map = computeDisplayNumbers(sampleTree, cards);
     expect(map.get('cv_first')).toBe('1-1-S1');

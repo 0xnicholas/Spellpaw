@@ -218,13 +218,10 @@ export function initSyncEngine(): void {
   useProjectStore.subscribe((state) => {
     const id = state.currentProjectId;
     if (!id) return;
-    const tree = state.trees[id];
     const projectsJson = JSON.stringify(state.projects);
-    const treesJson = JSON.stringify(tree);
 
-    const currentJson = projectsJson + treesJson;
-    if (currentJson !== prevProjectsJson) {
-      prevProjectsJson = currentJson;
+    if (projectsJson !== prevProjectsJson) {
+      prevProjectsJson = projectsJson;
       schedulePush(id);
     }
   });

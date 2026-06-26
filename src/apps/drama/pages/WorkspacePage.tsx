@@ -4,10 +4,8 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { Navbar } from '@drama/layouts/Navbar';
 import { ChatPanel } from '@chat/ChatPanel';
 import { CanvasPanel } from '@canvas/CanvasPanel';
-import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
 
 import { BuilderPanel } from '@shared/components/builder';
-import { useHotkeys } from '@/shared/hooks/useHotkeys';
 import { useChatStore } from '@drama/stores/chatStore';
 import { useToolBridge } from '@drama/hooks/useToolBridge';
 import { useProjectStore } from '@drama/stores/projectStore';
@@ -46,12 +44,8 @@ export function WorkspacePage() {
   // Phase 2: connect to Tool Server WebSocket for Copilot tool calls
   useToolBridge();
 
-  const selectNode = useProjectStore((s) => s.selectNode);
-  const deleteTreeNode = useProjectStore((s) => s.deleteTreeNode);
   const setCurrentProject = useProjectStore((s) => s.setCurrentProject);
   const currentProjectId = useProjectStore((s) => s.currentProjectId);
-
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; childCount: number } | null>(null);
 
   // Sync current project with URL route parameter
   useEffect(() => {
@@ -59,16 +53,6 @@ export function WorkspacePage() {
       setCurrentProject(projectId);
     }
   }, [projectId, setCurrentProject]);
-
-  useHotkeys({
-    Escape: () => {
-      if (deleteTarget) {
-        setDeleteTarget(null);
-      } else {
-        selectNode(null);
-      }
-    },
-  });
 
   return (
     <MobileGuard>
@@ -97,23 +81,6 @@ export function WorkspacePage() {
           <BuilderPanel />
         </div>
       </div>
-      <DeleteConfirmDialog
-        isOpen={!!deleteTarget}
-        title="删除节点"
-        description={
-          deleteTarget && deleteTarget.childCount > 0
-            ? `该节点包含 ${deleteTarget.childCount} 个子节点，确认全部删除？`
-            : '确认删除该节点？'
-        }
-        onConfirm={() => {
-          if (deleteTarget) {
-            deleteTreeNode(deleteTarget.id);
-            setDeleteTarget(null);
-          }
-        }}
-        onCancel={() => setDeleteTarget(null)}
-      />
-
     </MobileGuard>
   );
 }

@@ -105,9 +105,7 @@ export async function editAsset(
 	const card = await addEnrichedCard("art", {
 		title,
 		description: params.prompt,
-		generatedPrompt: fallbackPrompt,
-		 linkedNode?.id,
-		status: "draft",
+		generatedPrompt: fallbackPrompt, status: "draft",
 		sourceProvider: provider.id,
 	});
 

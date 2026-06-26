@@ -123,7 +123,6 @@ export async function applyStyle(
 		title,
 		description: combinedPrompt,
 		generatedPrompt: combinedPrompt,
-		 linkedNode?.id,
 		status: "draft",
 		sourceProvider: provider.id,
 	});

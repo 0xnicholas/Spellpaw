@@ -278,14 +278,14 @@ export const SPELLPAW_TOOL_CONFIGS = [
 	},
 
 		name: "spellpaw_generate_asset",
-		description: `Generate an image or video asset and add it to the canvas as a card. Use when the user asks to generate a storyboard, reference image, scene visual, or video. If a scene/shot node is selected, pass its nodeId; otherwise provide an explicit prompt. Produces an 'art' card (image) or 'deliverable' card (video) by default; pass cardType to override. Valid providers: ${providerEnum().join(", ")}. Example: spellpaw_generate_asset({ mediaType: "image", nodeId: "scene-1", prompt: "雨夜小巷，霓虹灯反射，悬疑氛围" }).`,
+		description: `Generate an image or video asset and add it to the canvas as a card. Use when the user asks to generate a storyboard, reference image, scene visual, or video. If a canvas card is selected, pass its cardId; otherwise provide an explicit prompt. Produces an 'art' card (image) or 'deliverable' card (video) by default; pass cardType to override. Valid providers: ${providerEnum().join(", ")}. Example: spellpaw_generate_asset({ mediaType: "image", cardId: "card-1", prompt: "雨夜小巷，霓虹灯反射，悬疑氛围" }).`,
 		parameters: {
 			type: "object",
 			properties: {
-				nodeId: {
+				cardId: {
 					type: "string",
 					description:
-						"ID of the scene or shot node to generate for (optional if prompt is provided)",
+						"ID of the canvas card to generate for (optional if prompt is provided)",
 				},
 				mediaType: {
 					type: "string",
@@ -295,7 +295,7 @@ export const SPELLPAW_TOOL_CONFIGS = [
 				prompt: {
 					type: "string",
 					description:
-						"Generation prompt; required when no nodeId is provided. If nodeId is provided and prompt is omitted, built from node metadata",
+						"Generation prompt; required when no cardId is provided. If cardId is provided and prompt is omitted, built from card metadata",
 				},
 				provider: {
 					type: "string",
@@ -319,19 +319,14 @@ export const SPELLPAW_TOOL_CONFIGS = [
 	},
 	{
 		name: "spellpaw_generate_variants",
-		description: `Generate multiple variant images of an existing scene or canvas card. Useful when the user wants "more options", "a few versions", or "variations of this shot". Produces a new 'art' card for each variant. Example: spellpaw_generate_variants({ nodeId: "scene-2-1", count: 3 }).`,
+		description: `Generate multiple variant images of an existing canvas card. Useful when the user wants "more options", "a few versions", or "variations of this shot". Produces a new 'art' card for each variant. Example: spellpaw_generate_variants({ cardId: "card-xyz", count: 3 }).`,
 		parameters: {
 			type: "object",
 			properties: {
-				nodeId: {
-					type: "string",
-					description:
-						"ID of the scene/shot node to generate variants for (alternative to cardId)",
-				},
 				cardId: {
 					type: "string",
 					description:
-						"ID of an existing canvas card to generate variants from (alternative to nodeId)",
+						"ID of the canvas card to generate variants from",
 				},
 				mediaType: {
 					type: "string",
@@ -414,14 +409,14 @@ export const SPELLPAW_TOOL_CONFIGS = [
 	{
 		name: "spellpaw_batch_apply_style",
 		description:
-			'Batch apply a visual style to multiple scene/shot nodes. Creates one new \'art\' card for each selected node; originals are preserved. Use when the user wants "unify the style of selected scenes" or "apply this style to all selected shots". Example: spellpaw_batch_apply_style({ nodeIds: ["scene-1", "scene-2"], stylePrompt: "noir" }).',
+			'Batch apply a visual style to multiple canvas cards. Creates one new \'art\' card for each selected card; originals are preserved. Use when the user wants "unify the style of selected cards" or "apply this style to all selected shots". Example: spellpaw_batch_apply_style({ cardIds: ["card-1", "card-2"], stylePrompt: "noir" }).',
 		parameters: {
 			type: "object",
 			properties: {
-				nodeIds: {
+				cardIds: {
 					type: "array",
 					items: { type: "string" },
-					description: "IDs of scene/shot nodes to style",
+					description: "IDs of canvas cards to style",
 				},
 				stylePrompt: {
 					type: "string",

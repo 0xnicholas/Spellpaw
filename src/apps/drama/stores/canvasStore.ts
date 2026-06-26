@@ -1,10 +1,7 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { CanvasNode, CanvasEdge } from '@drama/types';
 import { generateId } from '@/shared/lib/utils';
-import { createIDBStorage } from '@/shared/lib/idbStorage';
 import { useProjectStore } from './projectStore';
-import { migrateCopilotCards } from '@drama/lib/migrateCopilotCards';
 
 interface Viewport {
   x: number;
@@ -77,8 +74,7 @@ function bumpProjectUpdatedAt(): void {
 }
 
 export const useCanvasStore = create<CanvasState>()(
-  persist(
-    (set, get) => ({
+  (set, get) => ({
       canvases: {},
 
       selectedCardId: null,
@@ -359,78 +355,5 @@ export const useCanvasStore = create<CanvasState>()(
             },
           };
         }),
-    }),
-    {
-      name: 'spellpaw_canvas',
-      version: 4,
-      storage: createIDBStorage<CanvasState>('canvasStore'),
-      migrate: (persistedState: unknown, version) => {
-        const state = persistedState as Record<string, unknown>;
-        // Handle old format: persistedNodes/persistedEdges/viewport at top level
-        if (state.persistedNodes || state.persistedEdges || state.viewport) {
-          const entry: CanvasEntry = {
-            nodes: (state.persistedNodes as CanvasNode[]) ?? [],
-            edges: (state.persistedEdges as CanvasEdge[]) ?? [],
-            viewport: (state.viewport as Viewport) ?? { x: 0, y: 0, zoom: 1 },
-          };
-          state.canvases = { 'proj_1': entry };
-          delete state.persistedNodes;
-          delete state.persistedEdges;
-          delete state.viewport;
-        }
-        if (version < 3) {
-          const titleMap: Record<string, string> = {
-            'Scene 1-1': '场景 1-1',
-            'Cafe Encounter': '咖啡厅邂逅',
-            'Scene 1-2': '场景 1-2',
-            'Street Encounter': '街头重逢',
-            'Note': '备注',
-            'Act 1 must be completed within 90 seconds': '第一幕需在90秒内完成',
-          };
-          const descMap: Record<string, string> = {
-            'Cafe Encounter': '咖啡厅邂逅',
-            'Street Encounter': '街头重逢',
-            'Act 1 must be completed within 90 seconds': '第一幕需在90秒内完成',
-          };
-          if (state.canvases) {
-            const canvases = state.canvases as Record<string, CanvasEntry>;
-            for (const key of Object.keys(canvases)) {
-              for (const node of canvases[key].nodes) {
-                if (node.data.title in titleMap) {
-                  node.data.title = titleMap[node.data.title];
-                }
-                if (node.data.description && node.data.description in descMap) {
-                  node.data.description = descMap[node.data.description];
-                }
-              }
-            }
-          }
-        }
-        if (version < 4) {
-          const canvases = state.canvases as Record<string, CanvasEntry> | undefined;
-          if (canvases) {
-            for (const key of Object.keys(canvases)) {
-              const entry = canvases[key];
-              // Legacy copilotCard type check: 'copilotCard' was removed from
-              // CanvasNodeType union in v2, but may exist in persisted state.
-              const toMigrate = entry.nodes.filter(
-                (n) => (n.type as string) === 'copilotCard'
-              ).length;
-              if (toMigrate > 0) {
-                if (import.meta.env.DEV) {
-                  console.info(`[canvasStore v3→v4] migrating ${toMigrate} copilotCard nodes in ${key}`);
-                }
-                entry.nodes = migrateCopilotCards(entry.nodes as never);
-              }
-            }
-          }
-        }
-        return state as unknown as CanvasState;
-      },
-      partialize: (state) => ({
-        canvases: state.canvases,
-        // highlightCardIds, focusCardId are transient — not persisted
-      }) as unknown as CanvasState,
-    }
-  )
+    })
 );

@@ -9,8 +9,10 @@ import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { logger } from '@shared/lib/logger';
 import { generateId } from '@/shared/lib/utils';
-import { findCardOrError } from '@drama/lib/cardValidation';
+import { findCardOrError, validateCanvasCardPayload, normalizeCardData } from '@drama/lib/cardValidation';
 import { formatResult } from '@drama/lib/toolResultFormat';
+import { computeAutoPosition } from '@drama/lib/canvasAutoLayout';
+import { applyTemplateToCanvas } from '@drama/lib/applyTemplateToCanvas';
 import type { CanvasNodeType, CanvasNode } from '@drama/types';
 import type { ToolRouter, ToolResult } from './types';
 
@@ -19,7 +21,7 @@ import type { ToolRouter, ToolResult } from './types';
 export async function addRawCard(
   cardType: CanvasNodeType,
   data: Record<string, unknown>,
-): Promise<CanvasNode> {
+): Promise<{ card: CanvasNode; sideEffects: ToolResult['sideEffects'] }> {
   const id = generateId('canvas_');
   const card: CanvasNode = {
     id,
@@ -31,11 +33,22 @@ export async function addRawCard(
       status: ((data.status as string) || 'draft') as CanvasNode['data']['status'],
       tags: [],
       colors: [],
+      // Default to 'idle' so cards created without an attached generation
+      // task (skills, templates) don't surface a misleading retry affordance.
+      // Generation actions flip this to 'generating' right after submit.
+      generationStatus: 'idle',
       ...data,
     } as CanvasNode['data'],
   };
   useCanvasStore.getState().addNode(card);
-  return card;
+  return {
+    card,
+    sideEffects: {
+      canvas: {
+        cardsAdded: [{ id: card.id, type: cardType, title: card.data.title }],
+      },
+    },
+  };
 }
 
 // ── Internal: typed add factory with validation ──
@@ -55,7 +68,7 @@ async function addTypedCard(
     };
   }
   const normalized = normalizeCardData(cardType, data) as Record<string, unknown>;
-  const card = await addRawCard(cardType, normalized);
+  const { card, sideEffects: se } = await addRawCard(cardType, normalized);
 
   // Apply explicit position if given
   if (position) {
@@ -82,6 +95,7 @@ async function addTypedCard(
     success: true,
     affectedCardIds: [card.id],
     summary: `已添加 ${cardType} 卡片「${card.data.title}」`,
+    sideEffects: se,
   };
 }
 
@@ -97,7 +111,7 @@ export async function addEnrichedCard(
     throw new Error(`卡片参数错误: ${validation.error}`);
   }
   const normalized = normalizeCardData(cardType, data) as Record<string, unknown>;
-  const card = await addRawCard(cardType, normalized);
+  const { card } = await addRawCard(cardType, normalized);
   if (position) {
     useCanvasStore.setState((state) => {
       const pid = useProjectStore.getState().currentProjectId;
@@ -171,13 +185,20 @@ export const cardHandlers: ToolRouter = {
       ? (type as CanvasNodeType)
       : 'storyline';
 
-    // Auto-position: stack below existing cards
+    // Phase 3: LLM can request `position: "auto"` — the layout is
+    // computed via a stable grid so the LLM never needs pixel values.
+    const position = params.position as string | undefined;
+    if (position && position !== 'auto') {
+      // Explicit { x, y } object — use as-is
+      try {
+        const parsed = typeof position === 'string' ? JSON.parse(position) : position;
+        if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
+          return formatResult(await addTypedCard(cardType, { ...params, type: cardType }, parsed));
+        }
+      } catch { /* fall through to auto */ }
+    }
     const existing = useCanvasStore.getState().getCurrentNodes();
-    const lastY = existing.length > 0
-      ? Math.max(...existing.map((n) => n.position.y)) + 220
-      : 50;
-    const pos = { x: 50 + (existing.length % 3) * 400, y: lastY };
-
+    const pos = computeAutoPosition(existing.length);
     return formatResult(await addTypedCard(cardType, { ...params, type: cardType }, pos));
   },
 
@@ -274,8 +295,9 @@ export const cardHandlers: ToolRouter = {
   batch_add_cards: async (params) => {
     const cards = (params.cards ?? []) as Array<{ cardType: CanvasNodeType; data: Record<string, unknown> }>;
     const affected: string[] = [];
+    const existing = useCanvasStore.getState().getCurrentNodes().length;
     for (let i = 0; i < cards.length; i++) {
-      const pos = { x: 50 + (i % 3) * 400, y: 100 + Math.floor(i / 3) * 280 };
+      const pos = computeAutoPosition(existing + i);
       const result = await addTypedCard(cards[i].cardType, cards[i].data, pos);
       if (result.affectedCardIds) affected.push(...result.affectedCardIds);
     }
@@ -339,5 +361,54 @@ export const cardHandlers: ToolRouter = {
 
     const scope = cardType ?? status ?? titleContains ? '（按条件）' : '';
     return formatResult({ success: true, affectedCardIds: matched.map((m) => m.id), summary: `已清空画布${scope}：共删除 ${matched.length} 张卡片。` });
+  },
+
+  /**
+   * Apply a narrative template (builtin or custom) to the current canvas.
+   *
+   *   spellpaw_apply_template(templateId: string)
+   *
+   * Resolves the template via applyTemplateToCanvas, which:
+   *   1. Checks customTemplateStore (user-curated templates win)
+   *   2. Falls back to fetching /templates/{id}.spellpaw-template.json
+   *
+   * Returns the same JSON envelope as other canvas tools (success,
+   * affectedCardIds, summary, sideEffects) so callers can react to the
+   * result uniformly. Errors are reported with success:false so the LLM
+   * can recover (e.g. retry with a different templateId).
+   */
+  apply_template: async (params) => {
+    const templateId = String(params.templateId ?? '').trim();
+    if (!templateId) {
+      return formatResult({
+        success: false,
+        error: 'validation_failed',
+        suggestion: 'pass a non-empty templateId',
+        summary: '需要 templateId 参数',
+      });
+    }
+    const raw = await applyTemplateToCanvas(templateId);
+    // applyTemplateToCanvas returns a JSON string already. Forward it as-is
+    // so downstream consumers see the same shape regardless of caller path.
+    try {
+      const parsed = JSON.parse(raw);
+      // Pull a friendly default summary if applyTemplateToCanvas omitted one.
+      if (!parsed.summary) {
+        const ok = parsed.affectedCardIds?.length ?? 0;
+        parsed.summary = ok > 0
+          ? `已应用模板「${templateId}」：${ok} 张卡片`
+          : `模板「${templateId}」无新卡片创建`;
+      }
+      logger.log(`[apply_template] ${templateId} →`, parsed.summary);
+      return JSON.stringify(parsed);
+    } catch {
+      // Unexpected non-JSON output — surface as an error so the LLM sees it.
+      return formatResult({
+        success: false,
+        error: 'validation_failed',
+        suggestion: 'internal: applyTemplateToCanvas returned non-JSON',
+        summary: `模板「${templateId}」执行失败`,
+      });
+    }
   },
 };

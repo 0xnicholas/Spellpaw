@@ -20,7 +20,7 @@ import {
   batchApplyStyle,
 } from '@drama/lib/canvasToolkit';
 import { logger } from '@shared/lib/logger';
-import { isSlashCommand, tryRunSkill, executeSkill, formatSkillInvocation } from '@drama/lib/skills/chat';
+import { isSlashCommand, tryRunSkill, formatSkillInvocation, augmentUserMessage } from '@drama/lib/skills/chat';
 import { parseToolResult } from '@drama/lib/toolResultFormat';
 import type { CanvasIntent } from '@drama/lib/intentRouter';
 
@@ -78,6 +78,7 @@ export function useCopilotSSE() {
     'spellpaw_batch_add_cards',
     'spellpaw_clear_canvas',
     'spellpaw_kickstart_project',
+    'spellpaw_apply_template',
     'spellpaw_generate_storyboard',
   ]);
 
@@ -126,13 +127,28 @@ export function useCopilotSSE() {
               isError ? 'error' : 'success',
               errorText,
             );
-            // Highlight affected canvas cards — parse structured JSON results
+            // Highlight affected canvas cards — parse structured JSON results.
+            // Phase 2: also apply sideEffects for real-time canvas updates
+            // (e.g. card added / thumbnail updated) without waiting for a
+            // full canvas re-fetch.
             if (CANVAS_TOOL_NAMES.has(String(event.name))) {
               const parsed = parseToolResult(rawContent);
-              if (parsed.parsed && parsed.result.affectedCardIds?.length) {
-                useCanvasStore.getState().triggerHighlight(
-                  parsed.result.affectedCardIds.slice(-3),
-                );
+              if (parsed.parsed) {
+                if (parsed.result.affectedCardIds?.length) {
+                  useCanvasStore.getState().triggerHighlight(
+                    parsed.result.affectedCardIds.slice(-3),
+                  );
+                }
+                // Apply structured sideEffects if present
+                const se = parsed.result.sideEffects?.canvas;
+                if (se?.cardsUpdated?.length) {
+                  for (const u of se.cardsUpdated) {
+                    const patch: Record<string, unknown> = {};
+                    if (u.thumbnail) patch.thumbnail = u.thumbnail;
+                    if (u.status) patch.generationStatus = u.status;
+                    useCanvasStore.getState().updateNodeData(u.id, patch as Partial<import('@drama/types').CanvasNodeData>);
+                  }
+                }
               }
             }
             break;
@@ -213,18 +229,11 @@ export function useCopilotSSE() {
         }
         logger.log('[useCopilotSSE] sendMessage called:', content.slice(0, 80));
 
-        // Slash command: run the skill locally, no LLM roundtrip.
+        // Phase 2 of skills-refactor: slash command content is augmented
+        // in-place so the LLM receives skill instructions. The user still
+        // sees their original slash command in the message log.
+        // The invocation notice tells the user which skill is being invoked.
         if (isSlashCommand(content)) {
-          // Append the user message first
-          const userMsg: ChatMessage = {
-            id: crypto.randomUUID(),
-            role: 'user',
-            content,
-            type: 'text',
-            timestamp: new Date().toISOString(),
-          };
-          useChatStore.getState().appendMessage(userMsg, projectId);
-
           const started = tryRunSkill(content, projectId);
           if (started) {
             const invocationMsg: ChatMessage = {
@@ -235,22 +244,10 @@ export function useCopilotSSE() {
               timestamp: new Date().toISOString(),
             };
             useChatStore.getState().appendMessage(invocationMsg, projectId);
-            useChatStore.getState().appendMessage(started.pendingMessage, projectId);
-
-            // Run the skill and replace the pending message with the final
-            const done = await executeSkill(content, projectId);
-            if (done) {
-              useChatStore.getState().updateMessage(
-                started.pendingMessage.id,
-                { ...done.finalMessage, timestamp: started.pendingMessage.timestamp },
-                projectId
-              );
-            }
-            endStreaming(projectId, 'skill_invocation');
-            return;
           }
-          // Unknown slash command — fall through to LLM so it can either
-          // recognize the typo or run a LLM-callable skill tool.
+          // Rewrite content so the LLM receives augmented instructions
+          // instead of the raw slash command.
+          content = augmentUserMessage(content, projectId);
         }
 
         // Build card context for the message

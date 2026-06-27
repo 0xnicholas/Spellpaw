@@ -4,7 +4,7 @@
  */
 import { config } from "@/shared/config";
 import { listProviderIds } from "@drama/lib/canvasToolkit";
-import { getAllSkillToolConfigs } from "@drama/skills/registry";
+// import { getAllSkillToolConfigs } from "@drama/skills/registry"; // Phase 1: skills removed
 
 const TOOL_ENDPOINT = config.toolServerEndpoint;
 
@@ -41,6 +41,7 @@ export const SPELLPAW_TOOL_CONFIGS = [
 				assetType: { type: "string", description: "For asset cards: product/logo/subtitle/audio/image/video/other" },
 				taskType: { type: "string", enum: ["instruction", "feedback", "diff"], description: "For task cards" },
 				targetCardId: { type: "string", description: "For task cards: which card this task relates to" },
+				position: { type: "string", description: "Set to \"auto\" for automatic grid layout. Default: auto." },
 			},
 			required: ["type", "title"],
 		},
@@ -499,15 +500,24 @@ export const SPELLPAW_TOOL_CONFIGS = [
 		},
 		endpoint: TOOL_ENDPOINT,
 	},
-	// ── Skill tools (composed workflows) ──
-	// Each skill becomes one tool with name `spellpaw_skill_*` and a
-	// single `input` object argument. The LLM can invoke them like
-	// atomic tools, but they're implemented as composed workflows
-	// internally.
-	...getAllSkillToolConfigs().map((cfg) => ({
-		name: cfg.name,
-		description: cfg.description,
-		parameters: cfg.parameters,
+	{
+		name: "spellpaw_apply_template",
+		description:
+			"Apply a narrative template to the current canvas. Generates storyline cards (acts) and sceneCard cards (scenes with shot children) from the template's structure. Use this when the user wants to bootstrap a project from a specific known template (use match_template first if you don't know which template fits).",
+		parameters: {
+			type: "object",
+			properties: {
+				templateId: {
+					type: "string",
+					description:
+						'Template id, e.g. "sweet-romance" or "underdog-comeback". Builtin ids are loaded from /public/templates/ on demand; custom templates in the user store take priority.',
+				},
+			},
+			required: ["templateId"],
+		},
 		endpoint: TOOL_ENDPOINT,
-	})),
+	},
+	// Phase 1 of skills-refactor: skill tools (spellpaw_skill_*) are no
+	// longer registered here. Skills are LLM-driven via augmentUserMessage.
+	// See docs/plans/skills-refactor-to-guide.md.
 ];

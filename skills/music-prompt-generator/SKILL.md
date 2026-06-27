@@ -1,88 +1,85 @@
 ---
 name: music-prompt-generator
-description: 配乐提示词生成师 - 从配乐资产卡片生成AI音乐生成提示词（Suno/Udio）
-version: 1.0.0
-author: Modo
-tags: [ai-short-drama, music, prompt-generation, suno, udio]
+description: Use when a MusicAssetCard has been generated and Suno/Udio-optimized prompts need to be batch-generated for BGM and SFX
 ---
 
-# 配乐提示词生成师 Skill
+# Music Prompt Generator Skill
 
-从配乐资产卡片生成针对AI音乐工具（Suno/Udio）优化的提示词，按优先级批量输出。
+Generate AI music tool (Suno/Udio) optimized prompts from music asset cards, outputting in priority order.
 
-## 整体工作流
+## Overall Workflow
 
 ```
-输入：MusicAssetCard（配乐资产卡片）
+Input: MusicAssetCard
 
-阶段1：依赖检查
-阶段2：选择目标BGM/SFX（按优先级）
-阶段3：生成提示词
-  Suno：英文标签 + 风格描述
-  Udio：英文自然语言描述
-阶段4：生成变体提示词（每首BGM的所有变体）
-阶段5：输出提示词卡片
+Stage 1: Dependency Check
+Stage 2: Select Target BGM/SFX (by priority)
+Stage 3: Generate Prompts
+  Suno: English tags + style description
+  Udio: English natural language description
+Stage 4: Generate Variant Prompts (all variants per BGM)
+Stage 5: Output Prompt Cards
 
-输出：MusicPromptCard（配乐提示词卡片）
+Output: MusicPromptCard
 ```
 
 ---
 
-## 阶段1：依赖检查
+## Stage 1: Dependency Check
 
-**检查项**：配乐资产卡片（必需）
+**Check Item**: Music asset card (required)
 
-**错误处理**：不存在时提示用户先运行 `/music-asset-extraction`
-
----
-
-## 阶段2：选择目标
-
-默认按 P1 → P2 → P3 顺序处理。用户可指定：
-- 单首：`生成《逆潮》的提示词`
-- 按优先级：`生成所有P1的提示词`
-- 按类型：`生成所有SFX提示词`
+**Error Handling**: If absent, prompt user to run `/music-asset-extraction` first
 
 ---
 
-## 阶段3：生成提示词
+## Stage 2: Select Target
 
-### Suno 提示词模板
+Default processing order: P1 → P2 → P3. User can specify:
+- Single track: `Generate prompts for "Against the Tide"`
+- By priority: `Generate all P1 prompts`
+- By type: `Generate all SFX prompts`
 
-Suno 使用**风格标签 + 简短描述**，控制在 200 字符以内：
+---
+
+## Stage 3: Generate Prompts
+
+### Suno Prompt Template
+
+Suno uses **style tags + short description**, kept within 200 characters:
 
 ```
 [genre tags], [mood tags], [instrument tags], [tempo], [production style], [vocal tag]
 ```
 
-**人声标签规则**（根据 `vocalType` 自动追加）：
+**Vocal tag rules** (auto-appended based on `vocalType`):
 
-| vocalType | 追加标签 |
+| vocalType | Appended Tag |
 |-----------|---------|
 | `instrumental` | `instrumental, no vocals` |
-| `with_vocals` | 不追加（Suno默认生成人声） |
-| `optional` | 生成两版：一版追加 `instrumental, no vocals`，一版不追加 |
+| `with_vocals` | No append (Suno generates vocals by default) |
+| `optional` | Generate two versions: one with `instrumental, no vocals`, one without |
 
-**情绪→标签映射表**：
+**Mood → Tag Mapping Table**:
 
-| 情绪 | 风格标签 | 情绪标签 | 乐器标签 |
+| Mood | Style Tags | Mood Tags | Instrument Tags |
 |------|---------|---------|---------|
-| 爽感/升级 | electronic, synthpop | energetic, triumphant, satisfying | synthesizer, drum machine, bass synth |
-| 喜剧/荒诞 | indie pop, quirky | playful, lighthearted, comedic | clean guitar, music box, light synth |
-| 紧张/危机 | electronic, dark synth | tense, urgent, suspenseful | bass synth, fast drums, high-freq synth |
-| 复仇/冷酷 | dark electronic, minimal | cold, calculated, controlled | bass loop, minimal percussion, dark pad |
-| 悲愤/觉醒 | cinematic electronic | emotional, building, powerful | piano, bass synth, drums crescendo |
-| 温情/守护 | ambient pop | warm, gentle, heartfelt | piano, warm pad, soft strings |
-| 悬念/片尾 | electronic, minimal | mysterious, anticipating | context-dependent, short stinger |
+| Satisfaction / Power-up | electronic, synthpop | energetic, triumphant, satisfying | synthesizer, drum machine, bass synth |
+| Comedy / Absurdity | indie pop, quirky | playful, lighthearted, comedic | clean guitar, music box, light synth |
+| Tension / Crisis | electronic, dark synth | tense, urgent, suspenseful | bass synth, fast drums, high-freq synth |
+| Revenge / Coldness | dark electronic, minimal | cold, calculated, controlled | bass loop, minimal percussion, dark pad |
+| Grief-rage / Awakening | cinematic electronic | emotional, building, powerful | piano, bass synth, drums crescendo |
+| Warmth / Protection | ambient pop | warm, gentle, heartfelt | piano, warm pad, soft strings |
+| Suspense / Cliffhanger | electronic, minimal | mysterious, anticipating | context-dependent, short stinger |
 
-**示例（主题曲《逆潮》）**：
+**Example (Theme "Against the Tide")**:
 ```
 electronic, synthpop, energetic, confident, uplifting, not epic,
 synthesizer lead, drum machine, bass synth, piano accent,
 120 BPM, modern production, short drama style, loop-friendly
 ```
 
-**示例（喜剧主题《崩坏》）**：
+**Example (Comedy Theme "Collapse")**:
 ```
 indie pop, quirky, playful, comedic, lighthearted,
 clean guitar, music box, light synth, electronic drums,
@@ -91,16 +88,16 @@ clean guitar, music box, light synth, electronic drums,
 
 ---
 
-### Udio 提示词模板
+### Udio Prompt Template
 
-Udio 支持更长的自然语言描述，控制在 500 字符以内：
+Udio supports longer natural language descriptions, kept within 500 characters:
 
 ```
 {mood description}. {instrumentation}. {tempo and rhythm}. 
 {production notes}. {usage context}. {what to avoid}.
 ```
 
-**示例（觉醒主题《破晓》）**：
+**Example (Awakening Theme "Daybreak")**:
 ```
 Emotional electronic music that builds from quiet despair to powerful 
 resolution. Starts with simple piano chords and low bass drone at 90 BPM, 
@@ -112,53 +109,53 @@ Avoid full orchestra, choir, or overly cinematic sound.
 
 ---
 
-## 阶段4：生成变体提示词
+## Stage 4: Generate Variant Prompts
 
-每首BGM的每个变体单独生成提示词，在主提示词基础上追加变体描述：
+Each BGM variant generates a separate prompt, appending variant description to the main prompt:
 
-| 变体类型 | 追加描述 |
+| Variant Type | Appended Description |
 |---------|---------|
-| 短版（30-45秒） | `short version, 30 seconds, no intro` |
-| 循环版 | `seamless loop, no fade in/out` |
-| 渐强版 | `starts quiet, builds gradually, full energy at end` |
-| 纯器乐版 | `instrumental only, no vocals` |
-| 突变版（喜剧反转） | `starts serious for 5 seconds, then suddenly switches to playful` |
+| Short version (30-45s) | `short version, 30 seconds, no intro` |
+| Loop version | `seamless loop, no fade in/out` |
+| Crescendo version | `starts quiet, builds gradually, full energy at end` |
+| Instrumental only | `instrumental only, no vocals` |
+| Sudden shift (comedy twist) | `starts serious for 5 seconds, then suddenly switches to playful` |
 
 ---
 
-## 阶段5：输出提示词卡片
+## Stage 5: Output Prompt Cards
 
-### 输出格式
+### Output Format
 
-每首BGM/SFX输出一个提示词块：
+Each BGM/SFX outputs one prompt block:
 
 ```markdown
 ## {bgm_name}（{bgmId}）
 
-**用途**：{usage description}
-**优先级**：{P1/P2/P3}
+**Purpose**: {usage description}
+**Priority**: {P1/P2/P3}
 
-### Suno 提示词
-**主版本**：
+### Suno Prompt
+**Main Version**:
 {suno_prompt}
 
-**变体 - {variation_name}**：
+**Variant - {variation_name}**:
 {suno_prompt_variation}
 
-### Udio 提示词
-**主版本**：
+### Udio Prompt
+**Main Version**:
 {udio_prompt}
 
 ---
 ```
 
-### 卡片结构
+### Card Structure
 
 ```typescript
 interface MusicPromptCard {
   id: string;
   type: 'music_prompt';
-  title: string;  // 如："[剧名] - 配乐提示词"
+  title: string;  // e.g., "[Show Title] - Music Prompts"
 
   content: {
     upstreamCards: { musicAssetCard: string };
@@ -181,7 +178,7 @@ interface MusicPromptCard {
       category: string;
       suno: string;
       udio: string;
-      note: string;  // SFX通常更适合音效库而非AI生成，此处注明
+      note: string;  // SFX are usually better suited for sound libraries than AI generation, noted here
     }>;
   };
 }
@@ -189,52 +186,52 @@ interface MusicPromptCard {
 
 ---
 
-## SFX 特殊处理
+## SFX Special Handling
 
-SFX（音效）与BGM不同，AI音乐工具生成效果有限。对每个SFX提供两种方案：
+SFX (sound effects) differ from BGM — AI music tools produce limited results. Provide two options per SFX:
 
-1. **AI生成提示词**（Suno/Udio）：适合环境音效
-2. **素材库推荐关键词**（Freesound/Epidemic Sound）：适合特殊音效
+1. **AI Generation Prompt** (Suno/Udio): Suitable for ambient sound effects
+2. **Sound Library Keyword Recommendations** (Freesound/Epidemic Sound): Suitable for specific sound effects
 
-| SFX类别 | 推荐方案 |
+| SFX Category | Recommended Approach |
 |---------|---------|
-| environment | AI生成（环境音效效果较好） |
-| ui | 素材库（系统提示音精度要求高） |
-| special | 素材库 + 后期处理（御尸术、晶核等需要精确控制） |
-| character | 素材库（丧尸声效需要真实感） |
+| environment | AI generation (ambient effects work well) |
+| ui | Sound library (system notification sounds require high precision) |
+| special | Sound library + post-processing (corpse manipulation, crystal cores, etc. require precise control) |
+| character | Sound library (zombie sounds require realism) |
 
 ---
 
-## 测试用例
+## Test Cases
 
-**输入**：丧尸末世短剧配乐资产卡片，生成P1 BGM提示词
+**Input**: Zombie apocalypse short drama music asset card, generate P1 BGM prompts
 
-**预期输出**：
-- 《逆潮》：Suno + Udio 各1套，含4个变体
-- 《升级》：Suno + Udio 各1套，含3个变体
-- 《暗涌》：Suno + Udio 各1套，含3个变体
-- 《破晓》：Suno + Udio 各1套，含2个变体
-
----
-
-## 实施检查清单
-
-- [ ] 阶段1：依赖检查完成
-- [ ] 阶段2：目标BGM/SFX已选定
-- [ ] 阶段3：主提示词生成完成（Suno + Udio）
-- [ ] 阶段4：所有变体提示词生成完成
-- [ ] 阶段5：提示词卡片输出，格式清晰可直接使用
+**Expected Output**:
+- "Against the Tide": Suno + Udio 1 set each, with 4 variants
+- "Power Up": Suno + Udio 1 set each, with 3 variants
+- "Undercurrent": Suno + Udio 1 set each, with 3 variants
+- "Daybreak": Suno + Udio 1 set each, with 2 variants
 
 ---
 
-**Skill版本**：v1.0  
-**创建日期**：2026-05-29  
-**测试状态**：待测试
+## Implementation Checklist
 
-## 完成后下一步
+- [ ] Stage 1: Dependency check complete
+- [ ] Stage 2: Target BGM/SFX selected
+- [ ] Stage 3: Main prompts generated (Suno + Udio)
+- [ ] Stage 4: All variant prompts generated
+- [ ] Stage 5: Prompt card output, clear format ready for use
 
-完成判定：`MusicPromptCard` 已创建，BGM 和 SFX 的提示词版本已保存。
+---
 
-当前无强制下游。音乐支线当前不接入视频主链路；用户可以保存提示词、继续生成音乐版本，或回到 `production-coordinator` 推进具体场次制作。
+**Skill Version**: v1.0  
+**Created**: 2026-05-29  
+**Test Status**: Pending
 
-推荐话术：`音乐提示词已完成。当前音乐支线不阻塞视频主链路，你可以继续音乐制作，也可以回到具体场次的视频制作流程。`
+## Next Step After Completion
+
+Completion criteria: `MusicPromptCard` created, BGM and SFX prompt versions saved.
+
+No mandatory downstream at present. The music branch does not currently feed into the main video pipeline; users can save prompts, continue generating music versions, or return to `production-coordinator` to advance specific scene production.
+
+Recommended phrasing: `Music prompts are complete. The music branch currently does not block the main video pipeline — you can continue music production or return to specific scene video production.`

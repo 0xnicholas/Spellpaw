@@ -3,128 +3,128 @@ name: scene-strategy-designer
 description: Use when an EpisodeSceneDetailCard and DirectorBriefingCard need a scene strategy based on a confirmed SceneAssetCard.selectedVisual
 ---
 
-# 现场设计 (Scene Strategy Designer)
+# Scene Strategy Designer
 
-根据分集分场剧情卡片、导演讲戏卡片的预判指令、场景资产卡片（含已确认的 `selectedVisual`）、美术设定卡片，设计场景的光照方案、色调氛围、角色站位，生成带有光照效果和角色站位标注的场景效果图。
+Based on the EpisodeSceneDetailCard, DirectorBriefingCard precheck directives, SceneAssetCard (with confirmed `selectedVisual`), and Art Direction Card, design the scene's lighting scheme, color tone and atmosphere, and character positioning. Generate a scene effect image with lighting effects and character position annotations.
 
-**核心逻辑**：基于 `SceneAssetCard.selectedVisual` 中已确认的场景图，叠加剧情所需的光照设计和角色站位标注，而不是从零生成新场景。
+**Core logic**: Based on the confirmed scene image in `SceneAssetCard.selectedVisual`, overlay lighting design and character position annotations required by the story, rather than generating a new scene from scratch.
 
-**本skill是唯一生成图片的策略skill**，采用两阶段生成：先生成场景效果图（场景全景图+光照效果），再讨论并标注角色站位。
+**This skill is the only strategy skill that generates images**, using a two-stage generation: first generate the scene effect image (scene panorama + lighting effects), then discuss and annotate character positions.
 
 ---
 
 ## Reference Routing
 
-本skill的场景、灯光、空间和氛围规则放在 `references/`，按需读取：
+This skill's scene, lighting, spatial, and atmosphere rules are stored in `references/`; read on demand:
 
-- 光源动机、灯光层级、光线词汇：读取 `references/lighting-vocabulary.md`。
-- 空间站位、轴线前置、动作路径、场景参考图类型：读取 `references/spatial-blocking-reference.md`。
-- 色彩叙事、氛围词汇、场景负面约束：读取 `references/color-atmosphere-vocabulary.md`。
+- Light source motivation, light layers, light vocabulary: read `references/lighting-vocabulary.md`.
+- Spatial blocking, axis pre-establishment, action paths, scene reference image types: read `references/spatial-blocking-reference.md`.
+- Color narrative, atmosphere vocabulary, scene negative constraints: read `references/color-atmosphere-vocabulary.md`.
 
-使用原则：reference用于约束场景策略和生图提示词，不要机械输出所有灯光层级或所有站位字段；按导演预判结构选择最必要的场景控制点。
-
----
-
-## 整体工作流
-
-```
-前提条件：`SceneAssetCard.selectedVisual` 已在资产分区生成并确认 ✅
-输入：分集分场剧情卡片 + 导演讲戏卡片（precheck）+ 场景资产卡片（含 `selectedVisual`）+ 美术设定卡片
-  ↓
-阶段1：分析上游信息
-  - 读取剧情卡片（visualDescription、sceneElements、emotion、rhythm）
-  - 读取导演讲戏卡片（primaryStructure、preliminaryShotGroupPlan、strategyDirectives.scene）⭐
-  - 读取场景资产卡片（场景描述、光影方案、`selectedVisual.image` / `selectedVisual.panoramaImage`） ⭐ 关键
-  - 读取美术设定卡片（视觉风格、色彩系统）
-  ↓
-阶段2：设计光照方案
-  - 根据情绪基调选择光照类型
-  - 根据时间（日/夜）确定光照强度
-  - 确定打光方向和色温
-  ↓
-阶段3：设计色调和氛围
-  - 根据美术设定选择主色调
-  - 根据情绪选择强调色
-  - 描述整体氛围
-  ↓
-阶段4：设计角色站位（基于剧情推断）
-  - 根据visualDescription推断角色位置
-  - 根据characterStates推断角色姿态
-  - 确定前景/中景/后景关系
-  - ⚠️ 与用户讨论确认推断的站位（必须）
-  ↓
-阶段5：生成场景效果图（第一阶段）⭐ 核心差异
-  - 创建场景策略卡片（包含光照、色调、氛围、角色站位设计）
-  - 与用户讨论确认所有推断内容（尤其是角色站位）
-  - 生成提示词（基于场景全景图 + 叠加光照调整）
-  - 展示提示词给用户确认/修改
-  - 调用图像生成模型（GPT-Image-2优先），要求：
-    * 使用场景全景图作为基础参考
-    * 调整光照效果以匹配剧情情绪
-    * 保持场景结构与全景图高度一致
-  - 用户确认效果图
-  ↓
-阶段6：标注角色站位（第二阶段）
-  - 在效果图上标注角色站位（数字或文字标注）
-  - 用户可以调整站位
-  - 更新场景策略卡片（添加带标注的效果图URL）
-  ↓
-输出：场景策略卡片（含场景效果图和角色站位标注图）
-```
+Usage principle: References are used to constrain the scene strategy and image generation prompts. Do not mechanically output all light layers or all blocking fields; select only the most essential scene control points based on the director's precheck structure.
 
 ---
 
-## ⚠️ 关键区别说明
+## Overall Workflow
+
+```
+Prerequisite: `SceneAssetCard.selectedVisual` has been generated and confirmed in the asset zone ✅
+Input: EpisodeSceneDetailCard + DirectorBriefingCard (precheck) + SceneAssetCard (with `selectedVisual`) + Art Direction Card
+  ↓
+Stage 1: Analyze upstream information
+  - Read EpisodeSceneDetailCard (visualDescription, sceneElements, emotion, rhythm)
+  - Read DirectorBriefingCard (primaryStructure, preliminaryShotGroupPlan, strategyDirectives.scene) ⭐
+  - Read SceneAssetCard (scene description, lighting solution, `selectedVisual.image` / `selectedVisual.panoramaImage`) ⭐ Critical
+  - Read Art Direction Card (visual style, color system)
+  ↓
+Stage 2: Design lighting scheme
+  - Select lighting type based on emotional tone
+  - Determine lighting intensity based on time (day/night)
+  - Determine lighting direction and color temperature
+  ↓
+Stage 3: Design color tone and atmosphere
+  - Select dominant color based on art direction
+  - Select accent color based on emotion
+  - Describe overall atmosphere
+  ↓
+Stage 4: Design character positions (inferred from story)
+  - Infer character positions from visualDescription
+  - Infer character postures from characterStates
+  - Determine foreground/midground/background relationships
+  - ⚠️ Discuss and confirm inferred positions with user (required)
+  ↓
+Stage 5: Generate scene effect image (Phase One) ⭐ Core difference
+  - Create SceneStrategyCard (containing lighting, color tone, atmosphere, character position design)
+  - Discuss and confirm all inferred content with user (especially character positions)
+  - Generate prompt (based on scene panorama + overlaid lighting adjustments)
+  - Present prompt to user for confirmation/modification
+  - Call image generation model (GPT-Image-2 preferred), requirements:
+    * Use scene panorama as base reference
+    * Adjust lighting effects to match story emotion
+    * Keep scene structure highly consistent with panorama
+  - User confirms effect image
+  ↓
+Stage 6: Annotate character positions (Phase Two)
+  - Annotate character positions on the effect image (numbered or text annotations)
+  - User may adjust positions
+  - Update SceneStrategyCard (add annotated effect image URL)
+  ↓
+Output: SceneStrategyCard (with scene effect image and character position annotation image)
+```
+
+---
+
+## ⚠️ Key Distinction
 
 ### Scene Generator vs Scene Strategy Designer
 
-| 维度 | Scene Generator（资产分区） | Scene Strategy Designer（制作分区） |
-|------|----------------------------|-----------------------------------|
-| **任务定位** | 生成场景资产 | 基于场景资产设计拍摄策略 |
-| **输入** | 场景资产卡片（文字描述） | 剧情卡片 + 场景资产卡片（含 `selectedVisual`） |
-| **输出** | 场景全景图（空置、无人、标准光照） | 场景效果图（全景图+光照调整+站位标注） |
-| **场景内容** | 纯净场景，无角色 | 场景+角色站位标注 |
-| **光照设计** | 标准光照方案 | 根据剧情情绪调整光照 |
-| **生成逻辑** | 从零生成新场景 | 基于已有全景图叠加效果 |
+| Dimension | Scene Generator (Asset Zone) | Scene Strategy Designer (Production Zone) |
+|-----------|------------------------------|-------------------------------------------|
+| **Task** | Generate scene assets | Design shooting strategy based on scene assets |
+| **Input** | SceneAssetCard (text description) | EpisodeSceneDetailCard + SceneAssetCard (with `selectedVisual`) |
+| **Output** | Scene panorama (empty, no characters, standard lighting) | Scene effect image (panorama + lighting adjustments + position annotations) |
+| **Scene content** | Clean scene, no characters | Scene + character position annotations |
+| **Lighting design** | Standard lighting scheme | Lighting adjusted for story emotion |
+| **Generation logic** | Generate new scene from scratch | Overlay effects on existing panorama |
 
-### 工作流衔接
+### Workflow Handoff
 
 ```
-资产分区：
-├─ 场景资产卡片创建 → scene-asset-extraction skill
-└─ 场景全景图生成 → scene-generator skill
+Asset Zone:
+├─ Scene asset card creation → scene-asset-extraction skill
+└─ Scene panorama generation → scene-generator skill
        ↓
-制作分区：
-└─ 场景效果图生成 → scene-strategy-designer skill（本skill）
-     基于全景图 + 叠加光照 + 标注站位
+Production Zone:
+└─ Scene effect image generation → scene-strategy-designer skill (this skill)
+     Based on panorama + overlaid lighting + position annotations
 ```
 
 ---
 
-## 阶段1：分析上游信息
+## Stage 1: Analyze Upstream Information
 
-### 1.1 读取分集分场剧情卡片
+### 1.1 Read EpisodeSceneDetailCard
 
-**目标**：获取场景的视觉描述、元素、情绪、节奏信息
+**Goal**: Retrieve scene visual description, elements, emotion, and rhythm information
 
-**输入**：
-- `episodeNumber`：集数
-- `sceneNumber`：场次编号（如："1-1A"）
+**Input**:
+- `episodeNumber`: Episode number
+- `sceneNumber`: Scene number (e.g. "1-1A")
 
-**执行逻辑**：
-1. 根据 `episodeNumber` 和 `sceneNumber` 定位剧情卡片
-2. 提取以下字段：
-   - `visualDescription`：详细的视觉描述数组
-   - `sceneElements`：场景视觉元素（environment、characterStates、objects、lighting、atmosphere）
-   - `cameraInfo`：镜头信息
-   - `emotion`：情绪基调
-   - `emotionIntensity`：情绪强度（1-10）
-   - `rhythm`：节奏（fast/medium/slow）
-   - `location`：场景位置
-   - `timeOfDay`：时间（日/夜）
-   - `lighting`：光照类型（自然光/人工光）
+**Execution logic**:
+1. Locate the EpisodeSceneDetailCard by `episodeNumber` and `sceneNumber`
+2. Extract the following fields:
+   - `visualDescription`: Detailed visual description array
+   - `sceneElements`: Scene visual elements (environment, characterStates, objects, lighting, atmosphere)
+   - `cameraInfo`: Camera information
+   - `emotion`: Emotional tone
+   - `emotionIntensity`: Emotional intensity (1-10)
+   - `rhythm`: Rhythm (fast/medium/slow)
+   - `location`: Scene location
+   - `timeOfDay`: Time of day (day/night)
+   - `lighting`: Lighting type (natural/artificial)
 
-**输出示例**：
+**Sample output**:
 ```typescript
 {
   visualDescription: [
@@ -145,27 +145,27 @@ description: Use when an EpisodeSceneDetailCard and DirectorBriefingCard need a 
 }
 ```
 
-### 1.1.5 读取导演讲戏卡片（CRITICAL）
+### 1.1.5 Read DirectorBriefingCard (CRITICAL)
 
-**目标**：获取导演预判对场景策略的约束，避免场景策略独立发散。
+**Goal**: Retrieve director precheck constraints on scene strategy, ensuring the scene strategy does not diverge independently.
 
-**输入**：
-- `directorBriefingCardId`：由制作分区流程在分集分场剧情卡片后创建
+**Input**:
+- `directorBriefingCardId`: Created by the production zone workflow after the EpisodeSceneDetailCard
 
-**必须提取**：
-- `precheck.primaryStructure`：主结构
-- `precheck.secondaryStructure`：辅助结构
-- `precheck.preliminaryShotGroupPlan`：镜头组粗拆
-- `precheck.strategyDirectives.scene`：场景策略设计指令
+**Must extract**:
+- `precheck.primaryStructure`: Primary structure
+- `precheck.secondaryStructure`: Secondary structure
+- `precheck.preliminaryShotGroupPlan`: Preliminary shot group plan
+- `precheck.strategyDirectives.scene`: Scene strategy design directives
 
-**执行规则**：
-1. 场景布光、站位和预览图必须服务导演预判结构。
-2. 如果主结构是 `dialogue_cross_cutting`，优先确定轴线、坐位/站位、视线方向和可切反应角度。
-3. 如果主结构是 `close_up_micro_expression`，场景策略应压缩背景复杂度，突出光源、面部可读性和情绪氛围。
-4. 如果主结构是 `continuous_action` 或 `fight_choreography`，必须明确起点、终点、动作路径、障碍物和可撞击/互动的环境锚点。
-5. 如果主结构是 `sequential_split`，每个镜头组的首尾空间状态要能被尾帧锚点继承。
+**Execution rules**:
+1. Scene lighting, blocking, and preview images must serve the director's precheck structure.
+2. If primary structure is `dialogue_cross_cutting`, prioritize establishing axis, seating/standing positions, eye-line direction, and cuttable reaction angles.
+3. If primary structure is `close_up_micro_expression`, the scene strategy should compress background complexity, emphasizing light source, facial readability, and emotional atmosphere.
+4. If primary structure is `continuous_action` or `fight_choreography`, must clearly define start point, end point, action path, obstacles, and interactable/collidable environmental anchor points.
+5. If primary structure is `sequential_split`, each shot group's starting and ending spatial state must be inheritable by tail-frame anchors.
 
-**输出到场景策略卡片**：
+**Output to SceneStrategyCard**:
 ```typescript
 directorBriefingCardId: string;
 directorPrecheckSnapshot: {
@@ -180,44 +180,44 @@ directorPrecheckSnapshot: {
 }
 ```
 
-### 1.2 读取场景资产卡片
+### 1.2 Read SceneAssetCard
 
-**目标**：获取已确认场景视觉引用（必需）、光影方案、材质细节
+**Goal**: Retrieve confirmed scene visual reference (required), lighting solution, material details
 
-**输入**：
-- `sceneId`：从剧情卡片的 `sceneLocationId` 字段获取
+**Input**:
+- `sceneId`: From the EpisodeSceneDetailCard's `sceneLocationId` field
 
-**执行逻辑**：
-1. 根据 `sceneId` 定位场景资产卡片
-2. 提取以下字段：
-   - `selectedVisual.image`：已确认场景概念图（必需）⭐
-   - `selectedVisual.panoramaImage`：已确认全景图（可选，优先用于需要空间环视或多角度一致性的场次）
-   - `lightingSolution`：光影方案（光源类型、光照强度、色温）
-   - `colorSolution`：色彩方案（主色调、强调色）
-   - `materialDetails`：材质细节
+**Execution logic**:
+1. Locate the SceneAssetCard by `sceneId`
+2. Extract the following fields:
+   - `selectedVisual.image`: Confirmed scene concept art (required) ⭐
+   - `selectedVisual.panoramaImage`: Confirmed panorama (optional; preferred for scenes requiring spatial surround-view or multi-angle consistency)
+   - `lightingSolution`: Lighting solution (light source type, intensity, color temperature)
+   - `colorSolution`: Color solution (dominant color, accent color)
+   - `materialDetails`: Material details
 
-**前置检查（CRITICAL）**：
-- ⚠️ 如果 `selectedVisual` 不存在，**必须停止工作**
-- ⚠️ 如果 `selectedVisual.userConfirmed === true` 不成立，**必须停止工作**
-- ⚠️ 如果 `selectedVisual.stale === true`，**必须停止工作**
-- 提示用户："场景视觉图未确认，请先使用 scene-generator skill 在资产分区生成并确认场景图"
-- 场景策略设计必须基于 `SceneAssetCard.selectedVisual`，不能从零生成场景
-- 不得读取 scenePanoramaUrl；该字段不是当前契约的一部分
-- 不得绕过 `selectedVisual` 从 `SceneConceptCard.imageVersions[]` 随机挑图
+**Precondition check (CRITICAL)**:
+- ⚠️ If `selectedVisual` does not exist, **must stop work**
+- ⚠️ If `selectedVisual.userConfirmed === true` is not satisfied, **must stop work**
+- ⚠️ If `selectedVisual.stale === true`, **must stop work**
+- Prompt user: "Scene visual has not been confirmed. Please use the scene-generator skill in the asset zone to generate and confirm the scene image first."
+- Scene strategy design must be based on `SceneAssetCard.selectedVisual`; cannot generate scene from scratch
+- Must not read `scenePanoramaUrl`; this field is not part of the current contract
+- Must not bypass `selectedVisual` to randomly pick images from `SceneConceptCard.imageVersions[]`
 
-### 1.3 读取美术设定卡片
+### 1.3 Read Art Direction Card
 
-**目标**：获取全剧的视觉风格、色彩系统、光影系统
+**Goal**: Retrieve the series-wide visual style, color system, and lighting system
 
-**执行逻辑**：
-1. 读取美术设定卡片
-2. 提取以下字段：
-   - `visualStyle.artStyle`：美术风格（如：末世写实风格）
-   - `colorSystem.emotionMapping`：情绪-色彩映射表
-   - `lightingSystem.moodMapping`：情绪-光影映射表
-   - `compositionPrinciples`：构图原则
+**Execution logic**:
+1. Read the Art Direction Card
+2. Extract the following fields:
+   - `visualStyle.artStyle`: Art style (e.g., post-apocalyptic realism)
+   - `colorSystem.emotionMapping`: Emotion-to-color mapping table
+   - `lightingSystem.moodMapping`: Mood-to-lighting mapping table
+   - `compositionPrinciples`: Composition principles
 
-**输出示例**：
+**Sample output**:
 ```typescript
 {
   visualStyle: {
@@ -235,52 +235,52 @@ directorPrecheckSnapshot: {
 
 ---
 
-## 阶段2：设计光照方案
+## Stage 2: Design Lighting Scheme
 
-### 2.1 选择光照类型
+### 2.1 Select Lighting Type
 
-**推断规则**：
+**Inference rules**:
 
-| 条件 | 光照类型 |
-|------|----------|
-| `timeOfDay` = "日" + `lighting` = "自然光" | natural（自然光） |
-| `timeOfDay` = "夜" + `lighting` = "人工光" | artificial（人工光） |
-| `timeOfDay` = "日" + `lighting` = "人工光" | mixed（混合光） |
-| `sceneElements.lighting` 存在 | 参考lighting描述 |
+| Condition | Lighting Type |
+|-----------|---------------|
+| `timeOfDay` = "日" + `lighting` = "自然光" | natural |
+| `timeOfDay` = "夜" + `lighting` = "人工光" | artificial |
+| `timeOfDay` = "日" + `lighting` = "人工光" | mixed |
+| `sceneElements.lighting` exists | Reference lighting description |
 
-**示例**：
+**Example**:
 ```typescript
-// 输入：timeOfDay = "日", lighting = "自然光"
-// 输出：
+// Input: timeOfDay = "日", lighting = "自然光"
+// Output:
 {
   type: "natural",
   description: "自然日光从上方照射，模拟海面反射的散射光"
 }
 ```
 
-### 2.2 确定光照强度
+### 2.2 Determine Lighting Intensity
 
-**推断规则**：
+**Inference rules**:
 
-| 条件 | 光照强度 |
-|------|----------|
-| `emotionIntensity` >= 8 | strong（强光） |
-| `emotionIntensity` 5-7 | medium（中等） |
-| `emotionIntensity` < 5 | weak（弱光） |
-| `emotion` 包含"压迫感"/"恐怖" | weak（弱光，营造压迫感） |
+| Condition | Lighting Intensity |
+|-----------|--------------------|
+| `emotionIntensity` >= 8 | strong |
+| `emotionIntensity` 5-7 | medium |
+| `emotionIntensity` < 5 | weak |
+| `emotion` contains "压迫感"/"恐怖" | weak (weak light, creating oppression) |
 
-### 2.3 确定打光方向和色温
+### 2.3 Determine Lighting Direction and Color Temperature
 
-**推断规则**：
+**Inference rules**:
 
-| 情绪类型 | 打光方向 | 色温 |
-|----------|----------|------|
-| 震撼、压迫感 | 顶光/侧光 | cool（冷色） |
-| 温馨、欢快 | 正面光 | warm（暖色） |
-| 神秘、诡异 | 逆光/底光 | cool（冷色） |
-| 日常、平静 | 侧光 | neutral（中性） |
+| Emotion Type | Lighting Direction | Color Temperature |
+|--------------|--------------------|--------------------|
+| Shock, oppression | Top light / side light | cool |
+| Warmth, cheerfulness | Front light | warm |
+| Mystery, eeriness | Back light / under light | cool |
+| Daily life, calm | Side light | neutral |
 
-**输出示例**：
+**Sample output**:
 ```typescript
 {
   type: "natural",
@@ -294,40 +294,40 @@ directorPrecheckSnapshot: {
 
 ---
 
-## 阶段3：设计色调和氛围
+## Stage 3: Design Color Tone and Atmosphere
 
-### 3.1 选择主色调
+### 3.1 Select Dominant Color
 
-**推断规则**：
-1. 从美术设定的 `emotionMapping` 中查找匹配的情绪
-2. 如果找到匹配，使用映射的主色调
-3. 如果未找到，使用默认规则：
+**Inference rules**:
+1. Find matching emotion from the art direction's `emotionMapping`
+2. If match found, use the mapped dominant color
+3. If not found, use default rules:
 
-| 情绪类型 | 主色调 |
-|----------|--------|
-| 震撼、压迫感 | 冷灰色/深蓝色 |
-| 温馨、欢快 | 暖黄色/橙色 |
-| 神秘、诡异 | 紫色/暗绿色 |
-| 悲伤、绝望 | 深灰色/黑色 |
+| Emotion Type | Dominant Color |
+|--------------|----------------|
+| Shock, oppression | Cool gray / deep blue |
+| Warmth, cheerfulness | Warm yellow / orange |
+| Mystery, eeriness | Purple / dark green |
+| Sadness, despair | Dark gray / black |
 
-### 3.2 选择强调色
+### 3.2 Select Accent Color
 
-**推断规则**：
-1. 根据 `visualDescription` 中的关键元素选择
-2. 例如："海底酒店亮着灯光" → 暖黄色作为强调色
-3. 强调色应与主色调形成对比
+**Inference rules**:
+1. Select based on key elements in `visualDescription`
+2. Example: "海底酒店亮着灯光" → warm yellow as accent color
+3. Accent color should contrast with dominant color
 
-### 3.3 描述整体氛围
+### 3.3 Describe Overall Atmosphere
 
-**推断规则**：
-1. 融合 `emotion`、`emotionIntensity`、`rhythm`
-2. 参考 `visualDescription` 中的氛围描述
-3. 确定紧张度：
+**Inference rules**:
+1. Integrate `emotion`, `emotionIntensity`, `rhythm`
+2. Reference atmosphere descriptions in `visualDescription`
+3. Determine tension level:
    - `emotionIntensity` >= 8 → high
    - 5-7 → medium
    - < 5 → low
 
-**输出示例**：
+**Sample output**:
 ```typescript
 {
   colorScheme: {
@@ -348,35 +348,35 @@ directorPrecheckSnapshot: {
 
 ---
 
-## 阶段4：设计角色站位
+## Stage 4: Design Character Positions
 
-### 4.1 推断角色位置
+### 4.1 Infer Character Locations
 
-**推断规则**：
-1. 从 `visualDescription` 中提取角色相关的描述
-2. 从 `sceneElements.characterStates` 中提取角色状态
-3. 推断角色的景深位置：
+**Inference rules**:
+1. Extract character-related descriptions from `visualDescription`
+2. Extract character states from `sceneElements.characterStates`
+3. Infer character depth position:
 
-| 描述关键词 | 景深位置 |
-|-----------|----------|
-| "近景"/"特写"/"面前" | foreground（前景） |
-| "中景"/"站立"/"对话" | midground（中景） |
-| "远景"/"背景"/"远处" | background（后景） |
+| Description Keywords | Depth Position |
+|----------------------|----------------|
+| "近景"/"特写"/"面前" | foreground |
+| "中景"/"站立"/"对话" | midground |
+| "远景"/"背景"/"远处" | background |
 
-### 4.2 推断角色姿态
+### 4.2 Infer Character Postures
 
-**推断规则**：
-1. 直接从 `characterStates[].state` 提取姿态描述
-2. 补充动作细节（根据emotion和rhythm）
+**Inference rules**:
+1. Directly extract posture descriptions from `characterStates[].state`
+2. Supplement action details (based on emotion and rhythm)
 
-**示例**：
+**Example**:
 ```typescript
-// 输入：
+// Input:
 characterStates: [
   { character: "战士", state: "站在浮岛城墙上，举枪拼死抵抗" }
 ]
 
-// 输出：
+// Output:
 characterPositions: [
   {
     characterId: "战士-群体",
@@ -392,14 +392,14 @@ characterPositions: [
 ]
 ```
 
-### 4.3 确定前景/中景/后景关系
+### 4.3 Determine Foreground/Midground/Background Relationships
 
-**推断规则**：
-1. 根据 `visualDescription` 的 sequence 顺序确定视觉层次
-2. sequence 越小，越靠近前景
-3. 确保至少有2个景深层次
+**Inference rules**:
+1. Determine visual layers based on `visualDescription` sequence order
+2. Smaller sequence numbers → closer to foreground
+3. Ensure at least 2 depth layers
 
-**输出示例**：
+**Sample output**:
 ```typescript
 characterPositions: [
   {
@@ -429,80 +429,80 @@ characterPositions: [
 
 ---
 
-## 阶段5：生成场景效果图（第一阶段）
+## Stage 5: Generate Scene Effect Image (Phase One)
 
-### 5.0 创建场景策略卡片并与用户确认（CRITICAL）⭐
+### 5.0 Create SceneStrategyCard and Confirm with User (CRITICAL) ⭐
 
-**用户交互流程**（在生成提示词之前）：
+**User interaction flow** (before generating prompts):
 
-1. **创建场景策略卡片草稿**
-   - 包含阶段2-4设计的所有内容：光照方案、色调方案、氛围、角色站位
-   - 标记状态为 `draft`
+1. **Create SceneStrategyCard draft**
+   - Include all Stage 2-4 design content: lighting scheme, color tone scheme, atmosphere, character positions
+   - Mark status as `draft`
 
-2. **向用户展示并讨论推断内容**
+2. **Present and discuss inferred content with user**
    ```
-   【场景策略卡片已创建 - 需要您的确认】
-   
-   卡片位置：[文件路径]
-   
-   ⚠️ 需要重点讨论的推断内容：
-   
-   1. 角色站位问题（最关键）
-      - [列出每个角色的推断站位]
-      - [标注不确定的地方，询问用户]
-   
-   2. 构图与纵深问题
-      - [描述推断的构图方案]
-      - [询问用户确认]
-   
-   3. 视觉焦点问题
-      - [列出可能的焦点选项]
-      - [询问用户希望强调什么]
-   
-   请提供反馈：
-   A. 全部确认
-   B. 具体修改（告诉我需要调整的部分）
-   C. 整体调整（描述您心目中的画面）
+   【SceneStrategyCard created - requires your confirmation】
+
+   Card location: [file path]
+
+   ⚠️ Inferred content requiring focused discussion:
+
+   1. Character position issues (most critical)
+      - [List each character's inferred position]
+      - [Mark uncertain points, ask user]
+
+   2. Composition and depth issues
+      - [Describe inferred composition scheme]
+      - [Ask user to confirm]
+
+   3. Visual focus issues
+      - [List possible focus options]
+      - [Ask user what they want to emphasize]
+
+   Please provide feedback:
+   A. Confirm all
+   B. Specific modifications (tell me what needs adjustment)
+   C. Overall adjustment (describe the image you have in mind)
    ```
 
-3. **根据用户反馈调整卡片**
-   - 更新角色站位
-   - 调整构图方案
-   - 修改视觉焦点
-   - 更新卡片状态为 `confirmed`
+3. **Adjust card based on user feedback**
+   - Update character positions
+   - Adjust composition scheme
+   - Modify visual focus
+   - Update card status to `confirmed`
 
-4. **确认后进入提示词生成阶段**
-   - 只有在用户确认后，才生成提示词
-   - 基于确认后的卡片内容生成提示词
+4. **Enter prompt generation stage after confirmation**
+   - Only generate prompts after user confirmation
+   - Generate prompts based on confirmed card content
 
-### 5.1 生成提示词
+### 5.1 Generate Prompt
 
-**前提条件**：
-- 场景全景图已存在 ✅
-- 场景策略卡片已与用户确认 ✅
+**Prerequisites**:
+- Scene panorama already exists ✅
+- SceneStrategyCard confirmed with user ✅
 
-**提示词核心逻辑**：
-- 基于已有的场景全景图
-- 要求AI调整光照效果（而不是生成新场景）
-- 保持场景结构与全景图高度一致
+**Prompt core logic**:
+- Based on existing scene panorama
+- Request AI to adjust lighting effects (rather than generate a new scene)
+- Keep scene structure highly consistent with panorama
 
-**提示词结构**：
+**Prompt structure**:
 ```
-基于已有场景图的光照调整提示词：
+Lighting adjustment prompt based on existing scene image:
 
-[参考场景描述：从场景资产卡片提取] + 
-[光照调整方案：阶段2设计] + 
-[色调调整：阶段3设计] + 
-[氛围强化：阶段3设计] + 
-[质量标签]
+[Reference scene description: extracted from SceneAssetCard] +
+[Lighting adjustment scheme: Stage 2 design] +
+[Color tone adjustment: Stage 3 design] +
+[Atmosphere enhancement: Stage 3 design] +
+[Quality tags]
 
-⚠️ 重要约束：
-- 场景结构必须与已有场景全景图保持一致
-- 仅调整光照、色调、氛围
-- 不改变场景布局和物体位置
+⚠️ Critical constraints:
+- Scene structure must remain consistent with existing scene panorama
+- Only adjust lighting, color tone, atmosphere
+- Do not change scene layout or object positions
 ```
 
-**提示词模板**（针对GPT-Image-2优化）：
+**Prompt template** (optimized for GPT-Image-2):
 
 ```
 基于以下场景的光照调整版本：
@@ -529,7 +529,7 @@ Adjust color scheme to: Dominated by [colorScheme.dominantColorName] ([dominantC
 质量：cinematic lighting adjustment, highly detailed, photorealistic, 8K, 16:9 composition
 ```
 
-**示例**：
+**Example**:
 ```
 A cinematic scene of underwater base and floating island under siege, daytime.
 
@@ -546,53 +546,53 @@ Visual style: post-apocalyptic realism, high-tension, fast-paced
 Quality: cinematic composition, highly detailed, photorealistic, 8K, dramatic lighting, wide angle shot
 ```
 
-### 5.2 展示提示词给用户确认
+### 5.2 Present Prompt to User for Confirmation
 
-**用户交互**：
+**User interaction**:
 ```
-【场景效果图生成 - 提示词确认】
+【Scene effect image generation - Prompt confirmation】
 
-场景：第1集-第1场（海上浮岛/海底）
-基于场景全景图：[全景图URL或文件名]
+Scene: Episode 1-Scene 1 (海上浮岛/海底)
+Based on scene panorama: [panorama URL or filename]
 
-提示词（中文版 - GPT-Image-2）：
+Prompt (Chinese version - GPT-Image-2):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[显示上面生成的提示词]
+[Display the generated prompt above]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-说明：
-- 此提示词将基于已有场景全景图，调整光照和色调以匹配剧情情绪
-- 场景结构将保持与全景图一致
+Notes:
+- This prompt will adjust lighting and color tone based on the existing scene panorama to match story emotion
+- Scene structure will remain consistent with the panorama
 
-请选择：
-1. 确认生成（使用GPT-Image-2） ⭐ 推荐
-2. 修改提示词后生成
-3. 切换模型（Gemini）
-4. 讨论提示词策略
+Please choose:
+1. Confirm and generate (using GPT-Image-2) ⭐ Recommended
+2. Modify prompt then generate
+3. Switch model (Gemini)
+4. Discuss prompt strategy
 
-请输入选项（1/2/3/4）：
+Enter option (1/2/3/4):
 ```
 
-### 5.3 调用图像生成模型
+### 5.3 Call Image Generation Model
 
-**模型选择**：
-- 优先：GPT-Image-2（场景氛围最好）
-- 备选A：Gemini（细节更丰富）
-- 备选B：Seedance5.0（风格化强）
+**Model selection**:
+- Preferred: GPT-Image-2 (best scene atmosphere)
+- Alternative A: Gemini (richer detail)
+- Alternative B: Seedance5.0 (strong stylization)
 
-**调用逻辑**：
+**Call logic**:
 ```typescript
 async function generateSceneImage(prompt: string, model: string) {
   const fullPrompt = prompt;
-  
-  // 调用对应模型API
+
+  // Call corresponding model API
   const imageUrl = await imageGenerationAPI.generate({
     model: model,
     prompt: fullPrompt,
     aspectRatio: "16:9",
     quality: "high"
   });
-  
+
   return {
     prompt: prompt,
     fullPrompt: fullPrompt,
@@ -603,436 +603,61 @@ async function generateSceneImage(prompt: string, model: string) {
 }
 ```
 
-### 5.4 用户确认效果图
+### 5.4 User Confirms Effect Image
 
-**用户交互**：
+**User interaction**:
 ```
-【场景效果图已生成】
+【Scene effect image generated】
 
-[显示生成的图片]
+[Display generated image]
 
-图片URL: [imageUrl]
-生成模型: GPT-Image-2
-生成时间: 2026-06-02 14:30:00
+Image URL: [imageUrl]
+Generation model: GPT-Image-2
+Generation time: 2026-06-02 14:30:00
 
-请选择：
-1. 确认此效果图，进入角色站位标注阶段
-2. 重新生成（修改提示词）
-3. 切换模型重新生成
+Please choose:
+1. Confirm this effect image, proceed to character position annotation stage
+2. Regenerate (modify prompt)
+3. Switch model and regenerate
 
-请输入选项（1/2/3）：
+Enter option (1/2/3):
 ```
 
-**注意**：
-- 如果用户选择"2"或"3"，返回阶段5.2
-- 记录版本号（每次重新生成版本号+1）
-- 所有生成的效果图都保留，用户可以回退到之前的版本
+**Note**:
+- If user chooses "2" or "3", return to Stage 5.2
+- Record version number (increment on each regeneration)
+- All generated effect images are preserved; user can revert to previous versions
 
 ---
 
-## 阶段6：标注角色站位（第二阶段）
+## Stage 6: Annotate Character Positions (Phase Two)
 
-### 6.1 在效果图上标注角色站位
+Annotation methods at `references/position-annotation-methods.md`. Three approaches: **A) Generate transparent PNG overlay + composite locally** (recommended), B) text description (fallback), C) manual drawing.
 
-**标注逻辑**：
-1. 基于阶段4推断并经用户确认的角色站位
-2. 在场景效果图上叠加标注层
-3. 标注方式（三种可选）：
-   - **方式A**：生成透明标注层PNG + 本地叠加（推荐）⭐
-   - **方式B**：文字说明文档（无图像编辑工具时）
-   - **方式C**：手动绘制标注（使用图像编辑工具）
+## Test Cases
 
-#### 标注方式A：生成透明标注层（推荐）⭐
+- Floating Island/Underwater: daytime, high tension, top lighting, cool tones
+- Indoor Warm: nighttime, low tension, front light, warm tones
 
-**优点**：AI生成、可视化、易调整、专业
+Inference rule tables (lighting→emotion→color) are in `references/lighting-vocabulary.md` and `references/color-atmosphere-vocabulary.md`.
 
-**工作流程**：
-1. 创建角色站位标注说明文档（文字描述每个角色的位置）
-2. 使用提示词生成透明标注层PNG
-3. 在本地使用图像编辑工具叠加到场景效果图上
+## Generated File Naming Convention
 
-**透明标注层提示词模板**：
-
-```
-Generate a transparent overlay layer (PNG with alpha channel) for character position annotations.
-
-Format: 16:9 horizontal, 3840x2160 pixels, transparent background
-
-Annotation markers:
-- Style: Numbered circular markers with white background, black numbers
-- Size: 80px diameter circles
-- Text: Bold sans-serif font, size 48px
-- Contrast: White circle with 3px black outline for visibility
-
-Position coordinates (from top-left corner):
-1. Position 1 - [角色名称]: X=[x坐标]px, Y=[y坐标]px, label "1" or "1-[角色名]"
-2. Position 2 - [角色名称]: X=[x坐标]px, Y=[y坐标]px, label "2" or "2-[角色名]"
-[... 继续列出所有角色位置 ...]
-
-Additional elements:
-- Optional: Add dotted lines connecting related characters
-- Optional: Add small text labels below each number with character name (20px font)
-
-Background: Completely transparent (alpha = 0)
-Output: PNG with alpha channel for easy overlay
-```
-
-**提示词示例（具体场景）**：
-```
-生成一个透明图层（PNG格式，带alpha通道），用于标注角色位置。
-
-格式：16:9横版，3840x2160像素，完全透明背景
-
-标注样式：
-- 圆形标记，白色背景，黑色数字
-- 直径80像素
-- 粗体无衬线字体，48像素
-- 白色圆形带3像素黑色描边（提高可见度）
-
-标注位置（从左上角计算坐标）：
-1. 标注1 - 林渊：X=600px, Y=1200px，标签"1"或"1-林渊"
-2. 标注2 - 沈知夏：X=800px, Y=1100px，标签"2"或"2-沈知夏"
-3. 标注3 - 方涵：X=1400px, Y=1150px，标签"3"或"3-方涵"
-4. 标注4 - 陈烟：X=1600px, Y=1150px，标签"4"或"4-陈烟"
-5. 标注5 - 小桃：X=2800px, Y=1300px，标签"5"或"5-小桃"
-6. 标注6 - 小咬：X=1920px, Y=1600px，标签"6"或"6-小咬"
-7. 标注7 - 尸仆群：X=1920px, Y=1700px，标签"7"或"7-尸仆群"
-
-可选元素：
-- 在每个数字下方添加小字角色名称（20像素字体）
-- 如需要，可添加虚线连接相关角色
-
-背景：完全透明（alpha = 0）
-输出：PNG格式，带alpha通道，方便叠加
-```
-
-**本地叠加方法**：
-```bash
-# 使用ImageMagick命令行工具叠加
-convert 场景效果图.png 标注层.png -composite 最终带标注图.png
-
-# 或使用Python PIL库
-from PIL import Image
-base = Image.open('场景效果图.png')
-overlay = Image.open('标注层.png')
-base.paste(overlay, (0, 0), overlay)
-base.save('最终带标注图.png')
-```
-
-**优势**：
-- ✅ 标注层可独立调整（位置、样式、数量）
-- ✅ 可生成多个版本（数字版、文字版、详细版）
-- ✅ 原场景图保持不变
-- ✅ 专业视觉效果
-
-#### 标注方式B：文字说明文档
-
-**适用场景**：无图像生成工具或无需可视化标注时
-
-**文档结构**：
-```markdown
-# 角色站位标注说明
-
-## 标注1：[角色名称]
-- 位置：[前景/中景/后景]，[具体位置描述]
-- 姿态：[姿态描述]
-- 占画面比例：[百分比]
-
-## 标注2：[角色名称]
-...
-```
-
-**优势**：
-- ✅ 无需额外工具
-- ✅ 清晰明确
-- ✅ 易于修改
-
-**劣势**：
-- ❌ 不直观
-- ❌ 需要对照图片理解
-
-#### 标注方式C：手动绘制
-
-**适用场景**：需要高度定制化标注时
-
-**工具**：Photoshop、GIMP、Figma等
-
-**优势**：
-- ✅ 完全控制
-- ✅ 可自定义样式
-
-**劣势**：
-- ❌ 需要专业工具
-- ❌ 耗时较多
-
-### 6.2 用户调整站位
-
-**用户交互**：
-```
-【角色站位标注】
-
-[显示带标注的效果图]
-
-当前角色站位：
-1. 巨型丧尸 - 前景，水下，指挥姿态
-2. 战士群体 - 中景，城墙上，战斗姿态
-3. 海底酒店 - 后景，海底，发光
-
-请选择：
-1. 确认站位，生成最终卡片
-2. 调整站位（输入角色编号和新位置）
-
-请输入选项（1/2）：
-```
-
-**调整示例**：
-```
-输入：2
-请输入要调整的角色编号：2
-请输入新位置：中景偏左，城墙上，战斗姿态
-
-更新后的站位：
-1. 巨型丧尸 - 前景，水下，指挥姿态
-2. 战士群体 - 中景偏左，城墙上，战斗姿态
-3. 海底酒店 - 后景，海底，发光
-
-确认更新？(y/n)：
-```
-
-### 6.3 生成最终场景策略卡片
-
-**卡片内容**：
-```typescript
-{
-  cardType: "SceneStrategyCard",
-  sceneId: "第1集-第1场",
-  directorBriefingCardId: "card_director_briefing_ep01_sc01",
-  directorPrecheckSnapshot: {
-    primaryStructure: "large_scene_compression",
-    secondaryStructure: "continuous_action",
-    sceneDirective: "明确水面、浮岛城墙、尸潮和海底酒店的空间层级，保证大场面中主视觉锚点清晰",
-    preliminaryShotGroupPlan: [
-      {
-        groupNumber: 1,
-        corePurpose: "建立洪水与尸潮压迫",
-        tentativeDuration: "8-12s"
-      }
-    ]
-  },
-  
-  lighting: {
-    type: "natural",
-    position: "画面上方",
-    direction: "顶光",
-    intensity: "medium",
-    colorTemperature: "cool",
-    description: "自然日光从上方照射，模拟海面反射的散射光，形成冷峻的顶光效果"
-  },
-  
-  colorScheme: {
-    dominantColor: "#2C3E50",
-    dominantColorName: "冷峻深蓝",
-    accentColor: "#FFA500",
-    accentColorName: "暖橙色（海底酒店灯光）",
-    mood: "冷峻压迫",
-    description: "以冷峻深蓝为主色调，营造末世压迫感..."
-  },
-  
-  atmosphere: {
-    mood: "震撼、压迫、末世惨烈",
-    tension: "high",
-    visualStyle: "末世写实风格，水面翻涌..."
-  },
-  
-  sceneEffectImage: {
-    prompt: "[用户确认的提示词]",
-    fullPrompt: "[完整提示词]",
-    imageUrl: "[效果图URL]",
-    versionNumber: 1,
-    modelUsed: "gpt-image-2",
-    generatedAt: "2026-06-02T14:30:00Z",
-    userConfirmed: true
-  },
-  
-  characterPositions: [
-    {
-      characterId: "zombie-001",
-      characterName: "巨型丧尸",
-      position: {
-        depth: "foreground",
-        relativePosition: "画面前景，水下",
-        facing: "facing_camera"
-      },
-      posture: "指挥姿态",
-      action: "指挥尸潮攻击"
-    }
-  ],
-  
-  annotatedImageUrl: "[带标注的效果图URL]",
-  
-  upstreamCards: [
-    "episode-scene-detail-card-001",
-    "scene-asset-card-001",
-    "art-direction-card-001"
-  ],
-  
-  status: "completed",
-  createdAt: "2026-06-02T14:35:00Z"
-}
-```
-
----
-
-## 测试用例
-
-### 测试用例1：海上浮岛/海底场景
-
-**输入数据**：
-- 分集分场剧情卡片：第1集第1场（samples/project-samples/制作区测试结果/01-第1集第1场-分集分场剧情卡片-v3.json）
-- 场景资产卡片：scene-001（海上浮岛/海底）
-- 美术设定卡片：末世写实风格
-
-**预期输出**：
-```typescript
-{
-  lighting: {
-    type: "natural",
-    direction: "顶光",
-    intensity: "medium",
-    colorTemperature: "cool"
-  },
-  colorScheme: {
-    dominantColorName: "冷峻深蓝",
-    accentColorName: "暖橙色"
-  },
-  atmosphere: {
-    mood: "震撼、压迫、末世惨烈",
-    tension: "high"
-  },
-  sceneEffectImage: {
-    modelUsed: "gpt-image-2",
-    userConfirmed: true
-  },
-  characterPositions: [
-    { characterName: "巨型丧尸", depth: "foreground" },
-    { characterName: "战士群体", depth: "midground" }
-  ]
-}
-```
-
-### 测试用例2：室内温馨场景
-
-**输入数据**：
-- emotion: "温馨、放松"
-- emotionIntensity: 3
-- rhythm: "slow"
-- timeOfDay: "夜"
-- lighting: "人工光"
-
-**预期输出**：
-```typescript
-{
-  lighting: {
-    type: "artificial",
-    direction: "正面光",
-    intensity: "weak",
-    colorTemperature: "warm"
-  },
-  colorScheme: {
-    dominantColorName: "暖黄色",
-    mood: "温馨舒适"
-  },
-  atmosphere: {
-    tension: "low"
-  }
-}
-```
-
----
-
-## 实施检查清单
-
-### 功能完整性
-- [ ] 能正确读取分集分场剧情卡片（visualDescription、sceneElements）
-- [ ] 能正确读取场景资产卡片和美术设定卡片
-- [ ] 能根据情绪和节奏推断光照方案
-- [ ] 能根据美术设定推断色调和氛围
-- [ ] 能根据visualDescription推断角色站位
-- [ ] 能生成符合GPT-Image-2规范的提示词
-- [ ] 支持两阶段生成（效果图 → 角色站位标注）
-- [ ] 支持用户修改提示词和调整站位
-- [ ] 支持多个模型选择（GPT-Image-2/Gemini/Seedance5.0）
-- [ ] 支持版本控制（迭代生成）
-
-### 用户体验
-- [ ] 提示词清晰可读，用户可以理解和修改
-- [ ] 用户交互流程简洁明了
-- [ ] 支持回退到之前的版本
-- [ ] 错误提示友好（如：上游卡片不存在）
-
-### 数据质量
-- [ ] 生成的光照方案符合情绪和节奏
-- [ ] 生成的色调方案符合美术设定
-- [ ] 推断的角色站位符合剧情描述
-- [ ] 提示词能准确传达场景氛围
-
-### 技术规范
-- [ ] 遵守"专业推断"原则（基于详细信息进行推断）
-- [ ] 场景效果图分辨率为16:9
-- [ ] 所有生成的图片都有URL和元数据
-- [ ] 支持迭代生成（版本号递增）
-- [ ] 上游卡片ID正确记录
-
----
-
-## 附录：推断规则库
-
-### 光照类型映射表
-
-| 时间 | 光照类型 | 推断结果 |
-|------|----------|----------|
-| 日 | 自然光 | natural |
-| 夜 | 人工光 | artificial |
-| 日 | 人工光 | mixed |
-| 夜 | 自然光 | mixed |
-
-### 情绪-光照方向映射表
-
-| 情绪类型 | 打光方向 | 色温 |
-|----------|----------|------|
-| 震撼、压迫感、恐怖 | 顶光/侧光 | cool |
-| 温馨、欢快、轻松 | 正面光 | warm |
-| 神秘、诡异、悬疑 | 逆光/底光 | cool |
-| 日常、平静、中性 | 侧光 | neutral |
-| 悲伤、绝望、沉重 | 侧光/底光 | cool |
-
-### 情绪-色调映射表
-
-| 情绪类型 | 主色调 | 强调色 |
-|----------|--------|--------|
-| 震撼、压迫感 | 冷灰色/深蓝色 | 暗红色/橙色 |
-| 温馨、欢快 | 暖黄色/橙色 | 粉色/浅蓝色 |
-| 神秘、诡异 | 紫色/暗绿色 | 黄色/红色 |
-| 悲伤、绝望 | 深灰色/黑色 | 冷蓝色 |
-| 希望、振奋 | 明亮色/白色 | 金色/天蓝色 |
-
-## 生成文件命名规则
-
-场景效果图必须保存 `filename`，格式：
+Scene effect images must be saved with `filename` in format:
 
 ```text
 第{集数}集第{场数}场-{场景名字}-v{版本号}
 ```
 
-示例：`第1集第3场-海底基地大厅-v001.png`。
+Example: `第1集第3场-海底基地大厅-v001.png`.
 
-## 完成后下一步
+## After Completion — Next Steps
 
-完成判定：`SceneStrategyCard` 已创建，场景效果图和 `positionAnnotationImage` 已确认。
+Completion criteria: `SceneStrategyCard` has been created, scene effect image and `positionAnnotationImage` have been confirmed.
 
-完成后必须检查三张策略卡片的完成情况：`SceneStrategyCard`、`PerformanceStrategyCard`、`CinematographyStrategyCard`。
+After completion, must check the completion status of the three strategy cards: `SceneStrategyCard`, `PerformanceStrategyCard`, `CinematographyStrategyCard`.
 
-- 只有三张策略卡片都完成，才建议调用 `director-briefing` 进行复判与镜头组落版。
-- 如果还有策略卡缺失，建议继续完成尚未完成的策略卡片。
+- Only when all three strategy cards are complete should `director-briefing` be invoked for review and shot group finalization.
+- If any strategy cards are still missing, recommend completing the remaining strategy cards.
 
-推荐话术：`现场设计已完成。我会检查三张策略卡片的完成情况；只有三张策略卡片都完成后，才建议回到 director-briefing 进行复判落版。`
+Recommended dialogue: `Scene strategy design is complete. I will check the completion status of the three strategy cards; only when all three strategy cards are complete should we return to director-briefing for review and finalization.`

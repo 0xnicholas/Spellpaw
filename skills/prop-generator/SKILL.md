@@ -1,116 +1,114 @@
 ---
 name: prop-generator
-description: 道具生成师 - 从道具资产卡片生成标准化的道具多视角图
-version: 2.0.0
-author: Modo
-tags: [ai-short-drama, prop-design, image-generation]
+description: Use when a PropAssetCard has been generated and needs standardized prop multi-view images (including main view area, detail close-up area, and state comparison area)
 ---
 
-# 道具生成师 Skill
+# Prop Generator Skill
 
-从道具资产卡片生成标准化的道具多视角图，默认输出包含主视角区+细节特写区+状态对比区的完整展示图，参考角色妆造三视图的标准。
+Generate standardized prop multi-view images from prop asset cards, default output includes a full display image with main view area + detail close-up area + state comparison area, referencing the character makeup/costume turnaround sheet standard.
 
-## 整体工作流
+## Overall Workflow
 
 ```
-输入：PropAssetCard（道具资产卡片，来自资产分区）
-可选输入：ArtDirectionCard（美术设定卡片）
+Input: PropAssetCard (prop asset card, from asset zone)
+Optional Input: ArtDirectionCard (art direction card)
 
-阶段1：依赖检查
-阶段2：构建多视角展示方案
-阶段3：生成多视角图提示词（默认）
-阶段4：调用生图模型
-阶段5：质量检查
-阶段6：创建道具概念图卡片
+Stage 1: Dependency Check
+Stage 2: Build Multi-View Display Plan
+Stage 3: Generate Multi-View Image Prompt (default)
+Stage 4: Call Image Generation Model
+Stage 5: Quality Check
+Stage 6: Create Prop Concept Card
 
-输出：PropConceptCard（道具概念图卡片，默认为多视角图）
+Output: PropConceptCard (prop concept card, defaulting to multi-view image)
 ```
 
 ---
 
-## 阶段1：依赖检查
+## Stage 1: Dependency Check
 
-**检查项**：
-1. 道具资产卡片（必需）
-2. 美术设定卡片（可选）
+**Check Items**:
+1. Prop asset card (required)
+2. Art direction card (optional)
 
-**错误处理**：道具资产卡片不存在时，提示用户先运行 `/prop-asset-extraction`
+**Error Handling**: If the prop asset card does not exist, prompt the user to first run `/prop-asset-extraction`
 
 ---
 
-## 阶段2：构建多视角展示方案
+## Stage 2: Build Multi-View Display Plan
 
-**默认输出**：多视角图（`multi_view`），一张图包含三个区域，16:9横版。
+**Default Output**: Multi-view image (`multi_view`), a single image containing three areas, 16:9 landscape.
 
-### 2.1 多视角图布局
+### 2.1 Multi-View Image Layout
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                  道具多视角图（16:9）                         │
+│                  Prop Multi-View (16:9)                     │
 │                                                              │
 │  ┌──────────────────────┐  ┌──────────────────────────┐    │
-│  │                      │  │  细节特写区（4-6格）      │    │
-│  │   主视角区（60%）     │  │  ┌────┬────┬────┐        │    │
-│  │   3-4个视角           │  │  │细节│细节│细节│        │    │
+│  │                      │  │  Detail Close-up Area     │    │
+│  │   Main View Area     │  │  (4-6 panels)            │    │
+│  │   (60%)              │  │  ┌────┬────┬────┐        │    │
+│  │   3-4 views          │  │  │ D1 │ D2 │ D3 │        │    │
 │  │                      │  │  ├────┼────┼────┤        │    │
-│  │   ┌────┬────┬────┐  │  │  │细节│细节│材质│        │    │
-│  │   │视角│视角│视角│  │  │  └────┴────┴────┘        │    │
-│  │   │ 1  │ 2  │ 3  │  │  │                          │    │
-│  │   └────┴────┴────┘  │  ├──────────────────────────┤    │
-│  │                      │  │  状态对比区（如有多状态） │    │
+│  │   ┌────┬────┬────┐  │  │  │ D4 │ D5 │Mat │        │    │
+│  │   │ V1 │ V2 │ V3 │  │  │  └────┴────┴────┘        │    │
+│  │   └────┴────┴────┘  │  │                          │    │
+│  │                      │  ├──────────────────────────┤    │
+│  │                      │  │  State Comparison Area   │    │
 │  └──────────────────────┘  │  ┌──────────┬──────────┐ │    │
-│                            │  │ 状态A    │ 状态B    │ │    │
+│                            │  │ State A  │ State B  │ │    │
 │                            │  └──────────┴──────────┘ │    │
 │                            └──────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 各区域内容规则
+### 2.2 Zone Content Rules
 
-**主视角区（左侧60%）**：
+**Main View Area (Left 60%)**:
 
-| 道具类别 | 视角1 | 视角2 | 视角3 | 视角4（可选） |
+| Prop Category | View 1 | View 2 | View 3 | View 4 (optional) |
 |---------|------|------|------|------------|
-| 武器 | 正面 | 45度斜视 | 侧面 | 握持视角 |
-| 工具/设备 | 正面全景 | 侧面全景 | 顶视俯瞰 | 45度斜视 |
-| 特殊道具 | 正面悬浮 | 45度斜视 | 侧面 | 顶视 |
-| 建筑构件 | 正面全景 | 侧面全景 | 顶视俯瞰 | 剖面视角 |
+| Weapons | Front | 45° oblique | Side | Grip view |
+| Tools/Equipment | Front full | Side full | Top-down | 45° oblique |
+| Special props | Front floating | 45° oblique | Side | Top-down |
+| Architectural elements | Front full | Side full | Top-down | Cross-section |
 
-**细节特写区（右上40%）**：
+**Detail Close-up Area (Top-right 40%)**:
 
-| 道具类别 | 细节1 | 细节2 | 细节3 | 细节4 |
+| Prop Category | Detail 1 | Detail 2 | Detail 3 | Detail 4 |
 |---------|------|------|------|------|
-| 武器 | 握持部位 | 机械结构 | 弹药/能量装填 | 特效发光 |
-| 工具/设备 | 控制面板 | 运转部件 | 材质纹理 | 指示灯/灯带 |
-| 特殊道具 | 发光效果 | 能量流动 | 材质细节 | 粒子效果 |
-| 建筑构件 | 连接部位 | 材质纹理 | 结构细节 | 功能部件 |
+| Weapons | Grip area | Mechanical structure | Ammo/energy loading | Effect glow |
+| Tools/Equipment | Control panel | Moving parts | Material texture | Indicator lights/strips |
+| Special props | Glow effect | Energy flow | Material detail | Particle effects |
+| Architectural elements | Connection joints | Material texture | Structural detail | Functional parts |
 
-**状态对比区（右下40%）**：
-- 有多个状态时：并排展示各状态的视觉差异
-- 单一状态时：改为额外细节特写或使用说明图
+**State Comparison Area (Bottom-right 40%)**:
+- Multiple states: display visual differences side by side
+- Single state: replace with additional detail close-ups or usage illustration
 
-### 2.3 背景与光照规则
+### 2.3 Background and Lighting Rules
 
-**背景**：
-- core → 纯黑/深色渐变背景
-- supporting → 场景虚化背景
-- background → 简单场景背景
+**Background**:
+- core → Pure black / dark gradient background
+- supporting → Scene-bokeh background
+- background → Simple scene background
 
-**光照**：
-- 自发光道具 → 自发光为主，柔和环境光补充
-- 金属道具 → 定向光突出金属反射和边缘高光
-- 透明道具 → 背光突出透明质感
-- 复合材质 → 多光源组合（主光+补光+轮廓光）
+**Lighting**:
+- Self-illuminating props → Self-illumination primary, soft ambient fill
+- Metal props → Directional light to highlight metal reflections and edge highlights
+- Transparent props → Backlight to emphasize transparency
+- Composite materials → Multi-light combination (key + fill + rim)
 
 ---
 
-## 阶段3：生成多视角图提示词
+## Stage 3: Generate Multi-View Image Prompt
 
-**默认模型**：GPT-Image-2（中文自然语言）
-**备选模型**：Gemini（Imagen 3）、Seedance5.0（英文标签）
-**默认画幅**：16:9横版
+**Default model**: GPT-Image-2 (Chinese natural language)
+**Alternative models**: Gemini (Imagen 3), Seedance5.0 (English labels)
+**Default aspect ratio**: 16:9 landscape
 
-### GPT-Image-2 多视角图模板（主模型）
+### GPT-Image-2 Multi-View Template (primary model)
 
 ```
 【道具多视角图 - {道具名称} - {状态名称}】
@@ -152,7 +150,7 @@ tags: [ai-short-drama, prop-design, image-generation]
 超高清，产品概念图风格，{美术风格关键词}，无人物，道具展示图，16:9横版，精细材质渲染，所有视角道具完全一致
 ```
 
-**示例（净化机-正常运营状态）**：
+**Example (Purification Machine - Normal Operation)**:
 
 ```
 【道具多视角图 - 净化机 - 正常运营状态】
@@ -198,7 +196,7 @@ tags: [ai-short-drama, prop-design, image-generation]
 
 ---
 
-### Gemini（Imagen 3）多视角图模板（备选，中文简洁）
+### Gemini (Imagen 3) Multi-View Template (alternative, concise Chinese)
 
 ```
 【道具多视角图 - {道具名称} - {状态名称}】
@@ -223,7 +221,7 @@ tags: [ai-short-drama, prop-design, image-generation]
 
 ---
 
-### Seedance5.0 多视角图模板（备选，英文标签）
+### Seedance5.0 Multi-View Template (alternative, English labels)
 
 ```
 prop multi-view sheet, {prop_name}, {state_name},
@@ -245,60 +243,60 @@ all views perfectly consistent, 8k resolution, material rendering
 
 ---
 
-## 阶段4：调用生图模型
+## Stage 4: Call Image Generation Model
 
-### 模型选择建议
+### Model Selection Recommendations
 
-| 道具特征 | 推荐模型 | 原因 |
+| Prop Characteristics | Recommended Model | Reason |
 |---------|---------|------|
-| 默认/大多数道具 | GPT-Image-2 | 中文描述精确，布局控制好，特效/发光细腻 |
-| GPT-Image-2失败或效果不佳 | Gemini（Imagen 3） | 备选，简洁提示词 |
-| 需要批量生成多道具 | Seedance5.0 | 标签化易于批量调整 |
+| Default / most props | GPT-Image-2 | Precise Chinese description, good layout control, fine effects/glow |
+| GPT-Image-2 fails or unsatisfactory | Gemini (Imagen 3) | Alternative, concise prompts |
+| Batch generation of multiple props | Seedance5.0 | Label-based, easy batch adjustments |
 
-### 生成顺序
+### Generation Order
 
-1. **core 道具**：先生成主要状态多视角图，再生成其他状态（如有）
-2. **supporting 道具**：直接生成多视角图
-3. **background 道具**：直接生成多视角图
+1. **core props**: Generate main state multi-view image first, then other states (if any)
+2. **supporting props**: Generate multi-view image directly
+3. **background props**: Generate multi-view image directly
 
 ---
 
-## 阶段5：质量检查
+## Stage 5: Quality Check
 
-**多视角一致性**：
-- [ ] 所有视角中的道具形状、材质、颜色完全一致
-- [ ] 标志性特征（distinctiveFeatures）在主视角中清晰可见
-- [ ] 细节特写与主视角中的对应部位一致
-- [ ] 状态对比区的差异清晰可辨
+**Multi-View Consistency**:
+- [ ] Prop shape, material, and color are fully consistent across all views
+- [ ] Distinctive features (distinctiveFeatures) are clearly visible in main views
+- [ ] Detail close-ups match corresponding areas in main views
+- [ ] State comparison differences are clearly distinguishable
 
-**视觉质量**：
-- [ ] 材质质感清晰，金属/透明/发光效果自然
-- [ ] 背景不干扰主体
-- [ ] 三个区域布局清晰，无重叠
+**Visual Quality**:
+- [ ] Material textures are clear, metal/transparent/glow effects look natural
+- [ ] Background does not distract from the subject
+- [ ] Three-zone layout is clear with no overlap
 
-**象征表达**：
-- [ ] 视觉符号设计方向得到体现
-- [ ] 重要性等级对应的精细度达标
+**Symbolic Expression**:
+- [ ] Visual symbol design direction is reflected
+- [ ] Detail fidelity matches importance level requirements
 
-### 质量评分
+### Quality Scoring
 
-| 维度 | 权重 |
+| Dimension | Weight |
 |------|------|
-| 多视角一致性 | 40% |
-| 视觉质量 | 35% |
-| 象征表达 | 25% |
+| Multi-view consistency | 40% |
+| Visual quality | 35% |
+| Symbolic expression | 25% |
 
-**通过标准**：总分 ≥ 70分
+**Pass criteria**: Total score ≥ 70
 
 ---
 
-## 阶段6：创建道具概念图卡片
+## Stage 6: Create Prop Concept Card
 
 ```typescript
 interface PropConceptCard {
   id: string;
   type: 'prop_concept';
-  title: string;  // 如："净化机 - 正常运营状态 - 道具多视角图"
+  title: string;  // e.g. "净化机 - 正常运营状态 - 道具多视角图"
 
   content: {
     upstreamCards: {
@@ -306,21 +304,21 @@ interface PropConceptCard {
       artDirectionCard?: string;
     };
     stateName: string;
-    viewType: 'multi_view' | 'main' | 'detail' | 'effect' | 'state_comparison';  // 默认 multi_view
+    viewType: 'multi_view' | 'main' | 'detail' | 'effect' | 'state_comparison';  // default multi_view
     generationConfig: {
       model: 'gpt-image-2' | 'gemini' | 'seedance5';
-      aspectRatio: '16:9' | '1:1';  // 默认 16:9
+      aspectRatio: '16:9' | '1:1';  // default 16:9
       backgroundType: string;
       lightingSetup: string;
       layout: {
-        mainViewsCount: number;  // 主视角数量（3-4）
-        detailsCount: number;    // 细节特写数量（4-6）
-        hasStateComparison: boolean;  // 是否有状态对比
+        mainViewsCount: number;  // number of main views (3-4)
+        detailsCount: number;    // number of detail close-ups (4-6)
+        hasStateComparison: boolean;  // whether state comparison exists
       };
     };
     prompts: {
-      cn?: string;   // GPT-Image-2 / Gemini 中文提示词
-      en?: string;   // Seedance5.0 英文提示词
+      cn?: string;   // GPT-Image-2 / Gemini Chinese prompt
+      en?: string;   // Seedance5.0 English prompt
     };
     generatedImages: Array<{
       imageUrl: string;
@@ -335,85 +333,85 @@ interface PropConceptCard {
 
 ---
 
-## 与其他Skill的协作
+## Collaboration with Other Skills
 
-### 上游依赖
-- **script-deconstruct**：提供道具设定卡片
-- **prop-asset-extraction**：提供道具资产卡片（必需）
-- **art-direction**：提供美术设定卡片（可选）
+### Upstream Dependencies
+- **script-deconstruct**: Provides prop design cards
+- **prop-asset-extraction**: Provides prop asset cards (required)
+- **art-direction**: Provides art direction cards (optional)
 
-### 下游输出
-- 为分镜设计提供道具参考图
-- 为AI视频生成提供道具底图
-- 为特效团队提供道具特效参考
-
----
-
-## 测试用例
-
-### 测试用例1：净化机（双状态，core，工具类）
-
-**输入**：净化机道具资产卡片（初始安装 + 正常运营）
-
-**预期输出**：
-- 主视角区：正面全景、侧面全景、顶视俯瞰、45度斜视
-- 细节特写区：控制面板、传送带、金属纹理、管道连接、灯带、净化舱
-- 状态对比区：初始安装（无发光）vs 正常运营（指示灯亮起）
-
-### 测试用例2：晶核（双状态，core，特殊道具类）
-
-**输入**：晶核道具资产卡片（普通 + 高纯度）
-
-**预期输出**：
-- 主视角区：正面悬浮、45度斜视、侧面、顶视
-- 细节特写区：发光效果、能量流动、晶体切面、粒子效果
-- 状态对比区：普通晶核（暗紫色微弱发光）vs 高纯度晶核（金色强发光）
-
-### 测试用例3：晶核枪（单状态，supporting，武器类）
-
-**输入**：晶核枪道具资产卡片
-
-**预期输出**：
-- 主视角区：正面、45度斜视、侧面、握持视角
-- 细节特写区：弹夹晶核悬浮旋转、枪管能量束、握持部位、机械结构
-- 状态对比区：改为额外细节（待机状态 vs 发射状态）
+### Downstream Output
+- Provides prop reference images for storyboard design
+- Provides prop base images for AI video generation
+- Provides prop effects reference for VFX teams
 
 ---
 
-## 实施检查清单
+## Test Cases
 
-- [ ] 阶段1：依赖检查完成
-- [ ] 阶段2：多视角展示方案已确定（视角配置、细节选择、状态对比）
-- [ ] 阶段3：多视角图提示词生成完成
-- [ ] 阶段4：生图模型调用成功
-- [ ] 阶段5：质量检查通过（总分 ≥ 70，多视角一致性达标）
-- [ ] 阶段6：道具概念图卡片创建成功
+### Test Case 1: Purification Machine (dual-state, core, equipment type)
+
+**Input**: Purification Machine prop asset card (initial installation + normal operation)
+
+**Expected Output**:
+- Main view area: front full, side full, top-down, 45° oblique
+- Detail close-up area: control panel, conveyor belt, metal texture, pipe connections, light strips, purification chamber
+- State comparison area: initial installation (no glow) vs normal operation (indicators lit up)
+
+### Test Case 2: Crystal Core (dual-state, core, special prop type)
+
+**Input**: Crystal Core prop asset card (normal + high purity)
+
+**Expected Output**:
+- Main view area: front floating, 45° oblique, side, top-down
+- Detail close-up area: glow effect, energy flow, crystal facets, particle effects
+- State comparison area: normal crystal core (dim purple glow) vs high purity crystal core (golden bright glow)
+
+### Test Case 3: Crystal Core Gun (single-state, supporting, weapon type)
+
+**Input**: Crystal Core Gun prop asset card
+
+**Expected Output**:
+- Main view area: front, 45° oblique, side, grip view
+- Detail close-up area: magazine crystal core spinning, barrel energy beam, grip area, mechanical structure
+- State comparison area: replaced with additional details (standby vs firing state)
 
 ---
 
-**Skill版本**：v2.0  
-**创建日期**：2026-05-29  
-**更新日期**：2026-05-30  
-**更新内容**：默认输出改为多视角图（16:9），参考角色妆造三视图标准  
-**测试状态**：已测试（净化机）
+## Implementation Checklist
 
-## 生成文件命名规则
+- [ ] Stage 1: Dependency check complete
+- [ ] Stage 2: Multi-view display plan confirmed (view config, detail selection, state comparison)
+- [ ] Stage 3: Multi-view image prompt generated
+- [ ] Stage 4: Image generation model call successful
+- [ ] Stage 5: Quality check passed (total score ≥ 70, multi-view consistency met)
+- [ ] Stage 6: Prop concept card created successfully
 
-道具资产图必须保存 `filename`，格式：
+---
+
+**Skill Version**: v2.0  
+**Created**: 2026-05-29  
+**Updated**: 2026-05-30  
+**Update Notes**: Default output changed to multi-view image (16:9), referencing character makeup/costume turnaround sheet standard  
+**Test Status**: Tested (Purification Machine)
+
+## Generated File Naming Convention
+
+Prop asset images must save `filename` in the following format:
 
 ```text
 道具资产-{道具名字}-{状态}-v{版本号}
 ```
 
-状态没有时省略对应段。示例：`道具资产-净化机-启动状态-v001.png`。
+Omit the state segment when there is no state. Example: `道具资产-净化机-启动状态-v001.png`.
 
-## 完成后下一步
+## Next Step After Completion
 
-完成判定：`PropConceptCard` 已创建，图片版本已确认并可供制作区引用。
+Completion criteria: `PropConceptCard` created, image version confirmed and available for the production zone to reference.
 
-完成当前道具生成后，检查当前集/场是否还有其他道具资产需要制作。
+After completing current prop generation, check whether the current episode/scene has other prop assets that need production.
 
-- 如果还有同场道具未完成：建议继续调用 `prop-asset-extraction` 或 `prop-generator`。
-- 如果当前集/场道具资产已够用：提示用户可以继续做其他资产，或调用 `production-coordinator` 开始具体这一集这一场戏的制作。
+- If there are unfinished props in the same scene: suggest continuing with `prop-asset-extraction` or `prop-generator`.
+- If the current episode/scene prop assets are sufficient: notify the user they can continue with other assets, or call `production-coordinator` to begin production for this specific episode and scene.
 
-推荐话术：`当前道具资产图已确认。接下来我会检查当前集/场是否还有其他道具资产需要制作；如果没有，可以进入 production-coordinator 开始场次制作。`
+Recommended phrasing: `Current prop asset image is confirmed. I will now check if the current episode/scene has other prop assets needing production; if not, we can enter production-coordinator to begin scene production.`

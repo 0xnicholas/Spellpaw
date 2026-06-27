@@ -1,37 +1,34 @@
 ---
 name: video-creator
 description: Use when a confirmed StoryboardCard shot group needs an API-aware video prompt, generation configuration, and versioned video output
-version: 2.0.0
-author: Modo
-tags: [ai-short-drama, video-generation, seedance, shot-group]
 ---
 
-# 视频制作
+# Video Creation
 
-## 核心职责
+## Core Responsibilities
 
-针对一个已确认镜头组的 `StoryboardCard`：
+For one confirmed shot group's `StoryboardCard`:
 
-1. 校验故事板、关键分镜图、BEATS、场景站位标注图和资产图片。
-2. 查询目标视频 API 的真实能力。
-3. 与用户确认模型、画质、时长适配和音频能力。
-4. 生成中文视频提示词，与用户讨论确认。
-5. 调用视频模型。
-6. 把结果追加到当前镜头组唯一的 `VideoCard.videoVersions[]`。
+1. Validate storyboard, key shot images, BEATS, scene position annotation image, and asset images.
+2. Query the target video API's actual capabilities.
+3. Confirm model, quality, duration adaptation, and audio capabilities with the user.
+4. Generate a Chinese video prompt, discuss and confirm with the user.
+5. Call the video model.
+6. Append the result to the current shot group's sole `VideoCard.videoVersions[]`.
 
-一张 `VideoCard` 只对应一个 `shotGroupId`。重新生成视频不会创建第二张卡片。
+One `VideoCard` corresponds to exactly one `shotGroupId`. Regenerating video does not create a second card.
 
 ## Reference Routing
 
-- 生成 Seedance 2.0 或同类模型提示词前，读取 `references/seedance-2-video-prompt-template.md`。
-- 选择剪辑、内容运动、运镜和时长重映射表达时，读取 `references/video-editing-motion-vocabulary.md`。
-- 进入参数确认、调用 API、确认版本和创建卡片前，读取 `references/video-generation-quality-checklist.md`。
+- Before generating Seedance 2.0 or similar model prompts, read `references/seedance-2-video-prompt-template.md`.
+- When selecting editing, content motion, camera movement, and duration remapping expressions, read `references/video-editing-motion-vocabulary.md`.
+- Before entering parameter confirmation, API calling, version confirmation, and card creation, read `references/video-generation-quality-checklist.md`.
 
-## 输入
+## Input
 
-### 主输入
+### Main Input
 
-已确认且非 `stale` 的综合 `StoryboardCard`：
+A confirmed and non-`stale` consolidated `StoryboardCard`:
 
 ```text
 sceneId
@@ -48,11 +45,11 @@ videoHandoff.tailState
 dependencyState.referencedKeyShotVersions
 ```
 
-新卡的 `shotGroupSnapshot` 必须包含 `maxDurationApplied`；旧卡缺失时按15秒兼容。
+New cards' `shotGroupSnapshot` must contain `maxDurationApplied`; legacy cards missing it default to 15s compatibility.
 
-### 额外视觉资产
+### Additional Visual Assets
 
-根据当前镜头组实际入画内容读取：
+Read according to what actually appears in the current shot group's frame:
 
 ```text
 CharacterAssetCard[]
@@ -60,23 +57,23 @@ SceneAssetCard[]
 PropAssetCard[]
 ```
 
-### 全局设定
+### Global Settings
 
 ```text
 FullScriptCard.metadata.aspectRatio
 ```
 
-画幅只读，不在视频阶段重新选择。
+Aspect ratio is read-only; it is not re-selected during the video stage.
 
-## 输出
+## Output
 
 ```text
 VideoCard
 ```
 
-`VideoClipCard` 仅作为旧数据兼容别名。新版不得创建 `VideoClipCard`。
+`VideoClipCard` only exists as a legacy data compatibility alias. New versions must not create `VideoClipCard`.
 
-## 工作流状态
+## Workflow Status
 
 ```typescript
 type VideoWorkflowStatus =
@@ -88,31 +85,31 @@ type VideoWorkflowStatus =
 
 ---
 
-## 阶段 1：校验上游与镜头组归属
+## Stage 1: Validate Upstream and Shot Group Ownership
 
-### 1.1 一卡一镜头组
+### 1.1 One Card One Shot Group
 
 ```text
 VideoCard.shotGroupId = StoryboardCard.shotGroupId
 ```
 
-同一 `shotGroupId` 已存在 `VideoCard` 时，继续更新该卡；不要创建新卡。
+If a `VideoCard` already exists for the same `shotGroupId`, continue updating that card; do not create a new card.
 
-### 1.2 StoryboardCard 闸门
+### 1.2 StoryboardCard Gate
 
-必须同时满足：
+Must simultaneously satisfy:
 
 ```text
 StoryboardCard.workflowStatus === "confirmed"
 StoryboardCard.storyboardSheet.userConfirmed === true
 StoryboardCard.storyboardSheet.stale === false
 videoHandoff.confirmedKeyShotImages.length > 0
-videoHandoff.storyboardImage 有效
+videoHandoff.storyboardImage valid
 videoHandoff.beats.length > 0
-visualReferences.positionAnnotationImage 有效且已确认
+visualReferences.positionAnnotationImage valid and confirmed
 ```
 
-每个 BEAT 必须具备：
+Each BEAT must have:
 
 ```text
 beatId
@@ -125,53 +122,53 @@ continuityState
 keyShotBindings[]
 ```
 
-### 1.3 资产完整性
+### 1.3 Asset Completeness
 
-画面中每个可见角色、场景和关键道具都必须有对应资产图片。
+Every visible character, scene, and key prop in the frame must have a corresponding asset image.
 
-硬阻断：
+Hard blocks:
 
-- 缺少任一角色资产。
-- 缺少场景资产。
-- 上游定义了关键道具，但缺少道具资产。
-- 场景站位标注图缺失或未确认。
+- Missing any character asset.
+- Missing scene asset.
+- Upstream defines a key prop but the prop asset is missing.
+- Scene position annotation image is missing or unconfirmed.
 
-不要使用文字描述替代缺失资产继续生成。
+Do not use text descriptions as substitutes for missing assets to continue generation.
 
-### 1.4 时长与画幅
+### 1.4 Duration and Aspect Ratio
 
 ```text
 requestedDuration = StoryboardCard.shotGroupSnapshot.duration
 aspectRatio = FullScriptCard.metadata.aspectRatio
 ```
 
-要求：
+Requirements:
 
-- `requestedDuration > 0`。
-- `requestedDuration <= shotGroupSnapshot.maxDurationApplied`。
-- 旧卡缺少 `maxDurationApplied` 时，解析为15秒。
-- 画幅必须是全局已确认值。
-- 不向用户提供改变画幅的选项。
+- `requestedDuration > 0`.
+- `requestedDuration <= shotGroupSnapshot.maxDurationApplied`.
+- Legacy cards missing `maxDurationApplied`: resolve to 15s.
+- Aspect ratio must be the globally confirmed value.
+- Do not offer the user an option to change the aspect ratio.
 
-### 1.5 展示输入摘要
+### 1.5 Display Input Summary
 
-只展示：
+Only display:
 
 ```text
-镜头组ID
-请求时长
-全局画幅
-关键分镜图数量
-故事板 BEAT 数量
-角色/场景/道具资产数量
-场景站位标注图状态
+Shot group ID
+Requested duration
+Global aspect ratio
+Key shot image count
+Storyboard BEAT count
+Character / scene / prop asset count
+Scene position annotation image status
 ```
 
 ---
 
-## 阶段 2：建立参考图权限包
+## Stage 2: Build Reference Image Authority Pack
 
-每张引用图必须有唯一职责：
+Each reference image must have a unique responsibility:
 
 ```typescript
 interface VideoReferencePack {
@@ -206,32 +203,32 @@ interface VideoReferencePack {
 }
 ```
 
-### 权限规则
+### Authority Rules
 
-- **故事板图**：镜头顺序、机位、景别、构图、姿态、站位、银幕方向、内容运动、运镜、主体/道具/特效状态和空间地理。
-- **关键分镜图**：对应 BEAT 的成片效果、构图、光色、材质、表演和关键状态。
-- **角色资产**：脸、外貌、体型、服装、比例、材质和角色身份的唯一权威。
-- **场景资产**：空间结构、固定物位置、环境材质和场景身份的唯一权威。
-- **道具资产**：形状、数量、尺寸、材质和使用方式的唯一权威。
-- **场景站位标注图**：初始站位、朝向、视线、轴线、运动路线和安全机位区。
+- **Storyboard image**: Shot order, camera position, shot size, composition, pose, blocking, screen direction, content motion, camera movement, subject/prop/effects states, and spatial geography.
+- **Key shot images**: Final look, composition, light/color, materials, performance, and key states for the corresponding BEAT.
+- **Character assets**: Sole authority for face, appearance, body type, costume, proportions, materials, and character identity.
+- **Scene assets**: Sole authority for spatial structure, fixed object positions, environmental materials, and scene identity.
+- **Prop assets**: Sole authority for shape, quantity, size, material, and usage method.
+- **Scene position annotation image**: Initial blocking, facing, eyeline, axis, movement routes, and safe camera zones.
 
-提示词必须明确：
+The prompt must explicitly state:
 
 ```text
-不要渲染故事板 Sheet、参考图边框、格头、箭头、标签、编号或资产拼贴。
+Do not render the storyboard Sheet, reference image borders, panel headers, arrows, labels, numbers, or asset collages.
 ```
 
 ---
 
-## 阶段 3：查询视频 API 能力
+## Stage 3: Query Video API Capabilities
 
-设置：
+Set:
 
 ```text
 workflowStatus = configuring
 ```
 
-在询问用户参数前，调用当前可用的视频 API/工具能力查询，获得：
+Before asking the user for parameters, query the currently available video API/tool capabilities to obtain:
 
 ```typescript
 interface VideoModelCapabilities {
@@ -250,69 +247,69 @@ interface VideoModelCapabilities {
 }
 ```
 
-禁止：
+Prohibited:
 
-- 根据旧文档猜测当前 API 参数。
-- 写死“1920x1080”“1080x1920”“8K”等选项。
-- 在未查询能力前承诺模型支持特定时长、画质、音频或参考图数量。
+- Guessing current API parameters from outdated documentation.
+- Hardcoding options like "1920x1080", "1080x1920", "8K".
+- Promising the model supports specific duration, quality, audio, or reference image counts before querying capabilities.
 
-如果 API 不支持全局画幅，停止并说明冲突，不自动改画幅。
+If the API does not support the global aspect ratio, stop and state the conflict; do not auto-change the aspect ratio.
 
-如果参考图数量超出上限：
+If the reference image count exceeds the limit:
 
-1. 保留故事板图。
-2. 保留与当前 BEATS 直接绑定的关键分镜图。
-3. 保留所有可见角色的身份资产。
-4. 保留场景站位标注图。
-5. 依画面相关性选择场景和道具资产。
-6. 向用户展示裁剪方案并确认，不静默丢弃引用图。
+1. Keep the storyboard image.
+2. Keep key shot images directly bound to current BEATS.
+3. Keep all visible character identity assets.
+4. Keep the scene position annotation image.
+5. Select scene and prop assets by visual relevance.
+6. Show the trimming plan to the user for confirmation; do not silently discard reference images.
 
 ---
 
-## 阶段 4：参数确认闸门
+## Stage 4: Parameter Confirmation Gate
 
-向用户展示 API 实际支持的：
+Display to the user what the API actually supports:
 
 ```text
-模型
-画质
-分辨率（如 API 独立提供）
-支持时长
-原生音频能力
-参考图上限
-其他关键模型参数
+Model
+Quality
+Resolution (if independently provided by the API)
+Supported durations
+Native audio capability
+Reference image limit
+Other key model parameters
 ```
 
-用户确认：
+User confirms:
 
 - `model`
 - `quality`
-- `resolution`（如适用）
-- 必要的 `generatedDuration`
-- 其他会显著影响结果的参数
+- `resolution` (if applicable)
+- Required `generatedDuration`
+- Other parameters that significantly affect results
 
-画幅固定为全局值，不进入可选列表。
+Aspect ratio is fixed to the global value and does not enter the options list.
 
-### 4.1 精确时长支持
+### 4.1 Exact Duration Support
 
-如果 API 支持 `requestedDuration`：
+If the API supports `requestedDuration`:
 
 ```text
 generatedDuration = requestedDuration
 durationAdaptation = undefined
 ```
 
-### 4.2 时长适配
+### 4.2 Duration Adaptation
 
-如果 API 不支持精确时长：
+If the API does not support exact duration:
 
-1. 展示可用时长。
-2. 用户选择 `generatedDuration`。
-3. 读取 `references/video-editing-motion-vocabulary.md`。
-4. 保持事件和 BEAT 顺序。
-5. 重排每个 BEAT 的时间段。
-6. 保持接触、台词落点、高潮和尾帧可读。
-7. 不静默截断、补空白或增加事件。
+1. Display available durations.
+2. User selects `generatedDuration`.
+3. Read `references/video-editing-motion-vocabulary.md`.
+4. Preserve event and BEAT order.
+5. Remap each BEAT's time range.
+6. Keep contact points, dialogue landing points, climax, and tail frame readable.
+7. Do not silently truncate, pad with blanks, or add events.
 
 ```typescript
 interface DurationAdaptation {
@@ -323,153 +320,153 @@ interface DurationAdaptation {
 }
 ```
 
-`beatTimingMap` 必须覆盖每个 BEAT。
+`beatTimingMap` must cover every BEAT.
 
-### 4.3 参数确认状态
+### 4.3 Parameter Confirmation State
 
 ```typescript
 generationConfig.userConfirmed = true;
 ```
 
-用户改变模型、画质、时长或关键模型参数时，清除旧参数确认并重新执行本阶段。
+When the user changes model, quality, duration, or key model parameters, clear the old parameter confirmation and re-execute this stage.
 
 ---
 
-## 阶段 5：生成中文视频提示词
+## Stage 5: Generate Chinese Video Prompt
 
-设置：
+Set:
 
 ```text
 workflowStatus = prompt_review
 ```
 
-读取：
+Read:
 
 ```text
 references/seedance-2-video-prompt-template.md
 references/video-editing-motion-vocabulary.md
 ```
 
-### 5.1 提示词结构
+### 5.1 Prompt Structure
 
 ```text
-参考图权限
-剪辑与空间连续性
-视觉风格
-环境
-角色与表演
-情绪指导
-节奏与升级
-音频指导
-动作节拍 BEATS
-首尾状态
-负面约束
-生成参数
+Reference image authority
+Editing and spatial continuity
+Visual style
+Environment
+Characters and performance
+Emotional guidance
+Rhythm and escalation
+Audio guidance
+Action beats BEATS
+Opening and tail states
+Negative constraints
+Generation parameters
 ```
 
-### 5.2 信息来源
+### 5.2 Information Sources
 
-- 视觉风格、光色、材质：关键分镜图、资产图片和 `shotGroupSnapshot.sceneStrategy`。
-- 表演：`shotGroupSnapshot.performanceStrategy` 和 BEATS。
-- 剪辑、运镜和景别：`shotGroupSnapshot.cinematographyStrategy` 和 BEATS。
-- 站位、视线和轴线：场景站位标注图与 `subjectBlocking`。
-- 首尾状态：`videoHandoff.openingState` 和 `videoHandoff.tailState`。
+- Visual style, light/color, materials: key shot images, asset images, and `shotGroupSnapshot.sceneStrategy`.
+- Performance: `shotGroupSnapshot.performanceStrategy` and BEATS.
+- Editing, camera movement, shot size: `shotGroupSnapshot.cinematographyStrategy` and BEATS.
+- Blocking, eyeline, axis: scene position annotation image and `subjectBlocking`.
+- Opening and tail states: `videoHandoff.openingState` and `videoHandoff.tailState`.
 
-不要重新读取三张策略源卡文本覆盖 `shotGroupSnapshot`。
+Do not re-read the three strategy source cards' text to overwrite `shotGroupSnapshot`.
 
-### 5.3 BEAT 转译
+### 5.3 BEAT Translation
 
-每个 BEAT 必须包含：
+Each BEAT must contain:
 
 ```text
-时间段
-剪辑方式
-冻结状态起点
-内容运动
-运镜
-站位与银幕方向
-结果状态
-关键图绑定
+Time range
+Editing method
+Frozen state starting point
+Content motion
+Camera movement
+Blocking and screen direction
+Result state
+Key image binding
 ```
 
-`timeRange` 使用原始时间或确认后的 `beatTimingMap`。
+`timeRange` uses the original time or the confirmed `beatTimingMap`.
 
-不得：
+Must not:
 
-- 添加上游未定义的事件。
-- 把一个 BEAT 的结果提前到前一 BEAT。
-- 删除尾帧状态。
-- 用泛化“电影感动作”替代具体内容运动和运镜。
+- Add events not defined upstream.
+- Advance one BEAT's result into the previous BEAT.
+- Delete the tail frame state.
+- Replace specific content motion and camera movement with generic "cinematic action."
 
-### 5.4 音频分流
+### 5.4 Audio Split
 
-始终生成并保存：
+Always generate and save:
 
 ```text
 VideoCard.audioGuidance
 ```
 
-如果：
+If:
 
 ```text
 supportsNativeAudio === true
 ```
 
-则把音频指导写入 `fullPrompt` 和模型参数。
+Then write audio guidance into `fullPrompt` and model parameters.
 
-如果：
+If:
 
 ```text
 supportsNativeAudio === false
 ```
 
-则：
+Then:
 
-- `generationPrompt` 可显示音频意图，并标注“仅供后续声音制作”。
-- `fullPrompt` 的视觉部分完全移除音频段，也不保留“无音频”“不要音乐”等否定句。
-- 完整音频内容只保存在 `audioGuidance`。
+- `generationPrompt` may display audio intent, annotated "for subsequent sound production only."
+- `fullPrompt`'s visual portion completely removes the audio section, and does not retain negation phrases like "no audio" or "no music."
+- Complete audio content is only saved in `audioGuidance`.
 
-### 5.5 generationPrompt 与 fullPrompt
+### 5.5 generationPrompt and fullPrompt
 
 ```text
-generationPrompt：中文、用户可见、可讨论修改。
-fullPrompt：用户确认后生成，包含模型所需引用图映射和技术参数。
+generationPrompt: Chinese, user-visible, open for discussion and modification.
+fullPrompt: Generated after user confirmation, containing model-required reference image mappings and technical parameters.
 ```
 
 ---
 
-## 阶段 6：提示词确认闸门
+## Stage 6: Prompt Confirmation Gate
 
-向用户展示：
+Display to the user:
 
 ```text
-参考图权限
-参数摘要
-时长适配（如有）
-剪辑与空间连续性
-逐 BEAT 动作和运镜
-首尾状态
-音频分流结果
-负面约束
+Reference image authority
+Parameter summary
+Duration adaptation (if any)
+Editing and spatial continuity
+Per-BEAT actions and camera movements
+Opening and tail states
+Audio split result
+Negative constraints
 generationPrompt
 ```
 
-用户可以：
+User may:
 
 ```text
-确认提示词
-调整某个 BEAT
-调整剪辑或节奏
-调整表演或运镜
-返回参数确认闸门
+Confirm prompt
+Adjust a BEAT
+Adjust editing or rhythm
+Adjust performance or camera movement
+Return to parameter confirmation gate
 ```
 
-确认前不得：
+Before confirmation, must not:
 
-- 生成 `fullPrompt` 最终版本。
-- 调用视频生成 API。
+- Generate the final `fullPrompt` version.
+- Call the video generation API.
 
-记录确认：
+Record confirmation:
 
 ```typescript
 confirmationLog.push({
@@ -481,15 +478,15 @@ confirmationLog.push({
 
 ---
 
-## 阶段 7：调用视频生成 API
+## Stage 7: Call Video Generation API
 
-设置：
+Set:
 
 ```text
 workflowStatus = generating
 ```
 
-调用参数来自已确认的：
+Call parameters come from confirmed:
 
 ```text
 referenceImages
@@ -497,9 +494,9 @@ generationConfig
 fullPrompt
 ```
 
-### 7.1 生成失败
+### 7.1 Generation Failure
 
-记录：
+Record:
 
 ```typescript
 interface VideoGenerationAttempt {
@@ -510,17 +507,17 @@ interface VideoGenerationAttempt {
 }
 ```
 
-失败时保留已确认的参数和提示词。用户可：
+On failure, retain confirmed parameters and prompts. User may:
 
-- 使用同一配置重试。
-- 返回参数确认闸门。
-- 返回提示词确认闸门。
+- Retry with the same config.
+- Return to parameter confirmation gate.
+- Return to prompt confirmation gate.
 
-失败不会创建空视频版本。
+Failure does not create an empty video version.
 
-### 7.2 生成成功
+### 7.2 Generation Success
 
-追加版本：
+Append version:
 
 ```typescript
 videoVersions.push({
@@ -538,47 +535,47 @@ videoVersions.push({
 });
 ```
 
-不要覆盖历史版本。
+Do not overwrite historical versions.
 
 ---
 
-## 阶段 8：结果确认与版本管理
+## Stage 8: Result Confirmation and Version Management
 
-展示：
+Display:
 
 ```text
-视频预览
-版本号
-模型
-时长
-画质/分辨率
-本版调整
+Video preview
+Version number
+Model
+Duration
+Quality / Resolution
+Changes in this version
 ```
 
-用户可以：
+User may:
 
-- 确认当前版本。
-- 使用同一提示词生成新版本。
-- 修改提示词后生成新版本。
-- 返回参数确认闸门后生成新版本。
+- Confirm the current version.
+- Generate a new version with the same prompt.
+- Modify the prompt and generate a new version.
+- Return to the parameter confirmation gate and generate a new version.
 
-确认时：
+On confirmation:
 
 ```text
-selectedVersion = 当前版本
-当前版本.userConfirmed = true
+selectedVersion = current version
+current version.userConfirmed = true
 workflowStatus = confirmed
 stale = false
 userConfirmed = true
 ```
 
-同一时间只允许一个选中最终版本。历史版本保留。
+Only one selected final version is allowed at a time. Historical versions are retained.
 
 ---
 
-## 阶段 9：依赖失效
+## Stage 9: Dependency Invalidation
 
-创建卡片时保存：
+Save on card creation:
 
 ```typescript
 storyboardDependency: {
@@ -588,18 +585,18 @@ storyboardDependency: {
 }
 ```
 
-同时在 `referenceImages` 中保存各资产的 cardId/version。
+Also save each asset's cardId/version in `referenceImages`.
 
-以下任一变化时：
+When any of the following changes:
 
-- 故事板选中图片版本。
-- 任一被引用关键分镜图版本。
-- BEATS。
-- 首帧或尾帧状态。
-- 场景站位标注图。
-- 被引用角色、场景或道具资产版本。
+- Storyboard selected image version.
+- Any referenced key shot image version.
+- BEATS.
+- First frame or tail frame state.
+- Scene position annotation image.
+- Referenced character, scene, or prop asset versions.
 
-立即执行：
+Immediately execute:
 
 ```text
 stale = true
@@ -608,11 +605,11 @@ workflowStatus = configuring
 generationConfig.userConfirmed = false
 ```
 
-旧视频版本保留用于对比，但不能继续作为当前确认结果。
+Old video versions are retained for comparison but cannot continue as the current confirmed result.
 
 ---
 
-## 阶段 10：创建 VideoCard
+## Stage 10: Create VideoCard
 
 ```typescript
 interface VideoCard extends BaseCard {
@@ -687,13 +684,13 @@ interface VideoCard extends BaseCard {
 }
 ```
 
-兼容规则：
+Compatibility rule:
 
 ```typescript
-type VideoClipCard = VideoCard; // @deprecated，仅用于旧数据读取
+type VideoClipCard = VideoCard; // @deprecated, only for legacy data reading
 ```
 
-新版序列化必须使用：
+New version serialization must use:
 
 ```text
 cardType: "VideoCard"
@@ -701,44 +698,44 @@ cardType: "VideoCard"
 
 ---
 
-## 硬阻断
+## Hard Blocks
 
-- 一个输入包含多个镜头组。
-- 当前 `shotGroupId` 与已有 `VideoCard.shotGroupId` 不一致。
-- 上游 StoryboardCard 未确认或已 `stale`。
-- 缺少故事板图、关键图、BEATS、首尾状态或站位标注图。
-- 缺少相关角色、场景或关键道具资产。
-- 请求时长超过镜头组 `maxDurationApplied`。
-- API 能力未查询。
-- API 不支持全局画幅。
-- 用户未确认模型、画质或必要时长适配。
-- 用户未确认提示词。
+- One input contains multiple shot groups.
+- Current `shotGroupId` does not match existing `VideoCard.shotGroupId`.
+- Upstream StoryboardCard is not confirmed or is `stale`.
+- Missing storyboard image, key images, BEATS, opening/tail states, or position annotation image.
+- Missing relevant character, scene, or key prop assets.
+- Requested duration exceeds the shot group's `maxDurationApplied`.
+- API capabilities not queried.
+- API does not support the global aspect ratio.
+- User has not confirmed model, quality, or necessary duration adaptation.
+- User has not confirmed the prompt.
 
-## 局部修复
+## Local Repairs
 
-- 模型、画质、分辨率或时长变化：返回参数确认闸门。
-- BEAT、剪辑、动作、运镜或音频变化：返回提示词确认闸门。
-- 单次 API 失败：保留配置和提示词，记录失败后重试。
-- 视频结果不满意：追加新版本，不创建新卡。
+- Model, quality, resolution, or duration changes: return to parameter confirmation gate.
+- BEAT, editing, action, camera movement, or audio changes: return to prompt confirmation gate.
+- Single API failure: retain config and prompt, record failure, then retry.
+- Unsatisfactory video result: append new version, do not create a new card.
 
-## 完成检查
+## Completion Check
 
-创建或确认卡片前，必须完成 `references/video-generation-quality-checklist.md`。任何硬阻断项未通过时，不能把 `workflowStatus` 或 `status` 标为 `confirmed`。
+Before creating or confirming the card, must complete `references/video-generation-quality-checklist.md`. If any hard block item is not passed, do not mark `workflowStatus` or `status` as `confirmed`.
 
-## 生成文件命名规则
+## Generated File Naming Convention
 
-视频文件必须保存 `filename`，格式：
+Video files must save `filename` in the following format:
 
 ```text
 第{集数}集第{场数}场第{组号}组-v{版本号}
 ```
 
-示例：`第1集第3场第1组-v001.mp4`。
+Example: `第1集第3场第1组-v001.mp4`.
 
-## 完成后下一步
+## Next Step After Completion
 
-完成判定：`VideoCard` 已创建或更新，`selectedVersion` 指向已确认视频版本，`workflowStatus === "confirmed"`，且 `stale === false`。
+Completion criteria: `VideoCard` created or updated, `selectedVersion` points to a confirmed video version, `workflowStatus === "confirmed"`, and `stale === false`.
 
-当前无强制下游。`VideoCard` 当前作为镜头组终点；用户可以继续生成新版本、返工当前视频、制作下一个镜头组，或回到 `production-coordinator` 处理下一场。
+No mandatory downstream at present. `VideoCard` currently serves as the shot group endpoint; users may continue generating new versions, rework the current video, produce the next shot group, or return to `production-coordinator` to handle the next scene.
 
-推荐话术：`当前镜头组视频已完成。VideoCard 当前作为镜头组终点；可以继续下一个镜头组，或对当前视频追加新版本。`
+Recommended phrasing: `Current shot group video is complete. VideoCard currently serves as the shot group endpoint; you may continue to the next shot group, or append new versions to the current video.`

@@ -1,127 +1,132 @@
-# 表演设计 (Performance Strategy Designer)
+---
+name: performance-strategy-designer
+description: Use when a DirectorBriefingCard.precheck exists and performance strategies need to be designed for characters in a scene, including action design, expression changes, dialogue delivery, and emotional arcs
+---
 
-根据分集分场剧情卡片、导演讲戏卡片的预判指令、角色设定卡片、角色妆造卡片，将剧本文本转译为可视化的动作、表情、微表情、台词演绎。
+# Performance Strategy Designer
 
-**本skill是核心转译skill**，负责将文字描述转化为演员可执行的表演指导。
+Based on the EpisodeSceneDetailCard, DirectorBriefingCard precheck directives, Character Profile Cards, and Character Costume Cards, translate script text into visualizable actions, expressions, micro-expressions, and dialogue delivery.
+
+**This skill is the core translation skill**, responsible for transforming textual descriptions into actor-executable performance direction.
 
 ---
 
 ## Reference Routing
 
-本skill的表演方法和词汇库放在 `references/`，按需读取：
+This skill's performance methods and vocabulary are stored in `references/`; read on demand:
 
-- 动作、表演链、动作锚点和身体空间：读取 `references/performance-vocabulary.md`。
-- 情绪到微表情转换：读取 `references/emotion-microexpression-map.md`。
-- 台词演绎、台词时长和声音表演：读取 `references/dialogue-timing-and-delivery.md`。
+- Actions, performance chains, action anchors, and body space: read `references/performance-vocabulary.md`.
+- Emotion-to-micro-expression conversion: read `references/emotion-microexpression-map.md`.
+- Dialogue delivery, dialogue timing, and vocal performance: read `references/dialogue-timing-and-delivery.md`.
 
-使用原则：reference用于生成更具体的表演设计，不要把词汇表原样堆进卡片；每个阶段只选择最服务剧情的动作、表情和台词演绎。
+Usage principle: References are used to generate more specific performance designs. Do not copy vocabulary lists wholesale into the card; select only the actions, expressions, and dialogue delivery that most serve the story at each stage.
 
 ---
 
-## ⚠️ 重要：卡片组织结构
+## ⚠️ Important: Card Organization Structure
 
-### 按时间阶段组织，而非按维度拆分
+### Organize by time phases, not by dimension
 
-**正确做法**：按角色的时间阶段组织，每个阶段包含动作+表情+台词+情绪的整体描述
+**Correct approach**: Organize by character's time phases, each phase containing a holistic description of actions + expressions + dialogue + emotion
 
 ```
-角色1: 林渊
-  ├── 阶段1 (0-15s): 惬意登场与亲昵时刻
-  │   ├── 剧情（该阶段发生什么）
-  │   ├── 动作（具体动作描述，包含时间戳）
-  │   ├── 表情（该阶段的表情变化）
-  │   ├── 台词（该阶段的台词及演绎方式）
-  │   ├── 情绪（该阶段的情绪状态和转换）
-  │   └── 一致性检查（该阶段的检查结果或疑问）
+Character 1: 林渊
+  ├── Phase 1 (0-15s): Graceful entrance and intimate moment
+  │   ├── Plot (what happens in this phase)
+  │   ├── Actions (specific action descriptions, including timestamps)
+  │   ├── Expressions (expression changes in this phase)
+  │   ├── Dialogue (dialogue and delivery style in this phase)
+  │   ├── Emotion (emotional state and transitions in this phase)
+  │   └── Consistency check (check results or questions for this phase)
   │
-  ├── 阶段2 (15-40s): 倾听方涵汇报
-  │   ├── 剧情
-  │   ├── 动作
-  │   ├── 表情
-  │   ├── 台词
-  │   ├── 情绪
-  │   └── 一致性检查
+  ├── Phase 2 (15-40s): Listening to 方涵's report
+  │   ├── Plot
+  │   ├── Actions
+  │   ├── Expressions
+  │   ├── Dialogue
+  │   ├── Emotion
+  │   └── Consistency check
   └── ...
 ```
 
-**错误做法**：按维度拆分（不要这样做）
+**Wrong approach**: Split by dimension (do not do this)
 
 ```
-角色1: 林渊
-  ├── 动作设计（列出所有动作）
-  ├── 表情设计（列出所有表情）
-  ├── 台词演绎（列出所有台词）
-  └── 情绪弧光（整体情绪）
+Character 1: 林渊
+  ├── Action design (list all actions)
+  ├── Expression design (list all expressions)
+  ├── Dialogue delivery (list all dialogue)
+  └── Emotional arc (overall emotion)
 ```
 
-### 为什么按时间阶段组织？
+### Why organize by time phases?
 
-1. **符合导演和演员的工作习惯**：他们需要知道"这10秒钟我要做什么"，而不是"我所有的动作列表"
-2. **动作、表情、台词、情绪是一体的**：在同一时刻协同发生，应该一起描述
-3. **更容易执行和排练**：演员可以按时间顺序理解和演绎
-4. **便于调整和迭代**：修改某个时间段时，所有相关元素都在一起
+1. **Matches director and actor working habits**: They need to know "what do I do in these 10 seconds", not "a list of all my actions"
+2. **Actions, expressions, dialogue, and emotion are integrated**: They co-occur in the same moment and should be described together
+3. **Easier to execute and rehearse**: Actors can understand and perform in chronological order
+4. **Easier to adjust and iterate**: When modifying a time segment, all related elements are together
 
-### 场景分段原则
+### Scene segmentation principles
 
-根据剧情节奏和关键事件将场景分为3-7个阶段，每个阶段应该：
-- 有明确的时间范围（如 0-15s、15-40s）
-- 有清晰的剧情目标（如"惬意登场"、"权力展示"）
-- 包含该时间段内所有表演元素的整体描述
+Divide the scene into 3-7 phases based on story rhythm and key events. Each phase should:
+- Have a clear time range (e.g., 0-15s, 15-40s)
+- Have a clear story objective (e.g., "graceful entrance", "power display")
+- Contain a holistic description of all performance elements within that time segment
 
 ---
 
-## 整体工作流
+## Overall Workflow
 
 ```
-输入：分集分场剧情卡片 + 导演讲戏卡片（precheck）+ 角色设定卡片 + 角色妆造卡片
+Input: EpisodeSceneDetailCard + DirectorBriefingCard (precheck) + Character Profile Cards + Character Costume Cards
   ↓
-阶段1：分析角色和剧情
-  - 读取导演讲戏卡片（primaryStructure、preliminaryShotGroupPlan、strategyDirectives.performance）⭐
-  - 读取角色设定卡片（性格、动机、弧光）
-  - 读取角色妆造卡片（视觉参考）
-  - 读取分集分场剧情卡片（visualDescription、dialogue、emotion）
+Stage 1: Analyze characters and story
+  - Read DirectorBriefingCard (primaryStructure, preliminaryShotGroupPlan, strategyDirectives.performance) ⭐
+  - Read Character Profile Cards (personality, motivation, arc)
+  - Read Character Costume Cards (visual reference)
+  - Read EpisodeSceneDetailCard (visualDescription, dialogue, emotion)
   ↓
-阶段2：场景分段
-  - 根据剧情节奏确定3-7个时间阶段
-  - 每个阶段有明确的时间范围和剧情目标
+Stage 2: Segment the scene
+  - Determine 3-7 time phases based on story rhythm
+  - Each phase has a clear time range and story objective
   ↓
-阶段3-7：为每个角色设计每个阶段的表演
-  - 按时间阶段组织
-  - 每个阶段包含：剧情、动作、表情、台词、情绪、一致性检查
+Stages 3-7: Design performance for each character in each phase
+  - Organized by time phases
+  - Each phase includes: plot, actions, expressions, dialogue, emotion, consistency check
   ↓
-阶段8：用户确认
-  - 生成完整卡片
-  - 标注不确定的细节（用⚠️待确认）
-  - 在卡片末尾集中列出待确认问题
-  - 提供多选项供用户选择
-  - 根据用户反馈调整
+Stage 8: User confirmation
+  - Generate complete card
+  - Mark uncertain details (with ⚠️待确认)
+  - List pending confirmation questions at end of card
+  - Provide multiple-choice options for user
+  - Adjust based on user feedback
   ↓
-输出：表演策略卡片（completed状态）
+Output: PerformanceStrategyCard (completed status)
 ```
 
 ---
 
-## 阶段1：分析角色和剧情
+## Stage 1: Analyze Characters and Story
 
-### 1.0 读取导演讲戏卡片（CRITICAL）
+### 1.0 Read DirectorBriefingCard (CRITICAL)
 
-**目标**：获取导演预判对表演策略的约束，让表演设计服务整场戏的主结构和镜头组粗拆。
+**Goal**: Retrieve director precheck constraints on performance strategy, so performance design serves the scene's primary structure and shot group plan.
 
-**必须提取**：
-- `precheck.primaryStructure`：主结构
-- `precheck.secondaryStructure`：辅助结构
-- `precheck.preliminaryShotGroupPlan`：镜头组粗拆
-- `precheck.strategyDirectives.performance`：表演策略设计指令
-- `precheck.playableContentLoad`：内容量等级
+**Must extract**:
+- `precheck.primaryStructure`: Primary structure
+- `precheck.secondaryStructure`: Secondary structure
+- `precheck.preliminaryShotGroupPlan`: Preliminary shot group plan
+- `precheck.strategyDirectives.performance`: Performance strategy design directives
+- `precheck.playableContentLoad`: Content volume level
 
-**执行规则**：
-1. 表演阶段必须优先对齐导演讲戏的镜头组粗拆，再在组内细分动作、表情、台词和情绪。
-2. 如果主结构是 `dialogue_cross_cutting`，每句关键台词必须写出演绎方式，并给听者反应留出时间。
-3. 如果主结构是 `close_up_micro_expression`，优先写微表情时间轴，减少大动作，避免情绪跳变。
-4. 如果主结构是 `continuous_action` 或 `fight_choreography`，动作必须有触发、方向、接触点、反应和恢复，不写空泛的“激烈打斗”。
-5. 如果导演预判为 `sequential_split`，每个阶段必须说明开头继承状态和结尾情绪余韵，供尾帧锚点使用。
+**Execution rules**:
+1. Performance phases must first align with the director's shot group plan, then subdivide actions, expressions, dialogue, and emotion within each group.
+2. If primary structure is `dialogue_cross_cutting`, every key line must have delivery style written, and leave time for listener reactions.
+3. If primary structure is `close_up_micro_expression`, prioritize micro-expression timelines, reduce large movements, avoid emotional jumps.
+4. If primary structure is `continuous_action` or `fight_choreography`, actions must have trigger, direction, contact point, reaction, and recovery; do not write vague "intense fighting".
+5. If director precheck is `sequential_split`, each phase must describe the inherited starting state and ending emotional residue for tail-frame anchor use.
 
-**输出到表演策略卡片**：
+**Output to PerformanceStrategyCard**:
 ```typescript
 directorBriefingCardId: string;
 directorPrecheckSnapshot: {
@@ -136,23 +141,23 @@ directorPrecheckSnapshot: {
 }
 ```
 
-### 1.1 读取角色设定卡片
+### 1.1 Read Character Profile Cards
 
-**目标**：获取角色的性格、动机、弧光信息
+**Goal**: Retrieve character personality, motivation, and arc information
 
-**输入**：
-- 从分集分场剧情卡片的 `characters` 数组获取角色ID列表
+**Input**:
+- Character ID list from the EpisodeSceneDetailCard's `characters` array
 
-**执行逻辑**：
-1. 遍历剧情卡片中的所有角色
-2. 根据 `characterId` 查找对应的角色设定卡片
-3. 提取以下字段：
-   - `personality`：性格特征
-   - `motivation`：动机和目标
-   - `characterArc`：角色弧光
-   - `relationships`：角色关系
+**Execution logic**:
+1. Iterate through all characters in the EpisodeSceneDetailCard
+2. Look up the corresponding Character Profile Card by `characterId`
+3. Extract the following fields:
+   - `personality`: Personality traits
+   - `motivation`: Motivation and goals
+   - `characterArc`: Character arc
+   - `relationships`: Character relationships
 
-**输出示例**：
+**Sample output**:
 ```typescript
 {
   characterId: "char-001",
@@ -174,35 +179,35 @@ directorPrecheckSnapshot: {
 }
 ```
 
-### 1.2 读取角色妆造卡片
+### 1.2 Read Character Costume Cards
 
-**目标**：获取角色的视觉参考
+**Goal**: Retrieve character visual references
 
-**执行逻辑**：
-1. 根据剧情卡片的 `assetCompleteness.characterAssets` 查找妆造卡片
-2. 提取以下字段：
-   - `typicalExpressions`：典型表情（5个）
-   - `typicalActions`：典型动作（5个）
-   - `overallDemeanor`：整体气质
+**Execution logic**:
+1. Look up costume cards from the EpisodeSceneDetailCard's `assetCompleteness.characterAssets`
+2. Extract the following fields:
+   - `typicalExpressions`: Typical expressions (5)
+   - `typicalActions`: Typical actions (5)
+   - `overallDemeanor`: Overall demeanor
 
-**注意**：
-- 如果妆造卡片不存在，提示用户需要先生成妆造卡片
-- 典型表情和典型动作是推断的重要参考
+**Note**:
+- If costume card does not exist, prompt user to generate costume card first
+- Typical expressions and typical actions are important references for inference
 
-### 1.3 读取分集分场剧情卡片
+### 1.3 Read EpisodeSceneDetailCard
 
-**目标**：获取场景的剧情、情绪、台词信息
+**Goal**: Retrieve scene story, emotion, and dialogue information
 
-**执行逻辑**：
-1. 提取以下字段：
-   - `visualDescription`：详细的视觉描述数组（包含角色动作）
-   - `sceneElements.characterStates`：角色状态
-   - `dialogue`：台词文本
-   - `emotion`：情绪基调
-   - `emotionIntensity`：情绪强度（1-10）
-   - `rhythm`：节奏（fast/medium/slow）
+**Execution logic**:
+1. Extract the following fields:
+   - `visualDescription`: Detailed visual description array (contains character actions)
+   - `sceneElements.characterStates`: Character states
+   - `dialogue`: Dialogue text
+   - `emotion`: Emotional tone
+   - `emotionIntensity`: Emotional intensity (1-10)
+   - `rhythm`: Rhythm (fast/medium/slow)
 
-**输出示例**：
+**Sample output**:
 ```typescript
 {
   visualDescription: [
@@ -221,53 +226,53 @@ directorPrecheckSnapshot: {
 
 ---
 
-## 阶段2：设计动作
+## Stage 2: Design Actions
 
-### 2.1 确定表演性质
+### 2.1 Determine Performance Nature
 
-**推断规则**：
+**Inference rules**:
 
-| 条件 | 表演性质 |
-|------|----------|
-| visualDescription包含大量动作描述 | action（打戏） |
-| dialogue存在且较长 | dialogue（文戏） |
-| 两者都有 | mixed（混合） |
+| Condition | Performance Nature |
+|-----------|--------------------|
+| visualDescription contains many action descriptions | action |
+| dialogue exists and is long | dialogue |
+| Both present | mixed |
 
-### 2.2 根据性格选择动作风格
+### 2.2 Select Action Style Based on Personality
 
-**推断规则**：
+**Inference rules**:
 
-| 性格特征 | 动作风格 |
-|----------|----------|
-| 冷静、理性 | 克制、精确、少量手势 |
-| 热情、外向 | 夸张、开放、大幅度动作 |
-| 紧张、焦虑 | 细碎、频繁、不安定 |
-| 自信、强势 | 稳定、果断、占据空间 |
-| 温柔、内敛 | 柔和、小幅度、接近身体 |
+| Personality Traits | Action Style |
+|--------------------|--------------|
+| Calm, rational | Restrained, precise, minimal gestures |
+| Enthusiastic, outgoing | Exaggerated, open, large movements |
+| Nervous, anxious | Fidgety, frequent, unsettled |
+| Confident, assertive | Stable, decisive, space-occupying |
+| Gentle, introverted | Soft, small amplitude, close to body |
 
-**示例**：
+**Example**:
 ```typescript
-// 输入：性格 = ["冷静", "理性"]
-// 输出：
+// Input: personality = ["冷静", "理性"]
+// Output:
 actionStyle: "克制、精确，动作幅度小，避免不必要的手势。每个动作都有明确目的，体现理性思维。"
 ```
 
-### 2.3 从visualDescription提取关键动作
+### 2.3 Extract Key Actions from visualDescription
 
-**提取规则**：
-1. 筛选 `type === "character"` 或 `type === "action"` 的描述
-2. 筛选包含当前角色名称的描述
-3. 提取动词和动作描述
-4. 确定动作的sequence作为时间线参考
+**Extraction rules**:
+1. Filter descriptions with `type === "character"` or `type === "action"`
+2. Filter descriptions containing the current character's name
+3. Extract verbs and action descriptions
+4. Use action sequence as timeline reference
 
-**示例**：
+**Example**:
 ```typescript
-// 输入：
+// Input:
 visualDescription: [
   { sequence: 3, content: "战士站在浮岛城墙上，举枪拼死抵抗", type: "character" }
 ]
 
-// 输出：
+// Output:
 keyActions: [
   {
     actionNumber: 1,
@@ -290,49 +295,49 @@ keyActions: [
 ]
 ```
 
-### 2.4 确定触发事件和时间点
+### 2.4 Determine Trigger Events and Timestamps
 
-**推断规则**：
-1. 触发事件来源：
-   - 台词前后（"台词XXX之后"）
-   - 其他角色动作（"角色A做出XX动作时"）
-   - 情境变化（"尸潮接近时"）
-2. 时间点估算：
-   - 根据visualDescription的sequence估算
-   - 快节奏：每个sequence约3-5秒
-   - 中节奏：每个sequence约5-8秒
-   - 慢节奏：每个sequence约8-12秒
+**Inference rules**:
+1. Trigger event sources:
+   - Before/after dialogue ("after line XXX")
+   - Other character actions ("when Character A does XX")
+   - Situational changes ("when the zombie horde approaches")
+2. Timestamp estimation:
+   - Based on visualDescription sequence estimation
+   - Fast rhythm: ~3-5 seconds per sequence
+   - Medium rhythm: ~5-8 seconds per sequence
+   - Slow rhythm: ~8-12 seconds per sequence
 
 ---
 
-## 阶段3：设计表情
+## Stage 3: Design Expressions
 
-### 3.1 确定主要表情
+### 3.1 Determine Dominant Expression
 
-**推断规则**：根据情绪基调选择
+**Inference rules**: Select based on emotional tone
 
-| 情绪基调 | 主要表情 |
-|----------|----------|
-| 震撼、压迫感 | 紧绷、严肃、眉头紧锁 |
-| 温馨、欢快 | 微笑、放松、眼神柔和 |
-| 悲伤、绝望 | 低垂、眼神空洞、嘴角下压 |
-| 愤怒、激动 | 眉头紧皱、眼神锐利、嘴唇紧抿 |
-| 平静、日常 | 自然、中性、无明显情绪 |
+| Emotional Tone | Dominant Expression |
+|----------------|---------------------|
+| Shock, oppression | Tense, serious, furrowed brow |
+| Warmth, cheerfulness | Smiling, relaxed, soft eyes |
+| Sadness, despair | Downcast, vacant eyes, downturned mouth |
+| Anger, agitation | Furrowed brow, sharp eyes, tight lips |
+| Calm, everyday | Natural, neutral, no obvious emotion |
 
-### 3.2 设计微表情变化
+### 3.2 Design Micro-Expression Changes
 
-**推断规则**：
-1. 根据情绪强度确定微表情数量：
-   - emotionIntensity >= 7：5-8个微表情
-   - 4-6：3-5个
-   - < 4：1-3个
-2. 微表情类型：
-   - 眉毛变化：扬起/皱起/放松
-   - 眼神变化：凝视/闪避/失焦
-   - 嘴角变化：上扬/下压/颤抖
-   - 肌肉变化：紧绷/松弛
+**Inference rules**:
+1. Determine micro-expression count based on emotional intensity:
+   - emotionIntensity >= 7: 5-8 micro-expressions
+   - 4-6: 3-5
+   - < 4: 1-3
+2. Micro-expression types:
+   - Eyebrow changes: raise/furrow/relax
+   - Eye changes: stare/avert/defocus
+   - Mouth corner changes: upturn/downturn/tremble
+   - Muscle changes: tense/relax
 
-**示例**：
+**Example**:
 ```typescript
 microExpressions: [
   {
@@ -352,19 +357,19 @@ microExpressions: [
 ]
 ```
 
-### 3.3 设计表情转换
+### 3.3 Design Expression Transitions
 
-**推断规则**：
-1. 转换时机：
-   - 情绪转折点（dialogue中的关键句）
-   - 关键动作前后
-   - 角色互动时
-2. 转换时长：
-   - 快节奏：0.5-1秒
-   - 中节奏：1-2秒
-   - 慢节奏：2-3秒
+**Inference rules**:
+1. Transition timing:
+   - Emotional turning points (key lines in dialogue)
+   - Before/after key actions
+   - During character interactions
+2. Transition duration:
+   - Fast rhythm: 0.5-1 second
+   - Medium rhythm: 1-2 seconds
+   - Slow rhythm: 2-3 seconds
 
-**示例**：
+**Example**:
 ```typescript
 expressionTransitions: [
   {
@@ -380,45 +385,45 @@ expressionTransitions: [
 
 ---
 
-## 阶段4：设计台词演绎
+## Stage 4: Design Dialogue Delivery
 
-### 4.1 确定语气
+### 4.1 Determine Tone
 
-**推断规则**：
+**Inference rules**:
 
-| 情绪基调 | 语气 |
-|----------|------|
-| 震撼、压迫感 | 沉重、低沉、有力 |
-| 温馨、欢快 | 轻快、明亮、柔和 |
-| 悲伤、绝望 | 颤抖、哽咽、低落 |
-| 愤怒、激动 | 高亢、急促、强烈 |
-| 平静、日常 | 自然、平和、稳定 |
+| Emotional Tone | Delivery Tone |
+|----------------|---------------|
+| Shock, oppression | Heavy, deep, forceful |
+| Warmth, cheerfulness | Light, bright, soft |
+| Sadness, despair | Trembling, choked, low |
+| Anger, agitation | High-pitched, rapid, intense |
+| Calm, everyday | Natural, even, steady |
 
-### 4.2 确定语速
+### 4.2 Determine Pace
 
-**推断规则**：
+**Inference rules**:
 
-| 节奏 | 语速 |
-|------|------|
-| fast | fast（每秒5-6字） |
-| medium | medium（每秒4-5字） |
-| slow | slow（每秒3-4字） |
+| Rhythm | Pace |
+|--------|------|
+| fast | fast (5-6 characters/second) |
+| medium | medium (4-5 characters/second) |
+| slow | slow (3-4 characters/second) |
 
-### 4.3 标注重音词汇
+### 4.3 Mark Emphasis Words
 
-**推断规则**：
-1. 从dialogue中提取关键词
-2. 重音类型：
-   - 情绪词：强调情感（如："必须"、"不能"）
-   - 转折词：表达转折（如："但是"、"然而"）
-   - 核心词：剧情核心（如：人物名、地点名）
+**Inference rules**:
+1. Extract keywords from dialogue
+2. Emphasis types:
+   - Emotional words: emphasize feeling (e.g., "必须", "不能")
+   - Transition words: express turning points (e.g., "但是", "然而")
+   - Core words: story core (e.g., character names, location names)
 
-**示例**：
+**Example**:
 ```typescript
-// 输入：
+// Input:
 dialogue: "林渊VO：这是末世第137天。洪水淹没陆地，尸潮围城。人类只能挤在一座座浮岛上苟活。"
 
-// 输出：
+// Output:
 emphasis: [
   { word: "末世", reason: "核心背景", timestamp: 1 },
   { word: "第137天", reason: "时间节点", timestamp: 2 },
@@ -428,19 +433,19 @@ emphasis: [
 ]
 ```
 
-### 4.4 标注停顿位置
+### 4.4 Mark Pause Positions
 
-**推断规则**：
-1. 停顿类型：
-   - 句号后：1-2秒
-   - 逗号后：0.5-1秒
-   - 情绪转折：1-1.5秒
-2. 停顿目的：
-   - 让信息沉淀
-   - 营造紧张感
-   - 强调后续内容
+**Inference rules**:
+1. Pause types:
+   - After period: 1-2 seconds
+   - After comma: 0.5-1 second
+   - Emotional transition: 1-1.5 seconds
+2. Pause purpose:
+   - Let information settle
+   - Build tension
+   - Emphasize upcoming content
 
-**示例**：
+**Example**:
 ```typescript
 pauses: [
   {
@@ -460,57 +465,57 @@ pauses: [
 
 ---
 
-## 阶段5：设计情绪弧光
+## Stage 5: Design Emotional Arc
 
-### 5.1 确定起始情绪
+### 5.1 Determine Starting Emotion
 
-**推断规则**：
-1. 从剧情卡片的 `emotion` 中提取第一个情绪词
-2. 强度为 `emotionIntensity` 的60-70%
+**Inference rules**:
+1. Extract the first emotion word from the EpisodeSceneDetailCard's `emotion`
+2. Intensity at 60-70% of `emotionIntensity`
 
-**示例**：
+**Example**:
 ```typescript
-// 输入：emotion = "震撼、压迫感、末世惨烈", emotionIntensity = 8
-// 输出：
+// Input: emotion = "震撼、压迫感、末世惨烈", emotionIntensity = 8
+// Output:
 startEmotion: "震撼",
 startIntensity: 5  // 8 * 0.6 = 4.8 ≈ 5
 ```
 
-### 5.2 确定高潮情绪
+### 5.2 Determine Peak Emotion
 
-**推断规则**：
-1. 从 `emotion` 中选择情绪强度最高的词
-2. 强度为 `emotionIntensity` 本身
-3. 高潮时间点为场景中段（50-70%位置）
+**Inference rules**:
+1. Select the highest-intensity emotion word from `emotion`
+2. Intensity equals `emotionIntensity` itself
+3. Peak timestamp at mid-scene (50-70% position)
 
-**示例**：
+**Example**:
 ```typescript
 peakEmotion: "末世惨烈",
 peakIntensity: 8,
-peakTimestamp: 15,  // 假设场景总时长30秒，高潮在50%位置
+peakTimestamp: 15,  // Assuming total scene duration 30 seconds, peak at 50%
 peakTriggerEvent: "战士被丧尸拉拽入水"
 ```
 
-### 5.3 确定结束情绪
+### 5.3 Determine Ending Emotion
 
-**推断规则**：
-1. 如果有明确的情绪转折，使用转折后的情绪
-2. 否则，结束情绪为高潮情绪的延续，强度降低20-30%
+**Inference rules**:
+1. If there is a clear emotional turning point, use the post-turn emotion
+2. Otherwise, ending emotion is a continuation of peak emotion, intensity reduced 20-30%
 
-**示例**：
+**Example**:
 ```typescript
 endEmotion: "压迫感",
 endIntensity: 6  // 8 * 0.75 = 6
 ```
 
-### 5.4 设计情绪转换时间线
+### 5.4 Design Emotion Transition Timeline
 
-**推断规则**：
-1. 从visualDescription中识别情绪转折点
-2. 每个转折点对应一个情绪转换
-3. 标注触发事件和时间戳
+**Inference rules**:
+1. Identify emotional turning points from visualDescription
+2. Each turning point corresponds to an emotion transition
+3. Mark trigger events and timestamps
 
-**示例**：
+**Example**:
 ```typescript
 transitions: [
   {
@@ -530,27 +535,27 @@ transitions: [
 
 ---
 
-## 阶段6：设计角色互动
+## Stage 6: Design Character Interactions
 
-### 6.1 从characterStates推断互动
+### 6.1 Infer Interactions from characterStates
 
-**推断规则**：
-1. 如果characterStates包含多个角色，推断角色间互动
-2. 互动类型：
-   - 对话：两个角色同时出现台词
-   - 肢体接触：描述中包含"推"、"拉"、"扶"等动词
-   - 眼神交流：描述中包含"看向"、"注视"等
-   - 空间关系：描述相对位置（"面对面"、"背对背"）
+**Inference rules**:
+1. If characterStates contains multiple characters, infer inter-character interactions
+2. Interaction types:
+   - Dialogue: Two characters have lines simultaneously
+   - Physical contact: Descriptions contain verbs like "推", "拉", "扶"
+   - Eye contact: Descriptions contain "看向", "注视"
+   - Spatial relationship: Descriptions of relative positions ("面对面", "背对背")
 
-**示例**：
+**Example**:
 ```typescript
-// 输入：
+// Input:
 characterStates: [
   { character: "林渊", state: "站在控制台前" },
   { character: "苏晴", state: "从后方走来，递给林渊一份报告" }
 ]
 
-// 输出：
+// Output:
 characterInteractions: [
   {
     interactionNumber: 1,
@@ -573,121 +578,121 @@ characterInteractions: [
 
 ---
 
-## 阶段7：一致性检查
+## Stage 7: Consistency Check
 
-### 7.1 检查性格一致性
+### 7.1 Check Personality Consistency
 
-**检查规则**：
-1. 动作风格是否符合性格特征
-2. 表情变化是否符合性格特征
-3. 台词演绎是否符合性格特征
+**Check rules**:
+1. Does action style match personality traits?
+2. Do expression changes match personality traits?
+3. Does dialogue delivery match personality traits?
 
-**示例**：
+**Example**:
 ```typescript
-// 角色性格：冷静、理性
-// 设计的动作风格：克制、精确
-// 检查结果：
+// Character personality: 冷静、理性
+// Designed action style: 克制、精确
+// Check result:
 alignsWithPersonality: true,
 notes: "动作风格符合冷静理性的性格"
 ```
 
-### 7.2 检查弧光一致性
+### 7.2 Check Arc Consistency
 
-**检查规则**：
-1. 当前场景在角色弧光中的位置
-2. 情绪弧光是否符合角色发展阶段
-3. 动作和表情是否体现角色成长
+**Check rules**:
+1. Current scene's position in the character arc
+2. Does the emotional arc match the character's development stage?
+3. Do actions and expressions reflect character growth?
 
-**示例**：
+**Example**:
 ```typescript
-// 角色弧光：startingPoint = "孤独的领导者"
-// 当前场景：第1集第1场（弧光开始）
-// 检查结果：
+// Character arc: startingPoint = "孤独的领导者"
+// Current scene: Episode 1 Scene 1 (arc beginning)
+// Check result:
 alignsWithArc: true,
 notes: "情绪弧光符合弧光起点，展现孤独感"
 ```
 
-### 7.3 检查情境一致性
+### 7.3 Check Contextual Consistency
 
-**检查规则**：
-1. 动作是否符合当下情境
-2. 表情是否符合情境压力
-3. 台词演绎是否符合情境紧张度
+**Check rules**:
+1. Do actions fit the current situation?
+2. Do expressions fit situational pressure?
+3. Does dialogue delivery fit situational tension?
 
 ---
 
-## 阶段8：用户确认
+## Stage 8: User Confirmation
 
-### 8.1 展示表演设计
+### 8.1 Present Performance Design
 
-**用户交互**：
+**User interaction**:
 ```
-【表演策略设计】
+【Performance strategy design】
 
-场景：第1集-第1场
-角色：林渊
+Scene: Episode 1-Scene 1
+Character: 林渊
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-表演性质：mixed（混合）
+Performance nature: mixed
 
-动作设计：
-- 动作风格：克制、精确，体现理性思维
-- 关键动作（3个）：
-  1. [5s] 站在控制台前，手指轻触屏幕
-  2. [10s] 转身面向窗外，眉头微皱
-  3. [15s] 低头看向手中的报告
+Action design:
+- Action style: Restrained, precise, reflecting rational thinking
+- Key actions (3):
+  1. [5s] Standing at console, fingers lightly touching screen
+  2. [10s] Turning to face window, brow slightly furrowed
+  3. [15s] Looking down at report in hand
 
-表情设计：
-- 主要表情：严肃、凝重
-- 微表情变化（5个）：
-  1. [3s] 眉头紧皱（触发：看到数据）
-  2. [6s] 眼神凝固（触发：听到警报）
+Expression design:
+- Dominant expression: Serious, solemn
+- Micro-expression changes (5):
+  1. [3s] Brow furrowed (trigger: seeing data)
+  2. [6s] Eyes frozen (trigger: hearing alarm)
   ...
 
-台词演绎：
-- 语气：沉重、低沉
-- 语速：medium（每秒4-5字）
-- 重音词汇：末世、淹没、围城、苟活
-- 停顿：句号后1.5秒，逗号后0.5秒
+Dialogue delivery:
+- Tone: Heavy, deep
+- Pace: medium (4-5 characters/second)
+- Emphasis words: 末世, 淹没, 围城, 苟活
+- Pauses: After period 1.5s, after comma 0.5s
 
-情绪弧光：
-- 起始：震撼(5) → 高潮：末世惨烈(8) → 结束：压迫感(6)
-- 高潮时间点：15s（战士被拉拽入水）
+Emotional arc:
+- Start: Shock(5) → Peak: Apocalyptic brutality(8) → End: Oppression(6)
+- Peak timestamp: 15s (warrior dragged into water by zombie)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-一致性检查：
-✓ 符合角色性格（冷静、理性）
-✓ 符合角色弧光（孤独的领导者）
-✓ 符合当下情境（末世危机）
+Consistency check:
+✓ Matches character personality (calm, rational)
+✓ Matches character arc (solitary leader)
+✓ Matches current context (apocalyptic crisis)
 
-请选择：
-1. 确认生成表演策略卡片
-2. 调整动作设计
-3. 调整表情设计
-4. 调整台词演绎
+Please choose:
+1. Confirm and generate PerformanceStrategyCard
+2. Adjust action design
+3. Adjust expression design
+4. Adjust dialogue delivery
 
-请输入选项（1/2/3/4）：
+Enter option (1/2/3/4):
 ```
 
-### 8.2 用户调整
+### 8.2 User Adjustments
 
-**调整示例**：
+**Adjustment example**:
 ```
-输入：2
-请选择要调整的动作编号：1
-请输入新的动作描述：站在控制台前，双手快速操作屏幕
+Input: 2
+Select action number to adjust: 1
+Enter new action description: 站在控制台前，双手快速操作屏幕
 
-更新后的关键动作：
+Updated key actions:
 1. [5s] 站在控制台前，双手快速操作屏幕
 2. [10s] 转身面向窗外，眉头微皱
 3. [15s] 低头看向手中的报告
 
-确认更新？(y/n)：
+Confirm update? (y/n):
 ```
 
-### 8.3 生成表演策略卡片
+### 8.3 Generate PerformanceStrategyCard
 
-**卡片内容**：
+**Card content**:
 ```typescript
 {
   cardType: "PerformanceStrategyCard",
@@ -705,15 +710,15 @@ notes: "情绪弧光符合弧光起点，展现孤独感"
       }
     ]
   },
-  
+
   performanceType: "mixed",
   performanceTypeDescription: "混合型场景，包含旁白台词和视觉动作",
-  
+
   characterPerformances: [
     {
       characterId: "char-001",
       characterName: "林渊",
-      
+
       actions: {
         keyActions: [
           {
@@ -728,7 +733,7 @@ notes: "情绪弧光符合弧光起点，展现孤独感"
         ],
         actionStyle: "克制、精确，动作幅度小，体现理性思维"
       },
-      
+
       facialExpressions: {
         dominantExpression: "严肃、凝重",
         microExpressions: [
@@ -751,7 +756,7 @@ notes: "情绪弧光符合弧光起点，展现孤独感"
           }
         ]
       },
-      
+
       dialogueDelivery: {
         tone: "沉重、低沉、有力",
         pace: "medium",
@@ -769,7 +774,7 @@ notes: "情绪弧光符合弧光起点，展现孤独感"
           }
         ]
       },
-      
+
       emotionalArc: {
         startEmotion: "震撼",
         startIntensity: 5,
@@ -788,7 +793,7 @@ notes: "情绪弧光符合弧光起点，展现孤独感"
           }
         ]
       },
-      
+
       characterConsistency: {
         alignsWithPersonality: true,
         alignsWithArc: true,
@@ -797,17 +802,17 @@ notes: "情绪弧光符合弧光起点，展现孤独感"
       }
     }
   ],
-  
+
   characterInteractions: [],
-  
+
   userConfirmed: true,
-  
+
   upstreamCards: [
     "episode-scene-detail-card-001",
     "character-profile-card-001",
     "character-costume-card-001"
   ],
-  
+
   status: "completed",
   createdAt: "2026-06-02T15:00:00Z"
 }
@@ -815,17 +820,17 @@ notes: "情绪弧光符合弧光起点，展现孤独感"
 
 ---
 
-## 测试用例
+## Test Cases
 
-### 测试用例1：旁白场景（第1集第1场）
+### Test Case 1: Voiceover Scene (Episode 1 Scene 1)
 
-**输入数据**：
-- 分集分场剧情卡片：第1集第1场
-- 角色设定卡片：林渊（冷静、理性）
-- 情绪：震撼、压迫感
-- 节奏：fast
+**Input data**:
+- EpisodeSceneDetailCard: Episode 1 Scene 1
+- Character Profile Card: 林渊 (calm, rational)
+- Emotion: Shock, oppression
+- Rhythm: fast
 
-**预期输出**：
+**Expected output**:
 ```typescript
 {
   performanceType: "mixed",
@@ -852,15 +857,15 @@ notes: "情绪弧光符合弧光起点，展现孤独感"
 }
 ```
 
-### 测试用例2：对话场景
+### Test Case 2: Dialogue Scene
 
-**输入数据**：
-- 角色：林渊 vs 苏晴
-- 情绪：紧张、冲突
-- 节奏：fast
-- 台词：两人争论生存策略
+**Input data**:
+- Characters: 林渊 vs 苏晴
+- Emotion: Tension, conflict
+- Rhythm: fast
+- Dialogue: Two arguing about survival strategy
 
-**预期输出**：
+**Expected output**:
 ```typescript
 {
   performanceType: "dialogue",
@@ -897,15 +902,15 @@ notes: "情绪弧光符合弧光起点，展现孤独感"
 }
 ```
 
-### 测试用例3：动作场景
+### Test Case 3: Action Scene
 
-**输入数据**：
-- 角色：战士群体
-- 情绪：紧张、激烈
-- 节奏：fast
-- 动作：战斗场景
+**Input data**:
+- Character: Soldier group
+- Emotion: Tension, intense
+- Rhythm: fast
+- Action: Combat scene
 
-**预期输出**：
+**Expected output**:
 ```typescript
 {
   performanceType: "action",
@@ -927,504 +932,59 @@ notes: "情绪弧光符合弧光起点，展现孤独感"
 
 ---
 
-## 实施检查清单
+## Implementation Checklist
 
-### 功能完整性
-- [ ] 能正确读取角色设定卡片（性格、动机、弧光）
-- [ ] 能正确读取角色妆造卡片（典型表情、典型动作）
-- [ ] 能正确读取分集分场剧情卡片（visualDescription、dialogue、emotion）
-- [ ] 能根据性格推断动作风格
-- [ ] 能从visualDescription提取关键动作
-- [ ] 能为每个动作确定触发事件和时间点
-- [ ] 能根据情绪推断主要表情和微表情
-- [ ] 能设计表情转换时间线
-- [ ] 能从dialogue标注重音词汇和停顿位置
-- [ ] 能设计情绪弧光（起始、高潮、结束）
-- [ ] 能从characterStates推断角色互动
-- [ ] 能进行一致性检查（性格/弧光/情境）
+### Feature Completeness
+- [ ] Correctly reads Character Profile Cards (personality, motivation, arc)
+- [ ] Correctly reads Character Costume Cards (typical expressions, typical actions)
+- [ ] Correctly reads EpisodeSceneDetailCard (visualDescription, dialogue, emotion)
+- [ ] Infers action style from personality
+- [ ] Extracts key actions from visualDescription
+- [ ] Determines trigger events and timestamps for each action
+- [ ] Infers dominant expression and micro-expressions from emotion
+- [ ] Designs expression transition timelines
+- [ ] Marks emphasis words and pause positions from dialogue
+- [ ] Designs emotional arc (start, peak, end)
+- [ ] Infers character interactions from characterStates
+- [ ] Performs consistency checks (personality/arc/context)
 
-### 用户体验
-- [ ] 展示内容清晰，用户可以理解
-- [ ] 支持用户调整动作、表情、台词演绎
-- [ ] 错误提示友好（如：妆造卡片不存在）
+### User Experience
+- [ ] Displayed content is clear and user-understandable
+- [ ] Supports user adjustment of actions, expressions, dialogue delivery
+- [ ] Friendly error messages (e.g., costume card does not exist)
 
-### 数据质量
-- [ ] 动作风格符合角色性格
-- [ ] 表情变化符合情绪基调
-- [ ] 台词演绎符合情绪和节奏
-- [ ] 情绪弧光符合角色发展阶段
-- [ ] 角色互动推断合理
-- [ ] 一致性检查准确
+### Data Quality
+- [ ] Action style matches character personality
+- [ ] Expression changes match emotional tone
+- [ ] Dialogue delivery matches emotion and rhythm
+- [ ] Emotional arc matches character development stage
+- [ ] Character interaction inference is reasonable
+- [ ] Consistency checks are accurate
 
-### 技术规范
-- [ ] 遵守"专业推断"原则（基于详细信息）
-- [ ] 所有动作、表情、互动都有触发事件
-- [ ] 所有元素都有时间戳
-- [ ] 上游卡片ID正确记录
-
----
-
-## 附录：推断规则库
-
-### 性格-动作风格映射表
-
-| 性格特征 | 动作风格 | 典型动作 |
-|----------|----------|----------|
-| 冷静、理性 | 克制、精确、少量手势 | 手指轻触、点头确认、站立不动 |
-| 热情、外向 | 夸张、开放、大幅度动作 | 张开双臂、拍肩膀、大步前进 |
-| 紧张、焦虑 | 细碎、频繁、不安定 | 搓手、踱步、摸头发 |
-| 自信、强势 | 稳定、果断、占据空间 | 交叉双臂、挺胸抬头、指向动作 |
-| 温柔、内敛 | 柔和、小幅度、接近身体 | 轻抚、点头、微笑 |
-
-### 情绪-表情映射表
-
-| 情绪基调 | 主要表情 | 微表情类型 |
-|----------|----------|-----------|
-| 震撼、压迫感 | 紧绷、严肃、眉头紧锁 | 眉毛紧皱、眼神凝固、嘴唇紧抿 |
-| 温馨、欢快 | 微笑、放松、眼神柔和 | 眼角上扬、嘴角微笑、眉毛放松 |
-| 悲伤、绝望 | 低垂、眼神空洞、嘴角下压 | 眉毛下垂、眼神失焦、嘴唇颤抖 |
-| 愤怒、激动 | 眉头紧皱、眼神锐利、嘴唇紧抿 | 眉毛扬起、眼神凝视、鼻翼扩张 |
-| 平静、日常 | 自然、中性、无明显情绪 | 微笑、点头、眼神交流 |
-
-### 情绪-语气映射表
-
-| 情绪基调 | 语气 | 语速 | 音量 |
-|----------|------|------|------|
-| 震撼、压迫感 | 沉重、低沉、有力 | medium | normal |
-| 温馨、欢快 | 轻快、明亮、柔和 | medium | normal |
-| 悲伤、绝望 | 颤抖、哽咽、低落 | slow | soft |
-| 愤怒、激动 | 高亢、急促、强烈 | fast | loud |
-| 平静、日常 | 自然、平和、稳定 | medium | normal |
-
-### 节奏-时间点映射表
-
-| 节奏 | sequence间隔 | 动作时长 | 表情转换时长 |
-|------|-------------|----------|-------------|
-| fast | 3-5秒 | 1-2秒 | 0.5-1秒 |
-| medium | 5-8秒 | 2-4秒 | 1-2秒 |
-| slow | 8-12秒 | 4-6秒 | 2-3秒 |
-
+### Technical Specifications
+- [ ] Follows "professional inference" principle (based on detailed information)
+- [ ] All actions, expressions, interactions have trigger events
+- [ ] All elements have timestamps
+- [ ] Upstream card IDs correctly recorded
 
 ---
 
-## 📚 Reference库：电影级微表情控制技巧
+## Inference Rules and Micro-Expression Techniques
 
-本章节收录经过实战验证的高质量表演提示词技巧，用于指导生成更精细的表演策略。
+The following rule libraries and techniques have been externalized to `references/`; read on demand:
 
----
+- Personality/emotion/tone/rhythm mapping tables: read `references/inference-rule-library.md`
+- Cinematic micro-expression control framework (millimeter-level action boundaries, physiological conduction order, emotional physical inertia, positive parameter constraints): read `references/microexpression-control-framework.md`
 
-### REF-001: 电影级微表情控制框架（近景特写）
+Do not copy reference content wholesale into the PerformanceStrategyCard; select only the specific rules needed for the current scene.
 
-**来源**: Larus Canus (@MrLarus) 电影级微表情提示词框架
-**适用场景**: 人物头肩部特写、情绪细腻转换、一镜到底无剪辑
-**质量等级**: ⭐⭐⭐⭐⭐
+## After Completion — Next Steps
 
-#### 核心原则
+Completion criteria: `PerformanceStrategyCard` has been created, character objectives, obstacles, actions, dialogue, micro-expressions, and emotional arcs have been confirmed.
 
-##### 1. 毫米级动作边界
+After completion, must check the completion status of the three strategy cards: `SceneStrategyCard`, `PerformanceStrategyCard`, `CinematographyStrategyCard`.
 
-**定义**: 将面部表情的动作幅度控制在毫米级别，避免五官大幅度位移。
+- Only when all three strategy cards are complete should `director-briefing` be invoked for review and shot group finalization.
+- If any strategy cards are still missing, recommend completing the remaining strategy cards.
 
-**控制要点**:
-- **眼睑**: 上下眼睑的开合幅度控制在1-3毫米
-- **嘴角**: 嘴角的上扬或下垂控制在2-5毫米
-- **绝对静止区**: 额头、颧骨、下颌骨架等区域保持完全静止
-- **微动区**: 只有眼周肌肉（眼轮匝肌）和口周肌肉（口轮匝肌）产生微小形变
-
-**应用到表演设计**:
-```
-表情描述示例：
-❌ 错误："眼睛睁大，嘴角上扬"
-✅ 正确："眼睑微微上提1-2毫米，瞳孔略微扩张，嘴角极轻微上扬约3毫米，额头保持静止"
-```
-
-**实现方法**:
-- 在表情设计时，明确标注动作幅度（如"微微"、"极轻微"、"几乎不可察觉"）
-- 设定静止区域（如"额头保持平滑无皱纹"、"下颌线条不变"）
-- 使用物理尺度描述而非模糊形容词
-
----
-
-##### 2. 生理传导顺序
-
-**定义**: 情绪在面部的显现遵循神经传导的生理顺序，而非五官同步变化。
-
-**传导顺序**:
-```
-情绪触发
-  ↓
-1. 眼周先变（0.1-0.3秒）
-   - 瞳孔收缩/扩张
-   - 眼睑微调
-   - 眼周肌肉细微收紧/放松
-  ↓
-2. 口唇再变（0.3-0.5秒后）
-   - 嘴角微动
-   - 唇部轮廓变化
-   - 口周肌肉反应
-  ↓
-3. 下颌最后微调（0.5-0.8秒后）
-   - 下颌略微前伸/后缩
-   - 咬肌微调
-```
-
-**应用到表演设计**:
-```
-表情转换时间线示例：
-❌ 错误："惊讶表情：同时睁大眼睛、张开嘴巴"
-✅ 正确：
-   0.0s - 瞳孔瞬间扩张，眼睑微开
-   0.2s - 眼周肌肉收紧，眼神聚焦
-   0.4s - 嘴唇略微分开，嘴角下拉
-   0.6s - 下颌略微下垂
-```
-
-**实现方法**:
-- 为每个表情转换设计精确的时间线（精确到0.1秒）
-- 明确标注各部位的先后顺序
-- 避免使用"同时"这样的描述
-
----
-
-##### 3. 情绪物理惯性
-
-**定义**: 情绪状态具有物理惯性，前一阶段的生理表现会在后一阶段缓慢减弱并保留残留。
-
-**惯性表现**:
-- **眼眶红润**: 哭后的红润需持续3-10秒逐渐消退
-- **泪光**: 眼中湿润反光在止哭后仍保留2-5秒
-- **呼吸节奏**: 情绪激动后的呼吸加速需10-20秒恢复
-- **肌肉紧张**: 愤怒时的咬肌紧绷在平静后仍残留5-8秒
-
-**应用到表演设计**:
-```
-情绪阶段设计示例：
-阶段1 (0-10s): 压抑伤心
-  - 眼眶逐渐红润
-  - 眼角开始湿润
-  
-阶段2 (10-20s): 强压哭意
-  - 眼眶红润达到峰值
-  - 泪光明显但不流泪
-  - 眼睑频繁眨动（抑制泪水）
-  
-阶段3 (20-30s): 含泪释怀
-  - 眼眶红润开始缓慢减弱（从峰值100%降至70%）
-  - 泪光保留但光泽略微减弱
-  - 眨眼频率恢复正常
-  
-阶段4 (30-40s): 平静收回
-  - 眼眶红润继续减弱（从70%降至30%）
-  - 泪光残留微弱反光
-  - 呼吸节奏恢复平稳
-  
-❌ 错误：阶段3突然完全平静，眼眶红润和泪光消失
-✅ 正确：按上述惯性曲线缓慢过渡
-```
-
-**实现方法**:
-- 为生理表现（红润、泪光、呼吸等）设计强度曲线
-- 标注每个阶段的强度百分比
-- 禁止突变（如"突然红眼消失"、"立刻恢复平静"）
-
----
-
-##### 4. 正向参数约束
-
-**定义**: 使用正向的物理指令来约束画面质感，而非堆砌大量否定式清单。
-
-**正向指令示例**:
-- ✅ "保持真实皮肤纹理，可见毛孔和细微血管"
-- ✅ "维持恒定景别，镜头始终框定头肩部"
-- ✅ "维持一致的自然光照，色温3200K，柔和漫射"
-- ✅ "保留发丝细节，单根发丝清晰可辨"
-
-**替代否定式清单**:
-- ❌ "禁止磨皮、禁止滤镜、禁止模糊、禁止失焦"
-- ✅ 改为："保持摄影级真实质感，皮肤纹理清晰，无后期美化"
-
-**应用到表演设计**:
-```
-表演策略卡片中的"表情"描述：
-❌ 错误：
-  - 表情：微笑，但不要太夸张，不要露齿，不要皱眉，不要眯眼
-  
-✅ 正确：
-  - 表情：克制的微笑
-    - 嘴角上扬3毫米，保持唇线闭合
-    - 眼睑自然位置，保持眼睛正常开度
-    - 眼周出现浅层笑纹，深度不超过0.5毫米
-    - 额头保持平滑，无抬眉动作
-```
-
-**实现方法**:
-- 用"保持"、"维持"、"控制在"等正向动词
-- 明确物理参数（如"3毫米"、"0.5秒"、"3200K"）
-- 用确定的状态描述替代"不要XX"
-
----
-
-#### 完整示例：情绪转换微表情序列
-
-**场景**: 角色从"克制高兴"到"平静收回"的7段情绪转换，近景特写
-
-**时长**: 40秒
-**景别**: 头肩部特写（9:16竖版）
-**光照**: 自然光，色温5500K，柔和漫射
-
-##### 情绪轨迹设计
-
-```
-阶段1 (0-5s): 克制高兴
-  动作：
-    - 嘴角微微上扬2毫米，唇线保持闭合
-    - 眼睑自然开度，无明显变化
-  表情：
-    - 眼神明亮，瞳孔正常
-    - 眼周出现极浅的笑纹（深度<0.3毫米）
-    - 额头、下颌保持静止
-  情绪强度：3/10
-
-阶段2 (5-10s): 笑意迟疑
-  动作：
-    - 嘴角上扬幅度回收至1毫米
-    - 眼睑略微收紧，开度减小约1毫米
-  表情：
-    - 眼神开始游移，焦点略微失焦
-    - 笑纹淡化至几乎不可见
-    - 额头出现极浅的横纹（困惑）
-  情绪强度：4/10
-  转换时间：0.8秒（先眼周收紧→再嘴角回收→最后额头反应）
-
-阶段3 (10-15s): 湿润感初现
-  动作：
-    - 嘴角恢复平直，上下唇线对齐
-    - 眼睑开度正常，但开始频繁眨动（每3秒1次）
-  表情：
-    - 眼球表面开始出现轻微湿润反光（泪液层增厚）
-    - 眼周肌肉略微收紧
-    - 鼻翼略微扩张（呼吸加深）
-  情绪强度：5/10
-  生理惯性：眼球湿润开始累积，此状态将持续至结尾
-
-阶段4 (15-22s): 压抑伤心
-  动作：
-    - 嘴角下拉2毫米，唇部略微颤抖（振幅<1毫米）
-    - 眨眼频率增加至每1.5秒1次（抑制泪水）
-    - 下颌略微前伸（咬紧牙关）
-  表情：
-    - 眼眶周围开始泛红（血管扩张，红润度20%）
-    - 泪光增强，反光明显（湿润度50%）
-    - 眉头略微皱起约1毫米
-  呼吸：
-    - 呼吸节奏加快，胸部起伏幅度增加
-  情绪强度：7/10
-  转换时间：1.2秒（先眼眶泛红→再嘴角下拉→最后下颌收紧）
-
-阶段5 (22-29s): 强压哭意
-  动作：
-    - 嘴唇紧闭，唇线用力压合
-    - 持续频繁眨眼（每1秒1次）
-    - 喉结略微上下移动（吞咽动作，2次）
-  表情：
-    - 眼眶红润达到峰值（红润度100%）
-    - 泪光最强，眼球表面形成明显液体反光层（湿润度100%）
-    - 眉头紧皱，眉间出现浅层竖纹
-  呼吸：
-    - 呼吸明显加速且不规律
-    - 鼻翼扩张明显
-  情绪强度：8/10（峰值）
-
-阶段6 (29-35s): 含泪释怀
-  动作：
-    - 嘴唇略微放松，唇线压合力度减轻
-    - 眨眼频率开始降低（每2秒1次）
-    - 深呼吸1次（吸气2秒，呼气3秒）
-  表情：
-    - 眼眶红润开始缓慢减弱（从100%降至60%）
-    - 泪光保留但光泽略微减弱（从100%降至70%）
-    - 眉头逐渐舒展，竖纹淡化
-  呼吸：
-    - 呼吸节奏开始恢复规律
-  情绪强度：6/10
-  惯性曲线：红润和泪光按指数曲线缓慢衰减
-
-阶段7 (35-40s): 平静收回
-  动作：
-    - 嘴角恢复中性位置（既不上扬也不下拉）
-    - 眨眼频率恢复正常（每4-5秒1次）
-    - 下颌恢复自然位置
-  表情：
-    - 眼眶红润继续减弱（从60%降至20%）
-    - 泪光残留微弱反光（从70%降至30%）
-    - 眉头完全舒展
-    - 眼神重新聚焦，恢复清晰
-  呼吸：
-    - 呼吸节奏完全恢复平稳
-  情绪强度：3/10
-  惯性残留：微弱的眼眶红润和泪光反光持续至最后一帧
-```
-
-##### 技术约束
-
-**画面质量**:
-- 保持真实摄影质感，可见皮肤毛孔和细微血管
-- 保留发丝细节，单根发丝清晰可辨
-- 维持恒定景别，镜头始终框定头肩部，无推拉摇移
-
-**光照控制**:
-- 维持一致的自然光照，色温5500K
-- 柔和漫射光，无硬阴影
-- 眼球高光位置保持一致
-
-**形象一致性**:
-- 全程严格保持人物形象、服饰、妆容一致
-- 背景完全静止，无任何变化
-
----
-
-#### 当前Skill的对比分析
-
-**已实现的部分** ✅:
-1. **表情转换时间线**: 当前skill已经有表情转换的设计
-2. **情绪弧光**: 已经设计了起始、高潮、结束情绪
-3. **微表情变化列表**: 已经有微表情的概念
-
-**尚未达到的部分** ⚠️:
-1. **毫米级动作边界**: 
-   - 当前：描述较粗糙（如"微笑"、"皱眉"）
-   - 目标：精确到毫米级（如"嘴角上扬3毫米"）
-
-2. **生理传导顺序**:
-   - 当前：表情转换时间线存在，但未明确生理顺序
-   - 目标：明确"先眼周→再口唇→最后下颌"的0.1秒级精度
-
-3. **情绪物理惯性**:
-   - 当前：缺失，情绪转换较突兀
-   - 目标：设计强度曲线，标注百分比衰减
-
-4. **正向参数约束**:
-   - 当前：描述方式混合了正向和否定
-   - 目标：全部使用正向物理指令
-
----
-
-#### 改进建议
-
-##### 建议1: 增加"毫米级表情控制"模块
-
-在表情设计部分增加精确幅度标注：
-
-```
-表情设计模板（增强版）:
-- 时间戳: 15s
-- 触发事件: 沈知夏走近
-- 主要表情: 温柔微笑
-- 精确控制:
-  - 嘴角: 上扬3毫米，唇线保持闭合
-  - 眼睑: 自然开度，无变化
-  - 眼周: 出现浅层笑纹，深度0.3毫米
-  - 静止区: 额头、下颌保持静止
-- 触发类型: 情感回应
-```
-
-##### 建议2: 增加"生理传导序列"
-
-在表情转换部分增加精确的生理顺序：
-
-```
-表情转换（增强版）:
-从 惬意 → 温柔 (15s)
-- 0.0s: 瞳孔略微扩张（眼周先变）
-- 0.1s: 眼睑略微放松
-- 0.3s: 嘴角开始上扬（口唇再变）
-- 0.5s: 下颌略微放松（下颌最后）
-- 总时长: 0.5秒
-```
-
-##### 建议3: 增加"惯性强度曲线"
-
-在情绪弧光部分增加生理表现的强度追踪：
-
-```
-情绪弧光（增强版）:
-阶段1 (0-15s): 惬意 (4/10)
-  - 生理表现: 正常
-
-阶段2 (15-30s): 温柔 (5/10)
-  - 生理表现: 正常
-
-阶段3 (30-60s): 掌控满意 (6/10)
-  - 生理表现: 正常
-
-阶段4 (60-71s): 权力高潮 (7/10)
-  - 生理表现: 
-    - 呼吸加快（从正常→加速20%）
-    - 瞳孔略微扩张
-
-阶段5 (71-90s): 傲慢满意 (6/10)
-  - 生理表现（惯性）:
-    - 呼吸恢复（从加速20%→逐渐降至正常，用时8秒）
-    - 瞳孔恢复（从扩张→逐渐恢复正常，用时5秒）
-```
-
-##### 建议4: 使用正向指令模板
-
-在所有描述中采用正向参数约束：
-
-```
-❌ 不要这样写:
-  表情: 微笑，但不要太夸张，不要露齿
-
-✅ 应该这样写:
-  表情: 克制的微笑
-  - 嘴角上扬3毫米，保持唇线闭合
-  - 笑纹深度控制在0.3毫米
-```
-
----
-
-### 使用指南
-
-当设计以下类型的表演时，参考本技巧库：
-
-1. **情感细腻转换场景**（如：从压抑到释怀）
-   → 使用REF-001的情绪物理惯性和生理传导顺序
-
-2. **近景特写镜头**（如：面部表情特写）
-   → 使用REF-001的毫米级动作边界
-
-3. **一镜到底无剪辑**（如：长镜头情绪表演）
-   → 使用REF-001的完整框架
-
-4. **高质量影视级表演**
-   → 使用REF-001的正向参数约束
-
----
-
-### 持续更新机制
-
-本reference库将持续收录新的高质量表演技巧：
-
-- **REF-002**: 待添加（动作戏表演控制）
-- **REF-003**: 待添加（对话戏表演节奏）
-- **REF-004**: 待添加（特定演员风格）
-- ...
-
-每个新技巧需包含：
-1. 来源和适用场景
-2. 核心原则和方法
-3. 完整示例
-4. 与当前skill的对比
-5. 改进建议
-
-## 完成后下一步
-
-完成判定：`PerformanceStrategyCard` 已创建，角色目标、障碍、动作、台词、微表情和情绪弧线已确认。
-
-完成后必须检查三张策略卡片的完成情况：`SceneStrategyCard`、`PerformanceStrategyCard`、`CinematographyStrategyCard`。
-
-- 只有三张策略卡片都完成，才建议调用 `director-briefing` 进行复判与镜头组落版。
-- 如果还有策略卡缺失，建议继续完成尚未完成的策略卡片。
-
-推荐话术：`表演设计已完成。我会检查三张策略卡片的完成情况；只有三张策略卡片都完成后，才建议回到 director-briefing 进行复判落版。`
+Recommended dialogue: `Performance strategy design is complete. I will check the completion status of the three strategy cards; only when all three strategy cards are complete should we return to director-briefing for review and finalization.`

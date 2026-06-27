@@ -1,100 +1,97 @@
 ---
 name: scene-asset-extraction
 description: Use when a SceneSettingCard must be converted into a SceneAssetCard for scene visual translation, generation requirements, and selected visual writeback
-version: 1.0.0
-author: Modo
-tags: [ai-short-drama, scene-design, asset-extraction]
 ---
 
-# 场景资产提取 Skill
+# Scene Asset Extraction Skill
 
-从场景设定卡片（创作分区）提取和转译视觉化信息，创建场景资产卡片（资产分区-中间资产）。
+Extract and translate visual information from scene setting cards (Creation Zone), creating scene asset cards (Asset Zone - Intermediate Assets).
 
-## 整体工作流
+## Overall Workflow
 
 ```
-输入：SceneCard（场景设定卡片，来自创作分区）
-可选输入：WorldviewCard、ArtDirectionCard（用于推断）
+Input: SceneCard (scene setting card, from Creation Zone)
+Optional Input: WorldviewCard, ArtDirectionCard (for inference)
 
-阶段1：依赖检查
-  检查场景设定卡片是否存在
-  检查世界观卡片、美术设定卡片（可选）
+Stage 1: Dependency Check
+  Check if scene setting card exists
+  Check worldview card, art direction card (optional)
 
-阶段2：提取继承信息
-  从场景设定卡片读取：
-  - 基础信息（名称、类型、位置、时期、规模）
-  - 叙事功能（主要用途、关键事件）
-  - 关键元素（地标、道具、建筑特征）
-  - 场景状态（不同时期的视觉特征）
-  - 情感基调
+Stage 2: Extract Inherited Information
+  Read from scene setting card:
+  - Basic info (name, type, location, period, scale)
+  - Narrative function (primary purpose, key events)
+  - Key elements (landmarks, props, architectural features)
+  - Scene states (visual characteristics across different periods)
+  - Emotional tone
 
-阶段3：视觉化转译
-  情感基调 → 光影方案（3套）
-  场景状态 → 视觉变化清单
-  关键元素 → 视觉焦点排序
+Stage 3: Visual Translation
+  Emotional tone → Lighting schemes (3 sets)
+  Scene states → Visual change list
+  Key elements → Visual focus ranking
 
-阶段4：用户补充视觉细节
-  展示已转译的信息
-  引导用户补充：
-  - 色彩方案（主色调、辅助色、强调色）
-  - 材质质感（地面、墙面、主要道具）
-  - 光源设定（主光源、辅助光、氛围光）
-  - 特殊视觉效果（粒子、雾气、水面反光等）
+Stage 4: User Supplements Visual Details
+  Display translated information
+  Guide user to supplement:
+  - Color scheme (primary, secondary, accent)
+  - Material textures (floor, walls, key props)
+  - Light source setup (key light, fill light, ambient light)
+  - Special visual effects (particles, fog, water reflections, etc.)
 
-阶段5：确定生成需求
-  基于场景状态确定需要生成的画面数量
-  为每个状态命名
-  关联到剧集范围
+Stage 5: Determine Generation Requirements
+  Determine number of images needed based on scene states
+  Name each state
+  Link to episode range
 
-阶段6：创建场景资产卡片
-  整合所有信息
-  创建卡片
-  建立上下游连线
+Stage 6: Create Scene Asset Card
+  Integrate all information
+  Create card
+  Establish upstream/downstream connections
 
-输出：SceneAssetCard（场景资产卡片）
+Output: SceneAssetCard
 ```
 
 ---
 
-## 阶段1：依赖检查与模式选择
+## Stage 1: Dependency Check & Mode Selection
 
-### Step 1.1：模式选择
+### Step 1.1: Mode Selection
 
-**默认模式**：单场景处理（用户选择一张场景设定卡片）
+**Default Mode**: Single scene processing (user selects one scene setting card)
 
-**批量模式**（可选）：
-- 用户可选择"批量提取所有场景"
-- 按首次出现集数（episodeRange.start或keyEvents[0].episode）排序
-- 分批处理：ep1-10 → ep11-20 → ep21-30...
-- 每批完成后暂停，等待用户确认或调整
+**Batch Mode** (optional):
+- User can select "Batch extract all scenes"
+- Sort by first appearance episode (episodeRange.start or keyEvents[0].episode)
+- Process in batches: ep1-10 → ep11-20 → ep21-30...
+- Pause after each batch, wait for user to confirm or adjust
 
-**模式选择提示**：
+**Mode Selection Prompt**:
 ```
-检测到 X 个场景设定卡片。
+Detected X scene setting cards.
 
-【推荐】单场景模式：选择一个场景进行详细提取（适合专业用户）
-【可选】批量模式：自动提取所有场景（适合快速预览，后续可单独调整）
+[Recommended] Single Scene Mode: Select one scene for detailed extraction (suitable for professional users)
+[Optional] Batch Mode: Auto-extract all scenes (suitable for quick preview, can adjust individually later)
 
-请选择模式：
+Please select mode:
 ```
 
-### Step 1.2：依赖检查
+### Step 1.2: Dependency Check
 
-**检查项**：
-1. 场景设定卡片（必需）
-2. **美术设定卡片（必需）** — 修改为强制依赖
-3. 世界观卡片（可选，用于推断时代背景）
+**Check Items**:
+1. Scene setting card (required)
+2. **Art direction card (required)** — Changed to mandatory dependency
+3. Worldview card (optional, for inferring era background)
 
-**错误处理**：
-- 场景设定卡片不存在 → 提示用户先运行 `/script-deconstruct`
-- **美术设定卡片不存在 → 提示用户先运行 `/art-direction`，并说明原因："场景资产提取需要美术设定卡片提供光影方案、色彩系统、构图指导。缺少美术设定会导致推断置信度过低。"**
-- 美术设定卡片缺少必需字段（sceneTypeDefaults/exteriorDefaults）→ 提示用户美术设定卡片版本过旧，需要重新生成
+**Error Handling**:
+- Scene setting card absent → Prompt user to run `/script-deconstruct` first
+- **Art direction card absent → Prompt user to run `/art-direction` first, and explain why: "Scene asset extraction requires the art direction card to provide lighting schemes, color systems, and composition guidance. Missing art direction settings would result in excessively low inference confidence."**
+- Art direction card missing required fields (sceneTypeDefaults/exteriorDefaults) → Prompt user that art direction card version is outdated and needs regeneration
 
 ---
 
-## 阶段2：提取继承信息
+## Stage 2: Extract Inherited Information
 
-**提取字段**：
+**Extraction Fields**:
 ```typescript
 interface InheritedSceneInfo {
   sceneName: string;
@@ -137,95 +134,95 @@ interface InheritedSceneInfo {
 
 ---
 
-## 阶段3：视觉化转译
+## Stage 3: Visual Translation
 
-### Step 1：情感基调 → 光影方案
+### Step 1: Emotional Tone → Lighting Schemes
 
-**转译规则库（扩充版）**：
+**Translation Rule Library (Expanded)**:
 
-| 情感基调关键词 | 光影方案名称 | 主光特征 | 色温 | 阴影特征 | 置信度 |
+| Emotional Tone Keywords | Lighting Scheme Name | Key Light Characteristics | Color Temp | Shadow Characteristics | Confidence |
 |-------------|------------|---------|------|---------|--------|
-| 安全感/温暖 | 暖调漫射光 | 柔和漫射，无强烈阴影 | 暖白（3200K） | 软阴影 | 0.9 |
-| 压抑/恐惧 | 低调侧逆光 | 强侧光或逆光，大面积阴影 | 冷蓝（5600K+） | 硬阴影，高对比 | 0.9 |
-| 末世废土 | 过曝漫射光 | 灰白天空漫射，无明显光源 | 中性冷（4500K） | 几乎无阴影 | 0.85 |
-| 神秘/未知 | 局部点光源 | 多个小点光源，大面积暗部 | 混合色温 | 复杂阴影 | 0.85 |
-| 爽感/反差 | 强对比补光 | 主体强补光，背景暗 | 暖主光+冷背景 | 轮廓光明显 | 0.9 |
-| 愤怒/高潮 | 戏剧性侧光 | 强侧光，半脸阴影 | 暖橙（2800K） | 硬阴影，戏剧感 | 0.85 |
-| 求生/紧张 | 自然散射光 | 不稳定自然光，偶有强光 | 自然光（5000K） | 动态阴影 | 0.85 |
-| 温馨/日常 | 柔和顶光 | 均匀顶光，模拟室内照明 | 暖白（3000K） | 软阴影 | 0.85 |
-| 悲伤/沉重 | 低照度侧光 | 弱侧光，大面积暗部 | 冷白（4000K） | 深重阴影 | 0.85 |
-| 希望/明亮 | 高调均匀光 | 明亮均匀，减少阴影 | 自然日光（5500K） | 浅阴影 | 0.85 |
-| 残酷/血腥 | 强对比顶光 | 强顶光直射，深重阴影 | 冷白（5000K） | 硬阴影，极端对比 | 0.85 |
-| 孤独/空旷 | 单一远光源 | 远处单一光源，大面积暗部 | 冷色（4500K） | 长阴影 | 0.8 |
-| 混乱/失控 | 多光源冲突 | 多个方向光源，阴影混乱 | 混合色温 | 交叉阴影 | 0.8 |
-| 宁静/平和 | 柔和散射光 | 均匀散射，无明显方向 | 中性（4000K） | 极软阴影 | 0.85 |
-| 紧迫/追逐 | 动态光源 | 移动光源，闪烁效果 | 冷白（5000K） | 动态变化 | 0.8 |
+| Safety / Warmth | Warm Diffuse Light | Soft diffuse, no strong shadows | Warm white (3200K) | Soft shadows | 0.9 |
+| Oppression / Fear | Low-key Side/Back Light | Strong side or back light, large shadow areas | Cool blue (5600K+) | Hard shadows, high contrast | 0.9 |
+| Post-apocalyptic Wasteland | Overexposed Diffuse Light | Gray-white sky diffuse, no distinct light source | Neutral cool (4500K) | Almost no shadows | 0.85 |
+| Mystery / Unknown | Localized Point Lights | Multiple small point lights, large dark areas | Mixed color temps | Complex shadows | 0.85 |
+| Satisfaction / Contrast | High-contrast Fill Light | Strong fill on subject, dark background | Warm key + cool background | Distinct rim light | 0.9 |
+| Anger / Climax | Dramatic Side Light | Strong side light, half-face shadow | Warm orange (2800K) | Hard shadows, dramatic feel | 0.85 |
+| Survival / Tension | Natural Scattered Light | Unstable natural light, occasional strong light | Natural light (5000K) | Dynamic shadows | 0.85 |
+| Warmth / Daily Life | Soft Top Light | Even top light, simulating indoor lighting | Warm white (3000K) | Soft shadows | 0.85 |
+| Sadness / Heaviness | Low-intensity Side Light | Weak side light, large dark areas | Cool white (4000K) | Deep heavy shadows | 0.85 |
+| Hope / Brightness | High-key Even Light | Bright and even, minimal shadows | Natural daylight (5500K) | Shallow shadows | 0.85 |
+| Cruelty / Bloodshed | High-contrast Top Light | Strong top light directly down, deep heavy shadows | Cool white (5000K) | Hard shadows, extreme contrast | 0.85 |
+| Loneliness / Emptiness | Single Distant Light Source | Distant single light source, large dark areas | Cool (4500K) | Long shadows | 0.8 |
+| Chaos / Loss of Control | Multi-source Conflicting Light | Light from multiple directions, chaotic shadows | Mixed color temps | Intersecting shadows | 0.8 |
+| Tranquility / Peace | Soft Scattered Light | Even scatter, no distinct direction | Neutral (4000K) | Very soft shadows | 0.85 |
+| Urgency / Chase | Dynamic Light Source | Moving light source, flickering effect | Cool white (5000K) | Dynamic changes | 0.8 |
 
-**混合情感处理规则**：
+**Mixed Emotion Handling Rules**:
 
-当`primaryMood`包含多个情感关键词（如"末世求生/人情温暖"），按以下规则综合：
+When `primaryMood` contains multiple emotion keywords (e.g., "post-apocalyptic survival / human warmth"), synthesize as follows:
 
-1. **主次分离**：识别主要情感（通常在前）和次要情感（通常在后或用"/"分隔）
-2. **方案融合**：
-   - 主要情感决定基础光影方案（置信度保持）
-   - 次要情感作为局部调整（在特定时刻或区域应用）
-3. **置信度调整**：混合情感的置信度 = min(主要情感置信度, 次要情感置信度) - 0.1
+1. **Separate Primary and Secondary**: Identify primary emotion (usually first) and secondary emotion (usually last or separated by "/")
+2. **Scheme Fusion**:
+   - Primary emotion determines the base lighting scheme (confidence preserved)
+   - Secondary emotion applied as localized adjustment (applied at specific moments or areas)
+3. **Confidence Adjustment**: Mixed emotion confidence = min(primary confidence, secondary confidence) - 0.1
 
-**示例**：
+**Example**:
 ```
-输入：primaryMood = "末世求生/人情温暖"
+Input: primaryMood = "Post-apocalyptic survival / Human warmth"
 
-分析：
-- 主要情感：末世求生 → 自然散射光（5000K，动态阴影，置信度0.85）
-- 次要情感：人情温暖 → 暖调漫射光（3200K，软阴影，置信度0.9）
+Analysis:
+- Primary emotion: Post-apocalyptic survival → Natural scattered light (5000K, dynamic shadows, confidence 0.85)
+- Secondary emotion: Human warmth → Warm diffuse light (3200K, soft shadows, confidence 0.9)
 
-综合方案：
-- 基础：自然散射光（阴天为主）
-- 局部调整：在人情温暖时刻（幸存者互助场景）让自然阳光出现
-- 置信度：0.75（= min(0.85, 0.9) - 0.1）
-- 说明：以自然散射光为基调，温暖感来自角色行为和偶尔的阳光，不做人为暖调打光
+Synthesized scheme:
+- Base: Natural scattered light (overcast-dominant)
+- Localized adjustment: Natural sunlight appears during human warmth moments (survivor mutual aid scenes)
+- Confidence: 0.75 (= min(0.85, 0.9) - 0.1)
+- Note: Natural scattered light as foundation, warmth comes from character behavior and occasional sunlight, no artificial warm lighting
 ```
 
-**转译流程**：
-1. 提取 `emotionalTone.primaryMood` 中的关键词
-2. 识别是否为混合情感（含"/"或多个关键词）
-3. 匹配转译规则库，生成主要光影方案
-4. 如果是混合情感，生成综合方案并调整置信度
-5. 结合 `sceneStates` 中各状态的 `lighting` 字段，生成每个状态的光影变体
-6. **置信度低于0.7时，标记为需要用户确认**
-7. 标注来源（inherited/inferred）和置信度
+**Translation Process**:
+1. Extract keywords from `emotionalTone.primaryMood`
+2. Identify if mixed emotion (contains "/" or multiple keywords)
+3. Match translation rule library, generate primary lighting scheme
+4. If mixed emotion, generate synthesized scheme and adjust confidence
+5. Combine with `lighting` field in each `sceneStates` state, generate lighting variants per state
+6. **When confidence is below 0.7, mark as requiring user confirmation**
+7. Annotate source (inherited/inferred) and confidence
 
-**Fallback路径（美术设定卡片缺失时）**：
+**Fallback Path (when art direction card is missing)**:
 
-如果美术设定卡片不存在或缺少keyLightingScenarios字段：
-1. 仅使用上述转译规则库（置信度-0.1）
-2. 从世界观卡片的timeSetting推断时代背景光照特征
-3. 所有推断标记为低置信度（<0.7），强制要求用户确认
+If art direction card does not exist or lacks keyLightingScenarios field:
+1. Use only the above translation rule library (confidence -0.1)
+2. Infer era background lighting characteristics from worldview card's timeSetting
+3. All inferences marked as low confidence (<0.7), force user confirmation
 
-### Step 2：场景状态 → 视觉变化清单
+### Step 2: Scene States → Visual Change List
 
-对每个 `sceneState`，生成视觉变化描述：
+For each `sceneState`, generate visual change description:
 ```typescript
 interface SceneStateVisual {
   stateName: string;
   episodeRange?: string;
-  lightingScheme: string;      // 来自光影转译
-  colorGrading: string;        // 色调处理
-  atmosphericEffects: string;  // 氛围效果（雾气、粒子等）
-  keyVisualDifference: string; // 与其他状态的核心视觉区别
+  lightingScheme: string;      // From lighting translation
+  colorGrading: string;        // Color grading treatment
+  atmosphericEffects: string;  // Atmospheric effects (fog, particles, etc.)
+  keyVisualDifference: string; // Core visual distinction from other states
   confidence: number;
   source: 'inherited' | 'inferred';
 }
 ```
 
-### Step 3：关键元素 → 视觉焦点排序
+### Step 3: Key Elements → Visual Focus Ranking
 
-根据叙事重要性，对 `keyElements` 中的元素进行视觉焦点排序：
-- **一级焦点**：与关键事件直接相关的元素（如"180度弧形落地观景窗"）
-- **二级焦点**：定义场景特征的元素（如"净化机生产线"）
-- **三级焦点**：氛围营造元素（如"豪华沙发"）
+Sort `keyElements` by narrative importance into visual focus tiers:
+- **Primary Focus**: Elements directly related to key events (e.g., "180-degree curved floor-to-ceiling observation window")
+- **Secondary Focus**: Elements defining scene character (e.g., "purification machine production line")
+- **Tertiary Focus**: Atmosphere-building elements (e.g., "luxury sofa")
 
-**输出格式**：
+**Output Format**:
 ```typescript
 interface VisualFocusHierarchy {
   primary: Array<{ element: string; reason: string }>;
@@ -236,165 +233,17 @@ interface VisualFocusHierarchy {
 
 ---
 
-## 阶段4：用户补充与确认视觉细节
+## Stage 4: User Supplement & Confirm
 
-### Step 1：展示已转译的信息
+Display translated info (lighting schemes, visual focus ranking, inferred colors). Guide user to confirm color scheme, material textures, and special effects. All material/color info requires explicit user confirmation.
 
-向用户展示：
-1. 光影方案（每个场景状态）
-2. 视觉焦点排序
-3. 推断的色彩倾向
+## Stage 5: Generation Requirements & Priority
 
-每条信息标注来源和置信度。**置信度低于0.7的推断用醒目标记，提示用户重点确认。**
+Validate image count reasonableness, sort by first appearance episode + importance + key event count. Present as batched priority list.
 
-### Step 2：引导用户补充
+## Stage 6: Create Scene Asset Card
 
-**色彩方案**：
-```
-请补充场景的色彩方案：
-
-**主色调**（如：深蓝色、暖橙色、灰白色）：
-**辅助色**（如：金属银、锈红色）：
-**强调色**（如：荧光绿、血红色）：
-**整体色调倾向**（如：冷色调、暖色调、去饱和）：
-```
-
-**材质质感**：
-```
-请补充场景的主要材质：
-
-**地面**（如：混凝土、木板、金属格栅）：
-**墙面/主体结构**（如：钢铁、玻璃、砖石）：
-**主要道具材质**（如：生锈金属、透明玻璃、破旧布料）：
-**整体质感倾向**（如：工业感、有机感、废土感）：
-```
-
-**特殊视觉效果**：
-```
-请补充场景的特殊视觉效果（如有）：
-
-**粒子效果**（如：灰尘、水雾、火星，或无）：
-**环境效果**（如：水面反光、玻璃折射、烟雾，或无）：
-**特殊光效**（如：霓虹灯闪烁、火光跳动，或无）：
-```
-
-### Step 3：用户确认（必需）
-
-**所有材质和色彩信息必须经用户确认后才写入卡片**。确认方式：
-
-```
-## 请确认以下视觉细节
-
-以下信息将写入场景资产卡片，并直接用于后续生成图片的提示词。
-请确认或修改：
-
-### 色彩方案 ✓/✗
-- 主色调：{推断值}
-- 辅助色：{推断值}
-- 强调色：{推断值}
-- 色调倾向：{推断值}
-
-### 材质质感 ✓/✗
-- 地面：{推断值}
-- 墙面：{推断值}
-- 道具材质：{推断值}
-- 质感倾向：{推断值}
-
-### 特殊效果 ✓/✗
-- 粒子：{推断值}
-- 环境：{推断值}
-- 光效：{推断值}
-
-请回复"确认"或指出需要修改的项。
-```
-
-**确认后**：将用户确认的值标记为 `source: 'user_confirmed'`（置信度1.0）
-
----
-
-## 阶段5：确定生成需求与优先级排序
-
-### Step 5.1：画面数量合理性校验
-
-**校验规则**：
-
-对每个场景状态，基于以下维度评估建议画面数：
-
-| 维度 | 评估标准 | 建议画面数调整 |
-|------|---------|--------------|
-| 剧集跨度 | episodeRange跨度 > 10集 | +1张（长期状态需要更多参考） |
-| 关键事件数 | keyEvents数量 > 3个 | +1张（多个关键时刻需要不同视觉） |
-| 场景重要性 | roleInStory含"核心"/"全剧" | +1张（核心场景需要更多角度） |
-| 视觉复杂度 | keyElements总数 > 5个 | +1张（复杂场景需要细节特写） |
-
-**基础画面数**：
-- 单状态场景：1张全景
-- 多状态场景：每状态1张全景
-
-**校验输出示例**：
-```
-场景：海底基地 - 运营期
-- 剧集跨度：46集（ep6-52）→ 建议+1张
-- 关键事件：4个（系统觉醒/情感线/喜剧结局等）→ 建议+1张
-- 场景重要性：全剧核心据点 → 建议+1张
-- 视觉复杂度：7个关键元素 → 建议+1张
-
-【建议】：运营期建议生成 4-5张画面（1张全景 + 2-3张关键区域特写 + 1张关键时刻）
-或考虑拆分状态：运营初期（ep6-20）、运营中期（ep21-40）、运营后期（ep41-52）
-
-用户可选择：
-1. 接受建议（生成4-5张）
-2. 保持原计划（生成2张）
-3. 拆分状态（生成3个状态各1-2张）
-```
-
-**置信度标注**：
-- 校验建议的置信度 = 0.7（仅供参考，不强制）
-- 用户可忽略建议，按原计划生成
-
-### Step 5.2：生成需求优先级排序
-
-**排序规则**：
-
-按以下优先级排序生成需求（批量模式时使用）：
-
-1. **首次出现集数**（episodeRange.start 或 keyEvents[0].episode）
-   - 早出场的场景先做（ep1-10 > ep11-20 > ep21-30...）
-2. **场景重要性**（roleInStory关键词）
-   - 核心据点 > 关键场景 > 日常场景
-3. **关键事件数量**（keyEvents.length）
-   - 事件多的场景优先（更重要）
-
-**输出格式**：
-```
-## 场景生成需求清单（按优先级排序）
-
-### 批次1：ep1-10（3个场景）
-1. **海底基地 - 改造期**（ep3首次出现，核心据点）
-   - 视觉特征：施工中，冷白灯光
-   - 建议画面数：1张全景
-   
-2. **浮岛 - 日常**（ep1首次出现，日常场景）
-   - 视觉特征：简陋但有序
-   - 建议画面数：1张全景
-
-### 批次2：ep11-20（1个场景）
-...
-
-### 批次3：ep41-50（1个场景）
-3. **斗兽场 - 运营中**（ep43首次出现，全剧情感最高点）
-   - 视觉特征：压抑戏剧性
-   - 建议画面数：2张（全景 + 戏剧时刻）
-   - 【校验建议】：关键事件2个，建议增加1张特写
-
-请确认以上清单是否正确，如需修改请说明。
-```
-
----
-
-## 阶段6：创建场景资产卡片
-
-**卡片结构**：
+**Card Structure**:
 ```typescript
 interface SceneSelectedVisual {
   conceptCardId: string;
@@ -410,7 +259,7 @@ interface SceneAssetCard extends BaseCard {
   cardId: string;
   cardType: "SceneAssetCard";
   type: 'scene_asset';
-  title: string;  // 如："海底基地 - 场景资产"
+  title: string;  // e.g., "Undersea Base - Scene Asset"
   upstreamCards: CardRef[];
   sceneLocationId: string;
   sceneLocationName: string;
@@ -479,325 +328,88 @@ interface SceneConceptCard extends BaseCard {
 }
 ```
 
-**视觉回写规则**：
-1. `SceneAssetCard` 是制作区读取的场景视觉入口。
-2. `SceneConceptCard` 是生成记录和版本库。
-3. 用户确认某个 `SceneConceptCard.imageVersions[]` 后，由 `scene-generator` 写回 `SceneAssetCard.selectedVisual`。
-4. 下游不得从 `SceneConceptCard.generatedImages[]` 随机挑图；只能读取 `SceneAssetCard.selectedVisual`。
+**Visual Writeback Rules**:
+1. `SceneAssetCard` is the scene visual entry point read by the production zone.
+2. `SceneConceptCard` is the generation record and version library.
+3. After user confirms a `SceneConceptCard.imageVersions[]`, it is written back to `SceneAssetCard.selectedVisual` by `scene-generator`.
+4. Downstream must not randomly pick images from `SceneConceptCard.generatedImages[]`; only read `SceneAssetCard.selectedVisual`.
 
 ---
 
-## 假设标注规范
+## Annotation Standards
 
-与角色资产提取保持一致：
-- `inherited`：从上游卡片继承（置信度 1.0）
-- `inferred`：基于规则推断（置信度 0.8-0.9）
-- `user_provided`：用户直接提供（置信度 1.0）
-- `default`：默认值（置信度 0.5）
-
----
-
-## 测试用例
-
-### 测试用例1：海底基地（完整信息）
-
-**输入**：
-- 场景设定卡片：海底基地（雅兰深海酒店）
-  - 情感基调：安全感/反差爽感
-  - 场景状态：改造期（3-5集）、运营期（6-52集）
-  - 关键元素：180度弧形落地观景窗、净化机生产线、监控中心
-
-**预期输出**：
-- 场景资产卡片：海底基地
-  - 光影方案：改造期（工地灯光/冷白）、运营期（暖调漫射+海底蓝光）
-  - 视觉焦点：一级（观景窗）、二级（净化机）、三级（豪华沙发）
-  - 生成需求：2套（改造期、运营期）
-
-### 测试用例2：斗兽场（情感强烈）
-
-**输入**：
-- 场景设定卡片：斗兽场（樱花岛）
-  - 情感基调：压抑/愤怒
-  - 场景状态：运营中（43-47集）
-
-**预期输出**：
-- 场景资产卡片：斗兽场
-  - 光影方案：低调侧逆光+戏剧性侧光
-  - 视觉焦点：一级（铁笼）、二级（观众席高台）
-  - 生成需求：1套
+Consistent with character asset extraction:
+- `inherited`: Inherited from upstream card (confidence 1.0)
+- `inferred`: Inferred based on rules (confidence 0.8-0.9)
+- `user_provided`: User directly provided (confidence 1.0)
+- `default`: Default value (confidence 0.5)
 
 ---
 
-## 实施检查清单
+## Test Cases
 
-- [ ] 阶段1：依赖检查完成，场景设定卡片存在
-- [ ] 阶段2：继承信息提取完成
-- [ ] 阶段3：视觉化转译完成
-  - [ ] 光影方案：每个场景状态都有对应方案
-  - [ ] 视觉焦点：三级排序完成
-  - [ ] 场景状态视觉变化：已生成
-- [ ] 阶段4：用户补充完成
-  - [ ] 色彩方案：已补充
-  - [ ] 材质质感：已补充
-  - [ ] 特殊视觉效果：已补充
-- [ ] 阶段5：生成需求确定，用户已确认
-- [ ] 阶段6：场景资产卡片创建成功
+### Test Case 1: Undersea Base (Complete Information)
 
----
+**Input**:
+- Scene setting card: Undersea Base (Yalan Deep-sea Hotel)
+  - Emotional Tone: Safety / Contrast satisfaction
+  - Scene States: Renovation Period (ep3-5), Operational Period (ep6-52)
+  - Key Elements: 180-degree curved observation window, purification machine production line, monitoring center
 
-**Skill版本**：v1.0  
-**创建日期**：2026-05-29  
-**测试状态**：待测试
+**Expected Output**:
+- Scene asset card: Undersea Base
+  - Lighting Schemes: Renovation (construction lighting / cool white), Operational (warm diffuse + undersea blue light)
+  - Visual Focus: Primary (observation window), Secondary (purification machines), Tertiary (luxury sofa)
+  - Generation Requirements: 2 sets (Renovation Period, Operational Period)
 
----
+### Test Case 2: Colosseum (Strong Emotion)
 
-## 场景资产的纯净度原则（重要）
+**Input**:
+- Scene setting card: Colosseum (Cherry Blossom Island)
+  - Emotional Tone: Oppression / Anger
+  - Scene States: In Operation (ep43-47)
 
-### 核心定义
-
-**场景资产 = 纯净空间 + 陈设道具 + 光影氛围**
-
-场景资产必须是**不包含主要角色的纯净场景**，这是场景资产与最终成片画面的关键区别。
-
-### 场景资产 vs 最终画面
-
-```
-❌ 错误理解：场景资产 = 角色在场景中的画面
-✅ 正确理解：场景资产 = 空无一人的场景空间
-
-工作流：
-场景资产（纯净空间）
-    ↓
-    + 角色资产（角色三视图/表情/动作）
-    ↓
-后期合成
-    ↓
-最终成片画面
-```
-
-### 允许的内容（✅）
-
-**空间元素**：
-- ✅ 建筑结构（墙面、地面、天花板、门窗）
-- ✅ 家具陈设（沙发、桌椅、床铺、柜子等）
-- ✅ 场景道具（放置状态的物品，如茶几上的啤酒瓶、桌上的平板电脑）
-- ✅ 环境效果（光影、雾气、水面反光、粒子效果）
-- ✅ 自然元素（植物、水体、天空、动物）
-
-**背景人物**（有限度）：
-- ✅ 作为比例参考的模糊人群（如"漫山遍野的战场"中的士兵剪影）
-- ✅ 作为规模展示的背景人群（如"拥挤的广场"中的人流）
-- ✅ 极度模糊的人形剪影（不可识别面部和特征）
-- ⚠️ 注意：背景人物必须是**通用的、不可识别的、作为环境元素存在的**
-
-### 不允许的内容（❌）
-
-**主要角色相关**：
-- ❌ 主要角色本人（林渊、沈知夏、小咬等）
-- ❌ 角色的特定动作和姿态（如"林渊半躺在沙发上"）
-- ❌ 角色的表情和眼神
-- ❌ 角色正在使用的道具（如"林渊手持的啤酒"）
-- ❌ 任何可识别面部特征的人物
-
-**特定人物相关**：
-- ❌ 配角的特写或特定动作
-- ❌ 尸仆的列队站立（如果是可识别的特写）
-- ❌ 工作人员的特定工作动作
-
-### 道具的边界
-
-**场景道具（属于场景资产）**：
-```
-✅ 茶几上的啤酒瓶（放置状态，无人持有）
-✅ 传送带上的水瓶（作为产线元素）
-✅ 墙上的工具架（作为环境布置）
-✅ 桌上的平板电脑（放置状态，无人使用）
-✅ 沙发上的抱枕（陈设状态）
-```
-
-**角色道具（不属于场景资产）**：
-```
-❌ 林渊手持的啤酒（正在使用状态）
-❌ 沈知夏手持的平板（正在查看状态）
-❌ 角色佩戴的手表（身上配饰）
-❌ 角色握着的武器（战斗状态）
-```
-
-**区别标准**：
-- **场景道具** = 放置在场景中，静态存在，无人使用
-- **角色道具** = 角色正在使用、佩戴、持有
-
-### 视觉化转译中的描述规范
-
-#### ❌ 错误描述示例
-
-```markdown
-##### 豪华沙发区
-
-**视觉描述**：
-- 林渊半躺在沙发上，一手拿着啤酒
-- 沈知夏站在旁边汇报工作
-- 林渊的姿态显得惬意而掌控
-
-**推荐视角**：
-- 林渊惬意特写
-- 林渊与美女互动的中景
-```
-
-#### ✅ 正确描述示例
-
-```markdown
-##### 豪华沙发区
-
-**视觉描述**：
-- 大型真皮沙发（L型），空置状态，等待使用
-- 黑色大理石茶几，上面摆放啤酒瓶（作为场景道具）
-- 柔和的抱枕和毛毯放置在沙发上
-- 暖白色吊灯+蓝色海水折射光
-
-**推荐视角**：
-- 沙发区近景（展现陈设和氛围）
-- 从沙发视角看向观景窗
-```
-
-### 空间布局描述规范
-
-#### ❌ 错误描述
-
-```
-观景客厅区 - 林渊主要活动区域，半躺沙发拿啤酒的经典场景
-套房走廊 - 私密空间，林渊与美女互动
-```
-
-#### ✅ 正确描述
-
-```
-观景客厅区 - 主要活动区域，沙发茶几组合，观景窗前的休息空间
-套房走廊 - 私密空间，走廊和房间，豪华酒店氛围
-```
-
-### GPT-Image-2 提示词规范
-
-#### 负面提示词必需项
-
-所有场景资产生成时，**必须**在负面提示词中包含：
-
-```
-people, person, characters, human, man, woman, figure, 
-face, body, hand, arm, leg
-```
-
-#### 正面提示词规范
-
-**❌ 错误示例**：
-```
-A man reclining on the sofa, holding a beer
-Workers in uniforms standing beside the production line
-Lin Yuan's hand pulling down the switch
-```
-
-**✅ 正确示例**：
-```
-Empty luxury sofa ready for use, beer bottle on table
-Empty work stations beside the production line
-Industrial control panel with main switch, no operators
-```
-
-### 视角建议规范
-
-#### ❌ 错误的视角建议
-
-```
-推荐视角1：林渊惬意特写
-- 林渊半躺沙发，手持啤酒，背景是观景窗蓝光
-
-推荐视角2：总闸启动
-- 林渊手拉下总闸的动作特写
-```
-
-#### ✅ 正确的视角建议
-
-```
-推荐视角1：沙发区近景
-- 沙发和茶几为主体，背景是观景窗蓝光
-- 茶几上的啤酒瓶作为场景道具
-- 空置的沙发营造等待感
-
-推荐视角2：控制室特写
-- 控制柜占据画面主体，总闸和仪表盘清晰可见
-- 无人操作状态，展现设施本身
-```
-
-### 质量检查清单扩充
-
-在原有质量检查清单基础上，新增"场景纯净度"检查：
-
-```markdown
-### 场景纯净度（CRITICAL）
-- [ ] **无主要角色**：画面中没有主要角色（林渊、沈知夏等）
-- [ ] **无特定人物**：没有可识别的配角或特定工作人员
-- [ ] **空间完整**：场景作为独立空间完整呈现
-- [ ] **陈设就位**：家具、道具摆放到位，等待角色进入
-- [ ] **背景人物合规**：如有背景人物，仅作为环境元素，极度模糊不可识别
-- [ ] **道具分类正确**：场景道具（放置状态）vs 角色道具（使用状态）区分清晰
-- [ ] **负面提示词完整**：包含"people, person, characters, human figures"
-```
-
-### 实施要点
-
-**在阶段3（视觉化转译）时**：
-1. 描述场景元素时，**禁止提及主要角色的动作和位置**
-2. 描述道具时，明确是**放置状态还是使用状态**
-3. 空间布局描述中，**不关联特定角色的活动**
-
-**在阶段4（用户补充）时**：
-1. 如果用户描述中包含角色，**提醒用户场景资产的纯净度原则**
-2. 引导用户将"林渊半躺沙发"改为"沙发陈设+茶几道具"
-
-**在阶段6（创建卡片）时**：
-1. 最终检查所有描述，**确保无主要角色**
-2. 所有GPT-Image-2提示词必须包含**人物排除的负面提示词**
-3. 在卡片备注中明确说明"本场景资产为纯净场景，角色通过后期合成加入"
-
-### 常见错误与修正
-
-| 错误场景 | 错误描述 | 正确描述 |
-|---------|---------|---------|
-| 客厅区 | 林渊半躺沙发，手持啤酒 | 沙发陈设完整，茶几上放置啤酒瓶 |
-| 产线区 | 尸仆列队工作 | 工作站位整齐排列，空置待用 |
-| 控制室 | 林渊拉下总闸 | 总闸控制柜，手柄处于待操作状态 |
-| 走廊 | 沈知夏推门而入 | 套房门半开，展现内外空间关系 |
-| 视角建议 | 林渊惬意特写 | 沙发区近景，展现陈设和氛围 |
-
-### 为什么必须保持场景纯净度？
-
-**技术原因**：
-1. **资产复用**：纯净场景可以被多个角色、多个镜头复用
-2. **后期灵活性**：角色和场景分离，便于后期调整角色位置、动作、表情
-3. **制作效率**：场景和角色可以并行制作，不相互依赖
-
-**制作原因**：
-1. **角色一致性**：角色通过角色资产（三视图/表情/动作）单独制作，保证一致性
-2. **场景一致性**：场景保持统一标准，不会因为包含不同角色而视觉风格不一致
-3. **分工协作**：场景师和角色设计师可以独立工作
-
-**创意原因**：
-1. **灵活调整**：剧本修改时，角色在场景中的位置和动作可以灵活调整
-2. **多版本支持**：同一场景可以支持不同的角色组合和互动
-3. **视觉探索**：可以先建立场景氛围，再决定角色如何融入
+**Expected Output**:
+- Scene asset card: Colosseum
+  - Lighting Schemes: Low-key side/back light + Dramatic side light
+  - Visual Focus: Primary (iron cage), Secondary (spectator high platform)
+  - Generation Requirements: 1 set
 
 ---
 
-**版本更新**：v1.1.0  
-**更新日期**：2026-06-11  
-**更新内容**：新增"场景资产的纯净度原则"章节，明确场景资产必须不包含主要角色
+## Implementation Checklist
 
-## 完成后下一步
+- [ ] Stage 1: Dependency check complete, scene setting card exists
+- [ ] Stage 2: Inherited information extraction complete
+- [ ] Stage 3: Visual translation complete
+  - [ ] Lighting schemes: Each scene state has a corresponding scheme
+  - [ ] Visual focus: Three-tier ranking complete
+  - [ ] Scene state visual changes: Generated
+- [ ] Stage 4: User supplementation complete
+  - [ ] Color scheme: Supplemented
+  - [ ] Material textures: Supplemented
+  - [ ] Special visual effects: Supplemented
+- [ ] Stage 5: Generation requirements determined, user confirmed
+- [ ] Stage 6: Scene asset card created successfully
 
-完成判定：`SceneAssetCard` 已创建，`SceneSettingCard` 来源、场景状态、生成需求和确认信息已保存。
+---
 
-完成当前场景资产提取后，优先调用 `scene-generator`，把当前场景资产制作成正式场景图并回写 `SceneAssetCard.selectedVisual`。
+**Skill Version**: v1.0  
+**Created**: 2026-05-29  
+**Test Status**: Pending
 
-如果还有其他场景资产未提取，可继续调用当前 skill；如果用户正在制作某一集/某一场，优先处理该集/场需要的场景。
+---
 
-推荐话术：`当前场景资产已提取完成。建议优先调用 scene-generator 生成并确认这个场景的视觉资产，是否继续？`
+## Scene Asset Purity Principle
+
+Scene assets must be clean scenes without main characters. Full rules, examples, and prompt conventions at `references/scene-purity-principle.md`. Key rule: scene = clean space + set dressing + lighting only; characters added via post compositing. GPT-Image-2 negative prompt must include: `people, person, characters, human, man, woman, figure, face, body, hand, arm, leg`.
+
+## Next Step After Completion
+
+Completion criteria: `SceneAssetCard` created, `SceneSettingCard` source, scene states, generation requirements, and confirmation info saved.
+
+After completing current scene asset extraction, prioritize calling `scene-generator` to produce the formal scene image and write back to `SceneAssetCard.selectedVisual`.
+
+If other scene assets remain unextracted, continue with current skill; if the user is working on a specific episode/scene, prioritize the scenes needed for that episode/scene.
+
+Recommended phrasing: `Current scene asset extraction is complete. It is recommended to prioritize calling scene-generator to generate and confirm this scene's visual asset. Continue?`

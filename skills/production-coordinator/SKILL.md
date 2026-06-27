@@ -3,26 +3,26 @@ name: production-coordinator
 description: Use when a confirmed EpisodeSceneTableCard scene must become a production-zone EpisodeSceneDetailCard with asset completeness checks
 ---
 
-# 剧务统筹 Skill
+# Production Coordinator Skill
 
-从分集分场表卡片（创作分区）提取单场详情，创建分集分场剧情卡片（制作分区），并进行资产完整度检查。
+Extract individual scene details from an EpisodeSceneTableCard (creative zone), create an EpisodeSceneDetailCard (production zone), and perform asset completeness checks.
 
-## 输入契约硬门禁
+## Input Contract Hard Gate
 
-`production-coordinator` 只接受已闭合字段契约的 `EpisodeSceneTableCard`。它可以做字段映射和资产完整度查询，但不得从纯名称推断稳定 ID，也不得用摘要、台词或视觉描述拼凑 `scriptRawText`。
+`production-coordinator` only accepts `EpisodeSceneTableCard` with a closed field contract. It can perform field mapping and asset completeness queries, but must not infer stable IDs from bare names, nor patch together `scriptRawText` from summaries, dialogue, or visual descriptions.
 
-每个被选中的场次必须包含：
+Each selected scene must include:
 
 - `sceneId`
 - `sceneLocationId`
-- `sceneLocationName` 或 `location`
+- `sceneLocationName` or `location`
 - `scriptRawText`
 - `characters[].characterId`
 - `characters[].characterName`
 - `characters[].roleType`
-- `props[].propId` 与 `props[].propName`（仅当本场有道具时）
+- `props[].propId` and `props[].propName` (only when the scene has props)
 
-如果任一必需字段缺失，立即终止并返回：
+If any required field is missing, terminate immediately and return:
 
 ```typescript
 interface MissingContractReport {
@@ -37,77 +37,77 @@ interface MissingContractReport {
 }
 ```
 
-## 整体工作流
+## Overall Workflow
 
 ```
-输入：EpisodeSceneTableCard（分集分场表卡片，来自创作分区）
-用户指定：集数、场数
+Input: EpisodeSceneTableCard (episode/scene table card, from creative zone)
+User specifies: episode number, scene number
 
-阶段1：提取场次信息
-  从分集分场表中定位指定场次
-  提取基础信息（集数、场数、场景、时间、角色等）
+Stage 1: Extract scene information
+  Locate the specified scene from the episode/scene table
+  Extract basic information (episode, scene, location, time, characters, etc.)
 
-阶段2：资产完整度检查
-  检查出场角色的妆造卡片是否已生成
-  检查场景的概念图卡片是否已生成
-  检查道具的设计图卡片是否已生成（如有）
-  计算完整度百分比
-  生成缺失资产列表
+Stage 2: Asset completeness check
+  Check whether costume cards for appearing characters have been generated
+  Check whether concept art cards for the scene have been generated
+  Check whether design cards for props have been generated (if any)
+  Calculate completeness percentage
+  Generate missing asset list
 
-阶段3：用户交互
-  如果完整度 < 100%，展示缺失清单
-  询问用户：继续 or 跳转到资产分区补充
+Stage 3: User interaction
+  If completeness < 100%, display the missing list
+  Ask user: continue or jump to asset zone to supplement
 
-阶段4：创建卡片
-  创建分集分场剧情卡片
-  保存资产完整度状态
-  建立上下游连线
+Stage 4: Create card
+  Create EpisodeSceneDetailCard
+  Save asset completeness status
+  Establish upstream/downstream connections
 
-输出：EpisodeSceneDetailCard（分集分场剧情卡片）
+Output: EpisodeSceneDetailCard (episode/scene detail card)
 ```
 
 ---
 
-## 阶段1：提取场次信息
+## Stage 1: Extract Scene Information
 
-**作用**：从分集分场表中定位并提取指定场次的详细信息。
+**Purpose**: Locate and extract detailed information for the specified scene from the episode/scene table.
 
-**输入**：
-- 分集分场表卡片ID
-- 用户指定的集数（如：第1集）
-- 用户指定的场数（如：第3场）
+**Input**:
+- Episode/scene table card ID
+- User-specified episode number (e.g., Episode 1)
+- User-specified scene number (e.g., Scene 3)
 
-**提取字段**：
+**Extracted fields**:
 ```typescript
 interface SceneInfo {
-  episodeNumber: number;        // 集数
-  sceneNumber: string;          // 场数（支持字母后缀，如："1-1A"）
-  sceneId: string;              // 场次ID（格式：第X集-第X场）
-  sceneLocationId: string;      // 场景ID
-  sceneLocationName: string;    // 场景名称
-  timeOfDay: string;            // 时间（白天/夜晚/黄昏等）
-  lighting: string;             // 光照条件（根据时间推断）
-  weather?: string;             // 天气（如有）
-  characters: Array<{           // 出场角色
+  episodeNumber: number;        // Episode number
+  sceneNumber: string;          // Scene number (supports letter suffix, e.g. "1-1A")
+  sceneId: string;              // Scene ID (format: Episode X-Scene X)
+  sceneLocationId: string;      // Location ID
+  sceneLocationName: string;    // Location name
+  timeOfDay: string;            // Time of day (day/night/dusk etc.)
+  lighting: string;             // Lighting conditions (inferred from time)
+  weather?: string;             // Weather (if present)
+  characters: Array<{           // Appearing characters
     characterId: string;
     characterName: string;
     roleType: 'protagonist' | 'supporting' | 'minor';
   }>;
-  plotSummary: string;          // 剧情概要
-  scriptRawText: string;        // 剧本原文（这一场的完整剧本文本）
-  dialogue?: string;            // 台词（从分集分场表继承）
-  emotion: string;              // 情绪基调
-  emotionIntensity: number;     // 情绪强度（1-10）
-  rhythm: 'fast' | 'medium' | 'slow'; // 节奏
-  
-  // 详细的视觉描述（从分集分场表继承）
+  plotSummary: string;          // Plot summary
+  scriptRawText: string;        // Original script text (complete script text for this scene)
+  dialogue?: string;            // Dialogue (inherited from episode/scene table)
+  emotion: string;              // Emotional tone
+  emotionIntensity: number;     // Emotional intensity (1-10)
+  rhythm: 'fast' | 'medium' | 'slow'; // Rhythm
+
+  // Detailed visual description (inherited from episode/scene table)
   visualDescription: Array<{
     sequence: number;
     content: string;
     type: 'action' | 'camera' | 'environment' | 'character';
   }>;
-  
-  // 场景视觉元素（从分集分场表继承）
+
+  // Scene visual elements (inherited from episode/scene table)
   sceneElements: {
     environment: string[];
     characterStates: Array<{
@@ -118,72 +118,72 @@ interface SceneInfo {
     lighting?: string;
     atmosphere?: string;
   };
-  
-  // 镜头信息（从分集分场表继承）
+
+  // Camera information (inherited from episode/scene table)
   cameraInfo?: {
     movements: string[];
     angles?: string[];
     focusSubjects?: string[];
   };
-  
-  props?: Array<{               // 道具（如有）
+
+  props?: Array<{               // Props (if any)
     propId: string;
     propName: string;
   }>;
 }
 ```
 
-**提取规则（只继承不推断）**：
-1. 从分集分场表的 `scenes` 数组中查找匹配的场次
-2. 匹配条件：`episodeNumber` 和 `sceneNumber` 都相等
-3. 如果找不到匹配的场次，提示用户并终止执行
-4. **先执行契约校验**：
-   - 检查 `sceneId`、`sceneLocationId`、`scriptRawText`
-   - 检查每个角色的 `characterId`、`characterName`、`roleType`
-   - 检查每个道具的 `propId`、`propName`
-   - 如果缺字段，返回 `missingContractFields`，不得进入资产完整度检查
-5. **直接继承所有字段**：
-   - `scriptRawText`：直接从分集分场表继承（完整的剧本原文）
-   - `dialogue`：直接从分集分场表继承
-   - `visualDescription`：直接从分集分场表继承
-   - `sceneElements`：直接从分集分场表继承
-   - `cameraInfo`：直接从分集分场表继承
-6. **仅做简单格式化**：
-   - `sceneId`：自动生成（格式："第X集-第X场"）
-   - `lighting`：根据 `timeOfDay` 简单映射（日→自然光，夜→人工光）
-7. **字段名称映射**：
+**Extraction rules (inherit only, do not infer)**:
+1. Find the matching scene from the episode/scene table's `scenes` array
+2. Match criteria: both `episodeNumber` and `sceneNumber` must match
+3. If no matching scene is found, notify the user and terminate execution
+4. **Run contract validation first**:
+   - Check `sceneId`, `sceneLocationId`, `scriptRawText`
+   - Check each character's `characterId`, `characterName`, `roleType`
+   - Check each prop's `propId`, `propName`
+   - If fields are missing, return `missingContractFields`; do not proceed to asset completeness check
+5. **Directly inherit all fields**:
+   - `scriptRawText`: Directly inherit from episode/scene table (complete original script text)
+   - `dialogue`: Directly inherit from episode/scene table
+   - `visualDescription`: Directly inherit from episode/scene table
+   - `sceneElements`: Directly inherit from episode/scene table
+   - `cameraInfo`: Directly inherit from episode/scene table
+6. **Only perform simple formatting**:
+   - `sceneId`: Auto-generate (format: "Episode X-Scene X")
+   - `lighting`: Simple mapping based on `timeOfDay` (day→natural light, night→artificial light)
+7. **Field name mapping**:
    - `moodAndPace.emotionalTone` → `emotion`
    - `moodAndPace.intensity` → `emotionIntensity`
-   - `moodAndPace.pace` → `rhythm`（映射为 fast/medium/slow）
-8. **不做任何推断性工作**：
-   - 不推断角色站位
-   - 不推断动作细节
-   - 不推断镜头设计
-   - 不推断表演方式
-   - 不根据角色名、场景名、道具名反查或猜测缺失 ID
+   - `moodAndPace.pace` → `rhythm` (map to fast/medium/slow)
+8. **Do not perform any inferential work**:
+   - Do not infer character positioning
+   - Do not infer action details
+   - Do not infer shot design
+   - Do not infer performance style
+   - Do not reverse-lookup or guess missing IDs from character names, location names, or prop names
 
-**错误处理**：
-- 如果分集分场表卡片不存在 → 提示用户先完成剧本解构
-- 如果指定的集数或场数不存在 → 列出可用的集数和场数供用户选择
+**Error handling**:
+- If the episode/scene table card does not exist → prompt user to complete script deconstruction first
+- If the specified episode or scene number does not exist → list available episodes and scenes for user selection
 
 ---
 
-## 阶段2：资产完整度检查
+## Stage 2: Asset Completeness Check
 
-**作用**：检查制作这场戏所需的所有资产是否已在资产分区生成完毕。
+**Purpose**: Check whether all assets needed to produce this scene have been generated in the asset zone.
 
-### 2.1 检查角色妆造资产
+### 2.1 Check Character Costume Assets
 
-**检查逻辑**：
+**Check logic**:
 ```typescript
 for (const character of sceneInfo.characters) {
-  // 查询角色妆造卡片
+  // Query character costume cards
   const costumeCards = queryCostumeCards({
     characterId: character.characterId
   });
-  
+
   if (costumeCards.length === 0) {
-    // 缺失：该角色没有任何妆造卡片
+    // Missing: this character has no costume cards
     missingAssets.push({
       type: 'character_costume',
       characterId: character.characterId,
@@ -191,21 +191,21 @@ for (const character of sceneInfo.characters) {
       reason: '未生成角色妆造三视图'
     });
   } else {
-    // 存在：记录妆造卡片ID供后续使用
-    character.costumeCardId = costumeCards[0].id;  // 默认使用第一套妆造
+    // Exists: record costume card ID for later use
+    character.costumeCardId = costumeCards[0].id;  // Default to first costume set
   }
 }
 ```
 
-**输出**：
-- `hasCharacterCostumes`: boolean（所有角色是否都有妆造）
+**Output**:
+- `hasCharacterCostumes`: boolean (whether all characters have costumes)
 - `missingCharacterCostumes`: Array<{characterId, characterName, reason}>
 
-### 2.2 检查场景资产
+### 2.2 Check Scene Assets
 
-**检查逻辑**：
+**Check logic**:
 ```typescript
-// 查询场景概念图卡片
+// Query scene concept art cards
 const sceneConceptCards = querySceneConceptCards({
   sceneLocationId: sceneInfo.sceneLocationId
 });
@@ -220,21 +220,21 @@ if (sceneConceptCards.length === 0) {
 }
 ```
 
-**输出**：
+**Output**:
 - `hasSceneConcept`: boolean
 - `missingSceneConcept`: {sceneLocationId, sceneLocationName, reason}
 
-### 2.3 检查道具资产
+### 2.3 Check Prop Assets
 
-**检查逻辑**：
+**Check logic**:
 ```typescript
 if (sceneInfo.props && sceneInfo.props.length > 0) {
   for (const prop of sceneInfo.props) {
-    // 查询道具概念图卡片
+    // Query prop concept art cards
     const propConceptCards = queryPropConceptCards({
       propId: prop.propId
     });
-    
+
     if (propConceptCards.length === 0) {
       missingAssets.push({
         type: 'prop_concept',
@@ -247,20 +247,20 @@ if (sceneInfo.props && sceneInfo.props.length > 0) {
 }
 ```
 
-**输出**：
+**Output**:
 - `hasAllProps`: boolean
 - `missingProps`: Array<{propId, propName, reason}>
 
-### 2.4 计算完整度
+### 2.4 Calculate Completeness
 
-**计算公式**：
+**Calculation formula**:
 ```typescript
-const totalAssets = 
-  sceneInfo.characters.length +  // 角色妆造数量
-  1 +                             // 场景概念图（1个）
-  (sceneInfo.props?.length || 0); // 道具数量
+const totalAssets =
+  sceneInfo.characters.length +  // Number of character costumes
+  1 +                             // Scene concept art (1)
+  (sceneInfo.props?.length || 0); // Number of props
 
-const completedAssets = 
+const completedAssets =
   (sceneInfo.characters.length - missingCharacterCostumes.length) +
   (hasSceneConcept ? 1 : 0) +
   ((sceneInfo.props?.length || 0) - missingProps.length);
@@ -270,14 +270,14 @@ const completenessPercentage = Math.round(
 );
 ```
 
-**输出**：
+**Output**:
 ```typescript
 interface AssetCompleteness {
-  isComplete: boolean;              // 是否100%完整
-  completenessPercentage: number;   // 完整度百分比
-  totalAssets: number;              // 总资产数
-  completedAssets: number;          // 已完成资产数
-  missingAssets: Array<{            // 缺失资产列表
+  isComplete: boolean;              // Whether 100% complete
+  completenessPercentage: number;   // Completeness percentage
+  totalAssets: number;              // Total asset count
+  completedAssets: number;          // Completed asset count
+  missingAssets: Array<{            // Missing asset list
     type: 'character_costume' | 'scene_concept' | 'prop_concept';
     id: string;
     name: string;
@@ -288,112 +288,112 @@ interface AssetCompleteness {
 
 ---
 
-## 阶段3：用户交互
+## Stage 3: User Interaction
 
-**作用**：根据资产完整度，引导用户决定下一步操作。
+**Purpose**: Guide the user on the next step based on asset completeness.
 
-### 3.1 完整度 = 100%
+### 3.1 Completeness = 100%
 
-**展示信息**：
+**Display**:
 ```
-✅ 资产完整度检查通过（100%）
+✅ Asset completeness check passed (100%)
 
-所有资产已准备就绪：
-- 角色妆造：3/3 已生成
-- 场景概念图：1/1 已生成
-- 道具概念图：2/2 已生成
+All assets ready:
+- Character costumes: 3/3 generated
+- Scene concept art: 1/1 generated
+- Prop concept art: 2/2 generated
 
-是否继续创建分集分场剧情卡片？
-```
-
-**用户选项**：
-- 继续 → 进入阶段4
-- 取消 → 终止执行
-
-### 3.2 完整度 < 100%
-
-**展示信息**：
-```
-⚠️ 资产完整度检查未通过（75%）
-
-缺失资产清单：
-1. 角色妆造：林渊（未生成角色妆造三视图）
-   → 跳转到资产分区 > 角色妆造师
-
-2. 道具概念图：玉佩（未生成道具概念图）
-   → 跳转到资产分区 > 道具生成师
-
-建议：
-- 选项A：跳转到资产分区补充缺失资产（推荐）
-- 选项B：忽略缺失资产，继续创建剧情卡片（不推荐，后续制作可能受阻）
+Continue creating EpisodeSceneDetailCard?
 ```
 
-**用户选项**：
-- 跳转到资产分区 → 提供跳转链接，终止当前执行
-- 继续创建（忽略缺失） → 进入阶段4，但在卡片中标注资产不完整
+**User options**:
+- Continue → proceed to Stage 4
+- Cancel → terminate execution
 
-**话术示例**：
+### 3.2 Completeness < 100%
+
+**Display**:
 ```
-我已完成资产完整度检查。
+⚠️ Asset completeness check NOT passed (75%)
 
-检测到以下缺失资产：
-• 角色妆造：林渊（未生成三视图）
-• 道具概念图：玉佩（未生成概念图）
+Missing asset list:
+1. Character costume: 林渊 (costume turnaround not generated)
+   → Jump to asset zone > Character Costume Designer
 
-当前完整度：75%（3/4 已完成）
+2. Prop concept art: 玉佩 (prop concept art not generated)
+   → Jump to asset zone > Prop Generator
 
-建议您先跳转到资产分区补充这些资产，否则后续的场景策略、表演策略和分镜制作可能无法正常进行。
+Recommendations:
+- Option A: Jump to asset zone to supplement missing assets (recommended)
+- Option B: Ignore missing assets, continue creating detail card (not recommended; downstream production may be blocked)
+```
 
-您希望：
-A. 跳转到资产分区补充资产（推荐）
-B. 忽略缺失资产，继续创建剧情卡片（不推荐）
+**User options**:
+- Jump to asset zone → provide jump link, terminate current execution
+- Continue creating (ignore missing) → proceed to Stage 4, but mark asset incompleteness in card
 
-请选择 A 或 B。
+**Sample dialogue**:
+```
+I have completed the asset completeness check.
+
+The following missing assets were detected:
+• Character costume: 林渊 (turnaround not generated)
+• Prop concept art: 玉佩 (concept art not generated)
+
+Current completeness: 75% (3/4 completed)
+
+I recommend jumping to the asset zone to supplement these assets first; otherwise, downstream scene strategy, performance strategy, and storyboard production may not proceed normally.
+
+Would you like to:
+A. Jump to asset zone to supplement assets (recommended)
+B. Ignore missing assets, continue creating detail card (not recommended)
+
+Please choose A or B.
 ```
 
 ---
 
-## 阶段4：创建卡片
+## Stage 4: Create Card
 
-**作用**：创建分集分场剧情卡片，保存所有提取的信息和资产完整度状态。
+**Purpose**: Create an EpisodeSceneDetailCard, saving all extracted information and asset completeness status.
 
-**卡片字段**：
+**Card fields**:
 ```typescript
 interface EpisodeSceneDetailCard {
-  // 基础信息
+  // Basic information
   episodeNumber: number;
-  sceneNumber: string;          // 支持字母后缀（如："1-1A"）
-  sceneId: string;              // 场次ID（格式：第X集-第X场）
+  sceneNumber: string;          // Supports letter suffix (e.g. "1-1A")
+  sceneId: string;              // Scene ID (format: Episode X-Scene X)
   sceneLocationId: string;
-  location: string;             // 场景名称
+  location: string;             // Location name
   timeOfDay: string;
-  lighting: string;             // 光照条件（自然光/人工光/混合光）
+  lighting: string;             // Lighting conditions (natural/artificial/mixed)
   weather?: string;
-  
-  // 角色信息
+
+  // Character information
   characters: Array<{
     characterId: string;
     characterName: string;
-    costumeCardId?: string;     // 角色妆造卡片ID（如果已生成）
+    costumeCardId?: string;     // Costume card ID (if generated)
     roleType: 'protagonist' | 'supporting' | 'minor';
   }>;
-  
-  // 剧情信息
+
+  // Plot information
   plotSummary: string;
-  scriptRawText: string;        // 剧本原文（从分集分场表继承，必填）
-  dialogue?: string;            // 台词（从分集分场表继承）
-  emotion: string;              // 情绪基调
-  emotionIntensity: number;     // 情绪强度（1-10）
-  rhythm: 'fast' | 'medium' | 'slow'; // 节奏
-  
-  // 详细的视觉描述（从分集分场表继承）
+  scriptRawText: string;        // Original script text (inherited from episode/scene table, required)
+  dialogue?: string;            // Dialogue (inherited from episode/scene table)
+  emotion: string;              // Emotional tone
+  emotionIntensity: number;     // Emotional intensity (1-10)
+  rhythm: 'fast' | 'medium' | 'slow'; // Rhythm
+
+  // Detailed visual description (inherited from episode/scene table)
   visualDescription: Array<{
     sequence: number;
     content: string;
     type: 'action' | 'camera' | 'environment' | 'character';
   }>;
-  
-  // 场景视觉元素（从分集分场表继承）
+
+  // Scene visual elements (inherited from episode/scene table)
   sceneElements: {
     environment: string[];
     characterStates: Array<{
@@ -404,15 +404,15 @@ interface EpisodeSceneDetailCard {
     lighting?: string;
     atmosphere?: string;
   };
-  
-  // 镜头信息（从分集分场表继承）
+
+  // Camera information (inherited from episode/scene table)
   cameraInfo?: {
     movements: string[];
     angles?: string[];
     focusSubjects?: string[];
   };
-  
-  // 角色弧光和剧情转折
+
+  // Character arc and plot turning points
   characterArcMoments: Array<{
     characterId: string;
     characterName: string;
@@ -425,15 +425,15 @@ interface EpisodeSceneDetailCard {
     turningPointDescription?: string;
     impactLevel?: 'major' | 'moderate' | 'minor';
   };
-  
-  // 道具信息
+
+  // Prop information
   props?: Array<{
     propId: string;
     propName: string;
-    propConceptCardId?: string;  // 道具概念图卡片ID（如果已生成）
+    propConceptCardId?: string;  // Prop concept art card ID (if generated)
   }>;
-  
-  // 资产完整度
+
+  // Asset completeness
   assetCompleteness: {
     characterAssets: Array<{
       characterId: string;
@@ -455,61 +455,61 @@ interface EpisodeSceneDetailCard {
       designCardId?: string;
     }>;
     completenessPercentage: number;
-    missingAssets: string[];    // 缺失资产列表（用于显示）
+    missingAssets: string[];    // Missing asset list (for display)
   };
-  
-  // 上游卡片
-  upstreamCards: string[];      // 上游卡片ID列表
-  
-  // 元数据
+
+  // Upstream cards
+  upstreamCards: string[];      // List of upstream card IDs
+
+  // Metadata
   createdAt: string;
   status: 'draft' | 'in_progress' | 'completed';
   notes?: string;
 }
 ```
 
-**创建规则（只继承不推断）**：
-1. 所有从分集分场表提取的信息直接填入对应字段
-2. **直接继承的字段**：
-   - `dialogue`：直接从分集分场表继承
-   - `visualDescription`：直接从分集分场表继承
-   - `sceneElements`：直接从分集分场表继承
-   - `cameraInfo`：直接从分集分场表继承
-3. **简单格式化的字段**：
-   - `sceneId`：自动生成（格式："第1集-第1场"）
-   - `lighting`：根据 `timeOfDay` 简单映射
-4. **字段名称映射**：
+**Creation rules (inherit only, do not infer)**:
+1. All information extracted from the episode/scene table is directly filled into corresponding fields
+2. **Directly inherited fields**:
+   - `dialogue`: Directly inherited from episode/scene table
+   - `visualDescription`: Directly inherited from episode/scene table
+   - `sceneElements`: Directly inherited from episode/scene table
+   - `cameraInfo`: Directly inherited from episode/scene table
+3. **Simply formatted fields**:
+   - `sceneId`: Auto-generated (format: "Episode 1-Scene 1")
+   - `lighting`: Simple mapping based on `timeOfDay`
+4. **Field name mapping**:
    - `moodAndPace.emotionalTone` → `emotion`
    - `moodAndPace.intensity` → `emotionIntensity`
    - `moodAndPace.pace` → `rhythm`
-5. 资产完整度信息完整保存（使用新的结构）
-6. 如果资产不完整，`missingAssets` 数组记录所有缺失项
-7. `status` 初始值为 `'draft'`
-8. **不做任何推断性工作**：内容量、结构选择和策略方向由下游导演讲戏skill预判
+5. Asset completeness information saved in full (using the new structure)
+6. If assets are incomplete, the `missingAssets` array records all missing items
+7. `status` initial value is `'draft'`
+8. **Do not perform any inferential work**: content volume, structural choices, and strategic direction are pre-determined by downstream director briefing skill
 
-**上下游连线**：
-- 上游：分集分场表卡片
-- 直接下游：导演讲戏卡片（precheck）
-- 间接下游：场景策略卡片、表演策略卡片、拍摄策略卡片
+**Upstream/downstream connections**:
+- Upstream: EpisodeSceneTableCard
+- Direct downstream: DirectorBriefingCard (precheck)
+- Indirect downstream: SceneStrategyCard, PerformanceStrategyCard, CinematographyStrategyCard
 
 ---
 
-## 测试用例
+## Test Cases
 
-### 测试用例1：资产完整（100%）
+### Test Case 1: Assets Complete (100%)
 
-**输入**：
-- 分集分场表卡片ID：`episode-scene-table-001`
-- 集数：1
-- 场数：3
+**Input**:
+- Episode/scene table card ID: `episode-scene-table-001`
+- Episode: 1
+- Scene: 3
 
-**前置条件**：
-- 角色"林渊"已有妆造卡片
-- 角色"苏婉"已有妆造卡片
-- 场景"林府-书房"已有概念图卡片
-- 道具"玉佩"已有概念图卡片
+**Preconditions**:
+- Character "林渊" already has costume card
+- Character "苏婉" already has costume card
+- Location "林府-书房" already has concept art card
+- Prop "玉佩" already has concept art card
 
-**预期输出**：
+**Expected output**:
 ```typescript
 {
   assetCompleteness: {
@@ -549,34 +549,34 @@ interface EpisodeSceneDetailCard {
 }
 ```
 
-**用户交互**：
+**User interaction**:
 ```
-✅ 资产完整度检查通过（100%）
+✅ Asset completeness check passed (100%)
 
-所有资产已准备就绪：
-- 角色妆造：2/2 已生成
-- 场景概念图：1/1 已生成
-- 道具概念图：1/1 已生成
+All assets ready:
+- Character costumes: 2/2 generated
+- Scene concept art: 1/1 generated
+- Prop concept art: 1/1 generated
 
-是否继续创建分集分场剧情卡片？
+Continue creating EpisodeSceneDetailCard?
 ```
 
 ---
 
-### 测试用例2：资产不完整（75%）
+### Test Case 2: Assets Incomplete (75%)
 
-**输入**：
-- 分集分场表卡片ID：`episode-scene-table-001`
-- 集数：1
-- 场数：5
+**Input**:
+- Episode/scene table card ID: `episode-scene-table-001`
+- Episode: 1
+- Scene: 5
 
-**前置条件**：
-- 角色"林渊"已有妆造卡片
-- 角色"苏婉"**没有**妆造卡片
-- 场景"林府-花园"已有概念图卡片
-- 道具"折扇"**没有**概念图卡片
+**Preconditions**:
+- Character "林渊" already has costume card
+- Character "苏婉" **does not** have costume card
+- Location "林府-花园" already has concept art card
+- Prop "折扇" **does not** have concept art card
 
-**预期输出**：
+**Expected output**:
 ```typescript
 {
   assetCompleteness: {
@@ -622,119 +622,119 @@ interface EpisodeSceneDetailCard {
 }
 ```
 
-**用户交互**：
+**User interaction**:
 ```
-⚠️ 资产完整度检查未通过（50%）
+⚠️ Asset completeness check NOT passed (50%)
 
-缺失资产清单：
-1. 角色妆造：苏婉（未生成角色妆造三视图）
-   → 跳转到资产分区 > 角色妆造师
+Missing asset list:
+1. Character costume: 苏婉 (costume turnaround not generated)
+   → Jump to asset zone > Character Costume Designer
 
-2. 道具概念图：折扇（未生成道具概念图）
-   → 跳转到资产分区 > 道具生成师
+2. Prop concept art: 折扇 (prop concept art not generated)
+   → Jump to asset zone > Prop Generator
 
-建议：
-- 选项A：跳转到资产分区补充缺失资产（推荐）
-- 选项B：忽略缺失资产，继续创建剧情卡片（不推荐，后续制作可能受阻）
+Recommendations:
+- Option A: Jump to asset zone to supplement missing assets (recommended)
+- Option B: Ignore missing assets, continue creating detail card (not recommended; downstream production may be blocked)
 
-请选择 A 或 B。
-```
-
----
-
-### 测试用例3：场次不存在
-
-**输入**：
-- 分集分场表卡片ID：`episode-scene-table-001`
-- 集数：1
-- 场数：99（不存在）
-
-**预期输出**：
-```
-❌ 错误：找不到指定的场次
-
-您指定的场次（第1集-第99场）在分集分场表中不存在。
-
-可用的场次：
-第1集：
-  - 第1场：林府-大门（白天）
-  - 第2场：林府-书房（白天）
-  - 第3场：林府-书房（夜晚）
-  - 第4场：街道（白天）
-  - 第5场：林府-花园（黄昏）
-
-请重新指定集数和场数。
+Please choose A or B.
 ```
 
 ---
 
-## 实施检查清单
+### Test Case 3: Scene Does Not Exist
 
-### 开发前
-- [ ] 确认分集分场表卡片字段定义
-- [ ] 确认分集分场剧情卡片字段定义
-- [ ] 确认资产分区卡片类型（角色妆造、场景概念图、道具概念图）
-- [ ] 设计资产查询接口
+**Input**:
+- Episode/scene table card ID: `episode-scene-table-001`
+- Episode: 1
+- Scene: 99 (does not exist)
 
-### 开发中
-- [ ] 实现场次信息提取逻辑
-- [ ] 实现角色妆造资产检查
-- [ ] 实现场景资产检查
-- [ ] 实现道具资产检查
-- [ ] 实现完整度计算
-- [ ] 实现用户交互逻辑（完整/不完整两种情况）
-- [ ] 实现卡片创建逻辑
-- [ ] 实现上下游连线
+**Expected output**:
+```
+❌ Error: Specified scene not found
 
-### 测试
-- [ ] 测试用例1：资产完整（100%）
-- [ ] 测试用例2：资产不完整（75%）
-- [ ] 测试用例3：场次不存在
-- [ ] 测试用例4：分集分场表卡片不存在
-- [ ] 测试用例5：多角色多道具场景
+The specified scene (Episode 1-Scene 99) does not exist in the episode/scene table.
 
-### 上线前
-- [ ] 用户话术审查
-- [ ] 错误提示清晰度检查
-- [ ] 性能测试（大量资产查询）
-- [ ] 与资产分区skill的集成测试
+Available scenes:
+Episode 1:
+  - Scene 1: 林府-大门 (day)
+  - Scene 2: 林府-书房 (day)
+  - Scene 3: 林府-书房 (night)
+  - Scene 4: 街道 (day)
+  - Scene 5: 林府-花园 (dusk)
+
+Please re-specify episode and scene numbers.
+```
 
 ---
 
-## 注意事项
+## Implementation Checklist
 
-### 资产查询性能
-- 如果角色/道具数量很多，资产查询可能较慢
-- 建议使用索引优化查询（按 `characterId`、`sceneLocationId`、`propId`）
-- 考虑缓存已查询的资产信息
+### Before Development
+- [ ] Confirm episode/scene table card field definitions
+- [ ] Confirm EpisodeSceneDetailCard field definitions
+- [ ] Confirm asset zone card types (character costume, scene concept art, prop concept art)
+- [ ] Design asset query interface
 
-### 用户体验
-- 缺失资产清单应该清晰明了，提供跳转链接
-- 如果用户选择"忽略缺失资产"，应在卡片中明确标注，避免后续困惑
-- 完整度百分比应该直观（如：75% = 3/4 已完成）
+### During Development
+- [ ] Implement scene information extraction logic
+- [ ] Implement character costume asset check
+- [ ] Implement scene asset check
+- [ ] Implement prop asset check
+- [ ] Implement completeness calculation
+- [ ] Implement user interaction logic (complete/incomplete scenarios)
+- [ ] Implement card creation logic
+- [ ] Implement upstream/downstream connections
 
-### 边界情况
-- 场景没有道具 → 道具检查跳过，不影响完整度
-- 角色没有台词 → 不影响资产检查
-- 场景是"虚拟场景"（如梦境） → 可能不需要场景概念图，需要特殊处理
+### Testing
+- [ ] Test case 1: Assets complete (100%)
+- [ ] Test case 2: Assets incomplete (75%)
+- [ ] Test case 3: Scene does not exist
+- [ ] Test case 4: Episode/scene table card does not exist
+- [ ] Test case 5: Multiple characters and props scene
 
-### 与其他Skill的协作
-- 剧务统筹是制作分区的**入口skill**
-- 输出的分集分场剧情卡片是后续所有策略skill的输入
-- 资产完整度检查确保后续制作流程顺畅
+### Before Launch
+- [ ] User dialogue review
+- [ ] Error message clarity check
+- [ ] Performance testing (large asset queries)
+- [ ] Integration testing with asset zone skills
 
-## 完成后下一步
+---
 
-触发规则：用户提到要做具体某一集/某一场时，应调用 `production-coordinator`。
+## Notes
 
-完成判定：已检查是否存在对应 `EpisodeSceneDetailCard`；没有则创建，有则检查当前分集分场的完成情况，包括资产完整度、导演讲戏、三张策略卡片、故事板和视频状态。
+### Asset Query Performance
+- If there are many characters/props, asset queries may be slow
+- Recommended to use indexed queries (by `characterId`, `sceneLocationId`, `propId`)
+- Consider caching queried asset information
 
-推荐下一步：
+### User Experience
+- Missing asset list should be clear and provide jump links
+- If user chooses "ignore missing assets", mark it clearly in the card to avoid downstream confusion
+- Completeness percentage should be intuitive (e.g., 75% = 3/4 completed)
 
-- 如果没有 `DirectorBriefingCard.precheck`：调用 `director-briefing` 进行第一次导演预判。
-- 如果三张策略卡片未齐：建议补齐缺失的 `scene-strategy-designer`、`performance-strategy-designer`、`cinematography-strategy-designer`。
-- 如果三张策略卡片已齐但没有 `StoryboardPlanCard`：调用 `director-briefing` 进行复判与镜头组落版。
-- 如果已有 `StoryboardPlanCard` 但没有确认故事板：调用 `storyboard-creator`。
-- 如果已有确认故事板但没有视频：调用 `video-creator`。
+### Edge Cases
+- Scene has no props → prop check skipped, does not affect completeness
+- Character has no dialogue → does not affect asset check
+- Scene is a "virtual scene" (e.g., dream sequence) → may not need scene concept art; requires special handling
 
-推荐话术：`我已检查当前分集分场的完成情况。建议下一步处理缺失环节：{缺失项}。`
+### Collaboration with Other Skills
+- Production coordinator is the **entry skill** for the production zone
+- The output EpisodeSceneDetailCard is the input for all downstream strategy skills
+- Asset completeness check ensures smooth downstream production flow
+
+## After Completion — Next Steps
+
+Trigger rule: When user mentions working on a specific episode/scene, invoke `production-coordinator`.
+
+Completion criteria: Check whether the corresponding `EpisodeSceneDetailCard` exists; if not, create it; if it does, check the current episode/scene completion status, including asset completeness, director briefing, three strategy cards, storyboard, and video status.
+
+Recommended next steps:
+
+- If no `DirectorBriefingCard.precheck`: invoke `director-briefing` for the first director precheck.
+- If the three strategy cards are incomplete: recommend filling in the missing `scene-strategy-designer`, `performance-strategy-designer`, `cinematography-strategy-designer`.
+- If all three strategy cards are complete but no `StoryboardPlanCard`: invoke `director-briefing` for review and shot group finalization.
+- If `StoryboardPlanCard` exists but storyboard is not confirmed: invoke `storyboard-creator`.
+- If storyboard is confirmed but no video: invoke `video-creator`.
+
+Recommended dialogue: `I have checked the current episode/scene completion status. Recommended next step: address the missing links: {missing items}.`

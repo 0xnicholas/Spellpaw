@@ -1,4 +1,4 @@
-import { MessageSquare, GitBranch, Layout, Zap, Shield, Palette } from 'lucide-react';
+import { MessageSquare, GitBranch, Layout, Zap, Shield } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const features: { key: string; icon: typeof MessageSquare }[] = [
@@ -7,7 +7,6 @@ const features: { key: string; icon: typeof MessageSquare }[] = [
   { key: 'canvas', icon: Layout },
   { key: 'rhythm', icon: Zap },
   { key: 'sync', icon: Shield },
-  { key: 'templates', icon: Palette },
 ];
 
 /**

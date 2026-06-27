@@ -77,8 +77,6 @@ export function useCopilotSSE() {
     'spellpaw_batch_delete_cards',
     'spellpaw_batch_add_cards',
     'spellpaw_clear_canvas',
-    'spellpaw_kickstart_project',
-    'spellpaw_apply_template',
     'spellpaw_generate_storyboard',
   ]);
 

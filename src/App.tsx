@@ -3,7 +3,6 @@ import { PortalPage } from '@/apps/portal/pages/PortalPage';
 import { LoginPage } from '@drama/pages/LoginPage';
 import { ProjectListPage } from '@drama/pages/ProjectListPage';
 import { WorkspacePage } from '@drama/pages/WorkspacePage';
-import { TemplateMarketPage } from '@drama/pages/TemplateMarketPage';
 import { ConsolePage } from '@console/pages/ConsolePage';
 import { CopilotLabPage } from '@drama/pages/CopilotLabPage';
 import { BootstrapShell } from '@/shared/components/BootstrapShell';
@@ -46,16 +45,6 @@ function App() {
           <RequireAuth>
             <BootstrapShell bootstrap={bootstrapDrama}>
               <WorkspacePage />
-            </BootstrapShell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/templates"
-        element={
-          <RequireAuth>
-            <BootstrapShell bootstrap={bootstrapDrama}>
-              <TemplateMarketPage />
             </BootstrapShell>
           </RequireAuth>
         }

@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next';
 
 const stats: { key: string }[] = [
   { key: 'models' },
-  { key: 'templates' },
   { key: 'skills' },
   { key: 'sync' },
 ];
@@ -28,7 +27,7 @@ export function StatsSection() {
             borderColor: 'var(--portal-border)',
           }}
         >
-          <div className="grid grid-cols-2 gap-y-8 gap-x-2 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-y-8 gap-x-2 sm:grid-cols-3">
             {stats.map((stat, i) => (
               <div
                 key={stat.key}

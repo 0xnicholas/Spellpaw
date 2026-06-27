@@ -23,7 +23,6 @@ const STATIC_LABELS: Record<string, string> = {
   spellpaw_update_node: 'Updating node…',
   spellpaw_delete_node: 'Deleting node…',
   spellpaw_move_node: 'Reordering…',
-  spellpaw_apply_template: 'Applying template…',
 
   // Generation domain
   spellpaw_generate_asset: 'Generating asset…',
@@ -36,9 +35,7 @@ const STATIC_LABELS: Record<string, string> = {
   // Analysis domain
   spellpaw_analyze_structure: 'Analyzing structure…',
   spellpaw_get_pacing_report: 'Analyzing pacing…',
-  spellpaw_match_template: 'Matching template…',
   spellpaw_optimize_pacing: 'Optimizing pacing…',
-  spellpaw_kickstart_project: 'Bootstrapping project…',
 };
 
 /**

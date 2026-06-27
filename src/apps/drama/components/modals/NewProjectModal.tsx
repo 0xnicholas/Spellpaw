@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
-import { TemplateBrowser } from '@drama/components/template-browser/TemplateBrowser';
-import type { NarrativeTemplate } from '@drama/types';
 
 const DEFAULT_COVER_COLOR = '#6366f1';
 
@@ -10,11 +8,9 @@ interface NewProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreate: (title: string, description: string, coverColor: string) => void;
-  onCreateFromTemplate?: (template: NarrativeTemplate) => void;
 }
 
-export function NewProjectModal({ isOpen, onClose, onCreate, onCreateFromTemplate }: NewProjectModalProps) {
-  const [mode, setMode] = useState<'blank' | 'template'>('blank');
+export function NewProjectModal({ isOpen, onClose, onCreate }: NewProjectModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
@@ -27,88 +23,43 @@ export function NewProjectModal({ isOpen, onClose, onCreate, onCreateFromTemplat
     onClose();
   };
 
-  const handleTemplateSelect = (template: NarrativeTemplate) => {
-    onCreateFromTemplate?.(template);
-    reset();
-    onClose();
-  };
-
   const reset = () => {
     setTitle('');
     setDescription('');
-    setMode('blank');
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
       <div className="w-full max-w-lg rounded-[var(--radius-base)] border border-[var(--color-border-default)] bg-[var(--color-bg-primary)] p-5 shadow-lg">
-        {/* Mode switcher */}
-        {onCreateFromTemplate && (
-          <div className="mb-4 flex gap-1 rounded-[var(--radius-sm)] bg-[var(--color-bg-tertiary)] p-0.5">
-            <button
-              onClick={() => setMode('blank')}
-              className={`flex-1 rounded-[var(--radius-sm)] py-1 text-[11px] font-medium transition-colors ${
-                mode === 'blank'
-                  ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
-                  : 'text-[var(--color-text-tertiary)]'
-              }`}
-            >
-              空白项目
-            </button>
-            <button
-              onClick={() => setMode('template')}
-              className={`flex-1 rounded-[var(--radius-sm)] py-1 text-[11px] font-medium transition-colors ${
-                mode === 'template'
-                  ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
-                  : 'text-[var(--color-text-tertiary)]'
-              }`}
-            >
-              从模板创建
-            </button>
+        <h3 className="mb-3 text-sm font-semibold text-[var(--color-text-primary)]">新建项目</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-[var(--color-text-secondary)]">标题</label>
+            <Input
+              placeholder="项目名称"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="text-xs"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
+            />
           </div>
-        )}
-
-        {mode === 'blank' ? (
-          <>
-            <h3 className="mb-3 text-sm font-semibold text-[var(--color-text-primary)]">新建项目</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-[var(--color-text-secondary)]">标题</label>
-                <Input
-                  placeholder="项目名称"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="text-xs"
-                  autoFocus
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-[var(--color-text-secondary)]">描述（可选）</label>
-                <Input
-                  placeholder="简要描述你的项目"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="text-xs"
-                />
-              </div>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={onClose}>取消</Button>
-              <Button size="sm" disabled={!title.trim()} onClick={handleSubmit}>
-                创建
-              </Button>
-            </div>
-          </>
-        ) : (
-          <>
-            <h3 className="mb-3 text-sm font-semibold text-[var(--color-text-primary)]">选择模板</h3>
-            <TemplateBrowser onSelect={handleTemplateSelect} />
-            <div className="mt-4 flex justify-end">
-              <Button variant="ghost" size="sm" onClick={onClose}>取消</Button>
-            </div>
-          </>
-        )}
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-[var(--color-text-secondary)]">描述（可选）</label>
+            <Input
+              placeholder="简要描述你的项目"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="text-xs"
+            />
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={onClose}>取消</Button>
+          <Button size="sm" disabled={!title.trim()} onClick={handleSubmit}>
+            创建
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -448,13 +448,6 @@ export const SPELLPAW_TOOL_CONFIGS = [
 		endpoint: TOOL_ENDPOINT,
 	},
 	{
-		name: "spellpaw_match_template",
-		description:
-			"Match the current project against built-in narrative templates based on title, description, and scene keywords. Returns the best match with similarity score and templateId.",
-		parameters: { type: "object", properties: {} },
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
 		name: "spellpaw_optimize_pacing",
 		description:
 			"Auto-adjust scene durations based on pacing analysis. dryRun=true (default) returns a preview plan; dryRun=false executes the changes.",
@@ -467,53 +460,6 @@ export const SPELLPAW_TOOL_CONFIGS = [
 						"If true, returns preview only. If false, executes changes.",
 				},
 			},
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
-		name: "spellpaw_kickstart_project",
-		description:
-			"Create a complete narrative structure (acts, scenes, shots) from a theme and generate canvas cards for every scene. Use this whenever the user asks to create a project structure and generate scene cards in one go.",
-		parameters: {
-			type: "object",
-			properties: {
-				theme: {
-					type: "string",
-					description: 'Theme or title of the project, e.g. "密室逃脱"',
-				},
-				genre: {
-					type: "string",
-					description: 'Optional genre hint, e.g. "悬疑" or "romance"',
-				},
-				targetDuration: {
-					type: "number",
-					description: "Optional total target duration in seconds",
-				},
-				cardType: {
-					type: "string",
-					enum: ["storyline", "sceneCard", "script"],
-					description:
-						"Type of canvas card to create. Defaults to storyline.",
-				},
-			},
-			required: ["theme"],
-		},
-		endpoint: TOOL_ENDPOINT,
-	},
-	{
-		name: "spellpaw_apply_template",
-		description:
-			"Apply a narrative template to the current canvas. Generates storyline cards (acts) and sceneCard cards (scenes with shot children) from the template's structure. Use this when the user wants to bootstrap a project from a specific known template (use match_template first if you don't know which template fits).",
-		parameters: {
-			type: "object",
-			properties: {
-				templateId: {
-					type: "string",
-					description:
-						'Template id, e.g. "sweet-romance" or "underdog-comeback". Builtin ids are loaded from /public/templates/ on demand; custom templates in the user store take priority.',
-				},
-			},
-			required: ["templateId"],
 		},
 		endpoint: TOOL_ENDPOINT,
 	},

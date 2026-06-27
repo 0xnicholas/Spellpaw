@@ -7,8 +7,6 @@ import {
   Trash2,
   Download,
   Upload,
-  FileCode,
-  LayoutTemplate,
   Printer,
   FileText,
   Camera,
@@ -16,14 +14,11 @@ import {
 } from 'lucide-react';
 import { NewProjectModal } from '@drama/components/modals/NewProjectModal';
 import { SnapshotModal } from '@drama/components/modals/SnapshotModal';
-import type { NarrativeTemplate } from '@drama/types';
 import { DeleteConfirmDialog } from '@drama/components/modals/DeleteConfirmDialog';
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { exportProjectToJSON, importProjectFromJSON } from '@drama/lib/exportImport';
-import { logger } from '@shared/lib/logger';
-import { treeToTemplate, downloadTemplateFile } from '@drama/lib/templateExportImport';
 import { pushAll, pullAll } from '@drama/lib/projectSync';
 import { exportStoryboardPDF, exportDialogueScript } from '@drama/lib/exportPrint';
 
@@ -54,18 +49,6 @@ export function ProjectListPage() {
     navigate(`/project/${projectId}`);
   };
 
-  const handleCreateFromTemplate = async (template: NarrativeTemplate) => {
-    const projectId = createProject(template.name, template.description, template.stylePresets.colorPalette[0]);
-    try {
-      const { toolRouter } = await import('@drama/stores/toolRouter');
-      await toolRouter.apply_template({ action: 'apply_template', templateId: template.id, parentId: undefined });
-      setCurrentProject(projectId);
-      navigate(`/project/${projectId}`);
-    } catch (err) {
-      logger.error('Template application failed:', err);
-    }
-  };
-
   const handleExport = (projectId: string) => {
     const state = useProjectStore.getState();
     const canvasState = useCanvasStore.getState();
@@ -74,15 +57,6 @@ export function ProjectListPage() {
     if (!project || !tree) return;
     const canvasEntry = canvasState.canvases[projectId];
     exportProjectToJSON(project, tree, canvasEntry?.nodes, canvasEntry?.edges);
-  };
-
-  const handleExportAsTemplate = (projectId: string) => {
-    const state = useProjectStore.getState();
-    const project = state.projects.find((p) => p.id === projectId);
-    const tree = state.trees[projectId];
-    if (!project || !tree) return;
-    const template = treeToTemplate(tree, project);
-    downloadTemplateFile(template);
   };
 
   const handleImport = async () => {
@@ -181,27 +155,6 @@ export function ProjectListPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => navigate('/templates')}
-                className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-all"
-                style={{
-                  background: 'oklch(100% 0 0 / 0.04)',
-                  border: '1px solid oklch(100% 0 0 / 0.08)',
-                  color: 'var(--portal-text-muted)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'oklch(60% 0.18 275 / 0.5)';
-                  e.currentTarget.style.color = 'var(--portal-accent)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'oklch(100% 0 0 / 0.08)';
-                  e.currentTarget.style.color = 'var(--portal-text-muted)';
-                }}
-              >
-                <LayoutTemplate className="h-3.5 w-3.5" />
-                模板市场
-              </button>
-
               {user && (
                 <>
                   <button
@@ -404,15 +357,6 @@ export function ProjectListPage() {
                     <ActionIconButton
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleExportAsTemplate(project.id);
-                      }}
-                      title="导出为模板"
-                    >
-                      <FileCode className="h-3.5 w-3.5" />
-                    </ActionIconButton>
-                    <ActionIconButton
-                      onClick={(e) => {
-                        e.stopPropagation();
                         handleExport(project.id);
                       }}
                       title="导出 JSON"
@@ -441,7 +385,6 @@ export function ProjectListPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onCreate={handleCreate}
-        onCreateFromTemplate={handleCreateFromTemplate}
       />
 
       <SnapshotModal

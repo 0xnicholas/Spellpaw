@@ -12,7 +12,6 @@ import { generateId } from '@/shared/lib/utils';
 import { findCardOrError, validateCanvasCardPayload, normalizeCardData } from '@drama/lib/cardValidation';
 import { formatResult } from '@drama/lib/toolResultFormat';
 import { computeAutoPosition } from '@drama/lib/canvasAutoLayout';
-import { applyTemplateToCanvas } from '@drama/lib/applyTemplateToCanvas';
 import type { CanvasNodeType, CanvasNode } from '@drama/types';
 import type { ToolRouter, ToolResult } from './types';
 
@@ -99,7 +98,7 @@ async function addTypedCard(
   };
 }
 
-// ── Shared helper: add enriched card (used by applyTemplateToCanvas + skills) ──
+// ── Shared helper: add enriched card (used by skill tools) ──
 
 export async function addEnrichedCard(
   cardType: CanvasNodeType,
@@ -361,54 +360,5 @@ export const cardHandlers: ToolRouter = {
 
     const scope = cardType ?? status ?? titleContains ? '（按条件）' : '';
     return formatResult({ success: true, affectedCardIds: matched.map((m) => m.id), summary: `已清空画布${scope}：共删除 ${matched.length} 张卡片。` });
-  },
-
-  /**
-   * Apply a narrative template (builtin or custom) to the current canvas.
-   *
-   *   spellpaw_apply_template(templateId: string)
-   *
-   * Resolves the template via applyTemplateToCanvas, which:
-   *   1. Checks customTemplateStore (user-curated templates win)
-   *   2. Falls back to fetching /templates/{id}.spellpaw-template.json
-   *
-   * Returns the same JSON envelope as other canvas tools (success,
-   * affectedCardIds, summary, sideEffects) so callers can react to the
-   * result uniformly. Errors are reported with success:false so the LLM
-   * can recover (e.g. retry with a different templateId).
-   */
-  apply_template: async (params) => {
-    const templateId = String(params.templateId ?? '').trim();
-    if (!templateId) {
-      return formatResult({
-        success: false,
-        error: 'validation_failed',
-        suggestion: 'pass a non-empty templateId',
-        summary: '需要 templateId 参数',
-      });
-    }
-    const raw = await applyTemplateToCanvas(templateId);
-    // applyTemplateToCanvas returns a JSON string already. Forward it as-is
-    // so downstream consumers see the same shape regardless of caller path.
-    try {
-      const parsed = JSON.parse(raw);
-      // Pull a friendly default summary if applyTemplateToCanvas omitted one.
-      if (!parsed.summary) {
-        const ok = parsed.affectedCardIds?.length ?? 0;
-        parsed.summary = ok > 0
-          ? `已应用模板「${templateId}」：${ok} 张卡片`
-          : `模板「${templateId}」无新卡片创建`;
-      }
-      logger.log(`[apply_template] ${templateId} →`, parsed.summary);
-      return JSON.stringify(parsed);
-    } catch {
-      // Unexpected non-JSON output — surface as an error so the LLM sees it.
-      return formatResult({
-        success: false,
-        error: 'validation_failed',
-        suggestion: 'internal: applyTemplateToCanvas returned non-JSON',
-        summary: `模板「${templateId}」执行失败`,
-      });
-    }
   },
 };

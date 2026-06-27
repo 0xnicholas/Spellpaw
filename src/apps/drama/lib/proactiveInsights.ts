@@ -17,7 +17,7 @@ export function computeProactiveInsights(): ProactiveInsight[] {
 
   const acts = cards.filter((c) => c.type === 'storyline' && c.data.metadata?.type === 'act');
   if (acts.length === 0) {
-    insights.push({ type: 'missing_acts', severity: 'warning', message: '项目没有幕结构，建议用 apply_template 或 add_storyline_card 添加' });
+    insights.push({ type: 'missing_acts', severity: 'warning', message: '项目没有幕结构，建议用 add_storyline_card 添加幕' });
   }
 
   const scenes = cards.filter((c) => c.type === 'sceneCard');

@@ -33,3 +33,6 @@ playwright-report/
 blob-report/
 playwright/.cache/
 e2e/screenshots/
+
+# Local artifacts from e2e/character-card-e2e.spec.ts
+screenshots/

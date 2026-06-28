@@ -123,25 +123,38 @@ the user or read from env / a secret store.
 
 ```bash
 set -euo pipefail
-# Read from environment if not set interactively. The deployment
-# script should source these from wherever the operator keeps them.
-: "${LLM_API_KEY:?LLM_API_KEY not set — pass as env or prompt the user}"
+# Public host (domain or IP) the server is reachable at.
 : "${PUBLIC_HOST:?PUBLIC_HOST not set — pass the domain or public IP}"
 
-# LLM provider defaults to DeepSeek. Override LLM_BASE_URL + LLM_MODEL
-# for any OpenAI-compatible endpoint.
-: "${LLM_BASE_URL:=https://api.deepseek.com/v1}"
-: "${LLM_MODEL:=deepseek-chat}"
-export LLM_API_KEY PUBLIC_HOST LLM_BASE_URL LLM_MODEL
+# Optional: server-wide LLM fallback. If unset, every user (including
+# the demo account) must configure their own LLM keys in Console >
+# Integrations. LLM_BASE_URL / LLM_MODEL override the per-provider
+# defaults for any OpenAI-compatible endpoint.
+: "${LLM_API_KEY:=}"
+: "${LLM_BASE_URL:=}"
+: "${LLM_MODEL:=}"
 
-echo "PUBLIC_HOST = $PUBLIC_HOST"
-echo "LLM_BASE_URL = $LLM_BASE_URL"
-echo "LLM_MODEL   = $LLM_MODEL"
-# LLM_API_KEY intentionally not echoed.
+# Optional: pre-seed the demo account (`demo@spellpaw.xyz`) with a
+# chat LLM so demo works out of the box. If unset, the demo user
+# still has the default DeepSeek config and must enter an API key
+# in Console > Integrations to use chat.
+: "${DEMO_LLM_API_KEY:=}"
+: "${DEMO_LLM_PROVIDER:=deepseek}"
+: "${DEMO_LLM_BASE_URL:=}"
+: "${DEMO_LLM_MODEL:=}"
+
+export PUBLIC_HOST LLM_API_KEY LLM_BASE_URL LLM_MODEL \
+       DEMO_LLM_API_KEY DEMO_LLM_PROVIDER DEMO_LLM_BASE_URL DEMO_LLM_MODEL
+
+echo "PUBLIC_HOST        = $PUBLIC_HOST"
+echo "DEMO_LLM_PROVIDER  = $DEMO_LLM_PROVIDER"
+[ -n "$DEMO_LLM_API_KEY" ] && echo "DEMO_LLM_API_KEY  = ***set***" || echo "DEMO_LLM_API_KEY  = (empty — demo user must configure chat in Console)"
+# Real LLM_API_KEY intentionally not echoed.
 ```
 
-Done when: the four echo lines print. If any `?` triggered, the
-operator must supply the missing var.
+Done when: the echo lines print. None of the LLM_* keys are strictly
+required (users configure their own), but `DEMO_LLM_API_KEY` is
+strongly recommended so the demo account is usable.
 
 ## 4. Write `server/.env`
 
@@ -158,9 +171,19 @@ NODE_ENV=production
 PUBLIC_HOST=$PUBLIC_HOST
 CLIENT_ORIGIN=https://$PUBLIC_HOST,http://$PUBLIC_HOST,http://localhost:3002
 
+# Optional server-wide LLM fallback. Per-user configs in
+# Console > Integrations override these.
 LLM_API_KEY=$LLM_API_KEY
 LLM_BASE_URL=$LLM_BASE_URL
 LLM_MODEL=$LLM_MODEL
+
+# Demo-account chat seed (Phase 4: B-feature).
+# If DEMO_LLM_API_KEY is set, the demo user is pre-seeded with
+# these settings and can use Copilot chat immediately.
+DEMO_LLM_API_KEY=$DEMO_LLM_API_KEY
+DEMO_LLM_PROVIDER=$DEMO_LLM_PROVIDER
+DEMO_LLM_BASE_URL=$DEMO_LLM_BASE_URL
+DEMO_LLM_MODEL=$DEMO_LLM_MODEL
 EOF
 sudo chown spellpaw:spellpaw "$INSTALL_DIR/server/.env"
 sudo chmod 600 "$INSTALL_DIR/server/.env"
@@ -171,11 +194,10 @@ sudo chmod 600 "$INSTALL_DIR/server/.env"
 ```bash
 sudo test -f /home/spellpaw/Spellpaw/server/.env && \
   sudo grep -q '^JWT_SECRET=[a-f0-9]\{64\}$' /home/spellpaw/Spellpaw/server/.env && \
-  sudo grep -q '^LLM_API_KEY=' /home/spellpaw/Spellpaw/server/.env && \
-  echo "env OK"
+  echo "env OK (LLM_API_KEY ${LLM_API_KEY:+set}${LLM_API_KEY:-(empty)}; DEMO_LLM_API_KEY ${DEMO_LLM_API_KEY:+set}${DEMO_LLM_API_KEY:-(empty)})"
 ```
 
-Done when: prints `env OK`.
+Done when: prints `env OK …`.
 
 ## 5. Install dependencies
 

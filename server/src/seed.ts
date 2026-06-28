@@ -4,6 +4,12 @@
  */
 import bcrypt from 'bcryptjs';
 import type { PrismaClient } from '@prisma/client';
+import {
+  DEFAULT_LLM_PROVIDER,
+  LLM_PROVIDER_DEFAULTS,
+  isSupportedLLMProvider,
+  type SupportedLLMProvider,
+} from './lib/providers.js';
 import { seedProjects, seedProjectCards, seedProjectEdges, seedChatMessages } from './seed-data.js';
 
 /**
@@ -25,6 +31,38 @@ export const DEMO_USER = {
  */
 const LEGACY_DEMO_HASH = 'demo-password-hash';
 
+/**
+ * Build the demo user's seed `llmConfigs` JSON from environment variables.
+ *
+ * - `DEMO_LLM_API_KEY` (required for chat to work) — the API key for the
+ *   demo user's Copilot chat LLM. If unset, chat will fail with the usual
+ *   400 ("LLM_API_KEY not configured") but everything else (canvas, media
+ *   generation per-card) still works.
+ * - `DEMO_LLM_PROVIDER` (optional, default 'deepseek')
+ * - `DEMO_LLM_BASE_URL` (optional, default provider's baseUrl)
+ * - `DEMO_LLM_MODEL` (optional, default provider's recommended text model)
+ *
+ * Only the `chat` slot is seeded here; the 9-fine media slots are populated
+ * on first load by the browser's `syncUserSettings` (LLM_PROVIDER_DEFAULTS).
+ */
+export function buildDemoLlmConfigsJson(): string {
+  const provider = (process.env.DEMO_LLM_PROVIDER ?? DEFAULT_LLM_PROVIDER) as string;
+  const validProvider: SupportedLLMProvider = isSupportedLLMProvider(provider)
+    ? provider
+    : DEFAULT_LLM_PROVIDER;
+  const defaults = LLM_PROVIDER_DEFAULTS[validProvider];
+  const chat = {
+    provider: validProvider,
+    apiKey: process.env.DEMO_LLM_API_KEY ?? '',
+    baseUrl: process.env.DEMO_LLM_BASE_URL || defaults.baseUrl,
+    model:
+      process.env.DEMO_LLM_MODEL ||
+      defaults.recommended.text ||
+      defaults.model,
+  };
+  return JSON.stringify({ chat });
+}
+
 export async function seedDemoUser(prisma: PrismaClient): Promise<void> {
   const existing = await prisma.user.findUnique({ where: { id: DEMO_USER.id } });
 
@@ -36,6 +74,7 @@ export async function seedDemoUser(prisma: PrismaClient): Promise<void> {
         email: DEMO_USER.email,
         name: DEMO_USER.name,
         passwordHash,
+        llmConfigs: buildDemoLlmConfigsJson(),
       },
     });
   } else if (existing.passwordHash === LEGACY_DEMO_HASH) {

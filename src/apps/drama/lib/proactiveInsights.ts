@@ -1,4 +1,5 @@
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import type { CanvasNode } from '@drama/types';
 
 export interface ProactiveInsight {
   type: string;
@@ -6,8 +7,8 @@ export interface ProactiveInsight {
   message: string;
 }
 
-export function computeProactiveInsights(): ProactiveInsight[] {
-  const cards = useCanvasStore.getState().getCurrentNodes();
+export function computeProactiveInsights(nodes?: CanvasNode[]): ProactiveInsight[] {
+  const cards = nodes ?? useCanvasStore.getState().getCurrentNodes();
   const insights: ProactiveInsight[] = [];
 
   if (cards.length === 0) {

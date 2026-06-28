@@ -32,6 +32,7 @@ export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
   const [compareBase, setCompareBase] = useState<ProjectSnapshot | null>(null);
   const [diffs, setDiffs] = useState<CanvasDiff | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [rollbackTarget, setRollbackTarget] = useState<ProjectSnapshot | null>(null);
 
   const refresh = useCallback(async () => {
     if (!projectId) return;
@@ -60,7 +61,6 @@ export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
   };
 
   const handleRollback = async (snapshot: ProjectSnapshot) => {
-    if (!confirm(`回滚到「${snapshot.name}」?\n当前未保存的修改将丢失。`)) return;
     useCanvasStore.setState((s) => ({
       canvases: {
         ...s.canvases,
@@ -71,6 +71,7 @@ export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
         },
       },
     }));
+    setRollbackTarget(null);
     onClose();
   };
 
@@ -143,23 +144,31 @@ export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
               <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">差异对比</span>
               <button onClick={() => { setCompareBase(null); setDiffs(null); }} className="text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]">清除</button>
             </div>
-            {diffs.length === 0 ? (
-              <p className="text-[11px] text-[var(--color-text-tertiary)]">无差异</p>
-            ) : (
-              <div className="space-y-1">
-                {diffs.slice(0, 20).map((d) => (
-                  <div key={d.nodeId} className="text-[10px]">
-                    <span className={
-                      d.type === 'added' ? 'text-emerald-600' : d.type === 'removed' ? 'text-red-500' : 'text-amber-600'
-                    }>
-                      {d.type === 'added' ? '+ 新增' : d.type === 'removed' ? '- 删除' : '~ 修改'}
-                    </span>
-                    <span className="text-[var(--color-text-secondary)] ml-1">{d.path.join(' / ')}</span>
-                  </div>
-                ))}
-                {diffs.length > 20 && <p className="text-[10px] text-[var(--color-text-tertiary)]">...还有 {diffs.length - 20} 项</p>}
-              </div>
-            )}
+            {(() => {
+              const diffItems = [
+                ...diffs.added.map((n) => ({ type: 'added' as const, nodeId: n.id, title: String(n.data.title ?? '未命名'), path: ['卡片'] })),
+                ...diffs.removed.map((n) => ({ type: 'removed' as const, nodeId: n.id, title: String(n.data.title ?? '未命名'), path: ['卡片'] })),
+                ...diffs.modified.map((m) => ({ type: 'modified' as const, nodeId: m.current.id, title: String(m.current.data.title ?? '未命名'), path: m.changes })),
+              ];
+              if (diffItems.length === 0) {
+                return <p className="text-[11px] text-[var(--color-text-tertiary)]">无差异</p>;
+              }
+              return (
+                <div className="space-y-1">
+                  {diffItems.slice(0, 20).map((d) => (
+                    <div key={`${d.type}-${d.nodeId}`} className="text-[10px]">
+                      <span className={
+                        d.type === 'added' ? 'text-emerald-600' : d.type === 'removed' ? 'text-red-500' : 'text-amber-600'
+                      }>
+                        {d.type === 'added' ? '+ 新增' : d.type === 'removed' ? '- 删除' : '~ 修改'}
+                      </span>
+                      <span className="text-[var(--color-text-secondary)] ml-1">{d.title} · {d.path.join(' / ')}</span>
+                    </div>
+                  ))}
+                  {diffItems.length > 20 && <p className="text-[10px] text-[var(--color-text-tertiary)]">...还有 {diffItems.length - 20} 项</p>}
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -194,7 +203,7 @@ export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
                     <GitCompare className="h-3.5 w-3.5" />
                   </button>
                   <button
-                    onClick={() => handleRollback(s)}
+                    onClick={() => setRollbackTarget(s)}
                     title="回滚到此版本"
                     className="rounded p-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-accent-500)]"
                   >
@@ -226,6 +235,17 @@ export function SnapshotModal({ isOpen, onClose }: SnapshotModalProps) {
           setDeleteTarget(null);
         }}
         onCancel={() => setDeleteTarget(null)}
+      />
+      <DeleteConfirmDialog
+        isOpen={!!rollbackTarget}
+        title="回滚快照"
+        description={`回滚到「${rollbackTarget?.name ?? ''}」？当前未保存的修改将丢失。`}
+        onConfirm={() => {
+          if (rollbackTarget) {
+            void handleRollback(rollbackTarget);
+          }
+        }}
+        onCancel={() => setRollbackTarget(null)}
       />
     </div>
   );

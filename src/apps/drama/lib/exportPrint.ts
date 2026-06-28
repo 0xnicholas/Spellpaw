@@ -19,10 +19,7 @@ function getProjectNodes(projectId: string): CanvasNode[] {
 function findThumbnail(nodeId: string, projectId: string): string | undefined {
   const nodes = getProjectNodes(projectId);
   const card = nodes.find(
-    (n) =>
-      n.type === 'art' &&
-      (n.data.linkedCardIds?.includes(nodeId) ||
-        (n.data as { linkedTreeNodeId?: string }).linkedTreeNodeId === nodeId),
+    (n) => n.type === 'art' && n.data.linkedCardIds?.includes(nodeId),
   );
   return card?.data.thumbnail;
 }

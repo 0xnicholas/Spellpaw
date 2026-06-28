@@ -30,8 +30,11 @@ export function NodeAIActions({ actions, onAction }: NodeAIActionsProps) {
     <div ref={ref} className="relative">
       <button
         onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-accent-50)] text-[10px] text-[var(--color-accent-500)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-accent-100)]"
+        className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-accent-50)] text-[10px] text-[var(--color-accent-500)] opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-[var(--color-accent-500)] hover:bg-[var(--color-accent-100)]"
         title="AI 操作"
+        aria-label="AI 操作"
+        aria-expanded={open}
+        aria-haspopup="menu"
       >
         ✨
       </button>

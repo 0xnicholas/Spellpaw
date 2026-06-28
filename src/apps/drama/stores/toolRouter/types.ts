@@ -18,7 +18,7 @@ export interface ToolResult {
   success: boolean;
   affectedCardIds?: string[];
   summary: string;
-  error?: 'card_not_found' | 'validation_failed' | 'unknown_card_type' | 'no_project_selected';
+  error?: 'card_not_found' | 'validation_failed' | 'unknown_card_type' | 'no_project_selected' | 'generation_in_progress';
   cardId?: string;
   errors?: Array<{ cardId: string; error: string }>;
   suggestion?: string;

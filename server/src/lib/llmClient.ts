@@ -30,7 +30,7 @@ export interface LLMMessage {
 export type SSEvent =
   | { type: 'message_start' }
   | { type: 'text_delta'; delta: string }
-  | { type: 'tool_call_started'; call_id: string; name: string }
+  | { type: 'tool_call_started'; call_id: string; name: string; arguments?: string }
   | { type: 'tool_call_done'; call_id: string }
   | { type: 'turn_end'; stop_reason: string }
   | { type: 'error'; message: string };
@@ -210,7 +210,7 @@ export async function* streamChat(
 
     // Execute each tool call and append tool-role messages for the next LLM turn.
     for (const tc of toolCalls) {
-      yield { type: 'tool_call_started', call_id: tc.id, name: tc.function.name };
+      yield { type: 'tool_call_started', call_id: tc.id, name: tc.function.name, arguments: tc.function.arguments };
       logger.log(`[llmClient] executing tool ${tc.function.name} -> ${resolveToolEndpoint(tc.function.name)}`);
 
       let resultText: string;

@@ -30,17 +30,6 @@ export interface PacingReport {
   suggestions: StructureSuggestion[];
 }
 
-export function analyzePacing(): PacingIssue[] {
-  const cards = useCanvasStore.getState().getCurrentNodes();
-  const scenes = cards.filter((c) => c.type === 'sceneCard');
-  if (scenes.length === 0) return [];
-  return []; // Stub — full canvas-based pacing analysis deferred to follow-up
-}
-
-export function suggestCompletions(): StructureSuggestion[] {
-  return []; // Stub
-}
-
 export function generatePacingReport(): PacingReport {
   const cards = useCanvasStore.getState().getCurrentNodes();
   const scenes = cards.filter((c) => c.type === 'sceneCard');

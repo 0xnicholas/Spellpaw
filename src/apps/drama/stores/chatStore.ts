@@ -16,6 +16,7 @@ interface InFlightToolCall {
 	callId: string;
 	name: string;
 	status: 'running' | 'success' | 'error';
+	args?: string;
 	errorMessage?: string;
 }
 
@@ -52,7 +53,7 @@ interface ChatState {
 	// Phase 2: SSE streaming actions
 	startStreaming: (messageId: string) => void;
 	appendDelta: (delta: string) => void;
-	startToolCall: (callId: string, name: string) => void;
+	startToolCall: (callId: string, name: string, args?: string) => void;
 	endToolCall: (callId: string, status?: 'success' | 'error', errorMessage?: string) => void;
 	endStreaming: (projectId: string, stopReason?: string) => void;
 }
@@ -216,17 +217,24 @@ export const useChatStore = create<ChatState>()((set) => ({
 			content = augmentUserMessage(content, projectId);
 		}
 
-		setTimeout(() => {
-			const agentMsg = mockAgentReply(content, projectId);
-			set((state) => {
-				const messages = [...state.messages, agentMsg];
-				void saveChatMessages(messages, projectId);
-				return {
-					messages,
-					isLoading: false,
-				};
-			});
-		}, 1200);
+		// Dev/test fallback: when no SSE provider overrides sendMessage, simulate
+		// a local agent reply so the UI still works in Storybook / isolated tests.
+		// This block is stripped from production builds (import.meta.env.PROD).
+		if (!import.meta.env.PROD) {
+			setTimeout(() => {
+				const agentMsg = mockAgentReply(content, projectId);
+				set((state) => {
+					const messages = [...state.messages, agentMsg];
+					void saveChatMessages(messages, projectId);
+					return {
+						messages,
+						isLoading: false,
+					};
+				});
+			}, 1200);
+		} else {
+			set({ isLoading: false });
+		}
 	},
 
 	setInputValue: (value) => set({ inputValue: value }),
@@ -299,11 +307,11 @@ export const useChatStore = create<ChatState>()((set) => ({
 			streamingMessage: (state.streamingMessage ?? "") + delta,
 		})),
 
-	startToolCall: (callId, name) =>
+	startToolCall: (callId, name, args) =>
 		set((state) => ({
 			toolCalls: [
 				...state.toolCalls,
-				{ callId, name, status: 'running' as const },
+				{ callId, name, args, status: 'running' as const },
 			],
 		})),
 

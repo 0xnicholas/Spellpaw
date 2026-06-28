@@ -39,8 +39,8 @@ describe('projectStore', () => {
   it('deduplicates projects', () => {
     useProjectStore.setState({
       projects: [
-        { id: 'a', title: 'Project A', description: '', coverColor: '#000', createdAt: '2024-01-01', updatedAt: '2024-01-01', sceneCount: 0, duration: 0 },
-        { id: 'a', title: 'Project A v2', description: '', coverColor: '#000', createdAt: '2024-01-01', updatedAt: '2024-01-02', sceneCount: 0, duration: 0 },
+        { id: 'a', title: 'Project A', description: '', coverColor: '#000', updatedAt: '2024-01-01', sceneCount: 0, duration: 0 },
+        { id: 'a', title: 'Project A v2', description: '', coverColor: '#000', updatedAt: '2024-01-02', sceneCount: 0, duration: 0 },
       ],
     });
     useProjectStore.getState().deduplicateProjects();

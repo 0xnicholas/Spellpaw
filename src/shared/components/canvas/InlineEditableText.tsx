@@ -61,10 +61,13 @@ export function InlineEditableText({
   }, [editing, draft]);
 
   // External value updates (e.g. AI popover generated content) should sync
-  if (!editing && draft !== value) {
-    // Re-sync local draft when not editing — typical case is AI saving a result
-    setDraft(value);
-  }
+  // when the user is not actively editing. Using an effect avoids a render-phase
+  // setState and the extra re-render it triggers.
+  useEffect(() => {
+    if (!editing && draft !== value) {
+      setDraft(value);
+    }
+  }, [editing, draft, value]);
 
   const startEditing = () => {
     initialDraftRef.current = value;

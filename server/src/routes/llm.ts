@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { auth, getUserId } from '../middleware.js';
 import { streamChat, type ToolConfig, type LLMMessage } from '../lib/llmClient.js';
 import { logger } from '../lib/logger.js';
+import { DEFAULT_LLM_PROVIDER, LLM_PROVIDER_DEFAULTS } from '../lib/providers.js';
 
 interface SessionState {
   id: string;
@@ -79,7 +80,7 @@ export function llmRoutes(): Router {
     const session: SessionState = {
       id: uuidv4(),
       title: title || 'Untitled',
-      model: process.env.LLM_MODEL || 'gpt-5.4-mini',
+      model: process.env.LLM_MODEL || LLM_PROVIDER_DEFAULTS[DEFAULT_LLM_PROVIDER].model,
       systemPrompt: system_prompt,
       tools,
       messages: [{ role: 'system', content: system_prompt }],

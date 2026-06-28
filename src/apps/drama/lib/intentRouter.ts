@@ -23,8 +23,6 @@ export interface CanvasIntent {
 }
 
 export interface IntentContext {
-  /** Currently selected tree node id, if any. */
-  
   /** Currently selected canvas card, if any. */
   selectedCard?: CanvasNode | null;
 }
@@ -124,23 +122,6 @@ export function detectIntent(message: string, context: IntentContext): IntentRes
 
   // 1. Style batch / single style migration
   if (isStyleRequest(text)) {
-    if (context.selectedNodeId) {
-      const stylePrompt = extractPrompt(text);
-      if (stylePrompt) {
-        return {
-          intent: {
-            type: 'batch_apply_style',
-            payload: {
-              action: 'batch_apply_style',
-              nodeIds: [context.selectedNodeId],
-              stylePrompt,
-            },
-          },
-          confidence: 'high',
-        };
-      }
-    }
-
     if (context.selectedCard) {
       const stylePrompt = extractPrompt(text);
       if (stylePrompt) {
@@ -198,37 +179,18 @@ export function detectIntent(message: string, context: IntentContext): IntentRes
       };
     }
 
-    if (context.selectedNodeId) {
-      return {
-        intent: {
-          type: 'generate_variants',
-          mediaType: inferMediaType(text),
-          payload: {
-            action: 'generate_variants',
-            nodeId: context.selectedNodeId,
-            mediaType: inferMediaType(text),
-            count: extractCount(text),
-          },
-        },
-        confidence: 'high',
-      };
-    }
-
     return {
       intent: { type: 'unknown', payload: {} },
       confidence: 'medium',
     };
   }
 
-  // 4. Generate new asset for a selected node/card or from a free-form prompt.
-  // A selected canvas card can act as context: if it links to a tree node,
-  // use that node; otherwise fall back to the prompt.
+  // 4. Generate new asset for a selected canvas card or from a free-form prompt.
   if (isGenerateRequest(text)) {
     const mediaType = inferMediaType(text);
     const prompt = extractPrompt(text);
-    // Canvas era: source binding lives on linkedCardIds[0] (replaces legacy linkedTreeNodeId).
     const linkedCardId = context.selectedCard?.data.linkedCardIds?.[0];
-    const targetNodeId = context.selectedNodeId ?? linkedCardId;
+    const targetNodeId = linkedCardId;
     const hasTarget = Boolean(targetNodeId);
     const confidence: 'high' | 'medium' = hasTarget || Boolean(prompt) ? 'high' : 'medium';
     return {

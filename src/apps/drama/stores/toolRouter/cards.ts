@@ -215,11 +215,19 @@ export const cardHandlers: ToolRouter = {
     return formatResult({ success: true, affectedCardIds: [cardId], summary: `已更新卡片 ${cardId}` });
   },
 
-  /** Delete a card — validated with cardId check */
+  /** Delete a card — validated with cardId check. Refuses cards with an in-flight generation. */
   delete_card: async (params) => {
     const cardId = params.cardId as string;
     const check = findCardOrError(cardId);
     if (!check.ok) return formatResult(check.error);
+    if (check.card.data.generationStatus === 'generating') {
+      return formatResult({
+        success: false,
+        error: 'generation_in_progress',
+        suggestion: '等待生成完成后再删除，或先取消任务',
+        summary: `无法删除「${check.card.data.title ?? cardId}」：该卡片正在生成中`,
+      });
+    }
 
     useCanvasStore.getState().removeNode(cardId);
     return formatResult({ success: true, affectedCardIds: [cardId], summary: `已删除卡片「${check.card.data.title ?? cardId}」` });
@@ -261,6 +269,15 @@ export const cardHandlers: ToolRouter = {
         error: 'card_not_found',
         suggestion: `missing cards: ${missing.join(', ')}`,
         summary: `以下卡片不存在: ${missing.join(', ')}`,
+      });
+    }
+    const generating = cardIds.filter((id) => allCards.find((c) => c.id === id)?.data.generationStatus === 'generating');
+    if (generating.length > 0) {
+      return formatResult({
+        success: false,
+        error: 'generation_in_progress',
+        suggestion: `等待以下卡片生成完成后再删除: ${generating.join(', ')}`,
+        summary: `无法删除 ${generating.length} 张正在生成中的卡片`,
       });
     }
     // Atomic: single setState remove all
@@ -324,11 +341,21 @@ export const cardHandlers: ToolRouter = {
       return true;
     });
 
-    if (matched.length === 0) {
-      return formatResult({ success: true, affectedCardIds: [], summary: '画布已为空，无需清理。' });
+    const safeToRemove = matched.filter((n) => n.data.generationStatus !== 'generating');
+    const generatingCount = matched.length - safeToRemove.length;
+
+    if (safeToRemove.length === 0) {
+      const scope = cardType ?? status ?? titleContains ? '（按条件）' : '';
+      return formatResult({
+        success: true,
+        affectedCardIds: [],
+        summary: generatingCount > 0
+          ? `画布${scope}中没有可删除的卡片（${generatingCount} 张正在生成中）`
+          : '画布已为空，无需清理。',
+      });
     }
 
-    const idsToRemove = new Set(matched.map((n) => n.id));
+    const idsToRemove = new Set(safeToRemove.map((n) => n.id));
     useCanvasStore.setState((state) => {
       const projectId = useProjectStore.getState().currentProjectId;
       if (!projectId) return state;
@@ -359,6 +386,7 @@ export const cardHandlers: ToolRouter = {
     }
 
     const scope = cardType ?? status ?? titleContains ? '（按条件）' : '';
-    return formatResult({ success: true, affectedCardIds: matched.map((m) => m.id), summary: `已清空画布${scope}：共删除 ${matched.length} 张卡片。` });
+    const generatingSuffix = generatingCount > 0 ? `（跳过 ${generatingCount} 张正在生成中的卡片）` : '';
+    return formatResult({ success: true, affectedCardIds: safeToRemove.map((m) => m.id), summary: `已清空画布${scope}：共删除 ${safeToRemove.length} 张卡片${generatingSuffix}。` });
   },
 };

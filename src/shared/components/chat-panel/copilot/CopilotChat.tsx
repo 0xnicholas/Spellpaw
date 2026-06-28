@@ -6,6 +6,8 @@ import { MessageInput } from './MessageInput';
 export interface ToolCall {
   callId: string;
   name: string;
+  status: string;
+  args?: string;
 }
 
 export interface CopilotChatProps {

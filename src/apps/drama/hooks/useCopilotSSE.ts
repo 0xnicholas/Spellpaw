@@ -114,7 +114,7 @@ export function useCopilotSSE() {
           case 'tool_call_started':
             toolCallStartedRef.current = true;
             toolCallsInTurnRef.current.push(String(event.name));
-            startToolCall(event.call_id as string, event.name as string);
+            startToolCall(event.call_id as string, event.name as string, event.arguments as string | undefined);
             break;
           case 'tool_call_done': {
             // Spellpaw Server emits is_error + content on failed tool calls.

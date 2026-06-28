@@ -32,6 +32,13 @@ export interface LLMProviderConfig {
   recommended: Partial<Record<Capability, string>>;
 }
 
+/**
+ * Registry of supported LLM providers and their recommended models.
+ *
+ * TODO: The model IDs below are placeholders chosen for UI scaffolding and
+ * may not exist at the real provider endpoints. Replace them with validated,
+ * currently available model names before shipping to production.
+ */
 export const LLM_PROVIDER_REGISTRY: Record<LLMProviderType, LLMProviderConfig> = {
   doubao: {
     baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',

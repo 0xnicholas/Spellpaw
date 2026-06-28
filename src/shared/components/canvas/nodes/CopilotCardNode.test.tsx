@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
@@ -24,7 +23,7 @@ function renderInFlow(node: React.ReactNode) {
 
 function setupProjectAndAddCopilot(id: string, data: CopilotCardNodeData) {
   useProjectStore.setState({
-    projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }]},
+    projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
     currentProjectId: 'proj_1',
   });
   useCanvasStore.setState({

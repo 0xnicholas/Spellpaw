@@ -5,7 +5,7 @@ interface CharacterNode {
   id: string;
   label: string;
   role?: string;
-  linkedTreeNodeId?: string;
+  linkedCardIds?: string[];
 }
 
 interface RelationEdge {

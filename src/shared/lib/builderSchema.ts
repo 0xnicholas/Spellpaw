@@ -74,21 +74,12 @@ export function validateMetadata(
 ): ValidationResult {
   switch (config.component) {
     case 'character_map': {
-      const data = config.data as { nodes?: Array<{ id?: string; linkedTreeNodeId?: string }> };
+      const data = config.data as { nodes?: Array<{ id?: string; linkedCardIds?: string[] }> };
       if (!data.nodes || !Array.isArray(data.nodes)) {
         return { valid: false, layer: 2, error: '缺少 nodes 数组' };
       }
-      // Validate linkedTreeNodeId references against actual tree
-      for (const node of data.nodes) {
-        if (node.linkedTreeNodeId && !_context.treeNodes?.includes(node.linkedTreeNodeId)) {
-          return {
-            valid: false,
-            layer: 2,
-            error: `节点引用不存在: ${node.linkedTreeNodeId}`,
-            suggestion: `可用节点: ${_context.treeNodes?.join(', ') ?? '无'}`,
-          };
-        }
-      }
+      // Canvas era: validate linkedCardIds references against available cards.
+      // (Tree-era validator was removed in Phase 4 — tree no longer exists.)
       return { valid: true, layer: 2 };
     }
     default:

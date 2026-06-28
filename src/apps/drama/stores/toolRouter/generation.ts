@@ -1,103 +1,56 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Generation domain — tools that generate or modify AI content (images / video).
  *
  * Most handlers are thin pass-throughs to canvasToolkit; generate_storyboard
  * has its own provider-selection + async-task plumbing.
  */
-import { useProjectStore } from '@drama/stores/projectStore';
-import { useCanvasStore } from '@drama/stores/canvasStore';
-import { addEnrichedCard } from './cards';
 import {
   generateAsset,
   generateVariants,
   editAsset,
   applyStyle,
   batchApplyStyle,
-  providerRegistry,
-  useTaskStore,
-  startPolling,
-  buildDefaultPrompt,
 } from '@drama/lib/canvasToolkit';
-import type { CanvasNodeType } from '@drama/types';
 import type { ToolRouter } from './types';
 
 export const generationHandlers: ToolRouter = {
-  /** Generate image/video, attach to a tree scene as an art card. */
+  /**
+   * Generate a storyboard reference image for a canvas card.
+   *
+   * Canvas-first (Phase 4): the source binding is a `cardId` on the canvas.
+   * Legacy `nodeId` is accepted as an alias and mapped to `cardId` for
+   * backward compatibility with tree-era prompts.
+   */
   generate_storyboard: async (params) => {
-    const nodeId = params.nodeId as string;
-    const customPrompt = params.prompt as string | undefined;
-    const stylePrompt = params.stylePrompt as string | undefined;
-
-    const _store = useProjectStore.getState();
-        
-    const node = null;
-    if (!node) return `(未找到节点 ${nodeId})`;
-
-    let prompt: string;
-    if (stylePrompt) {
-      prompt =
-        `${stylePrompt}\n\nScene: "${node.title}".` +
-        (node.metadata?.location ? ` Location: ${node.metadata.location}.` : '') +
-        (node.metadata?.timeOfDay ? ` Time: ${node.metadata.timeOfDay}.` : '') +
-        (node.metadata?.shotType ? ` Shot: ${node.metadata.shotType}.` : '') +
-        (node.metadata?.description ? ` ${node.metadata.description}` : '');
-    } else {
-      prompt = customPrompt || buildDefaultPrompt(node);
+    const cardId = (params.cardId ?? params.nodeId) as string | undefined;
+    if (!cardId) {
+      return JSON.stringify({
+        success: false,
+        error: 'validation_failed',
+        suggestion: 'provide cardId (or legacy nodeId)',
+        summary: 'generate_storyboard requires cardId',
+      });
     }
-
-    const input = {
-      type: 'image' as const,
-      capability: 'text2image' as const,
-      prompt,
-    };
-
-    function selectProvider() {
-      const domestic = [
-        providerRegistry.select(input, 'doubao'),
-        providerRegistry.select(input, 'siliconflow'),
-      ];
-      for (const selection of domestic) {
-        if (!('error' in selection)) return selection.provider;
-      }
-      const openai = providerRegistry.select(input, 'openai');
-      if (!('error' in openai)) return openai.provider;
-      const fallback = providerRegistry.select(input);
-      if ('error' in fallback) throw new Error(fallback.error);
-      return fallback.provider;
-    }
-
-    const provider = selectProvider();
-    const task = await provider.submit(input);
-
-    if (task.status === 'failed') {
-      throw new Error(task.error ?? '分镜生成失败');
-    }
-
-    const card = await addEnrichedCard('art' as CanvasNodeType, {
-      title: node.title,
-      description: prompt,
-      generatedPrompt: prompt,
-      linkedTreeNodeId: nodeId,
-      status: 'draft',
-      sourceProvider: provider.id,
-      ...(stylePrompt ? { tags: [stylePrompt] } : {}),
+    const result = await generateAsset({
+      action: 'generate_asset',
+      cardId,
+      mediaType: 'image',
+      ...(params.prompt ? { prompt: params.prompt as string } : {}),
+      ...(params.provider ? { provider: params.provider as string } : {}),
     });
-
-    if (task.status === 'done' && task.resultUrl) {
-      useCanvasStore.getState().updateNodeData(card.id, { thumbnail: task.resultUrl });
-      return `已使用 ${provider.name} 为「${node.title}」生成参考图: ${task.resultUrl}`;
+    if (!result.success) {
+      return JSON.stringify({
+        success: false,
+        error: 'generation_failed',
+        summary: result.message,
+      });
     }
-
-    useTaskStore.getState().addTask({
-      taskId: task.taskId,
-      providerId: provider.id,
-      cardId: card.id,
-      createdAt: new Date().toISOString(),
+    return JSON.stringify({
+      success: true,
+      summary: result.message,
+      cardIds: result.cardIds,
+      ...(result.taskId ? { taskId: result.taskId } : {}),
     });
-    startPolling(task.taskId, provider, card.id);
-
-    return `已使用 ${provider.name} 为「${node.title}」提交分镜生成任务，任务 ID: ${task.taskId}`;
   },
 
   /** Pass-through to canvasToolkit — generates an asset card. */

@@ -132,6 +132,11 @@ export function CardCopilotPopover({ cardId, kind, screenPosition, onClose }: Pr
             className="hidden"
           />
         </label>
+        {(kind === 'image' || kind === 'video') && (
+          <span data-testid="ref-label" className="text-[10px]" style={{ color: '#888' }}>
+            Ref
+          </span>
+        )}
 
         {fileRef && (
           <span className="text-[11px] truncate flex-1" style={{ color: '#666' }}>
@@ -144,7 +149,7 @@ export function CardCopilotPopover({ cardId, kind, screenPosition, onClose }: Pr
         <button
           onClick={handleSend}
           disabled={isGenerating || !prompt.trim()}
-          data-testid="copilot-send"
+          data-testid="copilot-generate"
           className="flex items-center justify-center w-8 h-8 rounded-lg transition-opacity disabled:opacity-30"
           style={{ backgroundColor: SEND_BG, color: SEND_TEXT }}
         >

@@ -226,8 +226,9 @@ export function detectIntent(message: string, context: IntentContext): IntentRes
   if (isGenerateRequest(text)) {
     const mediaType = inferMediaType(text);
     const prompt = extractPrompt(text);
-    const linkedNodeId = context.selectedCard?.data.linkedTreeNodeId;
-    const targetNodeId = context.selectedNodeId ?? linkedNodeId;
+    // Canvas era: source binding lives on linkedCardIds[0] (replaces legacy linkedTreeNodeId).
+    const linkedCardId = context.selectedCard?.data.linkedCardIds?.[0];
+    const targetNodeId = context.selectedNodeId ?? linkedCardId;
     const hasTarget = Boolean(targetNodeId);
     const confidence: 'high' | 'medium' = hasTarget || Boolean(prompt) ? 'high' : 'medium';
     return {

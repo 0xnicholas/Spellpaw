@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import React from 'react';
@@ -79,7 +78,6 @@ function setupProject() {
         coverColor: '#6366f1',
       },
     ],
-    },
     currentProjectId: 'proj_1',
   });
   useCanvasStore.setState({

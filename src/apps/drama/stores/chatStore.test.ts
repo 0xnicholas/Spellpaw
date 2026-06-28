@@ -40,17 +40,18 @@ describe('chatStore — slash command detection', () => {
     expect(isSlashCommand('  no slash here')).toBe(false);
   });
 
-  it('appends user + invocation + pending synchronously on known slash command', () => {
+  it('appends user + invocation synchronously on known slash command (Phase 1)', () => {
     const store = useChatStore.getState();
     store.sendMessage('/analyze-pacing', 'proj_slash');
     const messages = useChatStore.getState().messages;
-    expect(messages).toHaveLength(3);
+    // Phase 1 of skills-refactor: no longer a local short-circuit. Only
+    // the user message + an invocation notice are appended synchronously;
+    // the LLM response is delivered via the normal SSE pipeline.
+    expect(messages).toHaveLength(2);
     expect(messages[0].role).toBe('user');
     expect(messages[0].content).toBe('/analyze-pacing');
     expect(messages[1].role).toBe('agent');
     expect(messages[1].content).toMatch(/调用 Skill/);
-    expect(messages[2].role).toBe('agent');
-    expect(messages[2].status).toBe('pending');
   });
 
   it('non-slash messages also append user message', () => {

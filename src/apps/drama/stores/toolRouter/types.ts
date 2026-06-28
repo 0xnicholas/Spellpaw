@@ -22,4 +22,19 @@ export interface ToolResult {
   cardId?: string;
   errors?: Array<{ cardId: string; error: string }>;
   suggestion?: string;
+  /** Phase 2: structured side-effects for canvas real-time updates. */
+  sideEffects?: ToolSideEffects;
+}
+
+/**
+ * Side-effects a tool call had on the canvas. Populated by card/generation
+ * handlers so the frontend can animate card appearances / updates / removals
+ * immediately (before the next full canvas poll).
+ */
+export interface ToolSideEffects {
+  canvas?: {
+    cardsAdded?: Array<{ id: string; type: string; title: string }>;
+    cardsUpdated?: Array<{ id: string; thumbnail?: string; status?: string }>;
+    cardsDeleted?: string[];
+  };
 }

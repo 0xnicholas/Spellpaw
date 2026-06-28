@@ -1,4 +1,3 @@
-/* eslint-disable */
 /**
  * Tests for triggerPushNow — the race-condition fix.
  *
@@ -43,7 +42,7 @@ describe('triggerPushNow — race condition fix', () => {
         sceneCount: 0,
         duration: 0,
         version: 1,
-      }]},
+      }],
       currentProjectId: 'proj_race',
     });
     useCanvasStore.setState({ canvases: { proj_race: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } } }, selectedCardId: null });

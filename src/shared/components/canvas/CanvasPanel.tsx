@@ -180,7 +180,7 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
       ...n,
       data: { ...n.data, _displayNumber: map.get(n.id) ?? '', _highlighted: highlightSet.has(n.id), _onAIAction: onAIAction },
     }));
-  }, [nodes, currentTree, getCurrentNodes, highlightSet, onAIAction]);
+  }, [nodes, canvasNodes, getCurrentNodes, highlightSet, onAIAction]);
 
   const onConnect = useCallback(
     (connection: Connection) => {

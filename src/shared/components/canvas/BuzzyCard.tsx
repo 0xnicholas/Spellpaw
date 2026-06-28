@@ -56,10 +56,12 @@ const FALLBACK_CONFIG: CardTypeConfig = {
   selectedColor: 'accent',
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- shared with CanvasCard and external consumers; split into a dedicated file is a planned cleanup
 export function getCardTypeConfig(type: CanvasNodeType | string): CardTypeConfig {
   return CARD_TYPE_CONFIG[type as CanvasNodeType] ?? FALLBACK_CONFIG;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- shared with CanvasCard and external consumers; split into a dedicated file is a planned cleanup
 export function getCardLabel(type: CanvasNodeType | string): string {
   return getCardTypeConfig(type).label;
 }

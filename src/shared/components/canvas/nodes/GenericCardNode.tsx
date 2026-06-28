@@ -15,6 +15,14 @@ export const GenericCardNode = memo(({ data, id, type, selected }: NodeProps<Nod
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   const description = (data.description as string | undefined) ?? '';
   const isTextCard = cardType === 'storyline' || cardType === 'script';
+  // Q4: failed-generation cards surface a retry affordance. Clearing the
+  // status lets the next user-driven generation re-submit from scratch.
+  const generationStatus = (data as { generationStatus?: 'idle' | 'generating' | 'failed' })
+    .generationStatus;
+  const handleRetry = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    updateNodeData(id, { generationStatus: 'idle' });
+  };
 
   // Inline title editing (matches ScriptCardNode for the script type)
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -171,6 +179,24 @@ export const GenericCardNode = memo(({ data, id, type, selected }: NodeProps<Nod
       {data.linkedCardIds && data.linkedCardIds.length > 0 && (
         <div className="border-t border-[var(--color-border-default)] px-3 py-1.5">
           <span className="text-[9px] text-[var(--color-text-tertiary)]">🔗 {data.linkedCardIds.length}关联</span>
+        </div>
+      )}
+
+      {/* Q4: failed-generation banner + retry button */}
+      {generationStatus === 'failed' && (
+        <div
+          className="border-t border-red-300 px-3 py-1.5"
+          style={{ backgroundColor: 'rgba(220, 38, 38, 0.08)' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="text-[10px] text-red-300">⚠ 生成失败</span>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="ml-2 rounded bg-red-500/20 px-1.5 py-0.5 text-[9px] font-medium text-red-200 hover:bg-red-500/30"
+          >
+            重试
+          </button>
         </div>
       )}
 

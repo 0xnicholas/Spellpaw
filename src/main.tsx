@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import '@/shared/i18n'
 import { initTheme } from '@/shared/stores/themeStore'
+import { initSkills } from '@/apps/drama/skills/registry'
 import App from './App.tsx'
 
 /**
@@ -15,6 +16,9 @@ import App from './App.tsx'
 function bootstrap() {
   // Theme must be set before React paints to avoid a flash.
   initTheme()
+  // Phase 3: skills are loaded from public/skills/ at runtime.
+  // Fire-and-forget — the UI will populate once loading completes.
+  initSkills()
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

@@ -14,7 +14,6 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Image as ImageIcon, Video, type LucideIcon } from "lucide-react";
 import { useCanvasStore } from "@drama/stores/canvasStore";
-import { useProjectStore } from "@drama/stores/projectStore";
 import { Z_INDEX } from "@shared/lib/zIndex";
 import { useHotkeys } from "@/shared/hooks/useHotkeys";
 import { computeDisplayNumbers } from "@drama/lib/numbering";
@@ -280,7 +279,7 @@ function ScriptDetail({ data }: { data: CanvasNodeData }) {
 }
 
 // ── Art detail ──
-function ArtDetail({ data, linkedTreeNodeId: _linkedTreeNodeId }: { data: CanvasNodeData; linkedTreeNodeId?: string }) {
+function ArtDetail({ data, canvasCardId }: { data: CanvasNodeData; canvasCardId?: string }) {
   const prompt = data.prompt as string | undefined;
   const tags = data.tags as string[] | undefined;
   const { lockedCardId } = useStyleLockStore();
@@ -325,17 +324,19 @@ function ArtDetail({ data, linkedTreeNodeId: _linkedTreeNodeId }: { data: Canvas
 }
 
 // ── SceneCard detail ──
-function SceneCardDetail({ data, linkedTreeNodeId }: { data: CanvasNodeData; linkedTreeNodeId?: string }) {
+function SceneCardDetail({ data, canvasCardId }: { data: CanvasNodeData; canvasCardId?: string }) {
   const prompt = data.generatedPrompt as string | undefined;
   const tags = data.tags as string[] | undefined;
   const resolution = data.resolution as string | undefined;
   const fileSize = data.fileSize as number | undefined;
   const sourceProvider = data.sourceProvider as string | undefined;
-  const getLockedStyle = useProjectStore((s) => s.getLockedStyle);
-  
-  const location = linkedNode?.metadata?.location as string | undefined;
-  const timeOfDay = linkedNode?.metadata?.timeOfDay as string | undefined;
-  const isLocked = linkedTreeNodeId ? getLockedStyle().nodeId === linkedTreeNodeId : false;
+  const { lockedCardId } = useStyleLockStore();
+
+  // Tree-era: was reading location/timeOfDay from a linked tree node.
+  // Canvas era: read from the card's own data (location/timeOfDay live on CanvasNodeData).
+  const location = data.location as string | undefined;
+  const timeOfDay = data.timeOfDay as string | undefined;
+  const isLocked = canvasCardId ? lockedCardId === canvasCardId : false;
 
   const hasMeta = location || timeOfDay || resolution || fileSize != null || sourceProvider;
 

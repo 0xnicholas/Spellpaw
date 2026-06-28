@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Print & export utilities — storyboard PDF + dialogue script
  *
@@ -14,7 +13,15 @@ import { useCanvasStore } from '@drama/stores/canvasStore';
 
 function findThumbnail(nodeId: string, projectId: string): string | undefined {
   const nodes = useCanvasStore.getState().canvases[projectId]?.nodes ?? [];
-  const card = nodes.find((n) => n.type === 'art' && n.data.linkedTreeNodeId === nodeId);
+  // Canvas era: art cards link to a scene/shot via linkedCardIds (a tree-node id
+  // passed through from a card's prior tree binding is still recognized here for
+  // backward compatibility, but the canonical field is now linkedCardIds).
+  const card = nodes.find(
+    (n) =>
+      n.type === 'art' &&
+      (n.data.linkedCardIds?.includes(nodeId) ||
+        (n.data as { linkedTreeNodeId?: string }).linkedTreeNodeId === nodeId),
+  );
   return card?.data.thumbnail;
 }
 

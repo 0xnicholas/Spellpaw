@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useCopilotGenerate } from './useCopilotGenerate';
@@ -36,7 +35,7 @@ vi.mock('@drama/lib/canvasToolkit/shared', async () => {
 
 function setupProjectAndCard(cardId: string, type: CanvasNodeType = 'storyline') {
   useProjectStore.setState({
-    projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }]},
+    projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
     currentProjectId: 'proj_1',
   });
   useCanvasStore.setState({

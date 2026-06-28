@@ -8,9 +8,7 @@ import {
 	type ProactiveInsight,
 } from "@drama/lib/proactiveInsights";
 import {
-  tryRunSkill,
-  executeSkill,
-  formatSkillInvocation,
+  augmentUserMessage,
   isSlashCommand,
 } from "@drama/skills/chat";
 import { useProjectStore } from "./projectStore";
@@ -199,51 +197,25 @@ export const useChatStore = create<ChatState>()((set) => ({
 		});
 
 		// Slash command: run the skill locally, no LLM roundtrip needed.
-		// (The useCopilotSSE override also has this short-circuit so skills
-		// work in both mock and real modes.)
+		// Phase 2 of skills-refactor: slash command content is rewritten
+		// in-place to the augmented LLM instructions (via augmentUserMessage).
+		// The invocation notice is still appended so the user sees "🎯 调用…".
 		if (isSlashCommand(content)) {
-			void (async () => {
-				const started = tryRunSkill(content, projectId);
-				if (!started) {
-					// Unknown slash command — fall through to mock reply
-					const agentMsg = mockAgentReply(content, projectId);
-					set((state) => {
-						const messages = [...state.messages, agentMsg];
-						void saveChatMessages(messages, projectId);
-						return { messages, isLoading: false };
-					});
-					return;
-				}
-				const invocationMsg: ChatMessage = {
-					id: generateId("msg_"),
-					role: "agent",
-					content: formatSkillInvocation(started.skillId),
-					type: "text",
-					timestamp: new Date().toISOString(),
-				};
-				set((state) => {
-					const messages = [...state.messages, invocationMsg, started.pendingMessage];
-					void saveChatMessages(messages, projectId);
-					return { messages };
-				});
-
-				// Run the skill and update the pending message in place.
-				const done = await executeSkill(content, projectId);
-				if (done) {
-					set((state) => {
-						const messages = state.messages.map((m) =>
-							m.id === started.pendingMessage.id
-								? { ...done.finalMessage, timestamp: started.pendingMessage.timestamp }
-								: m
-						);
-						void saveChatMessages(messages, projectId);
-						return { messages, isLoading: false };
-					});
-				} else {
-					set({ isLoading: false });
-				}
-			})();
-			return;
+			const invocationMsg: ChatMessage = {
+				id: generateId("msg_"),
+				role: "agent",
+				content: `🎯 调用 Skill：${content.replace(/^\//, '').split(/\s+/)[0]}（将在 LLM 指导下执行）`,
+				type: "text",
+				timestamp: new Date().toISOString(),
+			};
+			set((state) => {
+				const messages = [...state.messages, invocationMsg];
+				void saveChatMessages(messages, projectId);
+				return { messages, isLoading: true };
+			});
+			// Rewrite content so the LLM (mock or real) receives the
+			// augmented instructions instead of the raw slash command.
+			content = augmentUserMessage(content, projectId);
 		}
 
 		setTimeout(() => {

@@ -444,7 +444,7 @@ export function skillManifestPlugin(): Plugin {
 | `loader.ts` / `builtIn.ts` (drama) | 不存在了 |
 | `drama/skills/types.ts` | shared 的够用 |
 
-## 6. 实现阶段
+## 7. 实现阶段
 
 ### Phase 1：删 invoke 体系（直接可上线）
 
@@ -483,7 +483,126 @@ export function skillManifestPlugin(): Plugin {
 2. 每个 skill 测试能否被模型正确理解和执行
 3. 调整指导文本的语气和详细程度
 
-## 7. 风险与缓解
+## 8. 实现问题与对策
+
+### 7.1 递归调用（致命）
+
+当前代码中 `executeSkill` 调用 `sendMessage`，而 `sendMessage` 内部检测 slash command 后会调 `executeSkill`：
+
+```
+sendMessage("/batch-storyboard", projId)
+  → isSlashCommand → true
+  → executeSkill(content, projId)
+    → sendMessage(augmentedContent, projId)     ← 递归进入 sendMessage
+      → isSlashCommand(augmentedContent) → ??   ← 虽然不以 / 开头不会死循环
+      → 但会追加第二条用户消息                      ← 用户看到 raw + augmented 两条
+```
+
+**对策：改写 content，不递归**
+
+```typescript
+// chatStore.ts sendMessage 内部
+if (isSlashCommand(content)) {
+  const augmented = augmentWithSkillContext(content, projectId);
+  content = augmented;  // 原地替换，不调 sendMessage
+}
+// 继续正常 flow → content 已经被改写为 augmented
+```
+
+- 用户消息列表中显示原始 slash command（已在检测前 append）
+- LLM 收到的是 augmented 内容
+- `executeSkill` 退化为 `augmentWithSkillContext(text, projectId): string`
+- 零递归
+
+### 7.2 异步加载竞争
+
+```typescript
+let skills: Skill[] = [];
+export async function loadSkills(): Promise<Skill[]> { /* fetch */ }
+export function getSkills(): Skill[] { return skills; }
+```
+
+用户在 `loadSkills()` 完成前输入 `/analyze-pacing`，`getSkills()` 返回空数组 → 匹配失败 → 静默忽略。
+
+**对策：在所有读取路径上加等待**
+
+```typescript
+// loader.ts
+let _loaded = false;
+let _loading: Promise<void> | null = null;
+
+export async function ensureSkillsLoaded(): Promise<void> {
+  if (_loaded) return;
+  if (!_loading) _loading = loadSkills().then(() => { _loaded = true; });
+  return _loading;
+}
+
+// registry.ts — 所有查找函数内部
+async function getSkillBySlashCommand(cmd: string) {
+  await ensureSkillsLoaded();
+  return skills.find(s => s.slashCommand === cmd);
+}
+```
+
+所有解析 slash command 的调用点已 `async`，本来就是异步上下文（`chatStore.sendMessage` 和 `useCopilotSSE.sendMessage` 都是 `async`）。
+
+首次加载后 `_loaded = true`，后续调用 O(1) 返回。
+
+### 7.3 Vite 插件与 `public/` 文件冲突
+
+`public/` 目录下文件在 build 时被 Vite 直接复制到 `dist/`。如果 plugin 的 `generateBundle` 也 emit 同名文件 `skills/index.json`，会有冲突。
+
+**对策**：`index.json` 不进 git，不进 `public/`，完全由插件生成
+
+```bash
+echo "public/skills/index.json" >> .gitignore
+```
+
+插件逻辑：
+
+```typescript
+// vite-plugin-skill-manifest.ts
+configureServer(server) {
+  // Dev: 写入 public/skills/index.json（Vite 自动 serve）
+  server.watcher.on('all', (e, f) => { if (f.endsWith('.md')) regenerate(); });
+}
+generateBundle() {
+  // Build: emitFile 覆盖 auto-copy（插件优先级更高）
+  this.emitFile({ type: 'asset', fileName: 'skills/index.json', source: ... });
+}
+```
+
+### 7.4 Mock 模式下 skill 失效
+
+`chatStore` 的 mock 模式（`mockAgentReply`）是纯文本补丁回复，没有 toolRouter 调用能力。新系统依赖 LLM 调工具 → mock 模式 slash command 无法产生实际效果。
+
+**对策**：不修复，返回礼貌提示
+
+```typescript
+if (!isRealLLM && isSlashCommand(content)) {
+  const skill = tryMatchSkill(content);
+  if (skill) {
+    const msg = `Skill「${skill.name}」需要 Copilot 连接才能执行。请启动 Spellpaw Server。`;
+    set(state => ({ messages: [...state.messages, mockReply(msg)], isLoading: false }));
+    return;
+  }
+}
+```
+
+mock 模式本身是本地开发候选，skill 执行是真实 LLM 的功能。不投入开发资源做 mock skill 模拟。
+
+### 7.5 测试重写范围
+
+| 测试文件 | 改动 |
+|---------|------|
+| `skills.test.ts` | 全量重写。不再测 invoke 结果 → 测 loader 加载、`parseSlashCommand` 匹配、`parseArgTokens` 参数解析 |
+| `chatStore.test.ts` | 改 `executeSkill` 调用 → `augmentWithSkillContext`，验证返回的 augmented 文本包含 skill instructions |
+| `useCopilotSSE.test.ts` | 同上 |
+| `frontmatter.test.ts` | 不受影响，框架不变 |
+
+---
+
+## 9. 风险与缓解
 
 | 风险 | 缓解 |
 |------|------|
@@ -493,7 +612,7 @@ export function skillManifestPlugin(): Plugin {
 | 异步生成（分镜图、视频）导致 LLM 等待超时 | generate_storyboard 返回 `queued` 状态，不等待完成；后续轮次确认 |
 | Token 消耗 | skill 指导文本控制在 500 token 内（当前 6 个 skill 的指导约 200-400 tokens）；项目上下文用缩进文本格式（已有的 `treeToText` 很省 token） |
 
-## 8. 整体收益
+## 10. 整体收益
 
 | 维度 | 当前 | 目标 |
 |------|------|------|

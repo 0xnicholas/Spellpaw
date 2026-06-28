@@ -50,13 +50,46 @@ describe('IntegrationsSection — Phase 4 capability-grouped', () => {
   it('filters providers per capability', async () => {
     render(<IntegrationsSection />);
     await screen.findByText('文生图 (text2image)');
-    // text2image: deepseek, doubao, openai, minimax (not siliconflow)
+
+    // text2image: doubao / openai / siliconflow (image-capable); deepseek,
+    // minimax excluded.
     const t2iBlock = screen.getByText('文生图 (text2image)').closest('section')!;
-    expect(t2iBlock.querySelector('button.bg-white')?.textContent).toBeTruthy();
-    // styleTransfer: doubao, openai, siliconflow (not deepseek/minimax)
+    const t2iTrigger = t2iBlock.querySelector('[aria-haspopup="listbox"]')!;
+    fireEvent.click(t2iTrigger);
+    const t2iList = screen.getByRole('listbox');
+    const t2iOptions = within(t2iList).getAllByRole('option').map((o) => o.textContent ?? '');
+    expect(t2iOptions.some((t) => t.startsWith('豆包'))).toBe(true);
+    expect(t2iOptions.some((t) => t.startsWith('OpenAI'))).toBe(true);
+    expect(t2iOptions.some((t) => t.startsWith('硅基流动'))).toBe(true);
+    expect(t2iOptions.some((t) => t.startsWith('DeepSeek'))).toBe(false);
+    expect(t2iOptions.some((t) => t.startsWith('Minimax'))).toBe(false);
+    // close
+    fireEvent.keyDown(t2iList, { key: 'Escape' });
+
+    // styleTransfer: doubao / openai / siliconflow (no deepseek/minimax either)
     const stBlock = screen.getByText('风格迁移 (styleTransfer)').closest('section')!;
-    expect(stBlock.textContent).toContain('硅基流动');
-    expect(stBlock.textContent).not.toContain('DeepSeek');
+    const stTrigger = stBlock.querySelector('[aria-haspopup="listbox"]')!;
+    fireEvent.click(stTrigger);
+    const stOptions = within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent ?? '');
+    expect(stOptions.some((t) => t.startsWith('硅基流动'))).toBe(true);
+    expect(stOptions.some((t) => t.startsWith('DeepSeek'))).toBe(false);
+  });
+
+  it('default provider shown in trigger; recommended label visible', async () => {
+    render(<IntegrationsSection />);
+    await screen.findByText('文生图 (text2image)');
+    const t2iBlock = screen.getByText('文生图 (text2image)').closest('section')!;
+    const trigger = t2iBlock.querySelector('[aria-haspopup="listbox"]')!;
+    // Default for text2image is doubao (CAPABILITY_DEFAULT_PROVIDER).
+    // The recommended option is the one whose recommended[media] matches.
+    expect(trigger.textContent).toContain('豆包');
+    expect(trigger.textContent).toContain('推荐');
+
+    fireEvent.click(trigger);
+    const options = within(screen.getByRole('listbox')).getAllByRole('option');
+    // 豆包 should be marked recommended for text2image
+    const doubaoOption = options.find((o) => o.textContent?.includes('豆包'))!;
+    expect(doubaoOption.textContent).toContain('推荐');
   });
 
   it('switches provider resets baseUrl/model to recommended', async () => {
@@ -70,14 +103,12 @@ describe('IntegrationsSection — Phase 4 capability-grouped', () => {
     await screen.findByText('文生图 (text2image)');
     const t2iBlock = screen.getByText('文生图 (text2image)').closest('section')!;
 
-    // OpenAI is the default selected; switch to Doubao
-    const allButtons = t2iBlock.querySelectorAll('button');
-    let doubaoBtnEl: HTMLButtonElement | undefined;
-    allButtons.forEach((b) => {
-      if (b.textContent === '豆包') doubaoBtnEl = b as HTMLButtonElement;
-    });
-    expect(doubaoBtnEl).toBeDefined();
-    fireEvent.click(doubaoBtnEl!);
+    // Open trigger → listbox → click 豆包
+    fireEvent.click(t2iBlock.querySelector('[aria-haspopup="listbox"]')!);
+    const doubaoOption = within(screen.getByRole('listbox'))
+      .getAllByRole('option')
+      .find((o) => o.textContent?.includes('豆包'))!;
+    fireEvent.click(doubaoOption);
 
     const baseUrlInput = t2iBlock.querySelector('input[placeholder="https://api.example.com/v1"]') as HTMLInputElement;
     expect(baseUrlInput.value).toBe('https://ark.cn-beijing.volces.com/api/v3');
@@ -150,20 +181,18 @@ describe('IntegrationsSection — Phase 4 capability-grouped', () => {
     render(<IntegrationsSection />);
     await screen.findByText('文生音频 (text2audio)');
     const audioBlock = screen.getByText('文生音频 (text2audio)').closest('section')!;
-    const selected = audioBlock.querySelector('button.bg-white')?.textContent;
-    expect(selected).toBe('OpenAI');
+    const trigger = audioBlock.querySelector('[aria-haspopup="listbox"]')!;
+    expect(trigger.textContent).toContain('OpenAI');
   });
 
-  it('text2model and image2model have no providers (empty pill row)', async () => {
+  it('text2model and image2model have no providers (dropdown shows empty)', async () => {
     render(<IntegrationsSection />);
     await screen.findByText('文生模型 (text2model)');
     const block = screen.getByText('文生模型 (text2model)').closest('section')!;
-    // No provider buttons rendered when no provider supports the capability
-    const pills = block.querySelectorAll('button.bg-white, button:not([type="button"][class*="bg-"])');
-    const providerPills = Array.from(pills).filter((b) =>
-      ['豆包', 'OpenAI', 'DeepSeek', 'Minimax', '硅基流动'].includes(b.textContent ?? ''),
-    );
-    expect(providerPills.length).toBe(0);
+    const trigger = block.querySelector('[aria-haspopup="listbox"]')!;
+    fireEvent.click(trigger);
+    // No listbox opens because there are no providers for model3d
+    expect(screen.queryByRole('listbox')).toBeNull();
   });
 
   it('routes different capabilities to different provider configs', async () => {

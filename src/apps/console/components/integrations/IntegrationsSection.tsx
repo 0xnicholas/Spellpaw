@@ -12,7 +12,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
-import { cn } from '@/shared/lib/utils';
+import { ProviderSelect, type ProviderSelectOption } from '@/shared/components/ui/ProviderSelect';
 import {
   isValidLLMProvider,
   LLM_PROVIDER_REGISTRY,
@@ -285,32 +285,20 @@ function CapabilityCard({
       )}
 
       <div className="mb-3">
-        <label className="mb-1.5 block text-[11px] font-medium text-[var(--color-text-secondary)]">Provider</label>
-        <div className="flex flex-wrap gap-1.5">
-          {supportedProviders.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => onChangeProvider(p)}
-              className={cn(
-                'rounded-full px-3 py-1 text-[11px] font-medium transition-all',
-                effectiveConfig.provider === p
-                  ? 'bg-white text-[oklch(15%_0.02_270)] shadow-sm'
-                  : 'text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]',
-              )}
-              style={
-                effectiveConfig.provider !== p
-                  ? {
-                      background: 'oklch(100% 0 0 / 0.04)',
-                      border: '1px solid oklch(100% 0 0 / 0.08)',
-                    }
-                  : undefined
-              }
-            >
-              {PROVIDER_LABELS[p]}
-            </button>
-          ))}
-        </div>
+        <ProviderSelect<LLMProviderType>
+          label="Provider"
+          value={effectiveConfig.provider}
+          placeholder="选择 provider"
+          options={supportedProviders.map<ProviderSelectOption<LLMProviderType>>((p) => ({
+            value: p,
+            label: PROVIDER_LABELS[p],
+            hint: LLM_PROVIDER_REGISTRY[p].apiKeyPlaceholder,
+            recommended:
+              p === CAPABILITY_DEFAULT_PROVIDER[capability] &&
+              LLM_PROVIDER_REGISTRY[p].recommended[CAPABILITY_TO_MEDIA[capability]] != null,
+          }))}
+          onChange={onChangeProvider}
+        />
       </div>
 
       <div className="mb-3">

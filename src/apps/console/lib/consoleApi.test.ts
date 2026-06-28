@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { updateProfile, updatePassword, fetchCurrentUser, fetchSettings, updateSettings } from './consoleApi';
+import { updateProfile, updatePassword, fetchCurrentUser, fetchSettings, updateSettings, type UserSettings } from './consoleApi';
 import { useAuthStore } from '@/shared/stores/authStore';
 
 describe('consoleApi', () => {
@@ -43,14 +43,26 @@ describe('consoleApi', () => {
   });
 
   it('fetchSettings returns server settings', async () => {
-    const settings = { openaiApiKey: 'sk-openai', doubaoApiKey: '', minimaxApiKey: '', llmProvider: 'deepseek', llmApiKey: 'sk-llm', llmApiKeys: { deepseek: 'sk-llm' }, llmBaseUrl: 'https://api.deepseek.com/v1', llmModel: 'deepseek-v4-pro' };
+    const settings: UserSettings = {
+      openaiApiKey: 'sk-openai',
+      doubaoApiKey: '',
+      minimaxApiKey: '',
+      llmConfigs: {
+        text: { provider: 'deepseek', apiKey: 'sk-llm', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-pro' },
+      },
+    };
     vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(settings), { status: 200 }));
     const result = await fetchSettings();
     expect(result).toEqual(settings);
   });
 
   it('updateSettings sends PATCH and returns updated data', async () => {
-    const updated = { openaiApiKey: 'sk-new', doubaoApiKey: '', minimaxApiKey: '', llmProvider: 'deepseek', llmApiKey: '', llmApiKeys: {}, llmBaseUrl: '', llmModel: '' };
+    const updated: UserSettings = {
+      openaiApiKey: 'sk-new',
+      doubaoApiKey: '',
+      minimaxApiKey: '',
+      llmConfigs: { text: { provider: 'deepseek', apiKey: '', baseUrl: '', model: '' } },
+    };
     const fetchMock = vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(updated), { status: 200 }));
     const result = await updateSettings({ openaiApiKey: 'sk-new' });
     expect(result.success).toBe(true);
@@ -64,17 +76,32 @@ describe('consoleApi', () => {
     );
   });
 
-  it('updateSettings sends per-provider llmApiKeys', async () => {
-    const updated = { openaiApiKey: '', doubaoApiKey: '', minimaxApiKey: '', llmProvider: 'deepseek', llmApiKey: 'sk-deepseek', llmApiKeys: { deepseek: 'sk-deepseek' }, llmBaseUrl: '', llmModel: '' };
+  it('updateSettings sends llmConfigs patch', async () => {
+    const updated: UserSettings = {
+      openaiApiKey: '',
+      doubaoApiKey: '',
+      minimaxApiKey: '',
+      llmConfigs: {
+        image: { provider: 'doubao', apiKey: 'ark-new', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seedream-5-0-lite' },
+      },
+    };
     const fetchMock = vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(updated), { status: 200 }));
-    const result = await updateSettings({ llmApiKeys: { deepseek: 'sk-deepseek' } });
+    const result = await updateSettings({
+      llmConfigs: {
+        image: { provider: 'doubao', apiKey: 'ark-new', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seedream-5-0-lite' },
+      },
+    });
     expect(result.success).toBe(true);
     expect(result.data).toEqual(updated);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/api/auth/settings'),
       expect.objectContaining({
         method: 'PATCH',
-        body: JSON.stringify({ llmApiKeys: { deepseek: 'sk-deepseek' } }),
+        body: JSON.stringify({
+          llmConfigs: {
+            image: { provider: 'doubao', apiKey: 'ark-new', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seedream-5-0-lite' },
+          },
+        }),
       })
     );
   });

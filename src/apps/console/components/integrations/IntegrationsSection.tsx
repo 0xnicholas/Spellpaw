@@ -1,424 +1,324 @@
+/**
+ * Console Integrations page — Phase 4 capability-grouped.
+ *
+ * Three independent blocks (TEXT / IMAGE / VIDEO), each with its own
+ * provider pill row + API Key + Base URL + Model fields. Each block
+ * saves independently via PATCH /api/auth/settings with
+ * { llmConfigs: { [capability]: ModelConfig } }.
+ *
+ * i18n: skipped per user request — strings hardcoded in Chinese.
+ */
+
 import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { cn } from '@/shared/lib/utils';
 import { getSettings } from '@drama/lib/imageGen';
 import {
-  DEFAULT_LLM_PROVIDER,
   isValidLLMProvider,
-  LLM_PROVIDERS,
   LLM_PROVIDER_REGISTRY,
-  MULTIMODAL_PROVIDERS,
-  MULTIMODAL_PROVIDER_REGISTRY,
+  providersForCapability,
+  type Capability,
   type LLMProviderType,
+  type ModelConfig,
 } from '@shared/lib/providers';
-import { fetchSettings, updateSettings, type UserSettings } from '@console/lib/consoleApi';
-import { getLLMSettings, setLLMSettings } from '@console/lib/llmSettings';
+import { fetchSettings, updateSettings, type LlmConfigs } from '@console/lib/consoleApi';
 import { syncUserSettings } from '@console/lib/syncSettings';
 
+const CAPABILITY_META: Record<Capability, { title: string; description: string }> = {
+  text: { title: '文本生成', description: '用于 Copilot 对话和 Agent 工具调用' },
+  image: { title: '图片生成', description: '用于图片、图生图、风格迁移' },
+  video: { title: '视频生成', description: '用于文生视频和图生视频' },
+};
+
+const PROVIDER_LABELS: Record<LLMProviderType, string> = {
+  doubao: '豆包',
+  openai: 'OpenAI',
+  deepseek: 'DeepSeek',
+  minimax: 'Minimax',
+  siliconflow: '硅基流动',
+};
+
+function emptyConfig(capability: Capability, provider: LLMProviderType): ModelConfig {
+  const cfg = LLM_PROVIDER_REGISTRY[provider];
+  return {
+    provider,
+    apiKey: '',
+    baseUrl: cfg.baseUrl,
+    model: cfg.recommended[capability] ?? cfg.model,
+  };
+}
+
+function deriveFromDrama(capability: Capability, drama: ReturnType<typeof getSettings>): ModelConfig {
+  if (capability === 'text') {
+    return emptyConfig(capability, 'deepseek');
+  }
+  if (drama.doubaoApiKey) {
+    const cfg = LLM_PROVIDER_REGISTRY.doubao;
+    return {
+      provider: 'doubao',
+      apiKey: drama.doubaoApiKey,
+      baseUrl: cfg.baseUrl,
+      model: cfg.recommended[capability] ?? cfg.model,
+    };
+  }
+  if (capability === 'image' && drama.openaiApiKey) {
+    const cfg = LLM_PROVIDER_REGISTRY.openai;
+    return {
+      provider: 'openai',
+      apiKey: drama.openaiApiKey,
+      baseUrl: cfg.baseUrl,
+      model: cfg.recommended[capability] ?? cfg.model,
+    };
+  }
+  if (capability === 'video' && drama.minimaxApiKey) {
+    const cfg = LLM_PROVIDER_REGISTRY.minimax;
+    return {
+      provider: 'minimax',
+      apiKey: drama.minimaxApiKey,
+      baseUrl: cfg.baseUrl,
+      model: cfg.recommended[capability] ?? cfg.model,
+    };
+  }
+  return emptyConfig(capability, 'doubao');
+}
+
 export function IntegrationsSection() {
-  const { t } = useTranslation();
-  const [multimodalKeys, setMultimodalKeys] = useState<Record<string, string>>({});
-  const [llmProvider, setLlmProvider] = useState<LLMProviderType>(DEFAULT_LLM_PROVIDER);
-  const [llmApiKeys, setLlmApiKeys] = useState<Record<string, string>>({});
-  const [llmBaseUrl, setLlmBaseUrl] = useState('');
-  const [llmModel, setLlmModel] = useState('');
-  const [languageSaved, setLanguageSaved] = useState(false);
-  const [multimodalSaved, setMultimodalSaved] = useState(false);
-  const [languageError, setLanguageError] = useState(false);
-  const [multimodalError, setMultimodalError] = useState(false);
-  const [languageSaving, setLanguageSaving] = useState(false);
-  const [multimodalSaving, setMultimodalSaving] = useState(false);
+  const [llmConfigs, setLlmConfigs] = useState<LlmConfigs>({});
+  const [saved, setSaved] = useState<Record<Capability, boolean>>({ text: false, image: false, video: false });
+  const [errors, setErrors] = useState<Record<Capability, boolean>>({ text: false, image: false, video: false });
+  const [saving, setSaving] = useState<Record<Capability, boolean>>({ text: false, image: false, video: false });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    fetchSettings().then(async (server) => {
-      if (server) {
-        await syncUserSettings(server);
-      }
-
-      const local = getSettings();
-      const initialMultimodal: Record<string, string> = {};
-      for (const id of MULTIMODAL_PROVIDERS) {
-        initialMultimodal[id] = local[`${id}ApiKey`] ?? '';
-      }
-      setMultimodalKeys(initialMultimodal);
-
-      const llm = getLLMSettings();
-      const provider = server && isValidLLMProvider(server.llmProvider) ? server.llmProvider : llm.provider;
-      const mergedKeys = { ...llm.apiKeys, ...(server?.llmApiKeys ?? {}) };
-      setLlmProvider(provider);
-      setLlmApiKeys(mergedKeys);
-      setLlmBaseUrl(server?.llmBaseUrl ?? (llm.baseUrl || LLM_PROVIDER_REGISTRY[provider].baseUrl));
-      setLlmModel(server?.llmModel ?? (llm.model || LLM_PROVIDER_REGISTRY[provider].model));
-
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    fetchSettings()
+      .then(async (server) => {
+        if (server) {
+          await syncUserSettings(server);
+        }
+        const drama = getSettings();
+        const fresh: LlmConfigs = {};
+        for (const cap of ['text', 'image', 'video'] as Capability[]) {
+          const incoming = server?.llmConfigs?.[cap];
+          if (incoming && isValidLLMProvider(incoming.provider)) {
+            const cfg = LLM_PROVIDER_REGISTRY[incoming.provider];
+            fresh[cap] = {
+              provider: incoming.provider,
+              apiKey: incoming.apiKey ?? '',
+              baseUrl: incoming.baseUrl || cfg.baseUrl,
+              model: incoming.model || cfg.recommended[cap] || cfg.model,
+            };
+          } else {
+            fresh[cap] = deriveFromDrama(cap, drama);
+          }
+        }
+        setLlmConfigs(fresh);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const showSaved = (setter: (v: boolean) => void) => {
-    setter(true);
-    setTimeout(() => setter(false), 2000);
-  };
+  function updateCap(capability: Capability, patch: Partial<ModelConfig>) {
+    setLlmConfigs((prev) => ({
+      ...prev,
+      [capability]: { ...(prev[capability] ?? emptyConfig(capability, 'deepseek')), ...patch },
+    }));
+  }
 
-  const handleProviderChange = (provider: LLMProviderType) => {
-    setLlmProvider(provider);
-    setLlmBaseUrl(LLM_PROVIDER_REGISTRY[provider].baseUrl);
-    setLlmModel(LLM_PROVIDER_REGISTRY[provider].model);
-  };
+  function changeProvider(capability: Capability, provider: LLMProviderType) {
+    const cfg = LLM_PROVIDER_REGISTRY[provider];
+    setLlmConfigs((prev) => {
+      const cur = prev[capability] ?? emptyConfig(capability, provider);
+      return {
+        ...prev,
+        [capability]: {
+          ...cur,
+          provider,
+          baseUrl: cfg.baseUrl,
+          model: cfg.recommended[capability] ?? cfg.model,
+        },
+      };
+    });
+  }
 
-  const currentLlmApiKey = llmApiKeys[llmProvider] ?? '';
-
-  const updateCurrentLlmApiKey = (value: string) => {
-    setLlmApiKeys((prev) => ({ ...prev, [llmProvider]: value }));
-  };
-
-  const handleSaveLanguageModel = async () => {
-    setLanguageSaving(true);
-    setLanguageError(false);
-    try {
-      const provider = llmProvider;
-      const apiKey = currentLlmApiKey.trim();
-      const baseUrl = llmBaseUrl.trim() || LLM_PROVIDER_REGISTRY[provider].baseUrl;
-      const model = llmModel.trim() || LLM_PROVIDER_REGISTRY[provider].model;
-      const nextApiKeys = { ...llmApiKeys, [provider]: apiKey };
-      const result = await updateSettings({
-        llmProvider: provider,
-        llmApiKeys: nextApiKeys,
-        llmBaseUrl: baseUrl,
-        llmModel: model,
-      });
-      if (result.success) {
-        setLlmApiKeys(nextApiKeys);
-        setLLMSettings({ provider, apiKey, apiKeys: nextApiKeys, baseUrl, model });
-        showSaved(setLanguageSaved);
-      } else {
-        setLanguageError(true);
-        setTimeout(() => setLanguageError(false), 2000);
-      }
-    } catch {
-      setLanguageError(true);
-      setTimeout(() => setLanguageError(false), 2000);
-    } finally {
-      setLanguageSaving(false);
+  async function saveCapability(capability: Capability) {
+    const cfg = llmConfigs[capability];
+    if (!cfg) return;
+    setSaving((s) => ({ ...s, [capability]: true }));
+    setErrors((e) => ({ ...e, [capability]: false }));
+    setSaved((s) => ({ ...s, [capability]: false }));
+    const result = await updateSettings({ llmConfigs: { [capability]: cfg } });
+    setSaving((s) => ({ ...s, [capability]: false }));
+    if (result.success) {
+      setSaved((s) => ({ ...s, [capability]: true }));
+      setTimeout(() => setSaved((s) => ({ ...s, [capability]: false })), 2000);
+    } else {
+      setErrors((e) => ({ ...e, [capability]: true }));
+      setTimeout(() => setErrors((e) => ({ ...e, [capability]: false })), 2000);
     }
-  };
+  }
 
-  const handleSaveMultimodal = async () => {
-    setMultimodalSaving(true);
-    setMultimodalError(false);
-    try {
-      const settings: Partial<UserSettings> = {};
-      // Minimax is disabled/coming-soon, so exclude it from the save payload
-      // to avoid overwriting any existing server value.
-      for (const id of MULTIMODAL_PROVIDERS) {
-        if (id === 'minimax') continue;
-        settings[`${id}ApiKey` as 'openaiApiKey' | 'doubaoApiKey' | 'minimaxApiKey'] = multimodalKeys[id]?.trim() ?? '';
-      }
-      const result = await updateSettings(settings);
-      if (result.success && result.data) {
-        await syncUserSettings(result.data);
-        const local = getSettings();
-        const next: Record<string, string> = {};
-        for (const id of MULTIMODAL_PROVIDERS) {
-          next[id] = local[`${id}ApiKey`] ?? '';
-        }
-        setMultimodalKeys(next);
-        showSaved(setMultimodalSaved);
-      } else {
-        setMultimodalError(true);
-        setTimeout(() => setMultimodalError(false), 2000);
-      }
-    } catch {
-      setMultimodalError(true);
-      setTimeout(() => setMultimodalError(false), 2000);
-    } finally {
-      setMultimodalSaving(false);
-    }
-  };
+  if (loading) {
+    return <div className="text-sm text-[var(--color-text-muted)]">加载中…</div>;
+  }
 
   return (
-    <section className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <div
-          className="mb-2 inline-block text-xs font-semibold tracking-[0.18em]"
-          style={{ color: 'var(--portal-accent)' }}
-        >
-          INTEGRATIONS
-        </div>
-        <h2
-          className="mb-1.5 text-2xl font-bold text-white"
-          style={{ fontFamily: 'var(--font-family-display)', letterSpacing: '-0.02em' }}
-        >
-          {t('console.integrations.title')}
-        </h2>
-        <p className="text-sm" style={{ color: 'var(--portal-text-muted)' }}>
-          {t('console.integrations.description')}
+        <h3 className="text-base font-semibold text-[var(--color-text-primary)]">API 集成</h3>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          管理第三方 API 密钥。每个能力（文本/图片/视频）独立配置 provider 和模型。
         </p>
       </div>
 
-      <div
-        className="space-y-5 rounded-[20px] border p-6"
-        style={{
-          background: 'var(--portal-bg-elevated)',
-          borderColor: 'var(--portal-border)',
-        }}
-      >
-        <div>
-          <h3
-            className="text-sm font-semibold text-white"
-            style={{ fontFamily: 'var(--font-family-display)' }}
-          >
-            {t('console.integrations.languageModelTitle')}
-          </h3>
-          <p className="mt-0.5 text-xs" style={{ color: 'var(--portal-text-muted)' }}>
-            {t('console.integrations.languageModelDescription')}
-          </p>
-        </div>
-
-        <div>
-          <label
-            className="mb-2 block text-xs font-medium"
-            style={{ color: 'var(--portal-text-muted)' }}
-          >
-            {t('console.integrations.llmProvider')}
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {LLM_PROVIDERS.map((provider) => {
-              const active = llmProvider === provider;
-              return (
-                <button
-                  key={provider}
-                  onClick={() => handleProviderChange(provider)}
-                  disabled={loading}
-                  className="rounded-full px-3.5 py-1.5 text-xs font-medium transition-all disabled:opacity-50"
-                  style={
-                    active
-                      ? {
-                          background: 'white',
-                          color: 'oklch(15% 0.02 270)',
-                          fontFamily: 'var(--font-family-display)',
-                          boxShadow: '0 2px 8px rgba(255,255,255,0.1)',
-                        }
-                      : {
-                          background: 'oklch(100% 0 0 / 0.04)',
-                          border: '1px solid oklch(100% 0 0 / 0.08)',
-                          color: 'var(--portal-text-muted)',
-                        }
-                  }
-                >
-                  {t(`console.integrations.providers.${provider}`)}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <label
-            className="mb-1.5 block text-xs font-medium"
-            style={{ color: 'var(--portal-text-muted)' }}
-          >
-            {t('console.integrations.llmApiKey')}
-          </label>
-          <Input
-            type="password"
-            value={currentLlmApiKey}
-            onChange={(e) => updateCurrentLlmApiKey(e.target.value)}
-            placeholder={LLM_PROVIDER_REGISTRY[llmProvider].apiKeyPlaceholder}
-            disabled={loading}
-            className="!h-10 !rounded-xl !text-sm !text-white"
-            style={{
-              background: 'oklch(100% 0 0 / 0.04)',
-              border: '1px solid oklch(100% 0 0 / 0.08)',
-            }}
-          />
-        </div>
-
-        <div>
-          <label
-            className="mb-1.5 block text-xs font-medium"
-            style={{ color: 'var(--portal-text-muted)' }}
-          >
-            {t('console.integrations.llmBaseUrl')}
-          </label>
-          <Input
-            value={llmBaseUrl}
-            onChange={(e) => setLlmBaseUrl(e.target.value)}
-            placeholder={LLM_PROVIDER_REGISTRY[llmProvider].baseUrl}
-            disabled={loading}
-            className="!h-10 !rounded-xl !text-sm !text-white"
-            style={{
-              background: 'oklch(100% 0 0 / 0.04)',
-              border: '1px solid oklch(100% 0 0 / 0.08)',
-            }}
-          />
-          <p className="mt-1.5 text-[10px]" style={{ color: 'var(--portal-text-dim)' }}>
-            {t('console.integrations.llmBaseUrlHint')}
-          </p>
-        </div>
-
-        <div>
-          <label
-            className="mb-1.5 block text-xs font-medium"
-            style={{ color: 'var(--portal-text-muted)' }}
-          >
-            {t('console.integrations.llmModel')}
-          </label>
-          <ModelSelector
-            provider={llmProvider}
-            model={llmModel}
-            onChange={setLlmModel}
-            disabled={loading}
-          />
-        </div>
-
-        {languageSaved && (
-          <p className="text-xs" style={{ color: 'oklch(80% 0.12 145)' }}>
-            {t('console.integrations.saved')}
-          </p>
-        )}
-        {languageError && (
-          <p className="text-xs" style={{ color: 'oklch(80% 0.12 25)' }}>
-            {t('console.integrations.saveError')}
-          </p>
-        )}
-
-        <div className="pt-2">
-          <Button
-            size="sm"
-            onClick={handleSaveLanguageModel}
-            loading={languageSaving}
-            disabled={loading}
-          >
-            {t('console.integrations.saveLanguageModel')}
-          </Button>
-        </div>
-      </div>
-
-      <div
-        className="space-y-5 rounded-[20px] border p-6"
-        style={{
-          background: 'var(--portal-bg-elevated)',
-          borderColor: 'var(--portal-border)',
-        }}
-      >
-        <div>
-          <h3
-            className="text-sm font-semibold text-white"
-            style={{ fontFamily: 'var(--font-family-display)' }}
-          >
-            {t('console.integrations.multimodalTitle')}
-          </h3>
-          <p className="mt-0.5 text-xs" style={{ color: 'var(--portal-text-muted)' }}>
-            {t('console.integrations.multimodalDescription')}
-          </p>
-        </div>
-
-        {MULTIMODAL_PROVIDERS.map((id) => {
-          const config = MULTIMODAL_PROVIDER_REGISTRY[id];
-          return (
-            <div key={id}>
-              <label
-                className="mb-1.5 block text-xs font-medium"
-                style={{ color: 'var(--portal-text-muted)' }}
-              >
-                {t(config.labelKey)}
-              </label>
-              <Input
-                type="password"
-                value={multimodalKeys[id] ?? ''}
-                onChange={(e) => setMultimodalKeys((prev) => ({ ...prev, [id]: e.target.value }))}
-                placeholder={config.placeholderKey ? t(config.placeholderKey) : undefined}
-                disabled={id === 'minimax' || loading}
-                className="!h-10 !rounded-xl !text-sm !text-white"
-                style={{
-                  background: 'oklch(100% 0 0 / 0.04)',
-                  border: '1px solid oklch(100% 0 0 / 0.08)',
-                }}
-              />
-              <p className="mt-1.5 text-[10px]" style={{ color: 'var(--portal-text-dim)' }}>
-                {t(config.hintKey)}
-              </p>
-            </div>
-          );
-        })}
-
-        {multimodalSaved && (
-          <p className="text-xs" style={{ color: 'oklch(80% 0.12 145)' }}>
-            {t('console.integrations.saved')}
-          </p>
-        )}
-        {multimodalError && (
-          <p className="text-xs" style={{ color: 'oklch(80% 0.12 25)' }}>
-            {t('console.integrations.saveError')}
-          </p>
-        )}
-
-        <div className="pt-2">
-          <Button
-            size="sm"
-            onClick={handleSaveMultimodal}
-            loading={multimodalSaving}
-            disabled={loading}
-          >
-            {t('console.integrations.saveMultimodal')}
-          </Button>
-        </div>
-      </div>
-    </section>
+      {(['text', 'image', 'video'] as Capability[]).map((cap) => (
+        <CapabilityCard
+          key={cap}
+          capability={cap}
+          config={llmConfigs[cap]}
+          saved={saved[cap]}
+          error={errors[cap]}
+          saving={saving[cap]}
+          onChange={(patch) => updateCap(cap, patch)}
+          onChangeProvider={(p) => changeProvider(cap, p)}
+          onSave={() => saveCapability(cap)}
+        />
+      ))}
+    </div>
   );
 }
 
-interface ModelSelectorProps {
-  provider: LLMProviderType;
-  model: string;
-  onChange: (model: string) => void;
-  disabled?: boolean;
+interface CapabilityCardProps {
+  capability: Capability;
+  config: ModelConfig | undefined;
+  saved: boolean;
+  error: boolean;
+  saving: boolean;
+  onChange: (patch: Partial<ModelConfig>) => void;
+  onChangeProvider: (provider: LLMProviderType) => void;
+  onSave: () => void;
 }
 
-function ModelSelector({ provider, model, onChange, disabled }: ModelSelectorProps) {
-  const { t } = useTranslation();
-  const recommended = LLM_PROVIDER_REGISTRY[provider].models ?? [];
-  const isCustom = model !== '' && !recommended.includes(model);
-  const defaultModel = LLM_PROVIDER_REGISTRY[provider].model;
+function CapabilityCard({
+  capability,
+  config,
+  saved,
+  error,
+  saving,
+  onChange,
+  onChangeProvider,
+  onSave,
+}: CapabilityCardProps) {
+  const meta = CAPABILITY_META[capability];
+  const supportedProviders = providersForCapability(capability);
+  const current = config ?? emptyConfig(capability, 'deepseek');
+  const providerSupports = supportedProviders.includes(current.provider);
 
   return (
-    <div className="space-y-2">
-      <select
-        value={isCustom ? 'custom' : model}
-        onChange={(e) => {
-          const value = e.target.value;
-          onChange(value === 'custom' ? '' : value);
-        }}
-        disabled={disabled}
-        className={cn(
-          'h-10 w-full rounded-xl border px-3.5 text-sm text-white outline-none focus:ring-[1.5px]',
-          disabled && 'opacity-50 cursor-not-allowed'
-        )}
-        style={{
-          background: 'oklch(100% 0 0 / 0.04)',
-          borderColor: 'oklch(100% 0 0 / 0.08)',
-        }}
-      >
-        <option value="">{t('console.integrations.llmModelDefault', { model: defaultModel })}</option>
-        {recommended.map((m) => (
-          <option key={m} value={m}>
-            {m}
-          </option>
-        ))}
-        <option value="custom">{t('console.integrations.llmModelCustom')}</option>
-      </select>
-      {isCustom && (
-        <Input
-          value={model}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={defaultModel}
-          disabled={disabled}
-        />
+    <section
+      className="rounded-[14px] border p-5"
+      style={{
+        background: 'var(--portal-bg-elevated)',
+        borderColor: 'var(--portal-border)',
+      }}
+    >
+      <header className="mb-3">
+        <h4 className="text-sm font-semibold text-white">{meta.title}</h4>
+        <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{meta.description}</p>
+      </header>
+
+      {!providerSupports && (
+        <div
+          className="mb-3 rounded-md px-3 py-2 text-xs"
+          style={{
+            background: 'oklch(60% 0.18 60 / 0.12)',
+            color: 'oklch(85% 0.15 60)',
+            border: '1px solid oklch(60% 0.18 60 / 0.3)',
+          }}
+        >
+          当前 provider "{PROVIDER_LABELS[current.provider]}" 不支持 {meta.title}，请选择其他 provider。
+        </div>
       )}
-    </div>
+
+      <div className="mb-3">
+        <label className="mb-1.5 block text-[11px] font-medium text-[var(--color-text-secondary)]">Provider</label>
+        <div className="flex flex-wrap gap-1.5">
+          {supportedProviders.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onChangeProvider(p)}
+              className={cn(
+                'rounded-full px-3 py-1 text-[11px] font-medium transition-all',
+                current.provider === p
+                  ? 'bg-white text-[oklch(15%_0.02_270)] shadow-sm'
+                  : 'text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]',
+              )}
+              style={
+                current.provider !== p
+                  ? {
+                      background: 'oklch(100% 0 0 / 0.04)',
+                      border: '1px solid oklch(100% 0 0 / 0.08)',
+                    }
+                  : undefined
+              }
+            >
+              {PROVIDER_LABELS[p]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="mb-1.5 block text-[11px] font-medium text-[var(--color-text-secondary)]">API Key</label>
+        <Input
+          type="password"
+          placeholder={LLM_PROVIDER_REGISTRY[current.provider].apiKeyPlaceholder}
+          value={current.apiKey}
+          onChange={(e) => onChange({ apiKey: e.target.value })}
+          className="text-xs"
+        />
+      </div>
+
+      <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <label className="mb-1.5 block text-[11px] font-medium text-[var(--color-text-secondary)]">Base URL</label>
+          <Input
+            value={current.baseUrl}
+            onChange={(e) => onChange({ baseUrl: e.target.value })}
+            className="text-xs"
+            placeholder="https://api.example.com/v1"
+          />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-[11px] font-medium text-[var(--color-text-secondary)]">Model</label>
+          <Input
+            value={current.model}
+            onChange={(e) => onChange({ model: e.target.value })}
+            className="text-xs"
+            placeholder={
+              LLM_PROVIDER_REGISTRY[current.provider].recommended[capability] ??
+              LLM_PROVIDER_REGISTRY[current.provider].model
+            }
+          />
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center gap-3">
+        <Button size="sm" disabled={saving} onClick={onSave}>
+          {saving ? '保存中…' : '保存'}
+        </Button>
+        {saved && (
+          <span className="text-xs" style={{ color: 'var(--portal-accent)' }}>
+            ✓ 已保存
+          </span>
+        )}
+        {error && (
+          <span className="text-xs" style={{ color: 'oklch(70% 0.18 25)' }}>
+            保存失败，请重试
+          </span>
+        )}
+      </div>
+    </section>
   );
 }

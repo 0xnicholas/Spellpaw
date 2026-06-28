@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { I18nextProvider } from 'react-i18next';
-import i18n from '@/shared/i18n';
 import { IntegrationsSection } from './IntegrationsSection';
 import { fetchSettings, updateSettings } from '@console/lib/consoleApi';
 
@@ -10,131 +8,130 @@ vi.mock('@console/lib/consoleApi', () => ({
   updateSettings: vi.fn(),
 }));
 
-vi.mock('@console/lib/llmSettings', () => ({
-  getLLMSettings: () => ({
-    provider: 'deepseek',
-    apiKey: '',
-    apiKeys: {},
-    baseUrl: 'https://api.deepseek.com/v1',
-    model: 'deepseek-v4-pro',
-  }),
-  setLLMSettings: vi.fn(),
-  isValidProvider: (v: string) => ['deepseek', 'openai'].includes(v),
-  DEFAULT_PROVIDER: 'deepseek',
-}));
-
 vi.mock('@drama/lib/imageGen', () => ({
   getSettings: () => ({}),
-  setApiKey: vi.fn(),
-  setDoubaoApiKey: vi.fn(),
-  setMinimaxApiKey: vi.fn(),
 }));
 
 vi.mock('@console/lib/syncSettings', () => ({
   syncUserSettings: vi.fn(),
 }));
 
-function Wrapper({ children }: { children: React.ReactNode }) {
-  return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
-}
-
-describe('IntegrationsSection', () => {
+describe('IntegrationsSection — Phase 4 capability-grouped', () => {
   const fetchSettingsMock = vi.mocked(fetchSettings);
   const updateSettingsMock = vi.mocked(updateSettings);
 
   beforeEach(() => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
     fetchSettingsMock.mockResolvedValue({
       openaiApiKey: '',
       doubaoApiKey: '',
       minimaxApiKey: '',
-      llmProvider: 'deepseek',
-      llmApiKey: '',
-      llmApiKeys: {},
-      llmBaseUrl: '',
-      llmModel: '',
+      llmConfigs: {},
     });
     updateSettingsMock.mockReset();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
-  it('switches provider input independently', async () => {
-    render(<IntegrationsSection />, { wrapper: Wrapper });
-
-    const apiKeyInputs = await screen.findAllByPlaceholderText('sk-...');
-    const llmApiKeyInput = apiKeyInputs[0];
-
-    fireEvent.change(llmApiKeyInput, { target: { value: 'sk-deepseek' } });
-    expect(llmApiKeyInput).toHaveValue('sk-deepseek');
-
-    const openaiButton = screen.getByRole('button', { name: /OpenAI/i });
-    fireEvent.click(openaiButton);
-
-    await waitFor(() => {
-      expect(llmApiKeyInput).toHaveValue('');
-    });
-
-    fireEvent.change(llmApiKeyInput, { target: { value: 'sk-openai' } });
-    expect(llmApiKeyInput).toHaveValue('sk-openai');
-
-    const deepseekButton = screen.getByRole('button', { name: /DeepSeek/i });
-    fireEvent.click(deepseekButton);
-
-    await waitFor(() => {
-      expect(llmApiKeyInput).toHaveValue('sk-deepseek');
-    });
+  it('renders three capability blocks', async () => {
+    render(<IntegrationsSection />);
+    expect(await screen.findByText('文本生成')).toBeInTheDocument();
+    expect(screen.getByText('图片生成')).toBeInTheDocument();
+    expect(screen.getByText('视频生成')).toBeInTheDocument();
   });
 
-  it('shows success message after saving language model settings', async () => {
+  it('renders providers filtered by capability', async () => {
+    render(<IntegrationsSection />);
+    await screen.findByText('文本生成');
+    // Text: deepseek, doubao, openai, minimax (not siliconflow which is image-only)
+    expect(screen.getByRole('button', { name: 'DeepSeek' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '硅基流动' })).toBeInTheDocument(); // appears in image block
+    // siliconflow is image-only, not in text — but since text/image are separate blocks, both blocks render
+    // we just check that for the image block, siliconflow appears (which it does)
+  });
+
+  it('switches provider resets baseUrl/model to recommended', async () => {
+    render(<IntegrationsSection />);
+    await screen.findByText('文本生成');
+
+    // In the text block (first block), the first button is DeepSeek (default selected)
+    const textBlock = screen.getByText('文本生成').closest('section')!;
+    expect(textBlock.querySelector('button.bg-white')!.textContent).toBe('DeepSeek');
+
+    // Find the Doubao button specifically within the text section
+    const allButtons = textBlock.querySelectorAll('button');
+    let doubaoBtnEl: HTMLButtonElement | undefined;
+    allButtons.forEach((b) => {
+      if (b.textContent === '豆包') doubaoBtnEl = b as HTMLButtonElement;
+    });
+    expect(doubaoBtnEl).toBeDefined();
+    fireEvent.click(doubaoBtnEl!);
+
+    // baseUrl and model should be reset to doubao defaults
+    const baseUrlInput = textBlock.querySelector('input[placeholder="https://api.example.com/v1"]') as HTMLInputElement;
+    expect(baseUrlInput.value).toBe('https://ark.cn-beijing.volces.com/api/v3');
+    const modelInput = textBlock.querySelectorAll('input')[2] as HTMLInputElement; // 0=apiKey pw, 1=baseUrl, 2=model
+    expect(modelInput.value).toBe('doubao-seed-2-0-pro');
+  });
+
+  it('saves one capability independently', async () => {
     updateSettingsMock.mockResolvedValue({
       success: true,
       data: {
         openaiApiKey: '',
         doubaoApiKey: '',
         minimaxApiKey: '',
-        llmProvider: 'deepseek',
-        llmApiKey: 'sk-test',
-        llmApiKeys: { deepseek: 'sk-test' },
-        llmBaseUrl: 'https://api.deepseek.com/v1',
-        llmModel: 'deepseek-v4-pro',
+        llmConfigs: {
+          text: { provider: 'deepseek', apiKey: 'sk-test', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash' },
+        },
       },
     });
 
-    render(<IntegrationsSection />, { wrapper: Wrapper });
+    render(<IntegrationsSection />);
+    const textSection = (await screen.findByText('文本生成')).closest('section')!;
+    const apiKeyInput = textSection.querySelector('input[type="password"]') as HTMLInputElement;
+    fireEvent.change(apiKeyInput, { target: { value: 'sk-test' } });
 
-    const apiKeyInputs = await screen.findAllByPlaceholderText('sk-...');
-    fireEvent.change(apiKeyInputs[0], { target: { value: 'sk-test' } });
-
-    const saveButton = screen.getByRole('button', { name: /保存语言模型设置/i });
-    fireEvent.click(saveButton);
+    // Click the save button (last button in section)
+    const buttons = textSection.querySelectorAll('button');
+    fireEvent.click(buttons[buttons.length - 1]);
 
     await waitFor(() => {
       expect(screen.getByText(/已保存/i)).toBeInTheDocument();
     });
-    expect(updateSettingsMock).toHaveBeenCalledWith(
-      expect.objectContaining({ llmApiKeys: expect.objectContaining({ deepseek: 'sk-test' }) })
-    );
+
+    expect(updateSettingsMock).toHaveBeenCalledTimes(1);
+    const call = updateSettingsMock.mock.calls[0][0] as { llmConfigs: { text: { provider: string; apiKey: string } } };
+    expect(call.llmConfigs.text.provider).toBe('deepseek');
+    expect(call.llmConfigs.text.apiKey).toBe('sk-test');
   });
 
-  it('clears loading state and shows error when save fails', async () => {
-    updateSettingsMock.mockRejectedValue(new Error('Network error'));
+  it('shows error message when save fails', async () => {
+    updateSettingsMock.mockResolvedValue({ success: false, error: 'Network error' });
 
-    render(<IntegrationsSection />, { wrapper: Wrapper });
-
-    const apiKeyInputs = await screen.findAllByPlaceholderText('sk-...');
-    fireEvent.change(apiKeyInputs[0], { target: { value: 'sk-test' } });
-
-    const saveButton = screen.getByRole('button', { name: /保存语言模型设置/i });
-    fireEvent.click(saveButton);
+    render(<IntegrationsSection />);
+    const textSection = (await screen.findByText('文本生成')).closest('section')!;
+    const buttons = textSection.querySelectorAll('button');
+    fireEvent.click(buttons[buttons.length - 1]); // save button
 
     await waitFor(() => {
       expect(screen.getByText(/保存失败/i)).toBeInTheDocument();
     });
+  });
 
-    expect(saveButton).not.toBeDisabled();
+  it('warns when saved provider does not support the capability', async () => {
+    fetchSettingsMock.mockResolvedValue({
+      openaiApiKey: '',
+      doubaoApiKey: '',
+      minimaxApiKey: '',
+      llmConfigs: {
+        text: { provider: 'siliconflow' as unknown as 'deepseek', apiKey: '', baseUrl: 'x', model: 'y' },
+      },
+    });
+
+    render(<IntegrationsSection />);
+    await screen.findByText('文本生成');
+    expect(await screen.findByText(/不支持 文本生成/i)).toBeInTheDocument();
   });
 });

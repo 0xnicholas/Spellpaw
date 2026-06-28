@@ -1,15 +1,35 @@
+/**
+ * Console ↔ Server API for user settings.
+ *
+ * Settings shape (Phase 4: capability-grouped LLM configs):
+ *   - 3 drama-app API keys (openai/doubao/minimax) — drama still reads these.
+ *   - llmConfigs: { text, image, video } — each capability has its own
+ *     provider + apiKey + baseUrl + model, fully independent.
+ */
+
 import { authApi } from '@/shared/stores/authStore';
 import type { ProfileFormData, PasswordFormData } from '@console/types';
 
+export interface ModelConfig {
+  provider: string;
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+}
+
+export type LlmConfigs = {
+  text?: ModelConfig;
+  image?: ModelConfig;
+  video?: ModelConfig;
+};
+
 export interface UserSettings {
+  /** Drama-app API keys (still consumed by canvasToolkit imageGen). */
   openaiApiKey: string;
   doubaoApiKey: string;
   minimaxApiKey: string;
-  llmProvider: string;
-  llmApiKey: string;
-  llmApiKeys: Record<string, string>;
-  llmBaseUrl: string;
-  llmModel: string;
+  /** Capability-grouped LLM configs. */
+  llmConfigs: LlmConfigs;
 }
 
 export async function fetchSettings(): Promise<UserSettings | null> {
@@ -18,7 +38,9 @@ export async function fetchSettings(): Promise<UserSettings | null> {
   return res.json();
 }
 
-export async function updateSettings(settings: Partial<UserSettings>): Promise<{ success: boolean; error?: string; data?: UserSettings }> {
+export async function updateSettings(
+  settings: Partial<UserSettings>,
+): Promise<{ success: boolean; error?: string; data?: UserSettings }> {
   const res = await authApi.apiCall('/api/auth/settings', {
     method: 'PATCH',
     body: JSON.stringify(settings),

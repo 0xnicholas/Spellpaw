@@ -16,14 +16,14 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Multimodal keys — drama app compatibility, do not touch in this phase
   openaiApiKey  String?
   doubaoApiKey  String?
   minimaxApiKey String?
-  llmProvider   String    @default("deepseek")
-  llmApiKey     String?   // deprecated: kept for migration/cache
-  llmApiKeys    String?   // JSON { deepseek?: string; openai?: string; doubao?: string; minimax?: string }
-  llmBaseUrl    String?
-  llmModel      String?
+
+  // Capability-grouped model configs. JSON: { text: ModelConfig, image: ModelConfig, video: ModelConfig }
+  // Replaces the prior llmProvider/llmApiKey/llmApiKeys/llmBaseUrl/llmModel fields.
+  llmConfigs    String?
 
   projects  Project[]
   tasks     Task[]

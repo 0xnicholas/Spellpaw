@@ -1,49 +1,22 @@
 /**
- * Shared localStorage settings helpers for provider API keys.
+ * Drama-side localStorage helper.
  *
- * Used by both the Drama studio and the Console app to read/write
- * user-configured provider credentials.
+ * Phase 4: provider credentials are stored under `spellpaw_llm_settings`
+ * keyed by capability (text / image / video). The legacy per-provider
+ * fields (openaiApiKey / doubaoApiKey / minimaxApiKey) are no longer
+ * read or written here. Use @drama/lib/canvasToolkit/capabilityConfig
+ * to read the current capability config.
+ *
+ * The `getSettings` helper remains for any callers that still want a raw
+ * read of the legacy settings blob (it returns an empty object by default
+ * since the old key is no longer maintained).
  */
-
-const SETTINGS_KEY = 'spellpaw_settings';
-
-export function setApiKey(key: string): void {
-  const settings = getSettings();
-  settings.openaiApiKey = key;
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-}
-
-export function getDoubaoApiKey(): string | null {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return JSON.parse(raw).doubaoApiKey ?? null;
-  } catch { /* ignore */ }
-  return null;
-}
-
-export function setDoubaoApiKey(key: string): void {
-  const settings = getSettings();
-  settings.doubaoApiKey = key;
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-}
-
-export function getMinimaxApiKey(): string | null {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return JSON.parse(raw).minimaxApiKey ?? null;
-  } catch { /* ignore */ }
-  return null;
-}
-
-export function setMinimaxApiKey(key: string): void {
-  const settings = getSettings();
-  settings.minimaxApiKey = key;
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-}
 
 export function getSettings(): Record<string, string> {
   try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
+    const raw = localStorage.getItem('spellpaw_settings');
     return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
+  } catch {
+    return {};
+  }
 }

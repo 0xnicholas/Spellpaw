@@ -13,7 +13,6 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { cn } from '@/shared/lib/utils';
-import { getSettings } from '@drama/lib/imageGen';
 import {
   isValidLLMProvider,
   LLM_PROVIDER_REGISTRY,
@@ -49,38 +48,8 @@ function emptyConfig(capability: Capability, provider: LLMProviderType): ModelCo
   };
 }
 
-function deriveFromDrama(capability: Capability, drama: ReturnType<typeof getSettings>): ModelConfig {
-  if (capability === 'text') {
-    return emptyConfig(capability, 'deepseek');
-  }
-  if (drama.doubaoApiKey) {
-    const cfg = LLM_PROVIDER_REGISTRY.doubao;
-    return {
-      provider: 'doubao',
-      apiKey: drama.doubaoApiKey,
-      baseUrl: cfg.baseUrl,
-      model: cfg.recommended[capability] ?? cfg.model,
-    };
-  }
-  if (capability === 'image' && drama.openaiApiKey) {
-    const cfg = LLM_PROVIDER_REGISTRY.openai;
-    return {
-      provider: 'openai',
-      apiKey: drama.openaiApiKey,
-      baseUrl: cfg.baseUrl,
-      model: cfg.recommended[capability] ?? cfg.model,
-    };
-  }
-  if (capability === 'video' && drama.minimaxApiKey) {
-    const cfg = LLM_PROVIDER_REGISTRY.minimax;
-    return {
-      provider: 'minimax',
-      apiKey: drama.minimaxApiKey,
-      baseUrl: cfg.baseUrl,
-      model: cfg.recommended[capability] ?? cfg.model,
-    };
-  }
-  return emptyConfig(capability, 'doubao');
+function deriveDefault(capability: Capability): ModelConfig {
+  return emptyConfig(capability, capability === 'text' ? 'deepseek' : 'doubao');
 }
 
 export function IntegrationsSection() {
@@ -97,7 +66,6 @@ export function IntegrationsSection() {
         if (server) {
           await syncUserSettings(server);
         }
-        const drama = getSettings();
         const fresh: LlmConfigs = {};
         for (const cap of ['text', 'image', 'video'] as Capability[]) {
           const incoming = server?.llmConfigs?.[cap];
@@ -110,7 +78,7 @@ export function IntegrationsSection() {
               model: incoming.model || cfg.recommended[cap] || cfg.model,
             };
           } else {
-            fresh[cap] = deriveFromDrama(cap, drama);
+            fresh[cap] = deriveDefault(cap);
           }
         }
         setLlmConfigs(fresh);

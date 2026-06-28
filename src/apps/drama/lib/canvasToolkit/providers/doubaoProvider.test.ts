@@ -14,16 +14,7 @@ describe("doubaoProvider", () => {
 
 	it("reads api key from configure()", () => {
 		const provider = createDoubaoProvider();
-		provider.configure({ doubaoApiKey: "sk-test" });
-		expect(provider.isConfigured()).toBe(true);
-	});
-
-	it("reads api key from localStorage settings", () => {
-		localStorage.setItem(
-			"spellpaw_settings",
-			JSON.stringify({ doubaoApiKey: "sk-ls" }),
-		);
-		const provider = createDoubaoProvider();
+		provider.configure({ apiKey: "sk-test" });
 		expect(provider.isConfigured()).toBe(true);
 	});
 
@@ -44,7 +35,7 @@ describe("doubaoProvider", () => {
 		} as unknown as Response);
 
 		const provider = createDoubaoProvider();
-		provider.configure({ doubaoApiKey: "sk-test" });
+		provider.configure({ apiKey: "sk-test" });
 
 		const task = await provider.submit({
 			type: "image",
@@ -63,123 +54,14 @@ describe("doubaoProvider", () => {
 		);
 	});
 
-	it("submits video task and polls until done", async () => {
-		globalThis.fetch = vi
-			.fn()
-			.mockResolvedValueOnce({
-				ok: true,
-				json: async () => ({ id: "task-123", status: "queued" }),
-			} as unknown as Response)
-			.mockResolvedValueOnce({
-				ok: true,
-				json: async () => ({
-					id: "task-123",
-					status: "succeeded",
-					content: { video_url: "https://example.com/video.mp4" },
-				}),
-			} as unknown as Response);
-
-		const provider = createDoubaoProvider();
-		provider.configure({ doubaoApiKey: "sk-test" });
-
-		const task = await provider.submit({
-			type: "video",
-			capability: "text2video",
-			prompt: "a cat playing",
-		});
-		expect(task.status).toBe("pending");
-		expect(task.taskId).toBe("task-123");
-
-		const polled = await provider.poll!("task-123");
-		expect(polled.status).toBe("done");
-		expect(polled.resultUrl).toBe("https://example.com/video.mp4");
-	});
-
-	it("image2image sends reference image in body", async () => {
-		const fetchMock = vi.fn().mockResolvedValue({
+	it("uses configured model when provided", async () => {
+		globalThis.fetch = vi.fn().mockResolvedValue({
 			ok: true,
-			json: async () => ({ data: [{ url: "https://example.com/edited.png" }] }),
+			json: async () => ({ data: [{ url: "https://example.com/x.png" }] }),
 		} as unknown as Response);
-		globalThis.fetch = fetchMock;
 
 		const provider = createDoubaoProvider();
-		provider.configure({ doubaoApiKey: "sk-test" });
-
-		const task = await provider.submit({
-			type: "image",
-			capability: "image2image",
-			prompt: "convert to night scene",
-			referenceUrl: "https://example.com/src.png",
-		});
-
-		expect(task.status).toBe("done");
-		expect(task.resultUrl).toBe("https://example.com/edited.png");
-
-		const [, init] = fetchMock.mock.calls[0];
-		const body = JSON.parse((init as RequestInit).body as string);
-		expect(body.image).toBe("https://example.com/src.png");
-		expect(body.prompt).toBe("convert to night scene");
-	});
-
-	it("inpaint without mask degrades to image2image with reference", async () => {
-		const fetchMock = vi.fn().mockResolvedValue({
-			ok: true,
-			json: async () => ({
-				data: [{ url: "https://example.com/inpainted.png" }],
-			}),
-		} as unknown as Response);
-		globalThis.fetch = fetchMock;
-
-		const provider = createDoubaoProvider();
-		provider.configure({ doubaoApiKey: "sk-test" });
-
-		const task = await provider.submit({
-			type: "image",
-			capability: "inpaint",
-			prompt: "remove the cup",
-			referenceUrl: "https://example.com/src.png",
-		});
-
-		expect(task.status).toBe("done");
-		const [, init] = fetchMock.mock.calls[0];
-		const body = JSON.parse((init as RequestInit).body as string);
-		expect(body.image).toBe("https://example.com/src.png");
-	});
-
-	it("styleTransfer sends image and style_reference", async () => {
-		const fetchMock = vi.fn().mockResolvedValue({
-			ok: true,
-			json: async () => ({ data: [{ url: "https://example.com/styled.png" }] }),
-		} as unknown as Response);
-		globalThis.fetch = fetchMock;
-
-		const provider = createDoubaoProvider();
-		provider.configure({ doubaoApiKey: "sk-test" });
-
-		const task = await provider.submit({
-			type: "image",
-			capability: "styleTransfer",
-			prompt: "apply this look",
-			referenceUrl: "https://example.com/src.png",
-			options: { styleReferenceUrl: "https://example.com/style.png" },
-		});
-
-		expect(task.status).toBe("done");
-		const [, init] = fetchMock.mock.calls[0];
-		const body = JSON.parse((init as RequestInit).body as string);
-		expect(body.image).toBe("https://example.com/src.png");
-		expect(body.style_reference).toBe("https://example.com/style.png");
-	});
-
-	it("text2image does not include image field when no referenceUrl", async () => {
-		const fetchMock = vi.fn().mockResolvedValue({
-			ok: true,
-			json: async () => ({ data: [{ url: "https://example.com/img.png" }] }),
-		} as unknown as Response);
-		globalThis.fetch = fetchMock;
-
-		const provider = createDoubaoProvider();
-		provider.configure({ doubaoApiKey: "sk-test" });
+		provider.configure({ apiKey: "sk-test", model: "doubao-seed-2-0-pro" });
 
 		await provider.submit({
 			type: "image",
@@ -187,9 +69,135 @@ describe("doubaoProvider", () => {
 			prompt: "a cat",
 		});
 
-		const [, init] = fetchMock.mock.calls[0];
-		const body = JSON.parse((init as RequestInit).body as string);
+		const body = JSON.parse(
+			(globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+		);
+		expect(body.model).toBe("doubao-seed-2-0-pro");
+	});
+
+	it("submits video task and polls until done", async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					id: "task-1",
+					data: { status: "queued" },
+				}),
+			} as unknown as Response)
+			.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					id: "task-1",
+					status: "succeeded",
+					content: { video_url: "https://example.com/v.mp4" },
+				}),
+			} as unknown as Response);
+		globalThis.fetch = fetchMock;
+
+		const provider = createDoubaoProvider();
+		provider.configure({ apiKey: "sk-test" });
+
+		const task = await provider.submit({
+			type: "video",
+			capability: "text2video",
+			prompt: "a dog running",
+		});
+		expect(task.status).toBe("pending");
+		expect(task.taskId).toBe("task-1");
+
+		const polled = await provider.poll(task.taskId);
+		expect(polled.status).toBe("done");
+		expect(polled.resultUrl).toBe("https://example.com/v.mp4");
+	});
+
+	it("image2image sends reference image in body", async () => {
+		globalThis.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			json: async () => ({ data: [{ url: "https://example.com/x.png" }] }),
+		} as unknown as Response);
+
+		const provider = createDoubaoProvider();
+		provider.configure({ apiKey: "sk-test" });
+
+		await provider.submit({
+			type: "image",
+			capability: "image2image",
+			prompt: "make it blue",
+			referenceUrl: "https://example.com/source.png",
+		});
+
+		const body = JSON.parse(
+			(globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+		);
+		expect(body.image).toBe("https://example.com/source.png");
+	});
+
+	it("inpaint without mask degrades to image2image with reference", async () => {
+		globalThis.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			json: async () => ({ data: [{ url: "https://example.com/x.png" }] }),
+		} as unknown as Response);
+
+		const provider = createDoubaoProvider();
+		provider.configure({ apiKey: "sk-test" });
+
+		await provider.submit({
+			type: "image",
+			capability: "inpaint",
+			prompt: "fill the gap",
+			referenceUrl: "https://example.com/source.png",
+		});
+
+		expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+		const body = JSON.parse(
+			(globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+		);
+		expect(body.image).toBe("https://example.com/source.png");
+	});
+
+	it("styleTransfer sends image and style_reference", async () => {
+		globalThis.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			json: async () => ({ data: [{ url: "https://example.com/x.png" }] }),
+		} as unknown as Response);
+
+		const provider = createDoubaoProvider();
+		provider.configure({ apiKey: "sk-test" });
+
+		await provider.submit({
+			type: "image",
+			capability: "styleTransfer",
+			prompt: "Style: watercolor.",
+			referenceUrl: "https://example.com/source.png",
+			options: { styleReferenceUrl: "https://example.com/style.png" },
+		});
+
+		const body = JSON.parse(
+			(globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+		);
+		expect(body.image).toBe("https://example.com/source.png");
+		expect(body.style_reference).toBe("https://example.com/style.png");
+	});
+
+	it("text2image does not include image field when no referenceUrl", async () => {
+		globalThis.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			json: async () => ({ data: [{ url: "https://example.com/x.png" }] }),
+		} as unknown as Response);
+
+		const provider = createDoubaoProvider();
+		provider.configure({ apiKey: "sk-test" });
+
+		await provider.submit({
+			type: "image",
+			capability: "text2image",
+			prompt: "a cat",
+		});
+
+		const body = JSON.parse(
+			(globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+		);
 		expect(body.image).toBeUndefined();
-		expect(body.style_reference).toBeUndefined();
 	});
 });

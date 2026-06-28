@@ -56,12 +56,6 @@ describe('siliconflowProvider', () => {
     expect(lastOpenAIConfig.apiKey).toBe('sk-test');
   });
 
-  it('reads api key from localStorage settings', () => {
-    localStorage.setItem('spellpaw_settings', JSON.stringify({ siliconflowApiKey: 'sk-ls' }));
-    const provider = createSiliconflowProvider();
-    expect(provider.isConfigured()).toBe(true);
-  });
-
   it('uses configured model when provided', async () => {
     const provider = createSiliconflowProvider();
     provider.configure({ apiKey: 'sk-test', model: 'custom/model' });

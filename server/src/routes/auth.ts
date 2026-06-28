@@ -4,11 +4,6 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { auth, getUserId } from '../middleware';
 
-function stringOrNull(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  return value || null;
-}
-
 /**
  * Fallback display name when a registration request omits the `name` field.
  * Uses the local-part of the email (e.g. "alice" from "alice@example.com"),
@@ -133,16 +128,13 @@ export function authRoutes(prisma: PrismaClient): Router {
     try {
       const user = await prisma.user.findUnique({
         where: { id: getUserId(req) },
-        select: { openaiApiKey: true, doubaoApiKey: true, minimaxApiKey: true, llmConfigs: true },
+        select: { llmConfigs: true },
       });
       if (!user) { res.status(404).json({ error: 'Not found' }); return; }
 
       const llmConfigs = parseLlmConfigs(user.llmConfigs);
 
       res.json({
-        openaiApiKey: user.openaiApiKey ?? '',
-        doubaoApiKey: user.doubaoApiKey ?? '',
-        minimaxApiKey: user.minimaxApiKey ?? '',
         llmConfigs: llmConfigs ?? {},
       });
     } catch {
@@ -153,14 +145,8 @@ export function authRoutes(prisma: PrismaClient): Router {
   router.patch('/settings', auth(), async (req, res) => {
     try {
       const body = (req.body ?? {}) as Record<string, unknown>;
-      const updateData: Record<string, string | null> = {};
 
-      // Drama-app keys — still synced verbatim.
-      if (body.openaiApiKey !== undefined) updateData.openaiApiKey = stringOrNull(body.openaiApiKey);
-      if (body.doubaoApiKey !== undefined) updateData.doubaoApiKey = stringOrNull(body.doubaoApiKey);
-      if (body.minimaxApiKey !== undefined) updateData.minimaxApiKey = stringOrNull(body.minimaxApiKey);
-
-      // Capability-grouped configs. Accept either:
+      // Capability-grouped configs only. Accept either:
       //   { llmConfigs: { text: {...}, image: {...}, video: {...} } }
       // or partial patches like { 'llmConfigs.text': {...} }.
       const existing = await prisma.user.findUnique({
@@ -185,18 +171,13 @@ export function authRoutes(prisma: PrismaClient): Router {
         }
       }
 
-      updateData.llmConfigs = serializeLlmConfigs(merged);
-
       const user = await prisma.user.update({
         where: { id: getUserId(req) },
-        data: updateData,
-        select: { openaiApiKey: true, doubaoApiKey: true, minimaxApiKey: true, llmConfigs: true },
+        data: { llmConfigs: serializeLlmConfigs(merged) },
+        select: { llmConfigs: true },
       });
 
       res.json({
-        openaiApiKey: user.openaiApiKey ?? '',
-        doubaoApiKey: user.doubaoApiKey ?? '',
-        minimaxApiKey: user.minimaxApiKey ?? '',
         llmConfigs: parseLlmConfigs(user.llmConfigs) ?? {},
       });
     } catch {

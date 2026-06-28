@@ -2,17 +2,7 @@ import OpenAI from 'openai';
 import { config } from '@/shared/config';
 import type { GenerationProvider, GenerationInput, GenerationTask, ProviderConfig } from '../types';
 
-const SETTINGS_KEY = 'spellpaw_settings';
 const PROXY_BASE_URL = `${config.serverBase}/api/v1/proxy/openai`;
-
-function readSettings(): Record<string, unknown> {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
 
 export function createOpenAIProvider(): GenerationProvider {
   let config: ProviderConfig = {};
@@ -22,21 +12,17 @@ export function createOpenAIProvider(): GenerationProvider {
     name: 'OpenAI / GPT Image 2',
     supportedMedia: ['image'],
     capabilities: ['text2image'],
-    requiredConfigKeys: ['openaiApiKey'],
+    requiredConfigKeys: ['apiKey'],
 
     isConfigured() {
-      if (typeof config.apiKey === 'string' && config.apiKey.length > 0) return true;
-      const settings = readSettings();
-      return typeof settings.openaiApiKey === 'string' && settings.openaiApiKey.length > 0;
+      return typeof config.apiKey === 'string' && config.apiKey.length > 0;
     },
 
     configure(next) {
       const apiKey =
         typeof next.apiKey === 'string' && next.apiKey.length > 0
           ? next.apiKey
-          : typeof next.openaiApiKey === 'string' && next.openaiApiKey.length > 0
-            ? next.openaiApiKey
-            : undefined;
+          : undefined;
       config = { ...config, ...next, ...(apiKey ? { apiKey } : {}) };
     },
 
@@ -45,7 +31,7 @@ export function createOpenAIProvider(): GenerationProvider {
     },
 
     async submit(input: GenerationInput): Promise<GenerationTask> {
-      const apiKey = config.apiKey ?? (readSettings().openaiApiKey as string | undefined);
+      const apiKey = config.apiKey as string | undefined;
       if (!apiKey) {
         return { taskId: '', status: 'failed', error: 'OpenAI API key not configured' };
       }

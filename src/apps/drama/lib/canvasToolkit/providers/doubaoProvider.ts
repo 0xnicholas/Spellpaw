@@ -6,30 +6,20 @@ import type {
 	ProviderConfig,
 } from "../types";
 
-const SETTINGS_KEY = "spellpaw_settings";
 // Direct base URL (kept for reference): https://ark.cn-beijing.volces.com/api/v3
 const PROXY_BASE_URL = `${config.serverBase}/api/v1/proxy/doubao`;
 const DEFAULT_IMAGE_MODEL = "doubao-seedream-5-0-lite";
 const DEFAULT_VIDEO_MODEL = "doubao-seedance-2-5";
 
-function readSettings(): Record<string, unknown> {
-	try {
-		const raw = localStorage.getItem(SETTINGS_KEY);
-		return raw ? JSON.parse(raw) : {};
-	} catch {
-		return {};
-	}
-}
-
 function pickSize(options?: Record<string, unknown>): string {
-	const configured = options?.size ?? readSettings().doubaoImageSize;
+	const configured = options?.size;
 	if (typeof configured === "string" && configured.length > 0)
 		return configured;
 	return "2048*2048";
 }
 
 function pickVideoModel(options?: Record<string, unknown>): string {
-	const configured = options?.videoModel ?? readSettings().doubaoVideoModel;
+	const configured = options?.videoModel;
 	if (typeof configured === "string" && configured.length > 0)
 		return configured;
 	return DEFAULT_VIDEO_MODEL;
@@ -49,26 +39,17 @@ export function createDoubaoProvider(): GenerationProvider {
 			"text2video",
 			"image2video",
 		],
-		requiredConfigKeys: ["doubaoApiKey"],
+		requiredConfigKeys: ["apiKey"],
 
 		isConfigured() {
-			if (typeof config.apiKey === "string" && config.apiKey.length > 0)
-				return true;
-			const settings = readSettings();
-			return (
-				typeof settings.doubaoApiKey === "string" &&
-				settings.doubaoApiKey.length > 0
-			);
+			return typeof config.apiKey === "string" && config.apiKey.length > 0;
 		},
 
 		configure(next) {
 			const apiKey =
 				typeof next.apiKey === "string" && next.apiKey.length > 0
 					? next.apiKey
-					: typeof next.doubaoApiKey === "string" &&
-							next.doubaoApiKey.length > 0
-						? next.doubaoApiKey
-						: undefined;
+					: undefined;
 			config = { ...config, ...next, ...(apiKey ? { apiKey } : {}) };
 		},
 
@@ -77,10 +58,7 @@ export function createDoubaoProvider(): GenerationProvider {
 		},
 
 		async submit(input: GenerationInput): Promise<GenerationTask> {
-			const apiKey =
-				typeof config.apiKey === "string" && config.apiKey.length > 0
-					? config.apiKey
-					: (readSettings().doubaoApiKey as string | undefined);
+			const apiKey = config.apiKey as string | undefined;
 			if (!apiKey) {
 				return {
 					taskId: "",
@@ -97,10 +75,7 @@ export function createDoubaoProvider(): GenerationProvider {
 		},
 
 		async poll(taskId: string): Promise<GenerationTask> {
-			const apiKey =
-				typeof config.apiKey === "string" && config.apiKey.length > 0
-					? config.apiKey
-					: (readSettings().doubaoApiKey as string | undefined);
+			const apiKey = config.apiKey as string | undefined;
 			if (!apiKey) {
 				return {
 					taskId,

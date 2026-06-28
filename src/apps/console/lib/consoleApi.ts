@@ -1,10 +1,11 @@
 /**
  * Console ↔ Server API for user settings.
  *
- * Settings shape (Phase 4: capability-grouped LLM configs):
- *   - 3 drama-app API keys (openai/doubao/minimax) — drama still reads these.
+ * Settings shape (Phase 4 final):
  *   - llmConfigs: { text, image, video } — each capability has its own
  *     provider + apiKey + baseUrl + model, fully independent.
+ *   - No more per-provider keys (openaiApiKey/doubaoApiKey/minimaxApiKey) —
+ *     drama reads exclusively from llmConfigs via capabilityConfig.ts.
  */
 
 import { authApi } from '@/shared/stores/authStore';
@@ -24,11 +25,7 @@ export type LlmConfigs = {
 };
 
 export interface UserSettings {
-  /** Drama-app API keys (still consumed by canvasToolkit imageGen). */
-  openaiApiKey: string;
-  doubaoApiKey: string;
-  minimaxApiKey: string;
-  /** Capability-grouped LLM configs. */
+  /** Capability-grouped LLM configs (sole LLM config surface). */
   llmConfigs: LlmConfigs;
 }
 

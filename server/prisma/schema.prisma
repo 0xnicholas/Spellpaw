@@ -16,13 +16,10 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  // Multimodal keys — drama app compatibility, do not touch in this phase
-  openaiApiKey  String?
-  doubaoApiKey  String?
-  minimaxApiKey String?
-
   // Capability-grouped model configs. JSON: { text: ModelConfig, image: ModelConfig, video: ModelConfig }
-  // Replaces the prior llmProvider/llmApiKey/llmApiKeys/llmBaseUrl/llmModel fields.
+  // Sole LLM config surface. Drama canvas toolkit reads via
+  // capabilityConfig.ts. Drama no longer maintains per-provider
+  // spellpaw_settings.{openai,doubao,minimax}ApiKey fields.
   llmConfigs    String?
 
   projects  Project[]

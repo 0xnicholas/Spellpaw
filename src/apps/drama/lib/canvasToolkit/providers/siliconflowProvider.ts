@@ -2,18 +2,8 @@ import OpenAI from 'openai';
 import { config } from '@/shared/config';
 import type { GenerationProvider, GenerationInput, GenerationTask, ProviderConfig } from '../types';
 
-const SETTINGS_KEY = 'spellpaw_settings';
 const PROXY_BASE_URL = `${config.serverBase}/api/v1/proxy/siliconflow`;
 const DEFAULT_IMAGE_MODEL = 'black-forest-labs/FLUX.2-pro';
-
-function readSettings(): Record<string, unknown> {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
 
 export function createSiliconflowProvider(): GenerationProvider {
   let config: ProviderConfig = {};
@@ -23,21 +13,17 @@ export function createSiliconflowProvider(): GenerationProvider {
     name: '硅基流动 / SiliconFlow',
     supportedMedia: ['image'],
     capabilities: ['text2image'],
-    requiredConfigKeys: ['siliconflowApiKey'],
+    requiredConfigKeys: ['apiKey'],
 
     isConfigured() {
-      if (typeof config.apiKey === 'string' && config.apiKey.length > 0) return true;
-      const settings = readSettings();
-      return typeof settings.siliconflowApiKey === 'string' && settings.siliconflowApiKey.length > 0;
+      return typeof config.apiKey === 'string' && config.apiKey.length > 0;
     },
 
     configure(next) {
       const apiKey =
         typeof next.apiKey === 'string' && next.apiKey.length > 0
           ? next.apiKey
-          : typeof next.siliconflowApiKey === 'string' && next.siliconflowApiKey.length > 0
-            ? next.siliconflowApiKey
-            : undefined;
+          : undefined;
       config = { ...config, ...next, ...(apiKey ? { apiKey } : {}) };
     },
 
@@ -46,7 +32,7 @@ export function createSiliconflowProvider(): GenerationProvider {
     },
 
     async submit(input: GenerationInput): Promise<GenerationTask> {
-      const apiKey = config.apiKey ?? (readSettings().siliconflowApiKey as string | undefined);
+      const apiKey = config.apiKey as string | undefined;
       if (!apiKey) {
         return { taskId: '', status: 'failed', error: 'SiliconFlow API key not configured' };
       }

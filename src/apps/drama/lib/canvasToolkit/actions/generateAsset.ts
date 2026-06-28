@@ -96,11 +96,11 @@ export async function generateAsset(
 	const provider = selection.provider;
 	const cardType = params.cardType ?? defaultCardType(params.mediaType);
 
-	// Inject the capability-specific LLM config (from synced llmConfigs)
-	// into the provider before submitting. This way an `art` card uses
-	// the image-configured provider/model and a `videoClip` card uses the
-	// video-configured one — even if the provider supports both.
-	const capConfig = getCapabilityConfig(params.mediaType);
+	// Inject the capability-specific LLM config (from synced llmConfigs).
+	// Each Capability (text2image, image2image, text2video, …) has its
+	// own provider/apiKey/model, so the same provider can be routed to
+	// different configs for different intents.
+	const capConfig = getCapabilityConfig(capability);
 	if (capConfig) {
 		provider.configure({
 			apiKey: capConfig.apiKey,

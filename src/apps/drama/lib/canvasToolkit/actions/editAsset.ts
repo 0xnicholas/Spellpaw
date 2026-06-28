@@ -5,7 +5,7 @@ import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import { updateCardThumbnail, startPolling } from "../shared";
-import type { ToolkitResult, GenerationInput, Capability, MediaType } from "../types";
+import type { ToolkitResult, GenerationInput, Capability } from "../types";
 import type { CanvasNodeType } from "@drama/types";
 import { getCapabilityConfig } from "../capabilityConfig";
 
@@ -96,9 +96,10 @@ export async function editAsset(
 	const provider = selectedProvider.provider;
 	const fallbackPrompt = `Edited version of the reference image. ${params.prompt}\n\nOriginal scene: ${sourcePrompt}`;
 
-	// Inject capability-specific config (image or video depending on source card)
-	const editMedia: MediaType = sourceCard.type === "videoClip" ? "video" : "image";
-	const capConfig = getCapabilityConfig(editMedia);
+	// Inject capability-specific config (per the actual capability we'll use,
+	// not just the media type). image2image vs inpaint vs styleTransfer can
+	// each have their own provider/apiKey/model.
+	const capConfig = getCapabilityConfig(usedCapability);
 	if (capConfig) {
 		provider.configure({
 			apiKey: capConfig.apiKey,

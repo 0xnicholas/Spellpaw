@@ -3,24 +3,19 @@
  *
  * Reads the capability-grouped LLM settings (synced from the server
  * by syncUserSettings) and returns the right ModelConfig for each
- * capability. Providers call this before each `submit` so that an `art`
- * card uses the image-configured provider/model and a `videoClip` card
- * uses the video-configured one.
+ * Capability. Providers call this before each `submit` so that, e.g.,
+ * a `text2image` call can use Doubao while an `image2image` call uses
+ * SiliconFlow — independently configured per capability.
  *
  * Source of truth:
  *   localStorage[`spellpaw_llm_settings`] — set by syncUserSettings
- *   Schema: { text?: ModelConfig, image?: ModelConfig, video?: ModelConfig }
- *
- * Legacy fallback:
- *   localStorage[`spellpaw_settings`].{doubao,openai,minimax}ApiKey
- *   These keys are still synced (drama canvas code used to read them
- *   directly). They keep working here as a backstop if llmConfigs is
- *   absent.
+ *   Schema: { [Capability]?: ModelConfig } where Capability is the drama
+ *           canvas toolkit union (text2image, image2image, inpaint,
+ *           text2video, image2video, styleTransfer).
  */
 
 import type { LLMProviderType } from '@shared/lib/providers';
-
-export type MediaCapability = 'image' | 'video' | 'text';
+import type { Capability } from './types';
 
 export interface CapabilityModelConfig {
   provider: LLMProviderType | string;
@@ -30,7 +25,6 @@ export interface CapabilityModelConfig {
 }
 
 const LLMS_KEY = 'spellpaw_llm_settings';
-const LEGACY_KEY = 'spellpaw_settings';
 
 function readJSON<T>(key: string): Partial<T> | null {
   try {
@@ -53,20 +47,13 @@ function coerce(raw: unknown, fallback: CapabilityModelConfig): CapabilityModelC
   };
 }
 
-interface LlmConfigsShape {
-  text?: unknown;
-  image?: unknown;
-  video?: unknown;
-}
+type LlmConfigsShape = Partial<Record<Capability, unknown>>;
 
 /**
  * Returns the ModelConfig for one capability, or null if nothing usable
  * is configured (no provider selected, no apiKey).
- *
- * The legacy per-provider keys (spellpaw_settings.doubaoApiKey etc.)
- * are used as a backstop so older deployments keep working.
  */
-export function getCapabilityConfig(capability: MediaCapability): CapabilityModelConfig | null {
+export function getCapabilityConfig(capability: Capability): CapabilityModelConfig | null {
   const all = readJSON<LlmConfigsShape>(LLMS_KEY);
   const direct = all?.[capability];
   if (direct && typeof direct === 'object') {
@@ -78,28 +65,10 @@ export function getCapabilityConfig(capability: MediaCapability): CapabilityMode
     });
     if (c.apiKey) return c;
   }
-
-  // Legacy fallback: spellpaw_settings.{provider}ApiKey
-  const legacy = readJSON<Record<string, string>>(LEGACY_KEY);
-  if (!legacy) return null;
-
-  const legacyProvider = legacy[`${capability}Provider`] as string | undefined;
-  const legacyKey =
-    legacy[`${legacyProvider ?? ''}ApiKey`] ??
-    (capability === 'image' ? legacy.openaiApiKey : undefined) ??
-    legacy.doubaoApiKey ??
-    legacy.minimaxApiKey;
-  if (!legacyKey) return null;
-
-  return {
-    provider: legacyProvider ?? 'doubao',
-    apiKey: legacyKey,
-    baseUrl: '',
-    model: '',
-  };
+  return null;
 }
 
 /** Convenience: only the apiKey for a capability. */
-export function getCapabilityApiKey(capability: MediaCapability): string | null {
+export function getCapabilityApiKey(capability: Capability): string | null {
   return getCapabilityConfig(capability)?.apiKey ?? null;
 }

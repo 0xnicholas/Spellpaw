@@ -1,10 +1,10 @@
 /**
- * Console Integrations page — Phase 4 capability-grouped.
+ * Console Integrations page — Phase 4 final, per-Capability.
  *
- * Three independent blocks (TEXT / IMAGE / VIDEO), each with its own
- * provider pill row + API Key + Base URL + Model fields. Each block
- * saves independently via PATCH /api/auth/settings with
- * { llmConfigs: { [capability]: ModelConfig } }.
+ * One independent card per drama canvas Capability (text2image,
+ * image2image, inpaint, text2video, image2video, styleTransfer). Each
+ * card has its own provider pill row + API Key + Base URL + Model and
+ * saves independently via PATCH /api/auth/settings.
  *
  * i18n: skipped per user request — strings hardcoded in Chinese.
  */
@@ -16,7 +16,6 @@ import { cn } from '@/shared/lib/utils';
 import {
   isValidLLMProvider,
   LLM_PROVIDER_REGISTRY,
-  providersForCapability,
   type Capability,
   type LLMProviderType,
   type ModelConfig,
@@ -24,10 +23,45 @@ import {
 import { fetchSettings, updateSettings, type LlmConfigs } from '@console/lib/consoleApi';
 import { syncUserSettings } from '@console/lib/syncSettings';
 
+// Drama canvas toolkit's Capability union — must stay in sync with
+// src/apps/drama/lib/canvasToolkit/types.ts. Listed explicitly here so
+// the UI can group / title them.
+const CAPABILITY_LIST: Capability[] = [
+  'text2image',
+  'image2image',
+  'inpaint',
+  'text2video',
+  'image2video',
+  'styleTransfer',
+];
+
+/** Map a drama Capability to the broad MediaCapability bucket used by
+ *  LLM_PROVIDER_REGISTRY.capabilities. */
+const CAPABILITY_TO_MEDIA: Record<Capability, 'text' | 'image' | 'video'> = {
+  text2image: 'image',
+  image2image: 'image',
+  inpaint: 'image',
+  text2video: 'video',
+  image2video: 'video',
+  styleTransfer: 'image',
+};
+
 const CAPABILITY_META: Record<Capability, { title: string; description: string }> = {
-  text: { title: '文本生成', description: '用于 Copilot 对话和 Agent 工具调用' },
-  image: { title: '图片生成', description: '用于图片、图生图、风格迁移' },
-  video: { title: '视频生成', description: '用于文生视频和图生视频' },
+  text2image: { title: '文生图 (text2image)', description: '纯文字 → 图片，drama 画布新建 art 卡片' },
+  image2image: { title: '图生图 (image2image)', description: '参考图 + 提示词 → 修改后的图' },
+  inpaint: { title: '局部重绘 (inpaint)', description: '在原图指定区域重绘' },
+  text2video: { title: '文生视频 (text2video)', description: '纯文字 → 视频，drama 画布新建 videoClip 卡片' },
+  image2video: { title: '图生视频 (image2video)', description: '参考图 + 提示词 → 视频' },
+  styleTransfer: { title: '风格迁移 (styleTransfer)', description: '把风格应用到参考图上' },
+};
+
+const CAPABILITY_DEFAULT_PROVIDER: Record<Capability, LLMProviderType> = {
+  text2image: 'doubao',
+  image2image: 'doubao',
+  inpaint: 'doubao',
+  text2video: 'doubao',
+  image2video: 'doubao',
+  styleTransfer: 'siliconflow',
 };
 
 const PROVIDER_LABELS: Record<LLMProviderType, string> = {
@@ -40,23 +74,26 @@ const PROVIDER_LABELS: Record<LLMProviderType, string> = {
 
 function emptyConfig(capability: Capability, provider: LLMProviderType): ModelConfig {
   const cfg = LLM_PROVIDER_REGISTRY[provider];
+  const media = CAPABILITY_TO_MEDIA[capability];
   return {
     provider,
     apiKey: '',
     baseUrl: cfg.baseUrl,
-    model: cfg.recommended[capability] ?? cfg.model,
+    model: cfg.recommended[media] ?? cfg.model,
   };
-}
-
-function deriveDefault(capability: Capability): ModelConfig {
-  return emptyConfig(capability, capability === 'text' ? 'deepseek' : 'doubao');
 }
 
 export function IntegrationsSection() {
   const [llmConfigs, setLlmConfigs] = useState<LlmConfigs>({});
-  const [saved, setSaved] = useState<Record<Capability, boolean>>({ text: false, image: false, video: false });
-  const [errors, setErrors] = useState<Record<Capability, boolean>>({ text: false, image: false, video: false });
-  const [saving, setSaving] = useState<Record<Capability, boolean>>({ text: false, image: false, video: false });
+  const [saved, setSaved] = useState<Record<Capability, boolean>>(
+    Object.fromEntries(CAPABILITY_LIST.map((c) => [c, false])) as Record<Capability, boolean>,
+  );
+  const [errors, setErrors] = useState<Record<Capability, boolean>>(
+    Object.fromEntries(CAPABILITY_LIST.map((c) => [c, false])) as Record<Capability, boolean>,
+  );
+  const [saving, setSaving] = useState<Record<Capability, boolean>>(
+    Object.fromEntries(CAPABILITY_LIST.map((c) => [c, false])) as Record<Capability, boolean>,
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -67,18 +104,19 @@ export function IntegrationsSection() {
           await syncUserSettings(server);
         }
         const fresh: LlmConfigs = {};
-        for (const cap of ['text', 'image', 'video'] as Capability[]) {
+        for (const cap of CAPABILITY_LIST) {
           const incoming = server?.llmConfigs?.[cap];
           if (incoming && isValidLLMProvider(incoming.provider)) {
             const cfg = LLM_PROVIDER_REGISTRY[incoming.provider];
+            const media = CAPABILITY_TO_MEDIA[cap];
             fresh[cap] = {
               provider: incoming.provider,
               apiKey: incoming.apiKey ?? '',
               baseUrl: incoming.baseUrl || cfg.baseUrl,
-              model: incoming.model || cfg.recommended[cap] || cfg.model,
+              model: incoming.model || cfg.recommended[media] || cfg.model,
             };
           } else {
-            fresh[cap] = deriveDefault(cap);
+            fresh[cap] = emptyConfig(cap, CAPABILITY_DEFAULT_PROVIDER[cap]);
           }
         }
         setLlmConfigs(fresh);
@@ -89,12 +127,16 @@ export function IntegrationsSection() {
   function updateCap(capability: Capability, patch: Partial<ModelConfig>) {
     setLlmConfigs((prev) => ({
       ...prev,
-      [capability]: { ...(prev[capability] ?? emptyConfig(capability, 'deepseek')), ...patch },
+      [capability]: {
+        ...(prev[capability] ?? emptyConfig(capability, CAPABILITY_DEFAULT_PROVIDER[capability])),
+        ...patch,
+      },
     }));
   }
 
   function changeProvider(capability: Capability, provider: LLMProviderType) {
     const cfg = LLM_PROVIDER_REGISTRY[provider];
+    const media = CAPABILITY_TO_MEDIA[capability];
     setLlmConfigs((prev) => {
       const cur = prev[capability] ?? emptyConfig(capability, provider);
       return {
@@ -103,7 +145,7 @@ export function IntegrationsSection() {
           ...cur,
           provider,
           baseUrl: cfg.baseUrl,
-          model: cfg.recommended[capability] ?? cfg.model,
+          model: cfg.recommended[media] ?? cfg.model,
         },
       };
     });
@@ -135,11 +177,11 @@ export function IntegrationsSection() {
       <div>
         <h3 className="text-base font-semibold text-[var(--color-text-primary)]">API 集成</h3>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          管理第三方 API 密钥。每个能力（文本/图片/视频）独立配置 provider 和模型。
+          管理第三方 API 密钥。每个能力（文生图 / 图生图 / 局部重绘 / 文生视频 / 图生视频 / 风格迁移）独立配置 provider 和模型。
         </p>
       </div>
 
-      {(['text', 'image', 'video'] as Capability[]).map((cap) => (
+      {CAPABILITY_LIST.map((cap) => (
         <CapabilityCard
           key={cap}
           capability={cap}
@@ -178,8 +220,12 @@ function CapabilityCard({
   onSave,
 }: CapabilityCardProps) {
   const meta = CAPABILITY_META[capability];
-  const supportedProviders = providersForCapability(capability);
-  const current = config ?? emptyConfig(capability, 'deepseek');
+  // Providers that support this capability (text2image, image2image, …).
+  // Each provider's `capabilities` array is filtered at the registry level.
+  const supportedProviders = (Object.keys(LLM_PROVIDER_REGISTRY) as LLMProviderType[]).filter((p) =>
+    LLM_PROVIDER_REGISTRY[p].capabilities.includes(CAPABILITY_TO_MEDIA[capability]),
+  );
+  const current = config ?? emptyConfig(capability, CAPABILITY_DEFAULT_PROVIDER[capability]);
   const providerSupports = supportedProviders.includes(current.provider);
 
   return (

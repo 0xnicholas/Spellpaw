@@ -35,7 +35,18 @@ interface ModelConfig {
   model: string;
 }
 
-type LlmConfigs = Record<'text' | 'image' | 'video', ModelConfig>;
+const CONFIG_CAPABILITIES = [
+  'text2image',
+  'image2image',
+  'inpaint',
+  'text2video',
+  'image2video',
+  'styleTransfer',
+] as const;
+
+type ConfigCapability = (typeof CONFIG_CAPABILITIES)[number];
+
+type LlmConfigs = Partial<Record<ConfigCapability, ModelConfig>>;
 
 function parseLlmConfigs(raw: string | null | undefined): Partial<LlmConfigs> | null {
   if (!raw) return null;
@@ -43,7 +54,7 @@ function parseLlmConfigs(raw: string | null | undefined): Partial<LlmConfigs> | 
     const parsed = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
     const out: Partial<LlmConfigs> = {};
-    for (const cap of ['text', 'image', 'video'] as const) {
+    for (const cap of CONFIG_CAPABILITIES) {
       const c = (parsed as Record<string, unknown>)[cap];
       if (!c || typeof c !== 'object') continue;
       const cc = c as Record<string, unknown>;
@@ -161,8 +172,8 @@ export function authRoutes(prisma: PrismaClient): Router {
         const incoming = parseLlmConfigs(JSON.stringify(body.llmConfigs));
         if (incoming) Object.assign(merged, incoming);
       } else {
-        // Partial patch keys (llmConfigs.text / .image / .video)
-        for (const cap of ['text', 'image', 'video'] as const) {
+        // Partial patch keys (llmConfigs.text2image / .image2image / etc.)
+        for (const cap of CONFIG_CAPABILITIES) {
           const key = `llmConfigs.${cap}`;
           if (body[key] !== undefined) {
             const parsed = parseLlmConfigs(JSON.stringify({ [cap]: body[key] }));

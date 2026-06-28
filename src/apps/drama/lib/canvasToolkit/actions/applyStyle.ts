@@ -4,7 +4,7 @@ import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import { updateCardThumbnail, startPolling } from "../shared";
-import type { ToolkitResult, GenerationInput, Capability, MediaType } from "../types";
+import type { ToolkitResult, GenerationInput, Capability } from "../types";
 import type { CanvasNodeType } from "@drama/types";
 import { getCapabilityConfig } from "../capabilityConfig";
 
@@ -110,9 +110,10 @@ export async function applyStyle(
 	}
 
 	const provider = selectedProvider.provider;
-	// Inject capability-specific config
-	const styleMedia: MediaType = sourceCard.type === "videoClip" ? "video" : "image";
-	const capConfig = getCapabilityConfig(styleMedia);
+	// Inject capability-specific config (per the actual capability we'll use,
+	// not just the media type). styleTransfer vs image2image vs text2image
+	// can each have their own provider/apiKey/model.
+	const capConfig = getCapabilityConfig(usedCapability);
 	if (capConfig) {
 		provider.configure({
 			apiKey: capConfig.apiKey,

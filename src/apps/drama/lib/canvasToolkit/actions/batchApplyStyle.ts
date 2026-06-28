@@ -54,8 +54,9 @@ export async function batchApplyStyle(
 
 	const provider = selection.provider;
 
-	// Inject capability-specific config (style transfer is image-only)
-	const capConfig = getCapabilityConfig("image");
+	// Inject capability-specific config (text2image, since the action
+	// generates a new styled card from a text prompt + a source reference)
+	const capConfig = getCapabilityConfig("text2image");
 	if (capConfig) {
 		provider.configure({
 			apiKey: capConfig.apiKey,

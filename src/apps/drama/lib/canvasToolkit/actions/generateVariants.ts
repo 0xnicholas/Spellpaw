@@ -80,7 +80,7 @@ export async function generateVariants(
 	const provider = selection.provider;
 
 	// Inject the capability-specific LLM config (from synced llmConfigs).
-	const capConfig = getCapabilityConfig(mediaType);
+	const capConfig = getCapabilityConfig(capability);
 	if (capConfig) {
 		provider.configure({
 			apiKey: capConfig.apiKey,

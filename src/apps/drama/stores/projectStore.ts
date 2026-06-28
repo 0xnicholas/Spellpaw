@@ -40,6 +40,17 @@ export const useProjectStore = create<ProjectState>()(
           projects: [...state.projects, project],
           currentProjectId: id,
         }));
+        // Persist to server (server is authoritative). Fire-and-forget:
+        // the local copy is shown immediately and the server is updated
+        // in the background. On 401 (not logged in) or network error
+        // we silently keep the local copy — pullAll() on next mount
+        // will reconcile when the user comes back.
+        void authApi
+          .apiCall('/api/projects', {
+            method: 'POST',
+            body: JSON.stringify({ title, description, coverColor, data: '{}' }),
+          })
+          .catch(() => {});
         return id;
       },
 

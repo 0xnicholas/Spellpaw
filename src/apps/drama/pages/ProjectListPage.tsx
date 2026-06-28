@@ -30,10 +30,21 @@ export function ProjectListPage() {
   const deleteProject = useProjectStore((s) => s.deleteProject);
   const deduplicateProjects = useProjectStore((s) => s.deduplicateProjects);
   const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const userId = user?.id;
 
   useEffect(() => {
     deduplicateProjects();
   }, [deduplicateProjects]);
+
+  // On mount + when user changes, pull the latest project list from
+  // the server (server is authoritative). pullAll() only imports
+  // projects that aren't already in the local store, so a refresh
+  // after creating a project will pick it up immediately.
+  useEffect(() => {
+    if (!isAuthenticated || !userId) return;
+    void pullAll().catch(() => {});
+  }, [isAuthenticated, userId]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);

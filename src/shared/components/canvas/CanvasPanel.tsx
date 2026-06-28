@@ -175,12 +175,12 @@ export function CanvasPanel({ onAIAction }: CanvasPanelProps = {}) {
   }, [focusCardId, nodes]);
 
   const nodesWithDisplay = useMemo(() => {
-    const map = computeDisplayNumbers(canvasNodes, getCurrentNodes());
+    const map = computeDisplayNumbers(canvasNodes);
     return nodes.map((n) => ({
       ...n,
       data: { ...n.data, _displayNumber: map.get(n.id) ?? '', _highlighted: highlightSet.has(n.id), _onAIAction: onAIAction },
     }));
-  }, [nodes, canvasNodes, getCurrentNodes, highlightSet, onAIAction]);
+  }, [nodes, canvasNodes, highlightSet, onAIAction]);
 
   const onConnect = useCallback(
     (connection: Connection) => {

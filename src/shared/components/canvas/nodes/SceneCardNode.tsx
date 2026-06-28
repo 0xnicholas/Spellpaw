@@ -5,6 +5,7 @@ import { Lightbox } from '@/shared/components/ui/Lightbox';
 import { NodeAIActions } from '../NodeAIActions';
 import { getCardAIActions } from '../cardAIActions';
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import { useStyleLockStore } from '@shared/stores/styleLockStore';
 import { CanvasCard } from '../CanvasCard';
 import type { CanvasNodeData } from '@drama/types';
 

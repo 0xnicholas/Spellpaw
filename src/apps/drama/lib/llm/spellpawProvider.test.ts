@@ -12,11 +12,16 @@ vi.mock('@/shared/stores/authStore', () => ({
 
 vi.mock('@console/lib/llmSettings', () => ({
   getLLMSettings: () => ({
-    provider: 'deepseek',
-    apiKey: 'sk-deepseek',
-    apiKeys: { deepseek: 'sk-deepseek' },
-    baseUrl: 'https://api.deepseek.com/v1',
-    model: 'deepseek-v4-pro',
+    text: {
+      provider: 'deepseek',
+      apiKey: 'sk-deepseek',
+      baseUrl: 'https://api.deepseek.com/v1',
+      model: 'deepseek-v4-pro',
+    },
+    image: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
+    video: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
+    audio: { provider: 'openai', apiKey: '', baseUrl: '', model: '' },
+    model3d: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
   }),
 }));
 

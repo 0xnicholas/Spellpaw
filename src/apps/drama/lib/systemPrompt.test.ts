@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { buildSystemPrompt } from "./systemPrompt";
 import { listProviders, providerRegistry } from "./canvasToolkit";
 

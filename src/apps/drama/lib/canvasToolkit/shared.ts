@@ -1,8 +1,21 @@
 import type { CanvasNode, CardMetadata } from "@drama/types";
+import { useCanvasStore } from "@drama/stores/canvasStore";
 import { useTaskStore } from "./taskStore";
 import { providerRegistry } from "./registry";
 import type { GenerationProvider } from "./types";
 import { extractResultMetadata } from "./resultMetadata";
+
+/**
+ * Mark a card as having failed generation. Updates the canvas store and
+ * surfaces the failure to the card UI so a retry affordance can be shown.
+ */
+export function markCardGenerationFailed(cardId: string, errorMessage?: string) {
+  useCanvasStore.getState().updateNodeData(cardId, {
+    generationStatus: 'failed',
+    status: 'draft',
+    ...(errorMessage ? { generationError: errorMessage } : {}),
+  });
+}
 
 /** Get all registered provider ids. Use this for dynamic enum/list generation in toolConfigs and systemPrompt. */
 export function listProviderIds(): string[] {

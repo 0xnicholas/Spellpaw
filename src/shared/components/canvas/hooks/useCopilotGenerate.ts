@@ -8,8 +8,13 @@ import { inferCapability } from '@shared/components/canvas/helpers/capability';
 export interface FileRefData {
   name: string;
   size: number;
+  /** MIME type (e.g. "image/png"). Optional — used for display + provider hints. */
+  type?: string;
   kind: 'image' | 'video' | 'audio';
-  dataUrl: string;
+  /** Base64 data URL — required when the provider needs an inline reference image. */
+  dataUrl?: string;
+  /** The original File object. Optional — kept for callers that need to re-read the file. */
+  file?: File;
 }
 
 export interface GenerateParams {

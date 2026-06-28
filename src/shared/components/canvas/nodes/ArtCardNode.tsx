@@ -3,6 +3,7 @@ import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { ImageOff, Lock } from 'lucide-react';
 import { Lightbox } from '@/shared/components/ui/Lightbox';
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import { useStyleLockStore } from '@shared/stores/styleLockStore';
 import { CanvasCard } from '../CanvasCard';
 import type { CanvasNodeData } from '@drama/types';
 

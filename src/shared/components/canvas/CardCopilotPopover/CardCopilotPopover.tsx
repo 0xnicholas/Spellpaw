@@ -31,7 +31,7 @@ const PLACEHOLDERS: Record<CopilotKind, string> = {
   upload: '上传文件或描述...',
 };
 
-interface Props {
+export interface Props {
   cardId: string;
   kind: CopilotKind;
   screenPosition: { x: number; y: number };
@@ -43,7 +43,8 @@ export function CardCopilotPopover({ cardId, kind, screenPosition, onClose }: Pr
   const [prompt, setPrompt] = useState('');
   const [fileRef, setFileRef] = useState<FileRefData | null>(null);
 
-  const { submit, isGenerating } = useCopilotGenerate({ cardId, kind });
+  const { generate, status } = useCopilotGenerate({ cardId, kind });
+  const isGenerating = status === 'generating';
 
   useEffect(() => {
     textareaRef.current?.focus();
@@ -56,7 +57,7 @@ export function CardCopilotPopover({ cardId, kind, screenPosition, onClose }: Pr
 
   const handleSend = async () => {
     if (!prompt.trim()) return;
-    await submit({ cardId, kind, prompt: prompt.trim(), fileRef });
+    await generate({ prompt: prompt.trim(), fileRef: fileRef ?? undefined });
     setPrompt('');
     setFileRef(null);
     onClose();
@@ -72,7 +73,18 @@ export function CardCopilotPopover({ cardId, kind, screenPosition, onClose }: Pr
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFileRef({ name: file.name, size: file.size, type: file.type, file });
+      // Read as data URL so the provider can use it as a reference image
+      const reader = new FileReader();
+      const kind: FileRefData['kind'] = file.type.startsWith('video/')
+        ? 'video'
+        : file.type.startsWith('audio/')
+          ? 'audio'
+          : 'image';
+      reader.onload = () => {
+        const dataUrl = typeof reader.result === 'string' ? reader.result : undefined;
+        setFileRef({ name: file.name, size: file.size, type: file.type, kind, file, dataUrl });
+      };
+      reader.readAsDataURL(file);
     }
   };
 

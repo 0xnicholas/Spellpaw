@@ -13,7 +13,7 @@ describe('batchApplyStyle', () => {
   });
 
   it('returns error when no provider configured', async () => {
-    const result = await batchApplyStyle({ cardIds: ['x'], stylePrompt: 'noir' });
+    const result = await batchApplyStyle({ action: 'batch_apply_style', cardIds: ['x'], stylePrompt: 'noir' });
     expect(result.success).toBe(false);
   });
 });

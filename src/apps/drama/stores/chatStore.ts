@@ -281,9 +281,9 @@ export const useChatStore = create<ChatState>()((set) => ({
 				.slice(0, 4)
 				.map((i) => ({
 					id: generateId("act_"),
-					label: i.title,
-					type: "custom",
-					payload: { prompt: i.suggestedPrompt },
+					label: i.title ?? i.message,
+					type: "custom" as const,
+					payload: { prompt: i.suggestedPrompt as string },
 				})),
 		};
 		set((state) => {

@@ -16,11 +16,11 @@ import { ProviderSelect, type ProviderSelectOption } from '@/shared/components/u
 import {
   isValidLLMProvider,
   LLM_PROVIDER_REGISTRY,
+  CAPABILITY_TO_MEDIA,
   type Capability,
   type LLMProviderType,
-  type ModelConfig,
 } from '@shared/lib/providers';
-import { fetchSettings, updateSettings, type LlmConfigs } from '@console/lib/consoleApi';
+import { fetchSettings, updateSettings, type LlmConfigs, type ModelConfig } from '@console/lib/consoleApi';
 import { syncUserSettings } from '@console/lib/syncSettings';
 
 // Drama canvas toolkit's Capability union — must stay in sync with
@@ -39,18 +39,7 @@ const CAPABILITY_LIST: Capability[] = [
 ];
 
 /** Map a drama Capability to the broad MediaCapability bucket used by
- *  LLM_PROVIDER_REGISTRY.capabilities. */
-const CAPABILITY_TO_MEDIA: Record<Capability, 'text' | 'image' | 'video' | 'audio' | 'model3d'> = {
-  text2image: 'image',
-  image2image: 'image',
-  inpaint: 'image',
-  text2video: 'video',
-  image2video: 'video',
-  styleTransfer: 'image',
-  text2audio: 'audio',
-  text2model: 'model3d',
-  image2model: 'model3d',
-};
+ *  LLM_PROVIDER_REGISTRY.capabilities. Re-exported from shared. */
 
 const CAPABILITY_META: Record<Capability, { title: string; description: string }> = {
   text2image: { title: '文生图 (text2image)', description: '纯文字 → 图片，drama 画布新建 art 卡片' },

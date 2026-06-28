@@ -5,6 +5,10 @@ export interface ProactiveInsight {
   type: string;
   severity: 'info' | 'warning';
   message: string;
+  /** Short action label shown in chat quick-action buttons. */
+  title?: string;
+  /** Prompt sent to the LLM when the user clicks the quick action. */
+  suggestedPrompt?: string;
 }
 
 export function computeProactiveInsights(nodes?: CanvasNode[]): ProactiveInsight[] {

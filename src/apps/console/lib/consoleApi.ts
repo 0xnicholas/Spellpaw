@@ -3,35 +3,29 @@
  *
  * Settings shape (Phase 4 final):
  *   - llmConfigs: keyed by Capability (text2image, image2image, inpaint,
- *     text2video, image2video, styleTransfer). Each capability has its
- *     own provider + apiKey + baseUrl + model, fully independent.
+ *     text2video, image2video, styleTransfer, text2audio, text2model,
+ *     image2model). Each capability has its own provider + apiKey +
+ *     baseUrl + model, fully independent.
  *   - No more per-provider keys (openaiApiKey/doubaoApiKey/minimaxApiKey) —
  *     drama reads exclusively from llmConfigs via capabilityConfig.ts.
  *
- * The drama canvas toolkit's `Capability` union is the source of truth
- * for the keys here; if a new capability is added (e.g. "audio2text"),
- * add it to BOTH the drama Capability union AND this list.
+ * The shared `Capability` union (shared/lib/providers.ts) is the source
+ * of truth for the keys here; if a new capability is added there, it
+ * automatically flows through.
  */
 
 import { authApi } from '@/shared/stores/authStore';
 import type { ProfileFormData, PasswordFormData } from '@console/types';
+import type { Capability as ConfigCapability, LLMProviderType } from '@shared/lib/providers';
+
+export type { ConfigCapability };
 
 export interface ModelConfig {
-  provider: string;
+  provider: LLMProviderType;
   apiKey: string;
   baseUrl: string;
   model: string;
 }
-
-/** Drama canvas toolkit capabilities — must stay in sync with `Capability` in
- *  src/apps/drama/lib/canvasToolkit/types.ts. */
-export type ConfigCapability =
-  | 'text2image'
-  | 'image2image'
-  | 'inpaint'
-  | 'text2video'
-  | 'image2video'
-  | 'styleTransfer';
 
 export type LlmConfigs = Partial<Record<ConfigCapability, ModelConfig>>;
 

@@ -77,7 +77,8 @@ describe('intentRouter', () => {
       mediaType: 'image',
       payload: { action: 'generate_asset', cardId: 'x', mediaType: 'image' },
     });
-    expect(choice.type).toBe('function');
-    expect(choice.function.name).toBe('spellpaw_generate_asset');
+    expect(choice).toBeDefined();
+    expect(choice!.type).toBe('function');
+    expect(choice!.function.name).toBe('spellpaw_generate_asset');
   });
 });

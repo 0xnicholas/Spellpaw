@@ -19,7 +19,11 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "db:push": "cd server && npm run db:push",
-    "prepare": "husky"
+    "prepare": "husky",
+    "tsc:client": "tsc --noEmit -p tsconfig.app.json",
+    "tsc:server": "cd server && tsc --noEmit",
+    "tsc": "npm run tsc:client && npm run tsc:server",
+    "check": "npm run lint && npm run tsc && npm test"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

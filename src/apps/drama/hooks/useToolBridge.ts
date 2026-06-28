@@ -31,7 +31,7 @@ function getCandidateUrls(token: string, projectId: string): string[] {
 
 function connect(
   wsRef: React.MutableRefObject<WebSocket | null>,
-  urls = getCandidateUrls(),
+  urls: string[],
   urlIndex = 0,
   retries = 0,
 ) {

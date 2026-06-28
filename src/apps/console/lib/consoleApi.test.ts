@@ -44,11 +44,8 @@ describe('consoleApi', () => {
 
   it('fetchSettings returns server settings', async () => {
     const settings: UserSettings = {
-      openaiApiKey: 'sk-openai',
-      doubaoApiKey: '',
-      minimaxApiKey: '',
       llmConfigs: {
-        text: { provider: 'deepseek', apiKey: 'sk-llm', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-pro' },
+        text2image: { provider: 'deepseek', apiKey: 'sk-llm', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-pro' },
       },
     };
     vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(settings), { status: 200 }));
@@ -58,37 +55,31 @@ describe('consoleApi', () => {
 
   it('updateSettings sends PATCH and returns updated data', async () => {
     const updated: UserSettings = {
-      openaiApiKey: 'sk-new',
-      doubaoApiKey: '',
-      minimaxApiKey: '',
-      llmConfigs: { text: { provider: 'deepseek', apiKey: '', baseUrl: '', model: '' } },
+      llmConfigs: { text2image: { provider: 'deepseek', apiKey: '', baseUrl: '', model: '' } },
     };
     const fetchMock = vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(updated), { status: 200 }));
-    const result = await updateSettings({ openaiApiKey: 'sk-new' });
+    const result = await updateSettings({ llmConfigs: { text2image: { provider: 'deepseek', apiKey: 'sk-new', baseUrl: 'u', model: 'm' } } });
     expect(result.success).toBe(true);
     expect(result.data).toEqual(updated);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/api/auth/settings'),
       expect.objectContaining({
         method: 'PATCH',
-        body: JSON.stringify({ openaiApiKey: 'sk-new' }),
+        body: JSON.stringify({ llmConfigs: { text2image: { provider: 'deepseek', apiKey: 'sk-new', baseUrl: 'u', model: 'm' } } }),
       })
     );
   });
 
   it('updateSettings sends llmConfigs patch', async () => {
     const updated: UserSettings = {
-      openaiApiKey: '',
-      doubaoApiKey: '',
-      minimaxApiKey: '',
       llmConfigs: {
-        image: { provider: 'doubao', apiKey: 'ark-new', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seedream-5-0-lite' },
+        text2image: { provider: 'doubao', apiKey: 'ark-new', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seedream-5-0-lite' },
       },
     };
     const fetchMock = vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify(updated), { status: 200 }));
     const result = await updateSettings({
       llmConfigs: {
-        image: { provider: 'doubao', apiKey: 'ark-new', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seedream-5-0-lite' },
+        text2image: { provider: 'doubao', apiKey: 'ark-new', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seedream-5-0-lite' },
       },
     });
     expect(result.success).toBe(true);
@@ -99,7 +90,7 @@ describe('consoleApi', () => {
         method: 'PATCH',
         body: JSON.stringify({
           llmConfigs: {
-            image: { provider: 'doubao', apiKey: 'ark-new', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seedream-5-0-lite' },
+            text2image: { provider: 'doubao', apiKey: 'ark-new', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', model: 'doubao-seedream-5-0-lite' },
           },
         }),
       })

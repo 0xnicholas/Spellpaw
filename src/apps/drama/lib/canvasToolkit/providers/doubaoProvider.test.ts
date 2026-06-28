@@ -106,7 +106,7 @@ describe("doubaoProvider", () => {
 		expect(task.status).toBe("pending");
 		expect(task.taskId).toBe("task-1");
 
-		const polled = await provider.poll(task.taskId);
+		const polled = await provider.poll!(task.taskId);
 		expect(polled.status).toBe("done");
 		expect(polled.resultUrl).toBe("https://example.com/v.mp4");
 	});

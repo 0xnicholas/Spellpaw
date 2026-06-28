@@ -7,7 +7,7 @@ import {
   providersForCapability,
   defaultModelConfig,
   DEFAULT_PROVIDER_BY_CAPABILITY,
-  type Capability,
+  type MediaCapability,
 } from './providers';
 
 describe('LLM provider registry (Phase 4)', () => {
@@ -66,7 +66,7 @@ describe('LLM provider registry (Phase 4)', () => {
   });
 
   it('defaultModelConfig returns sensible defaults per capability', () => {
-    for (const cap of ['text', 'image', 'video'] as Capability[]) {
+    for (const cap of ['text', 'image', 'video'] as MediaCapability[]) {
       const cfg = defaultModelConfig(cap);
       expect(cfg.provider).toBe(DEFAULT_PROVIDER_BY_CAPABILITY[cap]);
       expect(cfg.baseUrl).toMatch(/^https?:\/\//);

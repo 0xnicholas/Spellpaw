@@ -1,2 +1,2 @@
 export { CardCopilotPopover } from './CardCopilotPopover';
-export type { CardCopilotPopoverProps } from './CardCopilotPopover';
+export type { Props as CardCopilotPopoverProps } from './CardCopilotPopover';

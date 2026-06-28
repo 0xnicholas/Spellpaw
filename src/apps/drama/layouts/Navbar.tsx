@@ -8,6 +8,7 @@ import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { exportStoryboardPDF } from '@drama/lib/exportPDF';
 import { useTranslation } from 'react-i18next';
+import type { CanvasNode } from '@drama/types';
 
 function getCanvasPath(cards: CanvasNode[], selectedId: string | null): string[] {
   if (!selectedId) return [];

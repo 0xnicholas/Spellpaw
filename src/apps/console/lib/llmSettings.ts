@@ -19,12 +19,12 @@ import {
   defaultModelConfig,
   isValidLLMProvider,
   LLM_PROVIDER_REGISTRY,
-  type Capability,
-  type ModelConfig as ProviderModelConfig,
+  type MediaCapability,
 } from '@shared/lib/providers';
+import type { ModelConfig as ServerModelConfig } from './consoleApi';
 
-export type ModelConfig = ProviderModelConfig;
-export type LlmConfigs = Record<Capability, ModelConfig>;
+export type ModelConfig = ServerModelConfig;
+export type LlmConfigs = Record<MediaCapability, ModelConfig>;
 
 const SETTINGS_KEY = 'spellpaw_llm_settings';
 
@@ -35,10 +35,16 @@ export interface DramaApiKeys {
 }
 
 function buildDefaultConfigs(drama: DramaApiKeys): LlmConfigs {
+  const seed = (cap: MediaCapability): ModelConfig => ({
+    ...defaultModelConfig(cap),
+    apiKey: '',
+  });
   const fresh: LlmConfigs = {
-    text: defaultModelConfig('text'),
-    image: defaultModelConfig('image'),
-    video: defaultModelConfig('video'),
+    text: seed('text'),
+    image: seed('image'),
+    video: seed('video'),
+    audio: seed('audio'),
+    model3d: seed('model3d'),
   };
 
   if (drama.doubao) {
@@ -131,7 +137,7 @@ export function getLLMSettings(drama: DramaApiKeys = {}): LlmConfigs {
   }
 
   // New shape → merge each capability that exists.
-  for (const cap of ['text', 'image', 'video'] as Capability[]) {
+  for (const cap of ['text', 'image', 'video', 'audio', 'model3d'] as MediaCapability[]) {
     const incoming = parsed[cap];
     if (incoming) {
       fresh[cap] = coerceConfig(incoming, fresh[cap]);
@@ -155,10 +161,10 @@ export function setLLMSettings(configs: Partial<LlmConfigs>): void {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
 }
 
-export function setCapabilityConfig(capability: Capability, config: ModelConfig): void {
+export function setCapabilityConfig(capability: MediaCapability, config: ModelConfig): void {
   setLLMSettings({ [capability]: config });
 }
 
-export function getCapabilityConfig(capability: Capability): ModelConfig {
+export function getMediaCapabilityConfig(capability: MediaCapability): ModelConfig {
   return getLLMSettings()[capability];
 }

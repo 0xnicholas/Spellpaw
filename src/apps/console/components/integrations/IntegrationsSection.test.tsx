@@ -22,9 +22,6 @@ describe('IntegrationsSection — Phase 4 capability-grouped', () => {
 
   beforeEach(() => {
     fetchSettingsMock.mockResolvedValue({
-      openaiApiKey: '',
-      doubaoApiKey: '',
-      minimaxApiKey: '',
       llmConfigs: {},
     });
     updateSettingsMock.mockReset();

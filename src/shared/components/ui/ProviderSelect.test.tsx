@@ -28,7 +28,7 @@ describe('ProviderSelect', () => {
   });
 
   it('shows placeholder when value is undefined', () => {
-    render(<ProviderSelect options={OPTIONS} onChange={() => {}} placeholder="选择" />);
+    render(<ProviderSelect value={undefined} options={OPTIONS} onChange={() => {}} placeholder="选择" />);
     expect(screen.getByText('选择')).toBeInTheDocument();
   });
 

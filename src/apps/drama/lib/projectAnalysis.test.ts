@@ -4,7 +4,7 @@ import { useCanvasStore } from '@drama/stores/canvasStore';
 import { generatePacingReport } from './projectAnalysis';
 
 function seedCanvas() {
-  useProjectStore.setState({ currentProjectId: 'p1', projects: [{ id: 'p1', title: 'Test', description: '', coverColor: '#000', updatedAt: '' }] });
+  useProjectStore.setState({ currentProjectId: 'p1', projects: [{ id: 'p1', title: 'Test', description: '', coverColor: '#000', updatedAt: '', sceneCount: 0, duration: 0 }] });
   useCanvasStore.setState({
     canvases: {
       p1: {

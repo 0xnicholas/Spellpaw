@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getLLMSettings, setLLMSettings, setCapabilityConfig, getCapabilityConfig } from './llmSettings';
+import { getLLMSettings, setLLMSettings, setCapabilityConfig, getMediaCapabilityConfig } from './llmSettings';
 import { LLM_PROVIDER_REGISTRY, defaultModelConfig } from '@shared/lib/providers';
 
 const SETTINGS_KEY = 'spellpaw_llm_settings';
@@ -11,9 +11,12 @@ describe('llmSettings — Phase 4 capability-grouped', () => {
 
   it('returns defaults when nothing is stored', () => {
     const got = getLLMSettings();
-    expect(got.text).toEqual(defaultModelConfig('text'));
-    expect(got.image).toEqual(defaultModelConfig('image'));
-    expect(got.video).toEqual(defaultModelConfig('video'));
+    expect(got.text.provider).toBe(defaultModelConfig('text').provider);
+    expect(got.text.baseUrl).toBe(defaultModelConfig('text').baseUrl);
+    expect(got.text.model).toBe(defaultModelConfig('text').model);
+    expect(got.text.apiKey).toBe('');
+    expect(got.image.provider).toBe(defaultModelConfig('image').provider);
+    expect(got.video.provider).toBe(defaultModelConfig('video').provider);
   });
 
   it('round-trips per-capability configs', () => {
@@ -25,7 +28,8 @@ describe('llmSettings — Phase 4 capability-grouped', () => {
     expect(got.text.apiKey).toBe('sk-text');
     expect(got.text.model).toBe('deepseek-v4-pro');
     expect(got.image.apiKey).toBe('ark-img');
-    expect(got.video).toEqual(defaultModelConfig('video'));
+    expect(got.video.provider).toBe(defaultModelConfig('video').provider);
+    expect(got.video.apiKey).toBe('');
   });
 
   it('merges partial updates without overwriting other capabilities', () => {
@@ -87,7 +91,8 @@ describe('llmSettings — Phase 4 capability-grouped', () => {
   it('falls back to defaults for malformed stored data', () => {
     localStorage.setItem(SETTINGS_KEY, 'not-json');
     const got = getLLMSettings();
-    expect(got.text).toEqual(defaultModelConfig('text'));
+    expect(got.text.provider).toBe(defaultModelConfig('text').provider);
+    expect(got.text.apiKey).toBe('');
   });
 
   it('ignores invalid provider on read', () => {
@@ -100,7 +105,7 @@ describe('llmSettings — Phase 4 capability-grouped', () => {
 
   it('setCapabilityConfig updates just one capability', () => {
     setCapabilityConfig('text', { provider: 'openai', apiKey: 'sk-x', baseUrl: 'https://api.openai.com/v1', model: 'gpt-5.5' });
-    const got = getCapabilityConfig('text');
+    const got = getMediaCapabilityConfig('text');
     expect(got.provider).toBe('openai');
     expect(got.apiKey).toBe('sk-x');
   });

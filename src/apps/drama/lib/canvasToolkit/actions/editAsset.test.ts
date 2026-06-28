@@ -13,7 +13,7 @@ describe('editAsset', () => {
   });
 
   it('returns error when no provider configured', async () => {
-    const result = await editAsset({ cardId: 'x', prompt: 'make it blue' });
+    const result = await editAsset({ action: 'edit_asset', cardId: 'x', prompt: 'make it blue' });
     expect(result.success).toBe(false);
   });
 });

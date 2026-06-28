@@ -1,11 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useCanvasStore } from "@drama/stores/canvasStore";
 import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import {
-	buildDefaultPrompt,
 	updateCardThumbnail,
 	startPolling,
 } from "../shared";
@@ -33,14 +31,15 @@ export async function generateVariants(
 	const canvasNodes = useCanvasStore.getState().getCurrentNodes();
 
 	let basePrompt = params.prompt;
+	let sourceCard: ReturnType<typeof canvasNodes.find>;
 
 	if (params.nodeId || params.cardId) {
 		const targetId = params.cardId || params.nodeId;
-		const card = canvasNodes.find(n => n.id === targetId);
-		if (!card) {
+		sourceCard = canvasNodes.find(n => n.id === targetId);
+		if (!sourceCard) {
 			return { success: false, message: `未找到卡片: ${targetId}`, retryable: false };
 		}
-		basePrompt ??= (card.data.generatedPrompt as string) || (card.data.description as string) || card.data.title;
+		basePrompt ??= (sourceCard.data.generatedPrompt as string) || (sourceCard.data.description as string) || sourceCard.data.title;
 	} else {
 		return {
 			success: false,
@@ -102,29 +101,30 @@ export async function generateVariants(
 			};
 		}
 
+		// Build the variant card up-front so the per-iteration metadata is right.
 		const titleSuffix = batchCount > 1 ? ` 变体 ${i + 1}` : "";
-		const title = card
-			? `${card.data.title}${titleSuffix}`
+		const title = sourceCard
+			? `${sourceCard.data.title}${titleSuffix}`
 			: `${basePrompt.slice(0, 20)}${titleSuffix}`;
-		const card = await addEnrichedCard("art", {
+		const newCard = await addEnrichedCard("art", {
 			title,
 			description: basePrompt,
 			generatedPrompt: basePrompt,
 			status: "draft",
 			sourceProvider: provider.id,
 		});
-		cardIds.push(card.id);
+		cardIds.push(newCard.id);
 
 		if (task.status === "done" && task.resultUrl) {
-			updateCardThumbnail(card.id, task.resultUrl, input.type);
+			updateCardThumbnail(newCard.id, task.resultUrl, input.type);
 		} else if (task.status === "pending" || task.status === "processing") {
 			useTaskStore.getState().addTask({
 				taskId: task.taskId,
 				providerId: provider.id,
-				cardId: card.id,
+				cardId: newCard.id,
 				createdAt: new Date().toISOString(),
 			});
-			startPolling(task.taskId, provider, card.id);
+			startPolling(task.taskId, provider, newCard.id);
 			pendingTaskIds.push(task.taskId);
 		}
 	}

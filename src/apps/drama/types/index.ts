@@ -9,9 +9,14 @@ export interface CardMetadata {
   shotType?: string;
   cameraMovement?: string;
   dialogue?: string;
+  description?: string;
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
+  /** Inline children (shots within a scene, etc.) — see CardChild. */
+  children?: CardChild[];
+  /** Arbitrary extensions — providers may stash their own metadata. */
+  [key: string]: unknown;
 }
 
 // Tree removed — Phase 4 canvas-first architecture deletes TreeNode entirely
@@ -151,11 +156,14 @@ export interface CanvasNodeData {
   isPlaceholder?: boolean;
 
   // Ref 文件引用（v2+）：用户通过 CardCopilotPopover 上传的本地预览
+  // Shape mirrors FileRefData in shared/components/canvas/hooks/useCopilotGenerate.ts.
   fileRef?: {
     name: string;
     size: number;
     kind: 'image' | 'video' | 'audio';
-    dataUrl: string;
+    type?: string;
+    dataUrl?: string;
+    file?: File;
   };
 
   // Allow arbitrary extensions
@@ -176,6 +184,14 @@ export interface CanvasEdge {
   type?: 'default' | 'smoothstep';
   label?: string;
   animated?: boolean;
+}
+
+/** A single project's canvas: nodes + edges + viewport.
+ *  Replaces the deleted `tree` shape from the Phase 1 tree-based architecture. */
+export interface CanvasEntry {
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+  viewport: { x: number; y: number; zoom: number };
 }
 
 // Project

@@ -15,8 +15,36 @@ export type LLMProviderType = (typeof LLM_PROVIDERS)[number];
 /** Media-level capability bucket used by LLM_PROVIDER_REGISTRY. Coarser
  *  than the drama canvas toolkit's Capability union (which is per-intent:
  *  text2image / image2image / …). To translate between the two, see
- *  CAPABILITY_TO_MEDIA in console/IntegrationsSection. */
-export type Capability = 'text' | 'image' | 'video' | 'audio' | 'model3d';
+ *  CAPABILITY_TO_MEDIA below. */
+export type MediaCapability = 'text' | 'image' | 'video' | 'audio' | 'model3d';
+
+/** Fine-grained per-intent capability used by the drama canvas toolkit and
+ *  the console Integrations page. Each value is a (kind)2(kind) action that
+ *  the LLM can be asked to perform. */
+export type Capability =
+  | 'text2image'
+  | 'image2image'
+  | 'inpaint'
+  | 'text2video'
+  | 'image2video'
+  | 'styleTransfer'
+  | 'text2audio'
+  | 'text2model'
+  | 'image2model';
+
+/** Map a fine-grained Capability to the broad media bucket used by
+ *  LLM_PROVIDER_REGISTRY.capabilities and recommended. */
+export const CAPABILITY_TO_MEDIA: Record<Capability, MediaCapability> = {
+  text2image: 'image',
+  image2image: 'image',
+  inpaint: 'image',
+  text2video: 'video',
+  image2video: 'video',
+  styleTransfer: 'image',
+  text2audio: 'audio',
+  text2model: 'model3d',
+  image2model: 'model3d',
+};
 
 export interface LLMProviderConfig {
   baseUrl: string;
@@ -26,10 +54,10 @@ export interface LLMProviderConfig {
   /** Recommended / selectable text model IDs. */
   models?: string[];
   /** Which capabilities this provider supports. */
-  capabilities: Capability[];
+  capabilities: MediaCapability[];
   /** Recommended model per capability. Used as the default when a user
    *  picks this provider for a given capability. */
-  recommended: Partial<Record<Capability, string>>;
+  recommended: Partial<Record<MediaCapability, string>>;
 }
 
 /**
@@ -112,7 +140,7 @@ export function isValidLLMProvider(value: unknown): value is LLMProviderType {
  * Providers that support a given capability. Used to render the provider
  * pill row inside each `CapabilitySection`.
  */
-export function providersForCapability(capability: Capability): LLMProviderType[] {
+export function providersForCapability(capability: MediaCapability): LLMProviderType[] {
   return LLM_PROVIDERS.filter((p) =>
     LLM_PROVIDER_REGISTRY[p].capabilities.includes(capability),
   );
@@ -123,7 +151,7 @@ export function providersForCapability(capability: Capability): LLMProviderType[
  * has never configured this capability before. Provider is chosen by a
  * simple capability→provider heuristic; the user can swap afterwards.
  */
-export const DEFAULT_PROVIDER_BY_CAPABILITY: Record<Capability, LLMProviderType> = {
+export const DEFAULT_PROVIDER_BY_CAPABILITY: Record<MediaCapability, LLMProviderType> = {
   text: 'deepseek',
   image: 'doubao',
   video: 'doubao',
@@ -131,7 +159,7 @@ export const DEFAULT_PROVIDER_BY_CAPABILITY: Record<Capability, LLMProviderType>
   model3d: 'doubao',
 };
 
-export function defaultModelConfig(capability: Capability): {
+export function defaultModelConfig(capability: MediaCapability): {
   provider: LLMProviderType;
   baseUrl: string;
   model: string;

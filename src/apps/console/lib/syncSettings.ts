@@ -1,5 +1,5 @@
 import { fetchSettings, type UserSettings } from './consoleApi';
-import { setLLMSettings } from './llmSettings';
+import { setLLMSettings, type LlmConfigs } from './llmSettings';
 
 /**
  * Pull user settings from server and write them to localStorage.
@@ -18,5 +18,10 @@ export async function syncUserSettings(server?: UserSettings | null): Promise<vo
 
   // Capability-grouped LLM configs — primary source for the new
   // canvasToolkit capabilityConfig resolver.
-  setLLMSettings(settings.llmConfigs);
+  // The server's `ConfigCapability` (fine-grained) is structurally
+  // compatible with the LlmConfigs (media-bucketed) shape that
+  // setLLMSettings expects, because each ModelConfig has the same 4
+  // fields. We cast explicitly to keep the type-level distinction
+  // (server = per-intent, localStorage = per-media).
+  setLLMSettings(settings.llmConfigs as unknown as Partial<LlmConfigs>);
 }

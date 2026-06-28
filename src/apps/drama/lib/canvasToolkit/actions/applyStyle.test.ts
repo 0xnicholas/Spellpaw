@@ -13,7 +13,7 @@ describe('applyStyle', () => {
   });
 
   it('returns error when no provider configured', async () => {
-    const result = await applyStyle({ sourceCardId: 'x', stylePrompt: 'noir' });
+    const result = await applyStyle({ action: 'apply_style', sourceCardId: 'x', stylePrompt: 'noir' });
     expect(result.success).toBe(false);
   });
 });

@@ -14,6 +14,7 @@ const providers: Record<LLMProviderName, LLMProvider> = {
   minimax: spellpawProvider,
   deepseek: spellpawProvider,
   openai: spellpawProvider,
+  siliconflow: spellpawProvider,
 };
 
 export function getLLMProvider(name?: LLMProviderName): LLMProvider {

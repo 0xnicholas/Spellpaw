@@ -41,7 +41,7 @@ export function WorkspacePage() {
   const { projectId } = useParams<{ projectId: string }>();
 
   // Phase 2: connect to Tool Server WebSocket for Copilot tool calls
-  useToolBridge();
+  useToolBridge(projectId);
 
   const setCurrentProject = useProjectStore((s) => s.setCurrentProject);
   const currentProjectId = useProjectStore((s) => s.currentProjectId);

@@ -306,7 +306,7 @@ export function useCopilotSSE() {
               .projects.find(p => p.id === useProjectStore.getState().currentProjectId)?.title ?? 'Untitled';
             const prompt = buildSystemPrompt(projectTitle, canvasText);
             logger.log('[useCopilotSSE] creating session with', SPELLPAW_TOOL_CONFIGS.length, 'tools');
-            const session = await provider.createSession(projectTitle, prompt, SPELLPAW_TOOL_CONFIGS, toolChoice);
+            const session = await provider.createSession(projectTitle, prompt, SPELLPAW_TOOL_CONFIGS, toolChoice, currentProjectId);
             sessionRef.current = session.id;
             logger.log('[useCopilotSSE] session created:', session.id);
             subscribeToSession(session.id);

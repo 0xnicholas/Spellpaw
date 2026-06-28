@@ -21,6 +21,7 @@ interface SessionState {
   tools: ToolConfig[];
   messages: LLMMessage[];
   userId: string;
+  projectId: string;
   /** Epoch ms — updated on every access. Used for idle cleanup. */
   lastAccessedAt: number;
 }
@@ -71,8 +72,9 @@ export function llmRoutes(): Router {
     const userId = getUserId(req);
     if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
 
-    const { title, system_prompt, tools = [] } = req.body;
+    const { title, system_prompt, tools = [], projectId } = req.body;
     if (!system_prompt) { res.status(400).json({ error: 'system_prompt required' }); return; }
+    if (!projectId) { res.status(400).json({ error: 'projectId required' }); return; }
 
     const session: SessionState = {
       id: uuidv4(),
@@ -82,6 +84,7 @@ export function llmRoutes(): Router {
       tools,
       messages: [{ role: 'system', content: system_prompt }],
       userId,
+      projectId,
       lastAccessedAt: Date.now(),
     };
 
@@ -135,6 +138,8 @@ export function llmRoutes(): Router {
         apiKey: req.headers['x-llm-api-key'] as string | undefined,
         baseUrl: req.headers['x-llm-base-url'] as string | undefined,
         model: req.headers['x-llm-model'] as string | undefined,
+        authorization: req.headers.authorization as string | undefined,
+        projectId: session.projectId,
       };
       logger.log('[llm route] /events headers:', {
         provider: context.provider,
@@ -142,6 +147,7 @@ export function llmRoutes(): Router {
         apiKeyPreview: context.apiKey ? `${context.apiKey.slice(0, 6)}...` : '(missing)',
         baseUrl: context.baseUrl,
         model: context.model,
+        projectId: context.projectId,
       });
       for await (const event of streamChat({
         messages: session.messages,

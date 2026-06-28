@@ -1,11 +1,14 @@
 /**
  * Sync Engine — cloud-first: every mutation pushes immediately to server.
- * Server is the authoritative source. On 409 conflict, server wins.
+ * Server is the authoritative source. On 409 conflict, merge server state
+ * with local pending edits instead of silently overwriting local changes.
  */
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { useAuthStore } from '@/shared/stores/authStore';
-import { pushProject, pullProject } from './projectSync';
+import { config } from '@/shared/config';
+import { pushProject, pullProject, buildProjectPayload } from './projectSync';
+import type { CanvasEntry, CanvasNode, CanvasEdge } from '@drama/types';
 
 export type SyncState = 'synced' | 'syncing' | 'error';
 
@@ -40,9 +43,39 @@ let pushTimer: ReturnType<typeof setTimeout> | null = null;
 // await it instead of racing with the debounce timer.
 let currentPushPromise: Promise<void> | null = null;
 
+function getAuthHeaders(): Record<string, string> {
+  const token = useAuthStore.getState().token;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
+function toast(message: string, type: 'info' | 'warning' | 'error' = 'info') {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('spellpaw:toast', { detail: { message, type } }));
+}
+
+/** Merge server canvas with local canvas: union by id, local wins on conflicts. */
+function mergeCanvases(local: CanvasEntry, remote: CanvasEntry): CanvasEntry {
+  const nodeMap = new Map<string, CanvasNode>();
+  for (const n of remote.nodes) nodeMap.set(n.id, n);
+  for (const n of local.nodes) nodeMap.set(n.id, n); // local overwrites remote for same id
+
+  const edgeMap = new Map<string, CanvasEdge>();
+  for (const e of remote.edges) edgeMap.set(e.id, e);
+  for (const e of local.edges) edgeMap.set(e.id, e);
+
+  return {
+    nodes: Array.from(nodeMap.values()),
+    edges: Array.from(edgeMap.values()),
+    viewport: local.viewport,
+  };
+}
+
 /**
  * Push current project to server immediately.
- * On 409 conflict: auto-pull server version (server wins).
+ * On 409 conflict: pull server version, merge with local pending edits,
+ * write merged state back to local store, and re-push.
  * On network error: show toast, keep local edit (retried on next change).
  */
 async function performPush(projectId: string) {
@@ -63,37 +96,54 @@ async function performPush(projectId: string) {
       const result = await pushProject(projectId);
 
       if (result.conflict) {
-        // Server is newer: pull and overwrite local
+        // Server is newer: merge instead of blindly overwriting local.
         const pullResult = await pullProject(projectId);
-        if (pullResult.success) {
-          setState({ state: 'synced', lastSyncAt: Date.now(), error: null });
-          // Toast: server version was applied
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('spellpaw:toast', {
-              detail: { message: '已同步至云端最新版本', type: 'info' },
-            }));
-          }
-        } else {
+        if (!pullResult.success || !pullResult.serverData) {
           setState({ state: 'error', error: pullResult.error ?? '拉取失败' });
+          return;
+        }
+
+        const localCanvas = useCanvasStore.getState().canvases[projectId] ?? {
+          nodes: [],
+          edges: [],
+          viewport: { x: 0, y: 0, zoom: 1 },
+        };
+        const merged = mergeCanvases(localCanvas, pullResult.serverData);
+
+        useCanvasStore.setState((s) => ({
+          canvases: {
+            ...s.canvases,
+            [projectId]: merged,
+          },
+        }));
+        // Bump updatedAt so the next push wins the timestamp check.
+        useProjectStore.getState().updateProject(projectId, { updatedAt: new Date().toISOString() });
+
+        toast('检测到云端有更新，已自动合并，请检查画布', 'info');
+
+        // Re-push the merged state. If this also conflicts (extremely rare
+        // concurrent edit), stop to avoid an infinite loop.
+        const retry = await pushProject(projectId);
+        if (retry.conflict) {
+          setState({ state: 'error', error: '合并后仍冲突，请手动刷新或重试' });
+          toast('合并后仍冲突，请手动刷新或重试', 'error');
+          return;
+        }
+        if (retry.success) {
+          setState({ state: 'synced', lastSyncAt: Date.now(), error: null });
+        } else if (retry.error) {
+          setState({ state: 'error', error: retry.error });
         }
       } else if (result.success) {
         setState({ state: 'synced', lastSyncAt: Date.now(), error: null });
       } else if (result.error) {
         setState({ state: 'error', error: result.error });
         // Toast non-critical errors
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('spellpaw:toast', {
-            detail: { message: `同步失败: ${result.error}`, type: 'error' },
-          }));
-        }
+        toast(`同步失败: ${result.error}`, 'error');
       }
     } catch (err) {
       setState({ state: 'error', error: (err as Error).message });
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('spellpaw:toast', {
-          detail: { message: '网络异常，修改将稍后同步', type: 'warning' },
-        }));
-      }
+      toast('网络异常，修改将稍后同步', 'warning');
     }
   })();
 
@@ -160,18 +210,6 @@ export function triggerPush(): void {
  * Force an immediate push, bypassing the 500ms debounce. Resolves ONLY
  * when the push (and any follow-up push needed to capture state changes
  * that happened during it) has actually completed on the server.
- *
- * Use after destructive operations (e.g. clear_canvas) where a refresh
- * during the debounce window would otherwise restore stale state from
- * the server.
- *
- * Without this contract, the previous behavior was:
- *   - debounced push A is in-flight
- *   - clear_canvas → triggerPushNow() → performPush() (early-returns
- *     because isRunning is true) → triggerPushNow resolves immediately
- *   - clear_canvas returns success
- *   - user refreshes, but server still has pre-clear state from push A
- *     that hasn't finished yet → pullAll restores the old state
  */
 export async function triggerPushNow(): Promise<void> {
   const id = useProjectStore.getState().currentProjectId;
@@ -183,16 +221,12 @@ export async function triggerPushNow(): Promise<void> {
   }
 
   // If a debounced push is already in-flight, wait for it to land before
-  // we do our own. Otherwise our performPush below would early-return
-  // (isRunning=true), set pendingPush, and resolve triggerPushNow before
-  // the server actually has any data from this call.
+  // we do our own.
   if (currentPushPromise) {
     await currentPushPromise;
   }
 
-  // Do a fresh push with the current local state. This captures any
-  // state changes that happened between when the in-flight push was
-  // scheduled and now (e.g. clear_canvas's store update).
+  // Do a fresh push with the current local state.
   await performPush(id);
 }
 
@@ -202,13 +236,48 @@ export function triggerPull(): void {
 }
 
 /**
+ * Flush pending edits before the tab closes. The debounce timer may still
+ * be running, so we cancel it and fire a keepalive PUT to give the browser
+ * a chance to deliver the latest state.
+ */
+function flushBeforeUnload() {
+  if (!pushTimer) return;
+  clearTimeout(pushTimer);
+  pushTimer = null;
+
+  const id = useProjectStore.getState().currentProjectId;
+  if (!id) return;
+  if (!useAuthStore.getState().isAuthenticated) return;
+
+  const project = useProjectStore.getState().projects.find((p) => p.id === id);
+  if (!project) return;
+
+  const body = JSON.stringify({
+    title: project.title,
+    description: project.description,
+    coverColor: project.coverColor,
+    data: buildProjectPayload(id),
+    version: project.version ?? 1,
+    updatedAt: project.updatedAt,
+  });
+
+  void fetch(`${config.serverBase}/api/projects/${id}`, {
+    method: 'PUT',
+    keepalive: true,
+    headers: getAuthHeaders(),
+    body,
+  });
+}
+
+/**
  * Initialise sync engine. Call once at app startup.
  *
  * Cloud-first model:
  * - Every project/canvas mutation triggers an immediate (500ms debounced) server push.
- * - On 409 conflict: server version overwrites local (server is always authoritative).
+ * - On 409 conflict: merge server version with local pending edits, then re-push.
  * - Network errors: keep local edit, retry on next change.
  * - On login: auto-pull all projects from server.
+ * - On beforeunload: flush any pending debounced push with keepalive.
  */
 export function initSyncEngine(): void {
   let prevProjectsJson = '';
@@ -238,6 +307,11 @@ export function initSyncEngine(): void {
       schedulePush(id);
     }
   });
+
+  // Flush pending edits before the tab closes.
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', flushBeforeUnload);
+  }
 
   // Auto-pull on startup if authenticated
   if (useAuthStore.getState().isAuthenticated) {

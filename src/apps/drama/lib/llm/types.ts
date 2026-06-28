@@ -36,7 +36,8 @@ export interface LLMProvider {
     title: string,
     systemPrompt: string,
     tools?: ToolConfig[],
-    toolChoice?: ToolChoice
+    toolChoice?: ToolChoice,
+    projectId?: string
   ): Promise<Session>;
 
   /** Send a user message to an existing session. */

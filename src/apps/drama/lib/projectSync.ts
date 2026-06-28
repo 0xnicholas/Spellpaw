@@ -1,13 +1,13 @@
 /**
  * Project sync service — push/pull projects between IndexedDB and server.
  *
- * The server acts as a cloud backup: the latest local state is always accepted.
+ * The server acts as the cloud backup: the latest local state is always accepted.
  */
 import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
 import { authApi, useAuthStore } from '@/shared/stores/authStore';
 import { config } from '@/shared/config';
-import type { Project } from '@drama/types';
+import type { Project, CanvasEntry } from '@drama/types';
 
 const API_BASE = config.serverBase;
 
@@ -16,7 +16,7 @@ interface ServerProject {
   title: string;
   description: string;
   coverColor: string;
-  data: string;   // JSON: { tree, canvas }
+  data: string;   // JSON: { canvases }
   version: number;
   updatedAt: string;
   isPublic: boolean;
@@ -46,15 +46,19 @@ function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
+/** Build the canonical project payload for a server push. */
+export function buildProjectPayload(projectId: string): string {
+  const canvases = useCanvasStore.getState().canvases[projectId];
+  return JSON.stringify({ canvases });
+}
+
 /** Push a single project to the server. */
 export async function pushProject(projectId: string): Promise<PushResult> {
   const store = useProjectStore.getState();
   const project = store.projects.find((p) => p.id === projectId);
   if (!project) return { success: false, error: 'Project not found' };
 
-  const tree = store.trees[projectId];
-  const canvases = useCanvasStore.getState().canvases[projectId];
-  const data = JSON.stringify({ tree, canvases });
+  const data = buildProjectPayload(projectId);
   const version = project.version ?? 1;
 
   const headers = getAuthHeaders();
@@ -77,7 +81,7 @@ export async function pushProject(projectId: string): Promise<PushResult> {
       });
 
       if (res.status === 409) {
-        // Server has a newer version — signal conflict so caller can pull
+        // Server has a newer version — signal conflict so caller can merge
         return { success: false, conflict: true, error: 'Server version is newer' };
       }
 
@@ -137,7 +141,7 @@ export async function pushAll(): Promise<PushAllResult> {
 }
 
 /** Pull a single project from server; only overwrite local if server is newer. */
-export async function pullProject(projectId: string): Promise<{ success: boolean; skipped?: boolean; error?: string }> {
+export async function pullProject(projectId: string): Promise<{ success: boolean; skipped?: boolean; serverData?: CanvasEntry; error?: string }> {
   try {
     const res = await authApi.apiCall(`/api/projects/${projectId}`);
     if (!res.ok) return { success: false, error: `HTTP ${res.status}` };
@@ -168,20 +172,19 @@ export async function pullProject(projectId: string): Promise<{ success: boolean
               : p
           )
         : [...s.projects, { id: sp.id, title: sp.title, description: sp.description, coverColor: sp.coverColor, version: sp.version, updatedAt: sp.updatedAt, sceneCount: 0, duration: 0 }];
-      return {
-        projects,
-        trees: { ...s.trees, [sp.id]: parsed.tree ?? s.trees[sp.id] },
-      };
+      return { projects };
     });
+
+    const serverCanvas: CanvasEntry = parsed.canvases ?? { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
 
     useCanvasStore.setState((s) => ({
       canvases: {
         ...s.canvases,
-        [sp.id]: parsed.canvases ?? { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
+        [sp.id]: serverCanvas,
       },
     }));
 
-    return { success: true };
+    return { success: true, serverData: serverCanvas };
   } catch (err) {
     return { success: false, error: (err as Error).message };
   }
@@ -222,10 +225,7 @@ export async function pullAll(): Promise<PullResult> {
           sceneCount: 0,
           duration: 0,
         };
-        return {
-          projects: [...s.projects, newProject],
-          trees: { ...s.trees, [detail.id]: parsed.tree ?? null },
-        };
+        return { projects: [...s.projects, newProject] };
       });
       useCanvasStore.setState((s) => ({
         canvases: {

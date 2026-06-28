@@ -62,6 +62,8 @@ export interface StreamChatContext {
   apiKey?: string;
   baseUrl?: string;
   model?: string;
+  authorization?: string;
+  projectId?: string;
 }
 
 export async function* streamChat(
@@ -215,7 +217,14 @@ export async function* streamChat(
       let isError = false;
       try {
         const toolEndpoint = resolveToolEndpoint(tc.function.name);
-        resultText = await callToolEndpoint(toolEndpoint, tc.function.name, tc.function.arguments, tc.id);
+        resultText = await callToolEndpoint(
+          toolEndpoint,
+          tc.function.name,
+          tc.function.arguments,
+          tc.id,
+          context.authorization,
+          context.projectId,
+        );
         logger.log(`[llmClient] tool ${tc.function.name} result:`, resultText.slice(0, 120));
         yield { type: 'text_delta', delta: `\n\n[Tool result: ${resultText}]\n\n` };
       } catch (err) {
@@ -270,7 +279,14 @@ function resolveToolEndpoint(toolName: string): string {
   return toolEndpointMap[toolName] || toolEndpoint;
 }
 
-async function callToolEndpoint(endpoint: string, toolName: string, argsJson: string, toolCallId: string): Promise<string> {
+async function callToolEndpoint(
+  endpoint: string,
+  toolName: string,
+  argsJson: string,
+  toolCallId: string,
+  authorization?: string,
+  projectId?: string,
+): Promise<string> {
   let params: Record<string, unknown>;
   try {
     params = argsJson ? JSON.parse(argsJson) : {};
@@ -278,12 +294,16 @@ async function callToolEndpoint(endpoint: string, toolName: string, argsJson: st
     params = {};
   }
 
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (authorization) headers['Authorization'] = authorization;
+
   const res = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
       type: 'tool_call',
       callId: toolCallId,
+      projectId,
       params: { action: toolName, ...params },
     }),
   });

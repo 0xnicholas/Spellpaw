@@ -32,7 +32,7 @@ export function spellpawToolServer(): Plugin {
 
       // --- WebSocket: browser connections ---
       server.httpServer?.on('upgrade', (req, socket, head) => {
-        if (req.url === '/tool-ws') {
+        if (req.url?.startsWith('/tool-ws')) {
           wss.handleUpgrade(req, socket, head, (ws) => {
             clients.add(ws);
             console.log(`[tool-server] browser connected (${clients.size} client${clients.size > 1 ? 's' : ''})`);

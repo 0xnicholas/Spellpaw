@@ -36,3 +36,10 @@ e2e/screenshots/
 
 # Local artifacts from e2e/character-card-e2e.spec.ts
 screenshots/
+
+# Environment / secrets
+.env
+server/.env
+
+# Generated review files
+.review-*.md

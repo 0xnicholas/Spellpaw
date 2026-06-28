@@ -5,17 +5,19 @@
  * Zero dependencies.
  */
 
-import { useProjectStore } from '@drama/stores/projectStore';
 import { useCanvasStore } from '@drama/stores/canvasStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import type { CanvasNode, CardChild } from '@drama/types';
 
 /* ------------------------------------------------------------------ */
 // Helpers
 
+function getProjectNodes(projectId: string): CanvasNode[] {
+  return useCanvasStore.getState().canvases[projectId]?.nodes ?? [];
+}
+
 function findThumbnail(nodeId: string, projectId: string): string | undefined {
-  const nodes = useCanvasStore.getState().canvases[projectId]?.nodes ?? [];
-  // Canvas era: art cards link to a scene/shot via linkedCardIds (a tree-node id
-  // passed through from a card's prior tree binding is still recognized here for
-  // backward compatibility, but the canonical field is now linkedCardIds).
+  const nodes = getProjectNodes(projectId);
   const card = nodes.find(
     (n) =>
       n.type === 'art' &&
@@ -31,18 +33,42 @@ function formatDuration(seconds: number): string {
   return m > 0 ? `${m}分${s}秒` : `${s}秒`;
 }
 
+function getActs(nodes: CanvasNode[]): CanvasNode[] {
+  return nodes
+    .filter((n) => n.type === 'storyline' && n.data.metadata?.type === 'act')
+    .sort((a, b) => a.position.x - b.position.x);
+}
+
+function getScenes(nodes: CanvasNode[]): CanvasNode[] {
+  return nodes
+    .filter((n) => n.type === 'sceneCard')
+    .sort((a, b) => a.position.y - b.position.y);
+}
+
+function getSceneAct(scene: CanvasNode, acts: CanvasNode[]): CanvasNode | undefined {
+  // Associate a scene with the nearest act to its left (by x position).
+  return acts
+    .filter((act) => act.position.x <= scene.position.x)
+    .sort((a, b) => b.position.x - a.position.x)[0];
+}
+
+function getShots(scene: CanvasNode): CardChild[] {
+  return (scene.data.children ?? []).filter((c) => c.type === 'shot');
+}
+
 /* ------------------------------------------------------------------ */
 // Task 2.1 — Storyboard PDF (iframe print)
 
 export function exportStoryboardPDF(projectId: string): void {
-  const state = useProjectStore.getState();
-  const project = state.projects.find((p) => p.id === projectId);
-  const tree = state.trees[projectId];
-  if (!project || !tree) return;
+  const project = useProjectStore.getState().projects.find((p) => p.id === projectId);
+  if (!project) return;
 
-  const acts = tree.children ?? [];
+  const nodes = getProjectNodes(projectId);
+  const acts = getActs(nodes);
+  const scenes = getScenes(nodes);
 
-  // Build print HTML
+  if (acts.length === 0 && scenes.length === 0) return;
+
   const pages: string[] = [];
 
   // Cover page
@@ -52,55 +78,54 @@ export function exportStoryboardPDF(projectId: string): void {
       <p class="subtitle">分镜表</p>
       <div class="meta">
         <p>${project.description || ''}</p>
-        <p>总幕数: ${acts.length} · 总场景数: ${acts.reduce((s, a) => s + (a.children?.length ?? 0), 0)}</p>
+        <p>总幕数: ${acts.length} · 总场景数: ${scenes.length}</p>
       </div>
     </div>
   `);
 
   // One page per scene
-  for (const act of acts) {
-    for (const scene of act.children ?? []) {
-      const shots = scene.children ?? [];
-      const thumb = findThumbnail(scene.id, projectId);
+  for (const scene of scenes) {
+    const act = getSceneAct(scene, acts);
+    const shots = getShots(scene);
+    const thumb = findThumbnail(scene.id, projectId);
 
-      const shotRows = shots
-        .map(
-          (shot) => `
+    const shotRows = shots
+      .map(
+        (shot) => `
         <tr>
           <td>${shot.title}</td>
-          <td>${shot.metadata?.shotType ?? '-'}</td>
-          <td>${shot.metadata?.cameraMovement ?? '-'}</td>
-          <td>${formatDuration(shot.metadata?.duration ?? 0)}</td>
-          <td class="dialogue">${shot.metadata?.dialogue ?? '-'}</td>
+          <td>${(shot.data?.shotType as string) ?? '-'}</td>
+          <td>${(shot.data?.cameraMovement as string) ?? '-'}</td>
+          <td>${formatDuration((shot.data?.duration as number) ?? 0)}</td>
+          <td class="dialogue">${(shot.data?.dialogue as string) ?? '-'}</td>
         </tr>
       `
-        )
-        .join('');
+      )
+      .join('');
 
-      pages.push(`
-        <div class="page scene-page">
-          <div class="scene-header">
-            <div class="breadcrumb">${act.title} · ${scene.title}</div>
-            <div class="scene-meta">
-              <span>时长: ${formatDuration(scene.metadata?.duration ?? 0)}</span>
-              <span>地点: ${scene.metadata?.location ?? '-'}</span>
-              <span>时间: ${scene.metadata?.timeOfDay ?? '-'}</span>
-              <span>镜头数: ${shots.length}</span>
-            </div>
+    pages.push(`
+      <div class="page scene-page">
+        <div class="scene-header">
+          <div class="breadcrumb">${act?.data.title ?? ''} · ${scene.data.title}</div>
+          <div class="scene-meta">
+            <span>时长: ${formatDuration(scene.data.duration ?? 0)}</span>
+            <span>地点: ${scene.data.location ?? '-'}</span>
+            <span>时间: ${scene.data.timeOfDay ?? '-'}</span>
+            <span>镜头数: ${shots.length}</span>
           </div>
-          ${thumb ? `<div class="thumb"><img src="${thumb}" alt="" /></div>` : ''}
-          <p class="description">${scene.metadata?.description ?? ''}</p>
-          <table>
-            <thead>
-              <tr>
-                <th>镜头</th><th>景别</th><th>运镜</th><th>时长</th><th>对白/动作</th>
-              </tr>
-            </thead>
-            <tbody>${shotRows || '<tr><td colspan="5" class="empty">暂无镜头</td></tr>'}</tbody>
-          </table>
         </div>
-      `);
-    }
+        ${thumb ? `<div class="thumb"><img src="${thumb}" alt="" /></div>` : ''}
+        <p class="description">${scene.data.description ?? ''}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>镜头</th><th>景别</th><th>运镜</th><th>时长</th><th>对白/动作</th>
+            </tr>
+          </thead>
+          <tbody>${shotRows || '<tr><td colspan="5" class="empty">暂无镜头</td></tr>'}</tbody>
+        </table>
+      </div>
+    `);
   }
 
   const html = `<!DOCTYPE html>
@@ -197,36 +222,37 @@ interface ScriptRow {
   description: string;
 }
 
-function buildScriptRows(_canvasNodes: CanvasNode[]): ScriptRow[] {
+function buildScriptRows(nodes: CanvasNode[]): ScriptRow[] {
+  const acts = getActs(nodes);
+  const scenes = getScenes(nodes);
   const rows: ScriptRow[] = [];
-  for (const act of tree.children ?? []) {
-    for (const scene of act.children ?? []) {
-      const shots = scene.children ?? [];
-      if (shots.length === 0) {
-        // Scene without shots — still emit a row
+
+  for (const scene of scenes) {
+    const act = getSceneAct(scene, acts);
+    const shots = getShots(scene);
+    if (shots.length === 0) {
+      rows.push({
+        act: act?.data.title ?? '',
+        scene: scene.data.title,
+        shot: '-',
+        shotType: '-',
+        cameraMovement: '-',
+        duration: scene.data.duration ?? 0,
+        dialogue: scene.data.description ?? '',
+        description: '',
+      });
+    } else {
+      for (const shot of shots) {
         rows.push({
-          act: act.title,
-          scene: scene.title,
-          shot: '-',
-          shotType: '-',
-          cameraMovement: '-',
-          duration: scene.metadata?.duration ?? 0,
-          dialogue: scene.metadata?.description ?? '',
-          description: '',
+          act: act?.data.title ?? '',
+          scene: scene.data.title,
+          shot: shot.title,
+          shotType: (shot.data?.shotType as string) ?? '-',
+          cameraMovement: (shot.data?.cameraMovement as string) ?? '-',
+          duration: (shot.data?.duration as number) ?? 0,
+          dialogue: (shot.data?.dialogue as string) ?? '',
+          description: (shot.data?.description as string) ?? '',
         });
-      } else {
-        for (const shot of shots) {
-          rows.push({
-            act: act.title,
-            scene: scene.title,
-            shot: shot.title,
-            shotType: shot.metadata?.shotType ?? '-',
-            cameraMovement: shot.metadata?.cameraMovement ?? '-',
-            duration: shot.metadata?.duration ?? 0,
-            dialogue: shot.metadata?.dialogue ?? '',
-            description: shot.metadata?.description ?? '',
-          });
-        }
       }
     }
   }
@@ -239,12 +265,11 @@ function escapeCSV(value: string): string {
 }
 
 export function exportDialogueScript(projectId: string, format: 'txt' | 'csv' = 'txt'): void {
-  const state = useProjectStore.getState();
-  const project = state.projects.find((p) => p.id === projectId);
-  const tree = state.trees[projectId];
-  if (!project || !tree) return;
+  const project = useProjectStore.getState().projects.find((p) => p.id === projectId);
+  if (!project) return;
 
-  const rows = buildScriptRows(tree);
+  const nodes = getProjectNodes(projectId);
+  const rows = buildScriptRows(nodes);
   const safeTitle = project.title.replace(/\s+/g, '_').toLowerCase();
 
   let content: string;

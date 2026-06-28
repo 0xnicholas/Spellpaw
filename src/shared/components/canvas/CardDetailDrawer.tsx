@@ -107,9 +107,10 @@ export function CardDetailDrawer() {
     }
   }, [card?.id]);
 
-  useHotkeys("escape", () => {
-    if (selectedCardId) setSelectedCardId(null);
-  });
+  useHotkeys(
+    { Escape: () => { if (selectedCardId) setSelectedCardId(null); } },
+    [selectedCardId, setSelectedCardId]
+  );
 
   if (!visible || !card) return null;
 
@@ -123,7 +124,7 @@ export function CardDetailDrawer() {
 
   // Compute display numbers (used for legacy types)
   const allNodes = useCanvasStore((s) => s.getCurrentNodes());
-  const numberMap = computeDisplayNumbers(tree, allNodes);
+  const numberMap = computeDisplayNumbers(allNodes);
   const displayNumber = numberMap.get(card.id) ?? '';
 
   return (

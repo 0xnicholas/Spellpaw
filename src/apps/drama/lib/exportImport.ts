@@ -6,8 +6,7 @@ export interface ExportData {
   _schemaVersion: number;
   title: string;
   description: string;
-  canvasNodes: CanvasNode[];
-  canvas?: {
+  canvas: {
     nodes: CanvasNode[];
     edges: CanvasEdge[];
   };
@@ -22,14 +21,11 @@ export function exportProjectToJSON(
     _schemaVersion: SCHEMA_VERSION,
     title: project.title,
     description: project.description,
-  };
-
-  if (canvasNodes || canvasEdges) {
-    data.canvas = {
+    canvas: {
       nodes: canvasNodes ?? [],
       edges: canvasEdges ?? [],
-    };
-  }
+    },
+  };
 
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -45,8 +41,21 @@ export function importProjectFromJSON(json: string): ExportData {
   if (!data._schemaVersion || data._schemaVersion !== SCHEMA_VERSION) {
     throw new Error(`Unsupported schema version: ${data._schemaVersion}`);
   }
-  if (!data.title || !data.tree) {
-    throw new Error('Missing required fields: title or tree');
+  if (!data.title) {
+    throw new Error('Missing required field: title');
   }
-  return data as ExportData;
+  // Support current `canvas` field or legacy `canvasNodes` fallback.
+  const nodes = data.canvas?.nodes ?? data.canvasNodes ?? [];
+  if (!Array.isArray(nodes)) {
+    throw new Error('Missing required field: canvas.nodes');
+  }
+  return {
+    _schemaVersion: data._schemaVersion,
+    title: data.title,
+    description: data.description ?? '',
+    canvas: {
+      nodes,
+      edges: data.canvas?.edges ?? data.canvasEdges ?? [],
+    },
+  };
 }

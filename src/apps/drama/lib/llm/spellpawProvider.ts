@@ -48,13 +48,14 @@ export const spellpawProvider: LLMProvider = {
     title: string,
     systemPrompt: string,
     tools: ToolConfig[] = [],
-    toolChoice?: ToolChoice
+    toolChoice?: ToolChoice,
+    projectId?: string
   ): Promise<Session> {
     try {
       const res = await fetch(`${BASE_URL}/sessions`, {
         method: 'POST',
         headers: authHeaders(toolChoice),
-        body: JSON.stringify({ title, system_prompt: systemPrompt, tools }),
+        body: JSON.stringify({ title, system_prompt: systemPrompt, tools, projectId }),
       });
       if (!res.ok) throw new Error(`Create session failed: ${res.status}`);
       return res.json();

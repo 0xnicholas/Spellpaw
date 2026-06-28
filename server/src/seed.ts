@@ -74,7 +74,13 @@ export async function seedUser(prisma: PrismaClient, userId: string): Promise<vo
         description: project.description,
         coverColor: project.coverColor,
         version: project.version,
-        data: JSON.stringify({ cards, edges }),
+        data: JSON.stringify({
+          canvases: {
+            nodes: cards,
+            edges,
+            viewport: { x: 0, y: 0, zoom: 1 },
+          },
+        }),
       },
     });
   }

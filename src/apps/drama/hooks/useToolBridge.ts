@@ -7,6 +7,8 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { toolRouter } from '@drama/stores/toolRouter';
 import { useBuilderStore } from '@drama/stores/builderStore';
+import { useProjectStore } from '@drama/stores/projectStore';
+import { useAuthStore } from '@/shared/stores/authStore';
 import { parseAndValidate } from '@shared/lib/builderSchema';
 import { getTotalSteps } from '@shared/components/builder/registry';
 import { logger } from '@shared/lib/logger';
@@ -17,13 +19,14 @@ interface ToolCallMessage {
   params: Record<string, unknown>;
 }
 
-function getCandidateUrls(): string[] {
+function getCandidateUrls(token: string, projectId: string): string[] {
   const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
   const host = window.location.host; // e.g. localhost:5173
   const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
   // Try 127.0.0.1 first — localhost can fail in headless Chrome / Playwright
   const hostnames = [`127.0.0.1:${port}`, host, `127.0.0.1.nip.io:${port}`];
-  return hostnames.map((h) => `${protocol}://${h}/tool-ws`);
+  const query = `token=${encodeURIComponent(token)}&projectId=${encodeURIComponent(projectId)}`;
+  return hostnames.map((h) => `${protocol}://${h}/tool-ws?${query}`);
 }
 
 function connect(
@@ -145,11 +148,19 @@ function connect(
   wsRef.current = ws;
 }
 
-export function useToolBridge() {
+export function useToolBridge(projectId?: string) {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    connect(wsRef);
+    const token = useAuthStore.getState().token;
+    const resolvedProjectId = projectId ?? useProjectStore.getState().currentProjectId;
+    if (!token || !resolvedProjectId) {
+      logger.warn('[useToolBridge] missing token or projectId, skipping connection');
+      return;
+    }
+
+    const urls = getCandidateUrls(token, resolvedProjectId);
+    connect(wsRef, urls);
 
     return () => {
       // Close and clear the ref so onclose/onerror of this socket ignore retries.
@@ -157,7 +168,7 @@ export function useToolBridge() {
       wsRef.current = null;
       ws?.close();
     };
-  }, []);
+  }, [projectId]);
 
   const isConnected = useCallback(() => {
     return wsRef.current?.readyState === WebSocket.OPEN;

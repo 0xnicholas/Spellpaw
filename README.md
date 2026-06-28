@@ -14,8 +14,9 @@
 |------|------|
 | **Phase 1** | ✅ 完成 — 本地内容编辑工具 |
 | **Phase 2** | ✅ 完成 — AI 创作助手（Spellpaw Copilot · Tool Server · 模板系统 · Chat SSE · 节奏分析） |
-| **Phase 3** | 🔄 进行中 — 云端基础设施（IndexedDB 缓存 · 自动同步引擎 · 冲突检测 UI · 模板市场） |
-| **测试** | 104 tests passing / 10 files / 0 failures |
+| **Phase 3** | ✅ 完成 — 云端基础设施（IndexedDB 缓存 · 自动同步引擎 · 冲突检测 UI · 模板市场） |
+| **Phase 4** | ✅ 完成 — per-Capability LLM routing（[v0.4.0](CHANGELOG.md)） |
+| **测试** | 457 tests passing / 54 files / 0 failures |
 | **部署** | 本地 SPA（Vite dev server），暂无 Electron |
 
 ---

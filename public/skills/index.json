@@ -1,10 +1,29 @@
 {
   "skills": [
     "analyze-pacing",
+    "art-direction",
     "batch-storyboard",
     "brainstorm-variants",
+    "character-asset-extraction",
+    "character-costume-designer",
     "character-profile",
+    "cinematography-strategy-designer",
+    "director-briefing",
     "duplicate-project",
-    "export-storyboard-pdf"
+    "export-storyboard-pdf",
+    "music-asset-extraction",
+    "music-direction",
+    "music-prompt-generator",
+    "performance-strategy-designer",
+    "production-coordinator",
+    "prop-asset-extraction",
+    "prop-generator",
+    "scene-asset-extraction",
+    "scene-generator",
+    "scene-strategy-designer",
+    "script-deconstruct",
+    "script-ingestion",
+    "storyboard-creator",
+    "video-creator"
   ]
 }

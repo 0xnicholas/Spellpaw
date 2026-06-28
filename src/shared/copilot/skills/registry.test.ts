@@ -14,7 +14,7 @@ import {
   skillToToolConfig,
   getAllSkillToolConfigs,
 } from './registry';
-import { installFetchStub } from './_testHelpers';
+import { installFetchStub, listFixtureIds } from './_testHelpers';
 
 describe('skill registry', () => {
   beforeAll(() => {
@@ -26,17 +26,22 @@ describe('skill registry', () => {
     await ensureSkillsLoaded();
   });
 
-  it('ships 6 skills loaded from public/skills/', () => {
+  it('ships all skills loaded from public/skills/', () => {
     const skills = getSkills();
-    expect(skills).toHaveLength(6);
-    expect(skills.map((s) => s.id).sort()).toEqual([
-      'analyze-pacing',
-      'batch-storyboard',
-      'brainstorm-variants',
-      'character-profile',
-      'duplicate-project',
-      'export-storyboard-pdf',
-    ]);
+    const expected = listFixtureIds();
+    expect(skills).toHaveLength(expected.length);
+    expect(skills.map((s) => s.id).sort()).toEqual(expected);
+  });
+
+  it('includes both the original 6 hand-written skills and migrated research skills', () => {
+    const ids = getSkills().map((s) => s.id).sort();
+    expect(ids).toContain('analyze-pacing');
+    expect(ids).toContain('batch-storyboard');
+    expect(ids).toContain('character-profile');
+    // A sample of the migrated research skills:
+    expect(ids).toContain('director-briefing');
+    expect(ids).toContain('video-creator');
+    expect(ids).toContain('storyboard-creator');
   });
 
   it('looks up by id', () => {
@@ -120,7 +125,7 @@ describe('skill registry', () => {
 
   it('getAllSkillToolConfigs returns one config per skill', () => {
     const cfgs = getAllSkillToolConfigs(getSkills());
-    expect(cfgs).toHaveLength(6);
+    expect(cfgs).toHaveLength(getSkills().length);
     expect(cfgs.every((c) => c.name.startsWith('spellpaw_skill_'))).toBe(true);
   });
 });

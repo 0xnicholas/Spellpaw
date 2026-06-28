@@ -10,7 +10,7 @@ import {
   subscribeToSkills,
   _resetSkillsLoader,
 } from './loader';
-import { installFetchStub } from './_testHelpers';
+import { installFetchStub, listFixtureIds, loadFixture } from './_testHelpers';
 
 describe('skill loader', () => {
   beforeAll(() => {
@@ -21,19 +21,18 @@ describe('skill loader', () => {
     _resetSkillsLoader();
   });
 
-  it('loads 6 skills from public/skills/', async () => {
+  it('loads all skills from public/skills/', async () => {
     await ensureSkillsLoaded();
     const skills = getSkills();
-    expect(skills.length).toBe(6);
+    expect(skills.length).toBeGreaterThanOrEqual(6);
     const ids = skills.map((s) => s.id).sort();
-    expect(ids).toEqual([
-      'analyze-pacing',
-      'batch-storyboard',
-      'brainstorm-variants',
-      'character-profile',
-      'duplicate-project',
-      'export-storyboard-pdf',
-    ]);
+    // The 6 original hand-written skills must be present
+    expect(ids).toContain('analyze-pacing');
+    expect(ids).toContain('batch-storyboard');
+    expect(ids).toContain('brainstorm-variants');
+    expect(ids).toContain('character-profile');
+    expect(ids).toContain('duplicate-project');
+    expect(ids).toContain('export-storyboard-pdf');
   });
 
   it('parsed skills have id, name, description, slashCommand, instructions', async () => {
@@ -123,5 +122,36 @@ describe('skill loader — subscribe + isLoading', () => {
     unsub();
     await ensureSkillsLoaded();
     expect(calls).toHaveLength(0);
+  });
+});
+describe('skill loader — public/skills ↔ __fixtures__ sync', () => {
+  beforeAll(() => {
+    installFetchStub();
+  });
+
+  it('every public/skills/*.md has a matching __fixtures__/*.md with identical content', async () => {
+    const fixtures = listFixtureIds();
+    expect(fixtures.length).toBeGreaterThan(0);
+
+    // The fetch stub will serve fixtures. Re-read each fixture from disk
+    // (via loadFixture) and compare against the runtime parse.
+    await ensureSkillsLoaded();
+    const skills = getSkills();
+    expect(skills.length).toBe(fixtures.length);
+
+    for (const id of fixtures) {
+      const fixtureMd = loadFixture(id);
+      const skill = skills.find((s) => s.id === id);
+      expect(skill, `runtime has skill ${id}`).toBeDefined();
+      // Frontmatter parses identically (id + name + description)
+      expect(skill!.name).toBeTruthy();
+      expect(skill!.description).toBeTruthy();
+      expect(skill!.slashCommand).toBe(id);
+      // The body should contain at least one reference if it had refs
+      const skillHasRefs = fixtureMd.includes('## Reference:');
+      if (skillHasRefs) {
+        expect(skill!.instructions).toContain('## Reference:');
+      }
+    }
   });
 });

@@ -7,10 +7,8 @@ import {
 	formatInsightsAsMessage,
 	type ProactiveInsight,
 } from "@drama/lib/proactiveInsights";
-import {
-  augmentUserMessage,
-  isSlashCommand,
-} from "@drama/skills/chat";
+import { isSlashCommand } from "@shared/copilot/skills/chat";
+import { augmentUserMessage } from "@drama/lib/skillAugment";
 import { useProjectStore } from "./projectStore";
 import { useCanvasStore } from "./canvasStore";
 

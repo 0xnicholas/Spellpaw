@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import '@/shared/i18n'
 import { initTheme } from '@/shared/stores/themeStore'
-import { initSkills } from '@/apps/drama/skills/registry'
+import { ensureSkillsLoaded } from '@/shared/copilot/skills/loader'
 import App from './App.tsx'
 
 /**
@@ -18,7 +18,7 @@ function bootstrap() {
   initTheme()
   // Phase 3: skills are loaded from public/skills/ at runtime.
   // Fire-and-forget — the UI will populate once loading completes.
-  initSkills()
+  void ensureSkillsLoaded()
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

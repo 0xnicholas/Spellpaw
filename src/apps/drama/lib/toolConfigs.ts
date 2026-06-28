@@ -4,7 +4,6 @@
  */
 import { config } from "@/shared/config";
 import { listProviderIds } from "@drama/lib/canvasToolkit";
-// import { getAllSkillToolConfigs } from "@drama/skills/registry"; // Phase 1: skills removed
 
 const TOOL_ENDPOINT = config.toolServerEndpoint;
 

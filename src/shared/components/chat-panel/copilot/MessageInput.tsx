@@ -27,8 +27,9 @@ export function MessageInput({
 }: MessageInputProps) {
   const [value, setValue] = useState('');
 
-  // Listen for `spellpaw:insert-text` events (e.g. from SkillChips) and
-  // append the payload to the current value, then focus the textarea.
+  // Listen for `spellpaw:insert-text` events (dispatched by other UI
+  // surfaces that want to inject text into the chat input) and append
+  // the payload to the current value, then focus the textarea.
   useEffect(() => {
     const handler = (e: Event) => {
       const ce = e as CustomEvent<string>;

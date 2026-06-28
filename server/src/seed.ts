@@ -10,6 +10,7 @@ import {
   isSupportedLLMProvider,
   type SupportedLLMProvider,
 } from './lib/providers.js';
+import { logger } from './lib/logger.js';
 import { seedProjects, seedProjectCards, seedProjectEdges, seedChatMessages } from './seed-data.js';
 
 /**
@@ -63,6 +64,70 @@ export function buildDemoLlmConfigsJson(): string {
   return JSON.stringify({ chat });
 }
 
+/**
+ * Decide whether `ensureDemoLlmConfig` should overwrite the demo user's
+ * stored `llmConfigs` with the env-derived one.
+ *
+ * Returns true only when:
+ *  - `envApiKey` is set (operator wants to seed a key), AND
+ *  - the stored `llmConfigs` is missing or has an empty `chat.apiKey`.
+ *
+ * The second clause is critical: we never overwrite a user-edited config.
+ * If the demo user logged into Console > Integrations and entered a key
+ * themselves, the env migration must not clobber that on the next restart.
+ */
+export function shouldPatchDemoLlmConfig(
+  envApiKey: string | undefined,
+  storedLlmConfigs: string | null | undefined,
+): boolean {
+  if (!envApiKey) return false;
+  if (!storedLlmConfigs) return true;
+  try {
+    const parsed = JSON.parse(storedLlmConfigs) as { chat?: { apiKey?: string } } | null;
+    if (parsed && typeof parsed === 'object' && parsed.chat && parsed.chat.apiKey) {
+      return false;
+    }
+  } catch {
+    // Malformed stored JSON — treat as empty and patch.
+    return true;
+  }
+  return true;
+}
+
+/**
+ * Patch the demo user's `llmConfigs` JSON with the env-derived config
+ * when the stored `chat.apiKey` is empty. No-op when:
+ *  - `DEMO_LLM_API_KEY` env is unset, or
+ *  - the demo user does not exist yet (regular seed creates them
+ *    with the right config), or
+ *  - the stored `chat.apiKey` is non-empty (user-edited; preserve).
+ *
+ * Returns one of: 'patched' | 'skipped-empty-env' | 'skipped-user-not-found'
+ * | 'skipped-already-set' — for the caller to log.
+ */
+export async function ensureDemoLlmConfig(
+  prisma: PrismaClient,
+): Promise<'patched' | 'skipped-empty-env' | 'skipped-user-not-found' | 'skipped-already-set'> {
+  const envApiKey = process.env.DEMO_LLM_API_KEY;
+  if (!envApiKey) return 'skipped-empty-env';
+
+  const existing = await prisma.user.findUnique({
+    where: { id: DEMO_USER.id },
+    select: { llmConfigs: true },
+  });
+  if (!existing) return 'skipped-user-not-found';
+
+  if (!shouldPatchDemoLlmConfig(envApiKey, existing.llmConfigs)) {
+    return 'skipped-already-set';
+  }
+
+  await prisma.user.update({
+    where: { id: DEMO_USER.id },
+    data: { llmConfigs: buildDemoLlmConfigsJson() },
+  });
+  return 'patched';
+}
+
 export async function seedDemoUser(prisma: PrismaClient): Promise<void> {
   const existing = await prisma.user.findUnique({ where: { id: DEMO_USER.id } });
 
@@ -84,6 +149,13 @@ export async function seedDemoUser(prisma: PrismaClient): Promise<void> {
       data: { passwordHash },
     });
   }
+
+  // Migration: if the operator added DEMO_LLM_API_KEY to server/.env
+  // *after* the demo user was first seeded, the existing row would
+  // have an empty chat.apiKey and chat would 400. Backfill it from
+  // the env (preserves any user-edited config).
+  const patchResult = await ensureDemoLlmConfig(prisma);
+  logger.log(`[seed] demo user llmConfig backfill: ${patchResult}`);
 
   await seedUser(prisma, DEMO_USER.id);
 }

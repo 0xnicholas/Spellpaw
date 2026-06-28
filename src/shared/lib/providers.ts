@@ -136,13 +136,19 @@ export const LLM_PROVIDER_REGISTRY: Record<LLMProviderType, LLMProviderConfig> =
     },
   },
   'xiaomi-mimo': {
-    baseUrl: 'https://api.mimo.xiaomi.com/v1',
-    model: 'MiMo-V2.5-Pro',
-    apiKeyPlaceholder: 'mimo-...',
-    models: ['MiMo-V2.5-Pro', 'mimo-7b', 'mimo-7b-instruct', 'mimo-7b-chat'],
+    baseUrl: 'https://api.xiaomimimo.com/v1',
+    model: 'mimo-v2.5-pro',
+    apiKeyPlaceholder: 'sk-...',
+    models: [
+      'mimo-v2.5-pro',
+      'mimo-v2.5',
+      'mimo-v2.5-flash',
+      'mimo-v2-pro',
+      'mimo-v2-omni',
+    ],
     capabilities: ['text'],
     recommended: {
-      text: 'MiMo-V2.5-Pro',
+      text: 'mimo-v2.5-pro',
     },
   },
 };

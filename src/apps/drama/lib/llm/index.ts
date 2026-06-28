@@ -15,6 +15,7 @@ const providers: Record<LLMProviderName, LLMProvider> = {
   deepseek: spellpawProvider,
   openai: spellpawProvider,
   siliconflow: spellpawProvider,
+  'xiaomi-mimo': spellpawProvider,
 };
 
 export function getLLMProvider(name?: LLMProviderName): LLMProvider {

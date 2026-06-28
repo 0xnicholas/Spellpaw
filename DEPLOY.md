@@ -149,7 +149,7 @@ export PUBLIC_HOST LLM_API_KEY LLM_BASE_URL LLM_MODEL \
 echo "PUBLIC_HOST        = $PUBLIC_HOST"
 echo "DEMO_LLM_PROVIDER  = $DEMO_LLM_PROVIDER"
 [ "$DEMO_LLM_PROVIDER" = "xiaomi-mimo" ] && \
-  echo "  ⚠️  default baseUrl (https://api.mimo.xiaomi.com/v1) and model (MiMo-V2.5-Pro) are placeholders — set DEMO_LLM_BASE_URL / DEMO_LLM_MODEL to match the real Xiaomi Mimo endpoint"
+  echo "  ⚠️  default baseUrl (https://api.xiaomimimo.com/v1) and model (mimo-v2.5-pro) are placeholders — set DEMO_LLM_BASE_URL / DEMO_LLM_MODEL to match the real Xiaomi Mimo endpoint"
 [ -n "$DEMO_LLM_API_KEY" ] && echo "DEMO_LLM_API_KEY  = ***set***" || echo "DEMO_LLM_API_KEY  = (empty — demo user must configure chat in Console)"
 # Real LLM_API_KEY intentionally not echoed.
 ```

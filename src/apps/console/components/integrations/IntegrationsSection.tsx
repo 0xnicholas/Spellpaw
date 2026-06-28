@@ -81,6 +81,7 @@ const PROVIDER_LABELS: Record<LLMProviderType, string> = {
   deepseek: 'DeepSeek',
   minimax: 'Minimax',
   siliconflow: '硅基流动',
+  'xiaomi-mimo': '小米 Mimo',
 };
 
 function emptyConfig(capability: ConfigCapability, provider: LLMProviderType): ModelConfig {

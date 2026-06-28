@@ -74,11 +74,11 @@ export const LLM_PROVIDER_DEFAULTS: Record<SupportedLLMProvider, LLMProviderDefa
     },
   },
   'xiaomi-mimo': {
-    baseUrl: 'https://api.mimo.xiaomi.com/v1',
-    model: 'MiMo-V2.5-Pro',
+    baseUrl: 'https://api.xiaomimimo.com/v1',
+    model: 'mimo-v2.5-pro',
     capabilities: ['text'],
     recommended: {
-      text: 'MiMo-V2.5-Pro',
+      text: 'mimo-v2.5-pro',
     },
   },
 };

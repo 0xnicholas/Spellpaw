@@ -2,6 +2,7 @@
  * Build the system prompt for the Copilot from the current project tree.
  */
 import { listProviders, providerRegistry } from "@drama/lib/canvasToolkit";
+import { getSkills } from "@shared/copilot/skills/loader";
 import type { CanvasNode } from "@drama/types";
 
 /** Genre keys — kept stable (English) so internal maps + tests can rely on them.
@@ -99,6 +100,17 @@ function buildCanvasToolkitSection(): string {
 	].join("\n");
 }
 
+/** Format the currently-loaded skill list as a single prompt line.
+ *  Falls back to a guidance line if the loader hasn't finished yet. */
+function formatSkillsList(): string {
+	const skills = getSkills();
+	if (skills.length === 0) {
+		return "Available skills: (still loading — skills will be listed once manifest arrives)";
+	}
+	const names = skills.map((s) => `/${s.slashCommand} (${s.name})`).join(", ");
+	return `Available skills: ${names}`;
+}
+
 /** Build system_prompt from canvas cards */
 export function buildSystemPrompt(
 	projectTitle: string,
@@ -132,8 +144,14 @@ export function buildSystemPrompt(
 		`analyze_structure / get_pacing_report / optimize_pacing.`,
 		`Analyze canvas card structure. Use when user asks about structure or pacing.`,
 		``,
-		`### 5. Skills (composite workflows)`,
-		`spellpaw_skill_* — multi-step workflows. Prefer when user names a skill.`,
+		`### 5. Skills (user-invoked composite workflows)`,
+		`Skills are NOT registered as tools — you cannot call spellpaw_skill_*.`,
+		`They are guides invoked by the user via slash command (e.g. /analyze-pacing).`,
+		`When triggered, the chat auto-prepends the skill's instructions to the`,
+		`user message; you should follow those instructions and execute using`,
+		`the atomic tools listed above.`,
+		``,
+		formatSkillsList(),
 		``,
 		`## 三层工作流`,
 		`🚀 Kickstart — 从一句话梗概快速生成画布初稿`,

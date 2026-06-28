@@ -159,3 +159,45 @@ describe("GenreKey type exhaustiveness", () => {
     }
   });
 });
+
+describe("buildSystemPrompt — Phase 3 skills section", () => {
+  beforeAll(async () => {
+    const { installFetchStub } = await import("@shared/copilot/skills/_testHelpers");
+    installFetchStub();
+    const { _resetSkillsLoader, ensureSkillsLoaded } = await import(
+      "@shared/copilot/skills/loader"
+    );
+    _resetSkillsLoader();
+    await ensureSkillsLoaded();
+  });
+
+  it("does NOT reference the obsolete spellpaw_skill_* tool prefix as a callable tool", () => {
+    const prompt = buildSystemPrompt("测试项目", "");
+    // Old (Phase 2) wording was: "spellpaw_skill_* — multi-step workflows. Prefer when user names a skill."
+    // Phase 3 must explicitly say skills are NOT registered tools.
+    expect(prompt).not.toMatch(/spellpaw_skill_\* \u2014 multi-step workflows/);
+    expect(prompt).toContain("Skills are NOT registered as tools");
+  });
+
+  it("lists the loaded skills with slash command + name", () => {
+    const prompt = buildSystemPrompt("测试项目", "");
+    expect(prompt).toContain("Available skills:");
+    expect(prompt).toContain("/analyze-pacing");
+    expect(prompt).toContain("节奏分析");
+    expect(prompt).toContain("/character-profile");
+  });
+
+  it("shows loading placeholder when skills haven't loaded yet", async () => {
+    const { _resetSkillsLoader } = await import("@shared/copilot/skills/loader");
+    _resetSkillsLoader();
+    // Replace fetch so ensureSkillsLoaded won't resolve before we read the prompt
+    const realFetch = global.fetch;
+    global.fetch = (() => new Promise<Response>(() => {})) as typeof fetch;
+    const prompt = buildSystemPrompt("测试项目", "");
+    expect(prompt).toContain("(still loading");
+    global.fetch = realFetch;
+    // Restore for other tests
+    const { ensureSkillsLoaded } = await import("@shared/copilot/skills/loader");
+    await ensureSkillsLoaded();
+  });
+});

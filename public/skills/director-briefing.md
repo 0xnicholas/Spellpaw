@@ -1,7 +1,7 @@
 ---
 id: director-briefing
 name: director-briefing
-description: Use as the top-level orchestrator that dispatches to scene / performance / cinematography strategy skills and aggregates their outputs into storyboard cards. Reads tree via get_tree + get_canvas, calls sub-skills (e.g. /scene-strategy-designer) by augmenting the user message with their instructions, then writes results back via update_card and batch_add_cards.
+description: Use as the top-level orchestrator that dispatches to scene / performance / cinematography strategy skills and aggregates their outputs into storyboard cards. Reads canvas via get_canvas, calls sub-skills (e.g. /scene-strategy-designer) by augmenting the user message with their instructions, then writes results back via update_card and batch_add_cards.
 slashCommand: director-briefing
 examples: []
 parameters: {}

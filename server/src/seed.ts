@@ -4,7 +4,7 @@
  */
 import bcrypt from 'bcryptjs';
 import type { PrismaClient } from '@prisma/client';
-import { seedProjects, seedProjectCards, seedProjectEdges, seedChatMessages } from './seed-data';
+import { seedProjects, seedProjectCards, seedProjectEdges, seedChatMessages } from './seed-data.js';
 
 /**
  * Canonical demo account credentials. The demo user lives in the DB so the

@@ -10,8 +10,8 @@
  * The caller must provide the provider API key in the X-Provider-API-Key header.
  */
 import { Router, type Request, type Response } from 'express';
-import { auth, getUserId } from '../middleware';
-import { logger } from '../lib/logger';
+import { auth, getUserId } from '../middleware.js';
+import { logger } from '../lib/logger.js';
 
 const PROVIDER_BASE_URLS: Record<string, string> = {
   openai: 'https://api.openai.com/v1',

@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import type { PrismaClient } from '@prisma/client';
-import { auth, getUserId } from '../middleware';
+import { auth, getUserId } from '../middleware.js';
 
 export function chatRoutes(prisma: PrismaClient): Router {
   const router = Router();

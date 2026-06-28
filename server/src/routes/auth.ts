@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
-import { auth, getUserId } from '../middleware';
+import { auth, getUserId } from '../middleware.js';
 
 /**
  * Fallback display name when a registration request omits the `name` field.

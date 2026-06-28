@@ -9,9 +9,9 @@
  */
 import { Router, type Request, type Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { auth, getUserId } from '../middleware';
-import { streamChat, type ToolConfig, type LLMMessage } from '../lib/llmClient';
-import { logger } from '../lib/logger';
+import { auth, getUserId } from '../middleware.js';
+import { streamChat, type ToolConfig, type LLMMessage } from '../lib/llmClient.js';
+import { logger } from '../lib/logger.js';
 
 interface SessionState {
   id: string;

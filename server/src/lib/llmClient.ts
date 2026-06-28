@@ -1,5 +1,5 @@
-import { DEFAULT_LLM_PROVIDER, isSupportedLLMProvider, LLM_PROVIDER_DEFAULTS } from './providers';
-import { logger } from './logger';
+import { DEFAULT_LLM_PROVIDER, isSupportedLLMProvider, LLM_PROVIDER_DEFAULTS } from './providers.js';
+import { logger } from './logger.js';
 
 /**
  * LLM Client — OpenAI-compatible chat completions with streaming.

@@ -7,7 +7,7 @@ import {
   defaultProviderFor,
   DEFAULT_PROVIDER_BY_CAPABILITY,
   type Capability,
-} from './providers';
+} from './providers.js';
 
 describe('server providers (Phase 4 capability-grouped)', () => {
   it('lists expected providers including siliconflow', () => {

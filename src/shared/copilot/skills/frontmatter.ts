@@ -99,6 +99,11 @@ function parseBlock(lines: string[], start: number, indent: number): BlockResult
       const inner = rawValue.trim().slice(1, -1).trim();
       result[key] = inner === '' ? [] : splitTopLevelCommas(inner).map(stripQuotes);
       i++;
+    } else if (rawValue.trim().startsWith('{') && rawValue.trim().endsWith('}')) {
+      // Inline object: {} or { k: v, ... }
+      const inner = rawValue.trim().slice(1, -1).trim();
+      result[key] = inner === '' ? {} : parseInlineObject(inner);
+      i++;
     } else {
       result[key] = stripQuotes(rawValue.trim());
       i++;
@@ -146,6 +151,19 @@ function parseList(lines: string[], start: number, indent: number): BlockResult 
   }
 
   return { value: result, next: i };
+}
+
+function parseInlineObject(text: string): Record<string, string> {
+  const obj: Record<string, string> = {};
+  const pairs = splitTopLevelCommas(text);
+  for (const pair of pairs) {
+    const colonIdx = pair.indexOf(':');
+    if (colonIdx === -1) continue;
+    const k = stripQuotes(pair.slice(0, colonIdx).trim());
+    const v = stripQuotes(pair.slice(colonIdx + 1).trim());
+    if (k) obj[k] = v;
+  }
+  return obj;
 }
 
 function leadingSpaces(line: string): number {

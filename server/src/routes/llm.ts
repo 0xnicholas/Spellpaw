@@ -144,7 +144,6 @@ export function llmRoutes(): Router {
       logger.log('[llm route] /events headers:', {
         provider: context.provider,
         hasApiKey: Boolean(context.apiKey),
-        apiKeyPreview: context.apiKey ? `${context.apiKey.slice(0, 6)}...` : '(missing)',
         baseUrl: context.baseUrl,
         model: context.model,
         projectId: context.projectId,

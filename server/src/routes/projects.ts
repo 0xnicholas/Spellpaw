@@ -22,9 +22,25 @@ export function projectRoutes(prisma: PrismaClient): Router {
   });
 
   router.post('/', async (req, res) => {
-    const { title, description, coverColor, data } = req.body;
+    const { id: requestedId, title, description, coverColor, data } = req.body;
+    const userId = getUserId(req);
+    // Idempotent creation: if the client already generated an id, reuse it so
+    // optimistic local state and the server record share the same key. This
+    // prevents duplicate projects when a create is retried or when a pullAll
+    // runs before the POST response is processed.
+    if (requestedId) {
+      const existing = await prisma.project.findFirst({ where: { id: requestedId, userId } });
+      if (existing) { res.status(200).json(existing); return; }
+    }
     const project = await prisma.project.create({
-      data: { userId: getUserId(req), title, description: description || '', coverColor: coverColor || '#6366f1', data: data || '{}' },
+      data: {
+        ...(requestedId ? { id: requestedId } : {}),
+        userId,
+        title,
+        description: description || '',
+        coverColor: coverColor || '#6366f1',
+        data: data || '{}',
+      },
     });
     res.status(201).json(project);
   });

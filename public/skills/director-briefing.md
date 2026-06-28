@@ -77,14 +77,6 @@ Automatically determine current stage based on input:
 
 ## Reference Routing
 
-Heavy rules for this skill are placed in `references/`, read on demand:
-
-- Content load assessment, structure selection, preliminary shot group split: read `references/content-load-and-structure.md`.
-- Series-wide video model preferences, 15/30s caps, card snapshots and legacy card compatibility: read `references/video-generation-duration-profile.md`.
-- Director review, continuity audit, tail frame anchors: read `references/continuity-tailframe-audit.md`.
-- Quality checks, compression and splitting before shot group finalization: read `references/director-quality-self-check.md`.
-- Testing, review or major changes to the production zone skills: read `references/production-regression-cases.md`.
-
 Do not regurgitate these references to the user; use them as internal judgment basis, outputting concise director judgments and card fields.
 
 ---
@@ -598,7 +590,6 @@ Step 2: Three Strategy Card Summary
 
 ============================================
 ```
-
 
 ---
 
@@ -1142,7 +1133,6 @@ List production details requiring special attention for this shot group:
 }
 ```
 
-
 ---
 
 ### 3.4 Generate Complete Shot Group Card Data
@@ -1424,8 +1414,6 @@ interface StoryboardPlanCard extends BaseCard {
 
 ### Full Output Example
 
-Complete `StoryboardPlanCard` example in `references/storyboard-plan-card-example.json`. The shotGroups field example from section D.3.4 can be directly used as a generation reference.
-
 ---
 
 ## Usage Examples
@@ -1467,7 +1455,6 @@ After second review and finalization completion, recommend calling `storyboard-c
 
 Recommended phrasing: `Director precheck is complete. Suggested next step: complete the scene, performance, and cinematography strategy cards; once all three are done, return to director-briefing for review and finalization.`
 
-
 ---
 
 # References
@@ -1475,7 +1462,6 @@ Recommended phrasing: `Director precheck is complete. Suggested next step: compl
 ## Reference: content-load-and-structure
 
 # 内容量判断与结构选择
-
 
 ## 内容量判断
 
@@ -1534,7 +1520,6 @@ Recommended phrasing: `Director precheck is complete. Suggested next step: compl
 ## Reference: continuity-tailframe-audit
 
 # 连续性审计与尾帧锚点
-
 
 ## 连续性审计清单
 
@@ -1596,7 +1581,6 @@ tailFrameAnchor: {
 
 # 导演讲戏质量自检
 
-
 ## 复判前检查
 
 - 预判结构是否仍然成立？
@@ -1650,7 +1634,6 @@ tailFrameAnchor: {
 ## Reference: production-regression-cases
 
 # 制作分区回归案例
-
 
 ## 评分维度
 

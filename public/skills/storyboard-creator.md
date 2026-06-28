@@ -25,12 +25,6 @@ Key shot images handle "what the final frame looks like"; the storyboard handles
 
 Read the following references by task; do not copy reference content verbatim to user output:
 
-- Before generating key shot image prompts, read `references/key-shot-prompt-template.md`.
-- Before generating storyboard Sheet prompts, read `references/storyboard-sheet-prompt-template.md`.
-- When converting abstract plot, emotion, and action into visible cinematic language, read `references/cinematic-translation-vocabulary.md`.
-- When breaking down content motion, camera movement, and annotation methods, read `references/motion-camera-vocabulary.md`.
-- Before each image generation and card creation entry, read `references/prompt-quality-checklist.md`.
-
 ## Input
 
 ### Main Input
@@ -306,11 +300,6 @@ Execute the following cycle independently for each key image.
 
 Read:
 
-```text
-references/key-shot-prompt-template.md
-references/cinematic-translation-vocabulary.md
-```
-
 The prompt must include:
 
 - Shot task and narrative purpose.
@@ -394,11 +383,6 @@ workflowStatus = planning_storyboard
 
 Read:
 
-```text
-references/cinematic-translation-vocabulary.md
-references/motion-camera-vocabulary.md
-```
-
 Split BEATs by visible state changes, not by evenly sampling seconds. The following changes can produce a new BEAT:
 
 - Subject action phases.
@@ -478,11 +462,6 @@ User confirms action beats and annotation intensity before generating storyboard
 
 Read:
 
-```text
-references/storyboard-sheet-prompt-template.md
-references/motion-camera-vocabulary.md
-```
-
 The prompt must include:
 
 - Two-line Chinese header.
@@ -531,8 +510,6 @@ workflowStatus = generating_storyboard
 The storyboard is generated as an independent version sequence. Regenerating the storyboard does not redo key images.
 
 ### 6.5 Result Check
-
-Read `references/prompt-quality-checklist.md`, focusing on:
 
 - Panel count and order are correct.
 - Each panel's internal aspect ratio equals the global aspect ratio.
@@ -733,8 +710,6 @@ Do not compress multiple image generation calls into a single default confirmati
 
 ## Completion Check
 
-Before creating the card, must complete `references/prompt-quality-checklist.md`. If any hard block item is not passed, do not mark the card as `confirmed`.
-
 ## Generated File Naming Convention
 
 Key shot images must save `filename` in the following format:
@@ -760,7 +735,6 @@ Prioritize calling `video-creator` to generate video for the current shot group.
 If `StoryboardPlanCard` has other shot groups without storyboards, continue calling the current skill to process the next shot group.
 
 Recommended phrasing: `Current shot group storyboard is confirmed. Suggested next step: call video-creator to generate video for this group; or continue creating storyboards for other shot groups.`
-
 
 ---
 

@@ -25,10 +25,6 @@ One `VideoCard` corresponds to exactly one `shotGroupId`. Regenerating video doe
 
 ## Reference Routing
 
-- Before generating Seedance 2.0 or similar model prompts, read `references/seedance-2-video-prompt-template.md`.
-- When selecting editing, content motion, camera movement, and duration remapping expressions, read `references/video-editing-motion-vocabulary.md`.
-- Before entering parameter confirmation, API calling, version confirmation, and card creation, read `references/video-generation-quality-checklist.md`.
-
 ## Input
 
 ### Main Input
@@ -310,7 +306,6 @@ If the API does not support exact duration:
 
 1. Display available durations.
 2. User selects `generatedDuration`.
-3. Read `references/video-editing-motion-vocabulary.md`.
 4. Preserve event and BEAT order.
 5. Remap each BEAT's time range.
 6. Keep contact points, dialogue landing points, climax, and tail frame readable.
@@ -346,11 +341,6 @@ workflowStatus = prompt_review
 ```
 
 Read:
-
-```text
-references/seedance-2-video-prompt-template.md
-references/video-editing-motion-vocabulary.md
-```
 
 ### 5.1 Prompt Structure
 
@@ -725,8 +715,6 @@ cardType: "VideoCard"
 
 ## Completion Check
 
-Before creating or confirming the card, must complete `references/video-generation-quality-checklist.md`. If any hard block item is not passed, do not mark `workflowStatus` or `status` as `confirmed`.
-
 ## Generated File Naming Convention
 
 Video files must save `filename` in the following format:
@@ -744,7 +732,6 @@ Completion criteria: `VideoCard` created or updated, `selectedVersion` points to
 No mandatory downstream at present. `VideoCard` currently serves as the shot group endpoint; users may continue generating new versions, rework the current video, produce the next shot group, or return to `production-coordinator` to handle the next scene.
 
 Recommended phrasing: `Current shot group video is complete. VideoCard currently serves as the shot group endpoint; you may continue to the next shot group, or append new versions to the current video.`
-
 
 ---
 

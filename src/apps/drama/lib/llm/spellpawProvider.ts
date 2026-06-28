@@ -29,7 +29,6 @@ function authHeaders(toolChoice?: ToolChoice): Record<string, string> {
   logger.log('[spellpawProvider] getLLMSettings:', {
     provider: settings.provider,
     hasApiKey: Boolean(settings.apiKey),
-    apiKeyPreview: settings.apiKey ? `${settings.apiKey.slice(0, 6)}...` : '(empty)',
     baseUrl: settings.baseUrl,
     model: settings.model,
   });
@@ -96,6 +95,17 @@ export const spellpawProvider: LLMProvider = {
   subscribeSSE(sessionId: string, onEvent: (event: SSEEvent) => void): SSESubscription {
     let aborted = false;
     const controller = new AbortController();
+    const SSE_TIMEOUT_MS = 60000;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const resetTimeout = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        logger.error('[spellpawProvider] SSE timeout — no data received');
+        aborted = true;
+        controller.abort();
+      }, SSE_TIMEOUT_MS);
+    };
 
     (async () => {
       try {
@@ -108,6 +118,7 @@ export const spellpawProvider: LLMProvider = {
 
         if (!res.ok || !res.body) return;
         aborted = false;
+        resetTimeout();
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -117,6 +128,7 @@ export const spellpawProvider: LLMProvider = {
           const { done, value } = await reader.read();
           if (done) break;
 
+          resetTimeout();
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() ?? '';
@@ -136,12 +148,15 @@ export const spellpawProvider: LLMProvider = {
         if (!isAbort) {
           logger.error('[spellpawProvider] SSE error:', err);
         }
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
       }
     })();
 
     return {
       close: () => {
         aborted = true;
+        if (timeoutId) clearTimeout(timeoutId);
         controller.abort();
       },
     };

@@ -18,12 +18,6 @@ Based on the EpisodeSceneDetailCard, DirectorBriefingCard precheck directives, C
 
 ## Reference Routing
 
-This skill's performance methods and vocabulary are stored in `references/`; read on demand:
-
-- Actions, performance chains, action anchors, and body space: read `references/performance-vocabulary.md`.
-- Emotion-to-micro-expression conversion: read `references/emotion-microexpression-map.md`.
-- Dialogue delivery, dialogue timing, and vocal performance: read `references/dialogue-timing-and-delivery.md`.
-
 Usage principle: References are used to generate more specific performance designs. Do not copy vocabulary lists wholesale into the card; select only the actions, expressions, and dialogue delivery that most serve the story at each stage.
 
 ---
@@ -976,11 +970,6 @@ Confirm update? (y/n):
 
 ## Inference Rules and Micro-Expression Techniques
 
-The following rule libraries and techniques have been externalized to `references/`; read on demand:
-
-- Personality/emotion/tone/rhythm mapping tables: read `references/inference-rule-library.md`
-- Cinematic micro-expression control framework (millimeter-level action boundaries, physiological conduction order, emotional physical inertia, positive parameter constraints): read `references/microexpression-control-framework.md`
-
 Do not copy reference content wholesale into the PerformanceStrategyCard; select only the specific rules needed for the current scene.
 
 ## After Completion — Next Steps
@@ -994,7 +983,6 @@ After completion, must check the completion status of the three strategy cards: 
 
 Recommended dialogue: `Performance strategy design is complete. I will check the completion status of the three strategy cards; only when all three strategy cards are complete should we return to director-briefing for review and finalization.`
 
-
 ---
 
 # References
@@ -1002,7 +990,6 @@ Recommended dialogue: `Performance strategy design is complete. I will check the
 ## Reference: dialogue-timing-and-delivery
 
 # 台词时长与演绎
-
 
 ## 台词必须具体
 
@@ -1075,7 +1062,6 @@ Recommended dialogue: `Performance strategy design is complete. I will check the
 ## Reference: emotion-microexpression-map
 
 # 情绪到微表情映射
-
 
 每种情绪选择3-5个可见节点即可，不要堆满所有部位。
 
@@ -1332,7 +1318,6 @@ Recommended dialogue: `Performance strategy design is complete. I will check the
 ## Reference: performance-vocabulary
 
 # 表演设计词汇库
-
 
 ## 表演链
 

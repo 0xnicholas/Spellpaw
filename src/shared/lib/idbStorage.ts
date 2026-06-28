@@ -13,7 +13,7 @@ export async function getSpellpawDB(): Promise<IDBPDatabase<unknown>> {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
       upgrade(db) {
-        const stores = ['projectStore', 'canvasStore', 'chatStore', 'snapshots', 'taskStore'];
+        const stores = ['snapshots', 'taskStore'];
         for (const store of stores) {
           if (!db.objectStoreNames.contains(store)) {
             db.createObjectStore(store);

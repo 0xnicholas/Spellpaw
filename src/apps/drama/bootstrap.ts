@@ -10,7 +10,6 @@
  * route (e.g. switching between /projects and /templates) will not
  * re-run the bootstrap.
  */
-import { migrateToIDB } from '@drama/lib/migrateToIDB';
 import { initSyncEngine } from '@drama/lib/syncEngine';
 import {
   providerRegistry,
@@ -24,7 +23,6 @@ export async function bootstrapDrama(): Promise<void> {
   if (bootstrapped) return;
   bootstrapped = true;
 
-  await migrateToIDB();
   initSyncEngine();
 
   await useTaskStore.persist.rehydrate();

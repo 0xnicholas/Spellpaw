@@ -318,6 +318,34 @@ export const SPELLPAW_TOOL_CONFIGS = [
 		endpoint: TOOL_ENDPOINT,
 	},
 	{
+		name: "spellpaw_generate_storyboard",
+		description: `Generate a storyboard reference image for a canvas card. Use when the user asks for a storyboard, shot visual, or scene reference for a specific card. Produces an 'art' card. Example: spellpaw_generate_storyboard({ cardId: "card-1", prompt: "雨夜小巷，霓虹灯反射，悬疑氛围" }).`,
+		parameters: {
+			type: "object",
+			properties: {
+				cardId: {
+					type: "string",
+					description: "ID of the canvas card to generate a storyboard for",
+				},
+				prompt: {
+					type: "string",
+					description: "Optional override prompt; if omitted, built from card metadata",
+				},
+				provider: {
+					type: "string",
+					enum: providerEnum(),
+					description: "Optional provider id",
+				},
+				count: {
+					type: "number",
+					description: "Number of variants to generate (default 1)",
+				},
+			},
+			required: ["cardId"],
+		},
+		endpoint: TOOL_ENDPOINT,
+	},
+	{
 		name: "spellpaw_generate_variants",
 		description: `Generate multiple variant images of an existing canvas card. Useful when the user wants "more options", "a few versions", or "variations of this shot". Produces a new 'art' card for each variant. Example: spellpaw_generate_variants({ cardId: "card-xyz", count: 3 }).`,
 		parameters: {
@@ -428,7 +456,7 @@ export const SPELLPAW_TOOL_CONFIGS = [
 					description: "Optional provider id",
 				},
 			},
-			required: ["nodeIds", "stylePrompt"],
+			required: ["cardIds", "stylePrompt"],
 		},
 		endpoint: TOOL_ENDPOINT,
 	},

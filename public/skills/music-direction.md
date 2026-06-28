@@ -64,13 +64,6 @@ const musicDirectionCard = await callSkill('music-direction', {
 
 Based on the current task, only read the necessary reference; do not copy reference content into the card:
 
-- When determining the relationship between worldview, genre, and music style: read `references/music-style-taxonomy.md`
-- When building instrument systems, forbidden instruments, and timbre vocabulary: read `references/instrumentation-vocabulary.md`
-- When generating emotional mapping, BPM, Key, and modes: read `references/emotion-music-map.md`
-- When identifying BGM/SFX lists, controlling quantity and trigger conditions: read `references/bgm-sfx-planning-rules.md`
-
-`SKILL.md` handles process, fields, and quality gates; the growable music style, instrument, emotion, and sound asset rule libraries are maintained in `references/`.
-
 ---
 
 ## II. Field Definitions
@@ -365,8 +358,6 @@ Extracted:
 
 #### Step 4.1: BPM and Key Generation
 
-BPM/key generation helper functions are in `references/bpm-key-generation.md`. Read when generating specific BPM values and musical keys for Suno/Udio parameters. The file contains: `generateDefaultBPM`, `generateDefaultKey`, `inferKeyFromEmotion`, and example output.
-
 #### Step 5: Identify BGM Needs
 
 **BGM Identification Rules**:
@@ -617,8 +608,6 @@ Key interaction nodes:
 
 ## VI. Complete Extraction Example
 
-Full MusicDirectionCard example (post-apocalyptic industrial electronic style) at `references/example-music-direction-card.json`.
-
 ## VII. Summary
 
 ### 7.1 Core Points of the Music Direction Sub-Skill
@@ -632,8 +621,6 @@ Full MusicDirectionCard example (post-apocalyptic industrial electronic style) a
 
 ### 7.2 BGM Quantity Reference
 
-Detailed rules are maintained in `references/bgm-sfx-planning-rules.md`. Only the quick reference table is kept here.
-
 | Series Scale | Recommended BGM Count | Notes |
 |---------|------------|------|
 | Short-form (1-20 episodes) | 4-6 | Main theme, battle, emotional, ending |
@@ -641,8 +628,6 @@ Detailed rules are maintained in `references/bgm-sfx-planning-rules.md`. Only th
 | Long-form (50+ episodes) | 10-15 | More granular scene and emotion themes |
 
 ### 7.3 SFX Quantity Reference
-
-Detailed rules are maintained in `references/bgm-sfx-planning-rules.md`. Only the quick reference table is kept here.
 
 | Series Genre | Recommended SFX Count | Notes |
 |---------|------------|------|
@@ -683,7 +668,6 @@ Completion criteria: `MusicDirectionCard` has been created, with music style, in
 Prefer calling `music-asset-extraction` to enter the music branch; can also return to `script-deconstruct` to continue the main creation chain.
 
 Suggested message: `Music direction is complete. You can call music-asset-extraction to generate the soundtrack asset list; the music branch does not currently block the main video pipeline.`
-
 
 ---
 

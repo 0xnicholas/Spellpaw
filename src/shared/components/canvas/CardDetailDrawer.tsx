@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 /**
  * CardDetailDrawer — buzzy-style side panel.
  *
@@ -78,6 +77,7 @@ export function CardDetailDrawer() {
   const selectedCardId = useCanvasStore((s) => s.selectedCardId);
   const getSelectedCard = useCanvasStore((s) => s.getSelectedCard);
   const setSelectedCardId = useCanvasStore((s) => s.setSelectedCardId);
+  const allNodes = useCanvasStore((s) => s.getCurrentNodes());
 
   const card = selectedCardId ? getSelectedCard() : null;
 
@@ -123,9 +123,8 @@ export function CardDetailDrawer() {
   const statusLabel = status ? STATUS_LABEL[status] : null;
 
   // Compute display numbers (used for legacy types)
-  const allNodes = useCanvasStore((s) => s.getCurrentNodes());
   const numberMap = computeDisplayNumbers(allNodes);
-  const displayNumber = numberMap.get(card.id) ?? '';
+  const displayNumber = card ? numberMap.get(card.id) ?? '' : '';
 
   return (
     <>

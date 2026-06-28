@@ -261,8 +261,6 @@ Legacy JSON format (migration reference only, not for production use) — see cu
 
 ## Image Generation Prompt Specification
 
-Prompt templates, workflow, and quality checklist at `references/image-prompt-specification.md`. Read when generating three-view prompts. Key requirements: reference upstream cards, use existing successful prompts as templates, maintain complete template structure.
-
 ## Usage Examples
 
 ### Example 1: Extract Single Character Costume
@@ -337,8 +335,6 @@ Assistant: [Identify all scenes] → [Extract costumes per scene] → [Analyze c
 
 ## Character Costume Change
 
-Complete costume change workflow, consistency rules, prompt techniques, and quality checks at `references/costume-change-workflow.md`. Read when creating variant costume cards while preserving character identity. Core principle: facial features, hairstyle, body proportions, expressions, and aura must match base costume; only clothing and accessories change.
-
 ## Generated File Naming Rules
 
 Character costume three-views must save `filename` in format:
@@ -359,7 +355,6 @@ After completing current character costume, check if other character assets stil
 - If current episode/scene character assets are sufficient: Prompt user that they can continue with other assets, or call `production-coordinator` to start production on this specific episode and scene.
 
 Recommended phrasing: `Current character costume is confirmed. Next I will check if other character assets need production for the current episode/scene; if not, we can move to production-coordinator to start scene production.`
-
 
 ---
 

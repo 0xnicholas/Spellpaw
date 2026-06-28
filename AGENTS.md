@@ -259,14 +259,14 @@ Drama canvas toolkit 通过 `capabilityConfig.getCapabilityConfig(capability: Ca
 
 ### 6.5 Phase 3 存储：云端为主
 
-Server 是**唯一权威数据源**。本地 Zustand store + IndexedDB 为**只读缓存**（加速二次打开）。
+Server 是**唯一权威数据源**。本地 Zustand store + IndexedDB 为**读写缓存**（乐观更新 + 离线保留编辑）；冲突时与 server 合并，同 id 以本地为准。
 
 ```
 编辑 → Zustand store（乐观更新）→ 500ms debounce → push 到 server
                                          ├── 成功：更新 server version
-                                         └── 409 冲突：server wins，拉取覆盖本地
+                                         └── 409 冲突：拉取 server 版本，与本地待提交编辑合并（同 id 以本地为准），然后重新 push
 
-打开项目 → IndexedDB 缓存秒开 → 后台拉 server 最新覆盖
+打开项目 → IndexedDB 缓存秒开 → 后台拉 server 最新并与本地合并
 ```
 
 不做 CRDT 实时协作。无离线编辑模式。网络异常时 toast 提示，修改在下次连接时重试推送。

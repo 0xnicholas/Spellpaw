@@ -77,13 +77,6 @@ The Art Direction Skill depends on the following inputs:
 
 Based on the current task, only read the necessary reference; do not copy reference content into the card:
 
-- User style choice, genre-to-visual-system mapping: read `references/visual-style-taxonomy.md`
-- When user mentions directors, works, or visual schools: read `references/director-visual-style-vocabulary.md`
-- When color, lighting, composition, or material vocabulary is needed: read `references/color-light-composition-vocabulary.md`
-- When generating concept art and collecting user feedback: read `references/concept-validation-workflow.md`
-
-`SKILL.md` handles process, fields, and quality gates; the growable style library and vocabulary library are maintained in `references/`.
-
 ---
 
 ## II. Field Definitions (Updated)
@@ -801,8 +794,6 @@ Key interaction nodes (detailed scripts omitted):
 
 ## VI. Complete Extraction Example
 
-For a complete ArtDirectionCard output example, see `references/example-art-direction-card.json` (Three Kingdoms realistic epic + ink-wash freehand mixed style case study).
-
 ---
 
 ## VII. Summary
@@ -942,14 +933,7 @@ Phase 4: Output Complete Art Direction Card
 
 ## X. Reference / Vocabulary Maintenance
 
-The genre style library, director visual vocabulary, and color/lighting/composition references originally carried in this section have been externalized to the `references/` directory to avoid an overly long main skill file and to facilitate continuous expansion.
-
 Current read paths:
-
-- `references/visual-style-taxonomy.md`
-- `references/director-visual-style-vocabulary.md`
-- `references/color-light-composition-vocabulary.md`
-- `references/concept-validation-workflow.md`
 
 Update Principles:
 
@@ -974,7 +958,6 @@ Completion criteria: `ArtDirectionCard` has been created, with the necessary Art
 Prefer returning to `script-deconstruct` to continue the creation-zone workflow; if script deconstruction is already complete, can proceed to `character-asset-extraction`, `scene-asset-extraction`, or `prop-asset-extraction`.
 
 Suggested message: `Art direction is complete. I recommend returning to script-deconstruct to summarize creation-zone results, or starting asset production for the current episodes/scenes.`
-
 
 ---
 

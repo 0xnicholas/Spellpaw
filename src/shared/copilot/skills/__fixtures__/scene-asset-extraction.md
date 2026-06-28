@@ -407,8 +407,6 @@ Consistent with character asset extraction:
 
 ## Scene Asset Purity Principle
 
-Scene assets must be clean scenes without main characters. Full rules, examples, and prompt conventions at `references/scene-purity-principle.md`. Key rule: scene = clean space + set dressing + lighting only; characters added via post compositing. GPT-Image-2 negative prompt must include: `people, person, characters, human, man, woman, figure, face, body, hand, arm, leg`.
-
 ## Next Step After Completion
 
 Completion criteria: `SceneAssetCard` created, `SceneSettingCard` source, scene states, generation requirements, and confirmation info saved.
@@ -418,7 +416,6 @@ After completing current scene asset extraction, prioritize calling `scene-gener
 If other scene assets remain unextracted, continue with current skill; if the user is working on a specific episode/scene, prioritize the scenes needed for that episode/scene.
 
 Recommended phrasing: `Current scene asset extraction is complete. It is recommended to prioritize calling scene-generator to generate and confirm this scene's visual asset. Continue?`
-
 
 ---
 

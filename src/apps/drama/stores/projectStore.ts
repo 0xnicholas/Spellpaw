@@ -48,7 +48,7 @@ export const useProjectStore = create<ProjectState>()(
         void authApi
           .apiCall('/api/projects', {
             method: 'POST',
-            body: JSON.stringify({ title, description, coverColor, data: '{}' }),
+            body: JSON.stringify({ id, title, description, coverColor, data: '{}' }),
           })
           .catch(() => {});
         return id;

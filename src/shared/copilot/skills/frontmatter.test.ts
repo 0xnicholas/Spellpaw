@@ -33,6 +33,19 @@ body`;
     expect(meta.required).toEqual([]);
   });
 
+  it('parses inline empty and non-empty objects', () => {
+    const md = `---
+id: x
+parameters: {}
+settings: { retries: 3, timeout: 30 }
+---
+
+body`;
+    const { meta } = parseFrontmatter(md);
+    expect(meta.parameters).toEqual({});
+    expect(meta.settings).toEqual({ retries: '3', timeout: '30' });
+  });
+
   it('parses quoted values', () => {
     const md = `---
 id: "has spaces"

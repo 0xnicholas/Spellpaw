@@ -20,12 +20,6 @@ Based on the EpisodeSceneDetailCard, DirectorBriefingCard precheck directives, S
 
 ## Reference Routing
 
-This skill's scene, lighting, spatial, and atmosphere rules are stored in `references/`; read on demand:
-
-- Light source motivation, light layers, light vocabulary: read `references/lighting-vocabulary.md`.
-- Spatial blocking, axis pre-establishment, action paths, scene reference image types: read `references/spatial-blocking-reference.md`.
-- Color narrative, atmosphere vocabulary, scene negative constraints: read `references/color-atmosphere-vocabulary.md`.
-
 Usage principle: References are used to constrain the scene strategy and image generation prompts. Do not mechanically output all light layers or all blocking fields; select only the most essential scene control points based on the director's precheck structure.
 
 ---
@@ -637,14 +631,10 @@ Enter option (1/2/3):
 
 ## Stage 6: Annotate Character Positions (Phase Two)
 
-Annotation methods at `references/position-annotation-methods.md`. Three approaches: **A) Generate transparent PNG overlay + composite locally** (recommended), B) text description (fallback), C) manual drawing.
-
 ## Test Cases
 
 - Floating Island/Underwater: daytime, high tension, top lighting, cool tones
 - Indoor Warm: nighttime, low tension, front light, warm tones
-
-Inference rule tables (lighting→emotion→color) are in `references/lighting-vocabulary.md` and `references/color-atmosphere-vocabulary.md`.
 
 ## Generated File Naming Convention
 
@@ -667,7 +657,6 @@ After completion, must check the completion status of the three strategy cards: 
 
 Recommended dialogue: `Scene strategy design is complete. I will check the completion status of the three strategy cards; only when all three strategy cards are complete should we return to director-briefing for review and finalization.`
 
-
 ---
 
 # References
@@ -675,7 +664,6 @@ Recommended dialogue: `Scene strategy design is complete. I will check the compl
 ## Reference: color-atmosphere-vocabulary
 
 # 色彩与氛围词汇库
-
 
 ## 色彩不是装饰
 
@@ -737,7 +725,6 @@ Recommended dialogue: `Scene strategy design is complete. I will check the compl
 ## Reference: lighting-vocabulary
 
 # 灯光与氛围词汇库
-
 
 ## 基本原则
 
@@ -864,7 +851,6 @@ Use Photoshop, GIMP, Figma for full custom annotation control.
 ## Reference: spatial-blocking-reference
 
 # 空间站位与场景调度
-
 
 ## 场景策略的核心问题
 

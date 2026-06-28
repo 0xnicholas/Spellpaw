@@ -1,7 +1,7 @@
 ---
 id: cinematography-strategy-designer
 name: 摄影策略编排器
-description: Orchestrator for cinematography work. Use only when you need to plan camera work for an entire scene end-to-end and need multiple sub-skills in sequence. For a single concern (e.g. just shot sizes, or just transitions), call the specific sub-skill directly: /cinematography-shot-size, /cinematography-camera-movement, /cinematography-camera-angle, /cinematography-transitions, /cinematography-styles, /cinematography-fight, /cinematography-equipment, /cinematography-axis-continuity, /cinematography-vocabulary.
+description: Orchestrator for cinematography work. Use only when you need to plan camera work for an entire scene end-to-end and need multiple sub-skills in sequence. For a single concern (e.g. just shot sizes, or just transitions), call the specific sub-skill directly: /cinematography-shot-size-rules, /cinematography-camera-movement-rules, /cinematography-camera-angle-rules, /cinematography-transition-rules, /cinematography-styles, /cinematography-fight-cinematography-patterns, /cinematography-camera-equipment, /cinematography-axis-continuity-rules, /cinematography-shot-camera-vocabulary.
 slashCommand: cinematography-strategy-designer
 examples: []
 parameters: {}
@@ -13,15 +13,15 @@ For most camera-work questions, **call the specific sub-skill directly** rather 
 
 | Sub-skill | When to use |
 | --- | --- |
-| /cinematography-shot-size | Choose the right shot size (ECU/CU/MS/MLS/LS/ELS). |
-| /cinematography-camera-movement | Plan camera movement (pan/tilt/dolly/tracking/crane). |
-| /cinematography-camera-angle | Choose camera angle (eye-level/high/low/dutch/overhead). |
-| /cinematography-transitions | Plan transitions between shots (cut/dissolve/wipe/match-cut). |
+| /cinematography-shot-size-rules | Choose the right shot size (ECU/CU/MS/MLS/LS/ELS). |
+| /cinematography-camera-movement-rules | Plan camera movement (pan/tilt/dolly/tracking/crane). |
+| /cinematography-camera-angle-rules | Choose camera angle (eye-level/high/low/dutch/overhead). |
+| /cinematography-transition-rules | Plan transitions between shots (cut/dissolve/wipe/match-cut). |
 | /cinematography-styles | Apply a named director's style consistently. |
-| /cinematography-fight | Plan fight-scene cinematography (coverage, pacing). |
-| /cinematography-equipment | Specify camera equipment (lens/body/support). |
-| /cinematography-axis-continuity | Enforce 180-degree axis + eyeline + match-on-action. |
-| /cinematography-vocabulary | Standardize cinematography vocabulary in card text. |
+| /cinematography-fight-cinematography-patterns | Plan fight-scene cinematography (coverage, pacing). |
+| /cinematography-camera-equipment | Specify camera equipment (lens/body/support). |
+| /cinematography-axis-continuity-rules | Enforce 180-degree axis + eyeline + match-on-action. |
+| /cinematography-shot-camera-vocabulary | Standardize cinematography vocabulary in card text. |
 
 ## When to use this orchestrator
 
@@ -33,9 +33,9 @@ Use this orchestrator only when:
 In that case, drive a multi-step plan:
 
 1. `get_canvas` — read the scene + shots
-2. Call `/cinematography-shot-size` to lock shot sizes per shot
-3. Call `/cinematography-camera-movement` to plan movement
-4. Call `/cinematography-transitions` to plan shot-to-shot transitions
+2. Call `/cinematography-shot-size-rules` to lock shot sizes per shot
+3. Call `/cinematography-camera-movement-rules` to plan movement
+4. Call `/cinematography-transition-rules` to plan shot-to-shot transitions
 5. Call `/cinematography-styles` if the user named a director style
 6. Apply metadata updates via `update_card` after each sub-skill call
 

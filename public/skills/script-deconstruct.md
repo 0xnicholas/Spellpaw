@@ -566,8 +566,6 @@ interface SceneSettingCard extends BaseCard {
 
 ### Step 7: Prop Setting Card
 
-Field definitions, extraction rules, and the inference rule library (size, material, color, visual effects) at `references/prop-setting-card-schema.md`. Key rules: count frequency → importance; extract from first appearance; infer only when script is silent.
-
 ---
 
 ### After Phase 1 Completion: Ask Strategy
@@ -642,7 +640,6 @@ Two recommended next directions:
 2. Start designing and producing assets needed for the current episodes/scenes by calling `character-asset-extraction`, `scene-asset-extraction`, or `prop-asset-extraction` as needed.
 
 Suggested message: `Script deconstruction is complete for the current batch. I've compared against the asset split results in the episode-scene table. You can continue filling in remaining character/scene/prop settings, or start designing and producing assets needed for the current episodes/scenes.`
-
 
 ---
 

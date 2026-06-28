@@ -391,11 +391,6 @@ function writeBackSelectedVisual(
 
 ## VR Panorama and Super Resolution
 
-The following VR-related capabilities have been externalized to `references/`, read on demand:
-
-- VR panorama generation (720°, prompt templates, slicing methods, quality check): read `references/vr-panorama-generation.md`
-- VR panorama super-resolution workflow (2K→8K pipeline, tool selection, best practices): read `references/vr-panorama-upscaling.md`
-
 Only use VR panorama solutions when multi-angle consistent scene images or VR experiences are needed. For single fixed-perspective views, directly generating 16:9 scene images is more efficient.
 
 ---
@@ -420,7 +415,6 @@ After completing current scene generation, check whether the current episode/sce
 - If the current episode/scene scene assets are sufficient: notify the user they can continue with other assets, or call `production-coordinator` to begin production for this specific episode and scene.
 
 Recommended phrasing: `Current scene asset image is confirmed and written back. I will now check if the current episode/scene has other scene assets needing production; if not, we can enter production-coordinator to begin scene production.`
-
 
 ---
 

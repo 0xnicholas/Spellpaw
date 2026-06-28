@@ -1,7 +1,7 @@
 ---
 id: music-prompt-generator
 name: music-prompt-generator
-description: Use when a MusicAssetCard has been generated and Suno/Udio-optimized prompts need to be batch-generated for BGM and SFX
+description: Use to generate Suno / Udio prompts from a music direction card. Reads the music direction metadata via get_canvas, emits asset cards via add_card (type=asset) with the generated prompt.
 slashCommand: music-prompt-generator
 examples: []
 parameters: {}

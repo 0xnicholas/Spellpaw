@@ -19,6 +19,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SKILL_DESCRIPTIONS } from './skill-descriptions.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(__filename), '..');
@@ -96,7 +97,9 @@ function migrateOne(skillDir) {
 
   const id = slug;
   const name = meta.name ?? slug;
-  const description = meta.description ?? `Research skill: ${slug}`;
+  // Prefer the curated Copilot-aligned description from skill-descriptions.mjs.
+  // Fall back to the original skill description if not curated yet.
+  const description = SKILL_DESCRIPTIONS[slug] ?? meta.description ?? `Research skill: ${slug}`;
 
   const runtimeMd = [
     buildRuntimeFrontmatter({ id, name, description }),

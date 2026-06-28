@@ -1,7 +1,7 @@
 ---
 id: script-deconstruct
 name: script-deconstruct
-description: Use when a FullScriptCard must be decomposed into creation-zone structure cards, including episode-scene tables and story, character, scene, prop, art, and music direction cards
+description: Use to decompose a script into episode / scene / character tables. Reads the raw text via a node-card asset (or chat-supplied), creates a structured tree of storyline + scene + character cards via add_card / batch_add_cards.
 slashCommand: script-deconstruct
 examples: []
 parameters: {}

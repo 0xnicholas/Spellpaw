@@ -1,7 +1,7 @@
 ---
 id: video-creator
 name: video-creator
-description: Use when a confirmed StoryboardCard shot group needs an API-aware video prompt, generation configuration, and versioned video output
+description: Use to generate the actual video clip from a storyboard / scene card. Reads sceneCard nodes via get_canvas, drives generate_asset (video media) for the final clip and emits a videoClip card via add_card (type=videoClip).
 slashCommand: video-creator
 examples: []
 parameters: {}

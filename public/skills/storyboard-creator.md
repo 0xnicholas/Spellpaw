@@ -1,7 +1,7 @@
 ---
 id: storyboard-creator
 name: storyboard-creator
-description: Use when a confirmed StoryboardPlanCard shot group needs key-shot image planning, prompt confirmation, image generation, and a motion-focused storyboard sheet
+description: Use to create storyboard cards (key-shot images + motion notes) for a scene. Reads scene cards via get_canvas, drives generate_storyboard for each shot to emit sceneCard nodes with reference imagery.
 slashCommand: storyboard-creator
 examples: []
 parameters: {}

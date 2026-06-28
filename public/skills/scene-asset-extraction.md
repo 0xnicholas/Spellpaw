@@ -1,7 +1,7 @@
 ---
 id: scene-asset-extraction
 name: scene-asset-extraction
-description: Use when a SceneSettingCard must be converted into a SceneAssetCard for scene visual translation, generation requirements, and selected visual writeback
+description: Use to translate a scene plot into a scene canvas card with a reference prompt for the environment. Reads storyline cards via get_canvas, emits scene cards via add_card (type=sceneCard).
 slashCommand: scene-asset-extraction
 examples: []
 parameters: {}

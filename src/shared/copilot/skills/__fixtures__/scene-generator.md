@@ -1,7 +1,7 @@
 ---
 id: scene-generator
 name: scene-generator
-description: Use when a SceneAssetCard generation requirement must produce SceneConceptCard image versions and write back the confirmed visual to SceneAssetCard.selectedVisual
+description: Use to generate concept images for a scene. Reads the scene card via get_canvas, drives generate_asset for each shot and emits art cards linked back via add_card (type=art).
 slashCommand: scene-generator
 examples: []
 parameters: {}

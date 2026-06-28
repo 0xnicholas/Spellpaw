@@ -1,7 +1,7 @@
 ---
 id: production-coordinator
 name: production-coordinator
-description: Use when a confirmed EpisodeSceneTableCard scene must become a production-zone EpisodeSceneDetailCard with asset completeness checks
+description: Use to audit a scene for missing strategy cards (scene / performance / cinematography / asset) before storyboard. Read-only: walks get_canvas and reports gaps in the chat; does not mutate the tree.
 slashCommand: production-coordinator
 examples: []
 parameters: {}

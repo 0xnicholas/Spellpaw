@@ -1,7 +1,7 @@
 ---
 id: scene-strategy-designer
 name: scene-strategy-designer
-description: Use when an EpisodeSceneDetailCard and DirectorBriefingCard need a scene strategy based on a confirmed SceneAssetCard.selectedVisual
+description: Use to plan lighting, color palette, and character blocking for a scene. Reads scene + character cards via get_canvas, updates metadata.lighting + metadata.color via update_card. Drives batch_apply_style for visual consistency.
 slashCommand: scene-strategy-designer
 examples: []
 parameters: {}

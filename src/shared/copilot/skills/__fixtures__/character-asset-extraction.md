@@ -1,7 +1,7 @@
 ---
 id: character-asset-extraction
 name: character-asset-extraction
-description: Use when a CharacterSettingCard must be converted into a CharacterAssetCard for visual translation, costume requirements, and downstream character image generation
+description: Use to translate a written character profile into a character canvas card with a visual reference prompt. Reads an existing storyline/character card via get_canvas and emits a new character card via add_card (type=character) plus generate_asset for the reference image.
 slashCommand: character-asset-extraction
 examples: []
 parameters: {}

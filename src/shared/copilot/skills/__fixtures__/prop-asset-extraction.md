@@ -1,7 +1,7 @@
 ---
 id: prop-asset-extraction
 name: prop-asset-extraction
-description: Use when a PropSettingCard must be converted into a PropAssetCard for prop image generation, state variants, and downstream prop concept cards
+description: Use to extract visual references for a prop mentioned in a scene. Reads scene cards via get_canvas, emits asset cards via add_card (type=asset) with reference prompts.
 slashCommand: prop-asset-extraction
 examples: []
 parameters: {}

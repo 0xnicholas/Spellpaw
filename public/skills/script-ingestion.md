@@ -1,7 +1,7 @@
 ---
 id: script-ingestion
 name: script-ingestion
-description: Use when a user uploads a full script file and the project must create a FullScriptCard before script decomposition can begin
+description: Use to ingest a raw script — splits it into episodes / scenes / characters and writes them to the project tree. Read-only input → batch_add_cards (type=storyline/scene/character).
 slashCommand: script-ingestion
 examples: []
 parameters: {}

@@ -1,7 +1,7 @@
 ---
 id: prop-generator
 name: prop-generator
-description: Use when a PropAssetCard has been generated and needs standardized prop multi-view images (including main view area, detail close-up area, and state comparison area)
+description: Use to generate multi-view reference images for a prop. Reads the corresponding asset card via get_canvas, drives generate_variants + generate_asset to produce a multi-view set as art cards.
 slashCommand: prop-generator
 examples: []
 parameters: {}

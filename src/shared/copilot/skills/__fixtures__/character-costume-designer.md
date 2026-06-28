@@ -1,7 +1,7 @@
 ---
 id: character-costume-designer
 name: character-costume-designer
-description: Use when a CharacterAssetCard costume requirement must become a confirmed CharacterCostumeCard with character-consistent three-view image versions
+description: Use to design character costume variants and three-view sheets. Reads a character card via get_canvas, then drives update_card (description, tags) and generate_variants + generate_asset to emit costume variants as art cards.
 slashCommand: character-costume-designer
 examples: []
 parameters: {}

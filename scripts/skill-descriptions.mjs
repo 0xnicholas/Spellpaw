@@ -1,0 +1,35 @@
+// New Copilot-tool-aligned descriptions for the 19 migrated research skills.
+// Each description tells the LLM what the skill accomplishes + which
+// atomic tools it should drive, referencing the actual Copilot tool
+// surface (get_canvas / add_card / generate_asset / generate_storyboard /
+// analyze_structure / get_pacing_report / etc.).
+
+export const SKILL_DESCRIPTIONS = {
+  'art-direction': 'Use to define the overall visual art direction for a project. Reads the current canvas tree via get_canvas / get_subtree and produces storyline + moodboard + art cards with palette, lighting, and composition guidance. Drives add_card (type=storyline/moodboard/art).',
+  'character-asset-extraction': 'Use to translate a written character profile into a character canvas card with a visual reference prompt. Reads an existing storyline/character card via get_canvas and emits a new character card via add_card (type=character) plus generate_asset for the reference image.',
+  'character-costume-designer': 'Use to design character costume variants and three-view sheets. Reads a character card via get_canvas, then drives update_card (description, tags) and generate_variants + generate_asset to emit costume variants as art cards.',
+  'cinematography-shot-size': 'Use to choose the right shot size (ECU/CU/MS/MLS/LS/ELS) for a scene. Reads scene cards via get_canvas and updates their metadata (shotType) via update_card. Foundation reference for camera-work skills.',
+  'cinematography-camera-movement': 'Use to plan camera movement (pan/tilt/dolly/tracking/crane) for a sequence of shots. Reads scene/shots via get_canvas, updates metadata.cameraMovement via update_card.',
+  'cinematography-camera-angle': 'Use to choose the right camera angle (eye-level/high/low/dutch/overhead) for a shot. Reads scene cards via get_canvas, updates metadata.cameraAngle via update_card. Includes dialogue and action-scene angle matrices.',
+  'cinematography-transitions': 'Use to plan transitions between shots (cut/dissolve/wipe/match-cut). Reads multiple scene cards via get_canvas and updates metadata.transition via update_card on each.',
+  'cinematography-styles': 'Use to apply a cinematography style (Hitchcock/Wes Anderson/wong-kar-wai/etc.) consistently across scenes. Reads scene cards, sets style tags + drives batch_apply_style with a style prompt.',
+  'cinematography-fight': 'Use to plan fight-scene cinematography (coverage, pacing, beat-anchors). Reads scene cards via get_canvas, inserts additional art cards via add_card (type=art) for action keyframes, and updates shot metadata.',
+  'cinematography-equipment': 'Use to specify camera equipment (lens, body, support) for a scene. Reads scene cards, updates metadata.equipment via update_card. Foundation reference for the other cinematography sub-skills.',
+  'cinematography-axis-continuity': 'Use to enforce 180-degree axis, screen direction, match-on-action, and eyeline continuity across shots. Reads scene/shots via get_canvas and flags continuity violations by reading metadata + recommending update_card fixes.',
+  'cinematography-vocabulary': 'Use to standardize cinematography vocabulary (shot types, movements, equipment terms) in scene card descriptions and metadata. Read-only reference — drives update_card with consistent terminology.',
+  'director-briefing': 'Use as the top-level orchestrator that dispatches to scene / performance / cinematography strategy skills and aggregates their outputs into storyboard cards. Reads tree via get_tree + get_canvas, calls sub-skills (e.g. /scene-strategy-designer) by augmenting the user message with their instructions, then writes results back via update_card and batch_add_cards.',
+  'music-asset-extraction': 'Use to extract BGM/SFX inventory for the project. Reads storyline / scene cards via get_canvas and emits asset cards via add_card (type=asset) with audio reference prompts.',
+  'music-direction': 'Use to set the music direction for a project — style, BPM, key, instrumentation, emotion map. Reads storyline cards via get_canvas, updates moodboard / storyline cards with music guidance via update_card.',
+  'music-prompt-generator': 'Use to generate Suno / Udio prompts from a music direction card. Reads the music direction metadata via get_canvas, emits asset cards via add_card (type=asset) with the generated prompt.',
+  'performance-strategy-designer': 'Use to plan performance direction — expressions, body language, dialogue delivery — for a character in a scene. Reads scene + character cards via get_canvas, updates metadata via update_card. Drives generate_asset for reference images of key beats.',
+  'production-coordinator': 'Use to audit a scene for missing strategy cards (scene / performance / cinematography / asset) before storyboard. Read-only: walks get_canvas and reports gaps in the chat; does not mutate the tree.',
+  'prop-asset-extraction': 'Use to extract visual references for a prop mentioned in a scene. Reads scene cards via get_canvas, emits asset cards via add_card (type=asset) with reference prompts.',
+  'prop-generator': 'Use to generate multi-view reference images for a prop. Reads the corresponding asset card via get_canvas, drives generate_variants + generate_asset to produce a multi-view set as art cards.',
+  'scene-asset-extraction': 'Use to translate a scene plot into a scene canvas card with a reference prompt for the environment. Reads storyline cards via get_canvas, emits scene cards via add_card (type=sceneCard).',
+  'scene-generator': 'Use to generate concept images for a scene. Reads the scene card via get_canvas, drives generate_asset for each shot and emits art cards linked back via add_card (type=art).',
+  'scene-strategy-designer': 'Use to plan lighting, color palette, and character blocking for a scene. Reads scene + character cards via get_canvas, updates metadata.lighting + metadata.color via update_card. Drives batch_apply_style for visual consistency.',
+  'script-deconstruct': 'Use to decompose a script into episode / scene / character tables. Reads the raw text via a node-card asset (or chat-supplied), creates a structured tree of storyline + scene + character cards via add_card / batch_add_cards.',
+  'script-ingestion': 'Use to ingest a raw script — splits it into episodes / scenes / characters and writes them to the project tree. Read-only input → batch_add_cards (type=storyline/scene/character).',
+  'storyboard-creator': 'Use to create storyboard cards (key-shot images + motion notes) for a scene. Reads scene cards via get_canvas, drives generate_storyboard for each shot to emit sceneCard nodes with reference imagery.',
+  'video-creator': 'Use to generate the actual video clip from a storyboard / scene card. Reads sceneCard nodes via get_canvas, drives generate_asset (video media) for the final clip and emits a videoClip card via add_card (type=videoClip).',
+};

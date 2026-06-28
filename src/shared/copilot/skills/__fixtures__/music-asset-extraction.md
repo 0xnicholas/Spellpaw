@@ -1,7 +1,7 @@
 ---
 id: music-asset-extraction
 name: music-asset-extraction
-description: Use when a MusicDirectionCard has been generated and BGM/SFX lists need to be extracted, production priorities need to be ranked, and MusicAssetCards need to be created
+description: Use to extract BGM/SFX inventory for the project. Reads storyline / scene cards via get_canvas and emits asset cards via add_card (type=asset) with audio reference prompts.
 slashCommand: music-asset-extraction
 examples: []
 parameters: {}

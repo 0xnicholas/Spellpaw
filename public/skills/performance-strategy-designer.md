@@ -1,7 +1,7 @@
 ---
 id: performance-strategy-designer
 name: performance-strategy-designer
-description: Use when a DirectorBriefingCard.precheck exists and performance strategies need to be designed for characters in a scene, including action design, expression changes, dialogue delivery, and emotional arcs
+description: Use to plan performance direction — expressions, body language, dialogue delivery — for a character in a scene. Reads scene + character cards via get_canvas, updates metadata via update_card. Drives generate_asset for reference images of key beats.
 slashCommand: performance-strategy-designer
 examples: []
 parameters: {}

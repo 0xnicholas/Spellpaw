@@ -1,7 +1,7 @@
 ---
 id: art-direction
 name: art-direction
-description: Use when script deconstruction enters the style setting phase, the user has chosen an art style, and an ArtDirectionCard needs to be generated with a color system, lighting system, composition principles, and per-scene visual guidance
+description: Use to define the overall visual art direction for a project. Reads the current canvas tree via get_canvas / get_subtree and produces storyline + moodboard + art cards with palette, lighting, and composition guidance. Drives add_card (type=storyline/moodboard/art).
 slashCommand: art-direction
 examples: []
 parameters: {}

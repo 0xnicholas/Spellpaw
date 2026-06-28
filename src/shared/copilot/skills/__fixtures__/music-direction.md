@@ -1,7 +1,7 @@
 ---
 id: music-direction
 name: music-direction
-description: Use when script deconstruction enters the style setting phase, the user has chosen a music style, and a MusicDirectionCard needs to be generated with an instrument system, emotional mapping, and BGM/SFX lists
+description: Use to set the music direction for a project — style, BPM, key, instrumentation, emotion map. Reads storyline cards via get_canvas, updates moodboard / storyline cards with music guidance via update_card.
 slashCommand: music-direction
 examples: []
 parameters: {}

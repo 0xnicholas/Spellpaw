@@ -4,8 +4,9 @@ import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import { updateCardThumbnail, startPolling } from "../shared";
-import type { ToolkitResult, GenerationInput, Capability } from "../types";
+import type { ToolkitResult, GenerationInput, Capability, MediaType } from "../types";
 import type { CanvasNodeType } from "@drama/types";
+import { getCapabilityConfig } from "../capabilityConfig";
 
 export interface ApplyStyleParams {
 	action: "apply_style";
@@ -109,6 +110,17 @@ export async function applyStyle(
 	}
 
 	const provider = selectedProvider.provider;
+	// Inject capability-specific config
+	const styleMedia: MediaType = sourceCard.type === "videoClip" ? "video" : "image";
+	const capConfig = getCapabilityConfig(styleMedia);
+	if (capConfig) {
+		provider.configure({
+			apiKey: capConfig.apiKey,
+			baseUrl: capConfig.baseUrl,
+			model: capConfig.model,
+		});
+	}
+
 	const task = await provider.submit({
 		type: "image",
 		capability: usedCapability,

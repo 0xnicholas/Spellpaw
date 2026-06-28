@@ -16,6 +16,7 @@ import type {
 	MediaType,
 } from "../types";
 import type { CanvasNodeType } from "@drama/types";
+import { getCapabilityConfig } from "../capabilityConfig";
 
 export interface GenerateAssetParams {
 	action: "generate_asset";
@@ -94,6 +95,20 @@ export async function generateAsset(
 
 	const provider = selection.provider;
 	const cardType = params.cardType ?? defaultCardType(params.mediaType);
+
+	// Inject the capability-specific LLM config (from synced llmConfigs)
+	// into the provider before submitting. This way an `art` card uses
+	// the image-configured provider/model and a `videoClip` card uses the
+	// video-configured one — even if the provider supports both.
+	const capConfig = getCapabilityConfig(params.mediaType);
+	if (capConfig) {
+		provider.configure({
+			apiKey: capConfig.apiKey,
+			baseUrl: capConfig.baseUrl,
+			model: capConfig.model,
+		});
+	}
+
 	const cardIds: string[] = [];
 	const pendingTaskIds: string[] = [];
 

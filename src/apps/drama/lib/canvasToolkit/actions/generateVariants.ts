@@ -15,6 +15,7 @@ import type {
 	Capability,
 	MediaType,
 } from "../types";
+import { getCapabilityConfig } from "../capabilityConfig";
 
 export interface GenerateVariantsParams {
 	action: "generate_variants";
@@ -77,6 +78,17 @@ export async function generateVariants(
 	}
 
 	const provider = selection.provider;
+
+	// Inject the capability-specific LLM config (from synced llmConfigs).
+	const capConfig = getCapabilityConfig(mediaType);
+	if (capConfig) {
+		provider.configure({
+			apiKey: capConfig.apiKey,
+			baseUrl: capConfig.baseUrl,
+			model: capConfig.model,
+		});
+	}
+
 	const cardIds: string[] = [];
 	const pendingTaskIds: string[] = [];
 

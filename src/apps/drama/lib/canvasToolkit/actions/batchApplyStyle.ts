@@ -6,6 +6,7 @@ import { useTaskStore } from "../taskStore";
 import { updateCardThumbnail, startPolling } from "../shared";
 import type { ToolkitResult, GenerationInput } from "../types";
 import type { CanvasNodeType } from "@drama/types";
+import { getCapabilityConfig } from "../capabilityConfig";
 
 export interface BatchApplyStyleParams {
 	action: "batch_apply_style";
@@ -52,6 +53,17 @@ export async function batchApplyStyle(
 	}
 
 	const provider = selection.provider;
+
+	// Inject capability-specific config (style transfer is image-only)
+	const capConfig = getCapabilityConfig("image");
+	if (capConfig) {
+		provider.configure({
+			apiKey: capConfig.apiKey,
+			baseUrl: capConfig.baseUrl,
+			model: capConfig.model,
+		});
+	}
+
 	const cardIds: string[] = [];
 	const pendingTaskIds: string[] = [];
 	const errors: string[] = [];

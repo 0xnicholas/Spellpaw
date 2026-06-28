@@ -10,8 +10,8 @@ import {
 } from './providers.js';
 
 describe('server providers (Phase 4 capability-grouped)', () => {
-  it('lists expected providers including siliconflow', () => {
-    expect(SUPPORTED_LLM_PROVIDERS).toEqual(['doubao', 'minimax', 'deepseek', 'openai', 'siliconflow']);
+  it('lists expected providers including siliconflow and xiaomi-mimo', () => {
+    expect(SUPPORTED_LLM_PROVIDERS).toEqual(['doubao', 'minimax', 'deepseek', 'openai', 'siliconflow', 'xiaomi-mimo']);
   });
 
   it('has defaults with capabilities + recommended for every provider', () => {
@@ -45,7 +45,7 @@ describe('server providers (Phase 4 capability-grouped)', () => {
   });
 
   it('defaultProviderFor maps capabilities to sensible providers', () => {
-    expect(defaultProviderFor('text')).toBe('deepseek');
+    expect(defaultProviderFor('text')).toBe('xiaomi-mimo');
     expect(defaultProviderFor('image')).toBe('doubao');
     expect(defaultProviderFor('video')).toBe('doubao');
     // Cross-check

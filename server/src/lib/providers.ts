@@ -11,6 +11,7 @@ export const SUPPORTED_LLM_PROVIDERS = [
   'deepseek',
   'openai',
   'siliconflow',
+  'xiaomi-mimo',
 ] as const;
 export type SupportedLLMProvider = (typeof SUPPORTED_LLM_PROVIDERS)[number];
 
@@ -72,9 +73,17 @@ export const LLM_PROVIDER_DEFAULTS: Record<SupportedLLMProvider, LLMProviderDefa
       image: 'black-forest-labs/FLUX.2-pro',
     },
   },
+  'xiaomi-mimo': {
+    baseUrl: 'https://api.mimo.xiaomi.com/v1',
+    model: 'MiMo-V2.5-Pro',
+    capabilities: ['text'],
+    recommended: {
+      text: 'MiMo-V2.5-Pro',
+    },
+  },
 };
 
-export const DEFAULT_LLM_PROVIDER: SupportedLLMProvider = 'deepseek';
+export const DEFAULT_LLM_PROVIDER: SupportedLLMProvider = 'xiaomi-mimo';
 
 export function isSupportedLLMProvider(value: unknown): value is SupportedLLMProvider {
   return typeof value === 'string' && (SUPPORTED_LLM_PROVIDERS as readonly string[]).includes(value);
@@ -85,7 +94,7 @@ export function isSupportedLLMProvider(value: unknown): value is SupportedLLMPro
  * the frontend `defaultModelConfig` heuristic.
  */
 export const DEFAULT_PROVIDER_BY_CAPABILITY: Record<Capability, SupportedLLMProvider> = {
-  text: 'deepseek',
+  text: 'xiaomi-mimo',
   image: 'doubao',
   video: 'doubao',
   audio: 'openai',

@@ -11,8 +11,8 @@ import {
 } from './providers';
 
 describe('LLM provider registry (Phase 4)', () => {
-  it('lists expected LLM providers including siliconflow', () => {
-    expect(LLM_PROVIDERS).toEqual(['doubao', 'minimax', 'deepseek', 'openai', 'siliconflow']);
+  it('lists expected LLM providers including siliconflow and xiaomi-mimo', () => {
+    expect(LLM_PROVIDERS).toEqual(['doubao', 'minimax', 'deepseek', 'openai', 'siliconflow', 'xiaomi-mimo']);
   });
 
   it('has config for every LLM provider', () => {

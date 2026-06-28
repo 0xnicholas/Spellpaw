@@ -9,7 +9,14 @@
  * always capability-scoped now.
  */
 
-export const LLM_PROVIDERS = ['doubao', 'minimax', 'deepseek', 'openai', 'siliconflow'] as const;
+export const LLM_PROVIDERS = [
+  'doubao',
+  'minimax',
+  'deepseek',
+  'openai',
+  'siliconflow',
+  'xiaomi-mimo',
+] as const;
 export type LLMProviderType = (typeof LLM_PROVIDERS)[number];
 
 /** Media-level capability bucket used by LLM_PROVIDER_REGISTRY. Coarser
@@ -128,9 +135,19 @@ export const LLM_PROVIDER_REGISTRY: Record<LLMProviderType, LLMProviderConfig> =
       image: 'black-forest-labs/FLUX.2-pro',
     },
   },
+  'xiaomi-mimo': {
+    baseUrl: 'https://api.mimo.xiaomi.com/v1',
+    model: 'MiMo-V2.5-Pro',
+    apiKeyPlaceholder: 'mimo-...',
+    models: ['MiMo-V2.5-Pro', 'mimo-7b', 'mimo-7b-instruct', 'mimo-7b-chat'],
+    capabilities: ['text'],
+    recommended: {
+      text: 'MiMo-V2.5-Pro',
+    },
+  },
 };
 
-export const DEFAULT_LLM_PROVIDER: LLMProviderType = 'deepseek';
+export const DEFAULT_LLM_PROVIDER: LLMProviderType = 'xiaomi-mimo';
 
 export function isValidLLMProvider(value: unknown): value is LLMProviderType {
   return typeof value === 'string' && (LLM_PROVIDERS as readonly string[]).includes(value);
@@ -152,7 +169,7 @@ export function providersForCapability(capability: MediaCapability): LLMProvider
  * simple capability→provider heuristic; the user can swap afterwards.
  */
 export const DEFAULT_PROVIDER_BY_CAPABILITY: Record<MediaCapability, LLMProviderType> = {
-  text: 'deepseek',
+  text: 'xiaomi-mimo',
   image: 'doubao',
   video: 'doubao',
   audio: 'openai',

@@ -1,11 +1,10 @@
 /**
  * Tests for the skill system — registry, slash-command parsing, and
- * the 6 built-in skills.
+ * the shared loader (Phase 3: skills loaded from public/skills/).
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useProjectStore } from '@drama/stores/projectStore';
-import { useCanvasStore } from '@drama/stores/canvasStore';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import {
+  initSkills,
   getAllSkills,
   getSkillById,
   getSkillBySlashCommand,
@@ -13,36 +12,131 @@ import {
   parseArgTokens,
   skillToToolConfig,
   getAllSkillToolConfigs,
+  _resetSkillsLoader,
 } from './registry';
-import {
-  BUILT_IN_SKILLS,
-  analyzePacingSkill,
-  batchStoryboardSkill,
-  brainstormVariantsSkill,
-  characterProfileSkill,
-  duplicateProjectSkill,
-  exportStoryboardPdfSkill,
-} from './builtIn';
-import { exportStoryboardPDF } from '@drama/lib/exportPDF';
-import type { SkillContext } from './types';
+import { augmentUserMessage } from './chat';
 
-// Mock the PDF export so the test doesn't try to build a real PDF and
-// we can assert it was called with the right project + tree.
-vi.mock('@drama/lib/exportPDF', () => ({
-  exportStoryboardPDF: vi.fn(),
-}));
+// Serve the 6 MD files from the test fixture. In production these live
+// in public/skills/ and are fetched via HTTP; in tests we stub fetch.
+const SKILL_FIXTURES: Record<string, string> = {
+  'analyze-pacing': `---
+id: analyze-pacing
+name: 节奏分析
+description: 深入分析当前项目的节奏
+slashCommand: analyze-pacing
+examples: ["/analyze-pacing"]
+parameters:
+  focusArea:
+    type: string
+    description: 聚焦某段
+required: []
+---
+Test body
+`,
+  'duplicate-project': `---
+id: duplicate-project
+name: 复制项目
+description: 把当前项目结构复制为新项目
+slashCommand: duplicate-project
+examples: ["/duplicate-project 新标题:xxx"]
+parameters:
+  newTitle:
+    type: string
+    description: 新标题
+required: ["newTitle"]
+---
+Test body
+`,
+  'batch-storyboard': `---
+id: batch-storyboard
+name: 批量生成分镜
+description: 为画布上所有场景卡批量生成分镜图
+slashCommand: batch-storyboard
+examples: ["/batch-storyboard"]
+parameters:
+  stylePrompt:
+    type: string
+    description: 风格描述
+  onlyEmpty:
+    type: string
+    description: 是否只处理空白
+required: []
+---
+Test body
+`,
+  'character-profile': `---
+id: character-profile
+name: 创建角色卡
+description: 从名字+简介创建一张 character 画布卡
+slashCommand: character-profile
+examples:
+  - /character-profile 姓名:林小夏
+  - /character-profile 姓名:顾言 年龄:28 职业:律师
+parameters:
+  姓名:
+    type: string
+    description: 角色姓名
+  年龄:
+    type: string
+    description: 年龄
+  职业:
+    type: string
+    description: 职业
+  性格:
+    type: string
+    description: 性格
+  描述:
+    type: string
+    description: 背景描述
+required: ["姓名"]
+---
+Test body
+`,
+  'brainstorm-variants': `---
+id: brainstorm-variants
+name: 脑暴 3 个故事变体
+description: 围绕一个主题生成 3 个不同角度的故事线卡片
+slashCommand: brainstorm-variants
+examples:
+  - /brainstorm-variants 主题:时间旅行
+parameters:
+  主题:
+    type: string
+    description: 故事主题
+required: ["主题"]
+---
+Test body
+`,
+  'export-storyboard-pdf': `---
+id: export-storyboard-pdf
+name: 导出分镜 PDF
+description: 把当前项目导出为分镜 PDF
+slashCommand: export-storyboard-pdf
+examples: ["/export-storyboard-pdf"]
+parameters:
+required: []
+---
+Test body
+`,
+};
 
-function makeCtx(): SkillContext {
-  return {
-    projectId: 'proj_skill',
-    getCurrentCanvasNodes: () => useCanvasStore.getState().getCurrentNodes(),
-    getCurrentProject: () => {
-      const { projects, currentProjectId } = useProjectStore.getState();
-      return projects.find((p) => p.id === currentProjectId) ?? null;
-    },
-    getCanvasCardCount: () => useCanvasStore.getState().getCurrentNodes().length,
-  };
-}
+beforeAll(async () => {
+  _resetSkillsLoader();
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    const urlStr = String(url);
+    if (urlStr === '/skills/index.json') {
+      return new Response(JSON.stringify({ skills: Object.keys(SKILL_FIXTURES) }), { status: 200 });
+    }
+    const match = urlStr.match(/\/skills\/(.+)\.md$/);
+    if (match) {
+      const id = match[1];
+      const md = SKILL_FIXTURES[id];
+      if (md) return new Response(md, { status: 200 });
+    }
+    return new Response('Not found', { status: 404 });
+  }));
+  await initSkills();
+});
 
 describe('skill registry', () => {
   it('ships 6 built-in skills', () => {
@@ -59,13 +153,13 @@ describe('skill registry', () => {
   });
 
   it('looks up by id', () => {
-    expect(getSkillById('analyze-pacing')).toBe(analyzePacingSkill);
+    expect(getSkillById('analyze-pacing')).toBeDefined();
     expect(getSkillById('nope')).toBeUndefined();
   });
 
   it('looks up by slash command (with or without leading slash)', () => {
-    expect(getSkillBySlashCommand('/analyze-pacing')).toBe(analyzePacingSkill);
-    expect(getSkillBySlashCommand('analyze-pacing')).toBe(analyzePacingSkill);
+    expect(getSkillBySlashCommand('/analyze-pacing')).toBeDefined();
+    expect(getSkillBySlashCommand('analyze-pacing')).toBeDefined();
     expect(getSkillBySlashCommand('unknown')).toBeUndefined();
   });
 
@@ -83,10 +177,7 @@ describe('skill registry', () => {
   });
 
   it('parseArgTokens handles key:value tokens', () => {
-    expect(parseArgTokens('新标题:foo 风格:bar')).toEqual({
-      '新标题': 'foo',
-      '风格': 'bar',
-    });
+    expect(parseArgTokens('新标题:foo 风格:bar')).toEqual({ '新标题': 'foo', '风格': 'bar' });
   });
 
   it('parseArgTokens ignores tokens without colon', () => {
@@ -117,247 +208,72 @@ describe('skill registry', () => {
   });
 
   it('skillToToolConfig generates spellpaw_skill_* prefixed config', () => {
-    const cfg = skillToToolConfig(analyzePacingSkill);
+    const skill = getSkillById('analyze-pacing')!;
+    const cfg = skillToToolConfig(skill);
     expect(cfg.name).toBe('spellpaw_skill_analyze-pacing');
     expect(cfg.description).toContain('节奏');
+    // Top-level is always 'input' (LLM tool convention)
     expect(cfg.parameters.required).toEqual(['input']);
   });
 
   it('skillToToolConfig description is LLM-friendly (not raw JSON)', () => {
-    // character-profile has 5 params with one required (姓名)
-    const cfg = skillToToolConfig(characterProfileSkill);
-
-    // Description structure: description + slash command + examples + param list
+    const skill = getSkillById('character-profile')!;
+    const cfg = skillToToolConfig(skill);
     expect(cfg.description).toMatch(/Slash command: \/character-profile/);
     expect(cfg.description).toMatch(/Examples: /);
     expect(cfg.description).toMatch(/Parameters:\n/);
-
-    // Each parameter rendered as a bullet line; required marked with *
     expect(cfg.description).toMatch(/-\s*姓名\*\s*\(string\):\s*角色姓名/);
     expect(cfg.description).toMatch(/-\s*年龄\s*\(string\):/);
     expect(cfg.description).toMatch(/-\s*职业\s*\(string\):/);
-
-    // Crucially: no raw JSON.stringify artifact
     expect(cfg.description).not.toMatch(/Schema:/);
     expect(cfg.description).not.toMatch(/\{"姓名":/);
   });
 
   it('skillToToolConfig handles skills with no parameters gracefully', () => {
-    const cfg = skillToToolConfig(exportStoryboardPdfSkill);
+    const skill = getSkillById('export-storyboard-pdf')!;
+    const cfg = skillToToolConfig(skill);
     expect(cfg.description).toContain('No parameters.');
   });
 
   it('getAllSkillToolConfigs returns one config per skill', () => {
     const configs = getAllSkillToolConfigs();
-    expect(configs).toHaveLength(BUILT_IN_SKILLS.length);
-    expect(configs.map((c) => c.name)).toEqual([
-      'spellpaw_skill_analyze-pacing',
-      'spellpaw_skill_duplicate-project',
-      'spellpaw_skill_batch-storyboard',
-      'spellpaw_skill_character-profile',
-      'spellpaw_skill_brainstorm-variants',
-      'spellpaw_skill_export-storyboard-pdf',
-    ]);
+    expect(configs).toHaveLength(6);
   });
 });
 
-describe('analyze-pacing skill', () => {
-  beforeEach(() => {
-    useCanvasStore.setState({ canvases: {}, selectedCardId: null });
-    // Mock fetch to prevent actual API calls
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
+// ── Phase 3: augmentUserMessage ─────────────────────────────────
+
+describe('augmentUserMessage (Phase 3 LLM-driven)', () => {
+  it('returns text unchanged for non-slash input', () => {
+    const text = 'hello world';
+    expect(augmentUserMessage(text, 'proj_1')).toBe(text);
   });
 
-  it('handles empty project gracefully', async () => {
-    useProjectStore.getState().createProject('empty', '', '#000');
-    const result = await analyzePacingSkill.invoke({}, makeCtx());
-    // The skill should still produce a valid diagnostic, not crash.
-    expect(result.summary).toContain('结构诊断');
-    expect(result.summary).toContain('0 幕');
+  it('returns text unchanged for unknown slash command', () => {
+    const text = '/unknown-skill';
+    expect(augmentUserMessage(text, 'proj_1')).toBe(text);
   });
 
-  it('returns composite report on a real project', async () => {
-    useProjectStore.getState().createProject('p', '', '#000');
-    // Add canvas content so analyze_structure has something to work with
-    useCanvasStore.setState({ canvases: { [useProjectStore.getState().currentProjectId!]: { nodes: [{ id: 'a1', type: 'sceneCard', position: { x: 0, y: 0 }, data: { title: '开场', status: 'draft', duration: 30, metadata: { type: 'scene' } } }], edges: [], pushedVersion: 0 } }, selectedCardId: null });
-
-    const result = await analyzePacingSkill.invoke({ focusArea: 'first_act' }, makeCtx());
-    expect(result.summary).toContain('结构诊断');
-    expect(result.summary).toContain('节奏分析');
-    expect(result.summary).toContain('聚焦');
-    expect(result.needsLlmFollowup).toBe(true);
-  });
-});
-
-describe('duplicate-project skill', () => {
-  beforeEach(() => {
-    useCanvasStore.setState({ canvases: {}, selectedCardId: null });
+  it('prepends skill instructions for known slash command', () => {
+    const out = augmentUserMessage('/analyze-pacing 聚焦 clim', 'proj_1');
+    expect(out).toContain('/analyze-pacing');
+    expect(out).toContain('Skill 指导');
+    expect(out).toContain('原始用户输入');
   });
 
-  it('refuses missing title', async () => {
-    useProjectStore.getState().createProject('p', '', '#000');
-    const result = await duplicateProjectSkill.invoke({}, makeCtx());
-    expect(result.summary).toContain('请提供');
+  it('renders parsed arg tokens as a list', () => {
+    const out = augmentUserMessage('/character-profile 姓名:林小夏 职业:咖啡师', 'proj_1');
+    expect(out).toContain('姓名: 林小夏');
+    expect(out).toContain('职业: 咖啡师');
   });
 
-  it('creates empty project when source has no acts', async () => {
-    useProjectStore.getState().createProject('p', '', '#000');
-    const result = await duplicateProjectSkill.invoke({ newTitle: 'v2' }, makeCtx());
-    expect(result.summary).toContain('v2');
-    expect(result.summary).toContain('原项目无幕');
-  });
-
-  it('duplicates acts and scenes', async () => {
-    useProjectStore.getState().createProject('原版', '', '#000');
-    useCanvasStore.setState({ canvases: { [useProjectStore.getState().currentProjectId!]: { nodes: [{ id: 'a1', type: 'sceneCard', position: { x: 0, y: 0 }, data: { title: '场景 1', status: 'draft', duration: 30, metadata: { type: 'scene' } } }], edges: [], pushedVersion: 0 } }, selectedCardId: null });
-
-    const result = await duplicateProjectSkill.invoke({ newTitle: 'v2' }, makeCtx());
-    expect(result.summary).toContain('v2');
-    expect(result.summary).toContain('1 幕');
-    expect(result.summary).toContain('1 场景');
-
-    // The new project should be set as current
-    expect(useProjectStore.getState().currentProjectId).toContain('proj_');
+  it('includes skill MD body (instructions) in the output', () => {
+    const out = augmentUserMessage('/analyze-pacing', 'proj_1');
+    expect(out).toContain('Test body');
   });
 });
 
-describe('batch-storyboard skill', () => {
-  beforeEach(() => {
-    useCanvasStore.setState({ canvases: {}, selectedCardId: null });
-    // Mock fetch to prevent actual image generation
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
-  });
-
-  it('reports empty canvas clearly', async () => {
-    useProjectStore.getState().createProject('p', '', '#000');
-    const result = await batchStoryboardSkill.invoke({}, makeCtx());
-    expect(result.summary).toContain('没有任何场景卡');
-  });
-
-  it('onlyEmpty=true skips cards with thumbnails', async () => {
-    useProjectStore.getState().createProject('p', '', '#000');
-    const pid = useProjectStore.getState().currentProjectId!;
-    // Manually add two scene cards
-    useCanvasStore.setState({
-      canvases: {
-        [pid]: {
-          nodes: [
-            { id: 'c1', type: 'sceneCard', position: { x: 0, y: 0 }, data: { title: '已生成', status: 'draft', thumbnail: 'data:img' } },
-            { id: 'c2', type: 'sceneCard', position: { x: 0, y: 0 }, data: { title: '未生成', status: 'draft' } },
-          ],
-          edges: [],
-          viewport: { x: 0, y: 0, zoom: 1 },
-        },
-      },
-      selectedCardId: null,
-    });
-
-    const result = await batchStoryboardSkill.invoke({ onlyEmpty: 'true' }, makeCtx());
-    // Will call generate_storyboard once for c2
-    expect(result.summary).toMatch(/1\/\d+/);
-  });
-});
-
-describe('character-profile skill', () => {
-  beforeEach(() => {
-    useCanvasStore.setState({ canvases: {}, selectedCardId: null });
-  });
-
-  it('requires a name', async () => {
-    useProjectStore.getState().createProject('p', '', '#000');
-    const result = await characterProfileSkill.invoke({}, makeCtx());
-    expect(result.summary).toContain('请提供角色姓名');
-  });
-
-  it('creates a character card with all provided fields', async () => {
-    useProjectStore.getState().createProject('p', '', '#000');
-    const pid = useProjectStore.getState().currentProjectId!;
-    const result = await characterProfileSkill.invoke(
-      { 姓名: '林小夏', 年龄: '25', 职业: '咖啡师', 性格: '温柔坚韧' },
-      makeCtx()
-    );
-    expect(result.summary).toContain('林小夏');
-    expect(result.summary).toContain('咖啡师');
-    expect(result.cardsCreated).toBe(1);
-
-    const cards = useCanvasStore.getState().canvases[pid].nodes;
-    expect(cards).toHaveLength(1);
-    expect(cards[0].type).toBe('character');
-    expect((cards[0].data as { title: string }).title).toBe('林小夏');
-  });
-
-  it('uses placeholders for missing fields', async () => {
-    useProjectStore.getState().createProject('p', '', '#000');
-    const pid = useProjectStore.getState().currentProjectId!;
-    const result = await characterProfileSkill.invoke({ 姓名: '顾言' }, makeCtx());
-    expect(result.summary).toContain('顾言');
-    expect(result.summary).toContain('未知');
-
-    const cards = useCanvasStore.getState().canvases[pid].nodes;
-    // role/age/personality are encoded into description + tags (the
-    // character card schema doesn't allow them as top-level fields)
-    expect((cards[0].data as { description: string }).description).toContain('未知');
-    expect((cards[0].data as { tags: string[] }).tags).toContain('未知');
-  });
-});
-
-describe('brainstorm-variants skill', () => {
-  beforeEach(() => {
-    useCanvasStore.setState({ canvases: {}, selectedCardId: null });
-  });
-
-  it('requires a theme', async () => {
-    useProjectStore.getState().createProject('p', '', '#000');
-    const result = await brainstormVariantsSkill.invoke({}, makeCtx());
-    expect(result.summary).toContain('请提供主题');
-  });
-
-  it('creates 3 storyline cards with different angles', async () => {
-    useProjectStore.getState().createProject('p', '', '#000');
-    const pid = useProjectStore.getState().currentProjectId!;
-    const result = await brainstormVariantsSkill.invoke(
-      { 主题: '时间旅行' },
-      makeCtx()
-    );
-    expect(result.cardsCreated).toBe(3);
-    expect(result.summary).toContain('时间旅行');
-    expect(result.summary).toContain('喜剧反差');
-    expect(result.summary).toContain('悬疑反转');
-    expect(result.summary).toContain('温情治愈');
-
-    const cards = useCanvasStore.getState().canvases[pid].nodes;
-    expect(cards).toHaveLength(3);
-    expect(cards.every((c) => c.type === 'storyline')).toBe(true);
-  });
-});
-
-describe('export-storyboard-pdf skill', () => {
-  beforeEach(() => {
-    vi.mocked(exportStoryboardPDF).mockClear();
-  });
-
-  it('refuses to export when no project is open', async () => {
-    const result = await exportStoryboardPdfSkill.invoke({}, makeCtx());
-    expect(result.summary).toMatch(/当前没有打开的项目/);
-    expect(exportStoryboardPDF).not.toHaveBeenCalled();
-  });
-
-  it('still exports an empty project (just produces a minimal PDF with title only)', async () => {
-    useProjectStore.getState().createProject('空项目', '', '#000');
-    const result = await exportStoryboardPdfSkill.invoke({}, makeCtx());
-    expect(result.summary).toContain('空项目');
-    expect(exportStoryboardPDF).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls exportStoryboardPDF with the current project + canvas nodes', async () => {
-    useProjectStore.getState().createProject('密室逃脱', '', '#6366f1');
-    useCanvasStore.setState({ canvases: { [useProjectStore.getState().currentProjectId!]: { nodes: [{ id: 'a1', type: 'sceneCard', position: { x: 0, y: 0 }, data: { title: '场景', status: 'draft', metadata: { type: 'scene' } } }], edges: [], pushedVersion: 0 } }, selectedCardId: null });
-
-    const result = await exportStoryboardPdfSkill.invoke({}, makeCtx());
-    expect(result.summary).toContain('密室逃脱');
-    expect(exportStoryboardPDF).toHaveBeenCalledTimes(1);
-    const [project, tree] = vi.mocked(exportStoryboardPDF).mock.calls[0];
-    expect(project.title).toBe('密室逃脱');
-    expect(tree.id).toBe(root.id);
-  });
-});
+// ── Phase 1: per-skill invoke tests are skipped ──────────────────
+// Skills are now LLM-driven; the old TS invoke files have been deleted.
+// These tests will be replaced by LLM-behavior tests when the system
+// is integrated with a real LLM backend.

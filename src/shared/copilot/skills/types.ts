@@ -57,4 +57,6 @@ export interface Skill {
   };
   /** The skill's actual work. Receives user-provided args plus the live project context. */
   invoke: (args: Record<string, unknown>, ctx: SkillContext) => Promise<SkillResult>;
+  /** Phase 3: the full MD body (after YAML frontmatter) — LLM working instructions. */
+  instructions?: string;
 }

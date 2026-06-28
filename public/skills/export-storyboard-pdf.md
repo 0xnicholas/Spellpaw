@@ -4,7 +4,7 @@ name: 导出分镜 PDF
 description: 把当前项目导出为分镜 PDF（在浏览器中触发下载）
 slashCommand: export-storyboard-pdf
 examples: ["/export-storyboard-pdf"]
-parameters: []
+parameters:
 required: []
 ---
 

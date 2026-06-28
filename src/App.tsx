@@ -4,7 +4,6 @@ import { LoginPage } from '@drama/pages/LoginPage';
 import { ProjectListPage } from '@drama/pages/ProjectListPage';
 import { WorkspacePage } from '@drama/pages/WorkspacePage';
 import { ConsolePage } from '@console/pages/ConsolePage';
-import { CopilotLabPage } from '@drama/pages/CopilotLabPage';
 import { BootstrapShell } from '@/shared/components/BootstrapShell';
 import { bootstrapDrama } from '@drama/bootstrap';
 import { bootstrapConsole } from '@console/bootstrap';
@@ -45,16 +44,6 @@ function App() {
           <RequireAuth>
             <BootstrapShell bootstrap={bootstrapDrama}>
               <WorkspacePage />
-            </BootstrapShell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/copilot-lab"
-        element={
-          <RequireAuth>
-            <BootstrapShell bootstrap={bootstrapDrama}>
-              <CopilotLabPage />
             </BootstrapShell>
           </RequireAuth>
         }

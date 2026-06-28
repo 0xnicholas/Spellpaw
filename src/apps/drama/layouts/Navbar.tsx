@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Command, ChevronRight, Pencil, Download, FlaskConical } from 'lucide-react';
+import { Bell, Command, ChevronRight, Pencil, Download } from 'lucide-react';
 import { IconButton } from '@/shared/components/ui/IconButton';
 import { ProjectSettingsModal } from '@drama/components/modals/ProjectSettingsModal';
 import { useProjectStore } from '@drama/stores/projectStore';
@@ -106,23 +106,6 @@ export function Navbar() {
       </div>
       <div className="flex items-center gap-1">
         <IconButton icon={<Command className="h-4 w-4" />} label="命令面板" size="sm" />
-        <Link
-          to="/copilot-lab"
-          className="flex h-7 w-7 items-center justify-center rounded transition-colors"
-          style={{ color: 'var(--portal-text-muted)' }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'oklch(100% 0 0 / 0.06)';
-            e.currentTarget.style.color = 'oklch(75% 0.15 275)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'var(--portal-text-muted)';
-          }}
-          title="Copilot Lab — 调试/优化 Copilot"
-          aria-label="Copilot Lab"
-        >
-          <FlaskConical className="h-4 w-4" />
-        </Link>
         <IconButton icon={<Bell className="h-4 w-4" />} label="通知" size="sm" />
         <button
           onClick={() => i18n.changeLanguage(i18n.language === 'zh-CN' ? 'en' : 'zh-CN')}

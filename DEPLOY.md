@@ -165,11 +165,11 @@ JWT_SECRET=$(openssl rand -hex 32)
 sudo tee "$INSTALL_DIR/server/.env" >/dev/null <<EOF
 # Generated $(date -u +%Y-%m-%dT%H:%M:%SZ) by DEPLOY.md
 JWT_SECRET=$JWT_SECRET
-PORT=3002
+PORT=3001
 NODE_ENV=production
 
 PUBLIC_HOST=$PUBLIC_HOST
-CLIENT_ORIGIN=https://$PUBLIC_HOST,http://$PUBLIC_HOST,http://localhost:3002
+CLIENT_ORIGIN=https://$PUBLIC_HOST,http://$PUBLIC_HOST,http://localhost:3001
 
 # Optional server-wide LLM fallback. Per-user configs in
 # Console > Integrations override these.
@@ -265,21 +265,21 @@ up systemd.
 ```bash
 set -euo pipefail
 cd /home/spellpaw/Spellpaw
-sudo -u spellpaw bash -c 'cd server && PORT=3002 NODE_ENV=production node dist/index.js' &
+sudo -u spellpaw bash -c 'cd server && PORT=3001 NODE_ENV=production node dist/index.js' &
 SERVER_PID=$!
 trap "kill $SERVER_PID 2>/dev/null || true" EXIT
 # Give the server a moment to bind
 for i in 1 2 3 4 5 6 7 8 9 10; do
-  curl -s -o /dev/null http://localhost:3002/ && break
+  curl -s -o /dev/null http://localhost:3001/ && break
   sleep 0.5
 done
 
 # Frontend
-test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3002/)" = "200" && echo "GET / OK"
-test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3002/project/proj_1)" = "200" && echo "SPA fallback OK"
-test "$(curl -s http://localhost:3002/skills/index.json | jq -r '.skills | length')" -gt 30 && echo "skills index OK"
-test "$(curl -s -X POST http://localhost:3002/api/auth/login -H 'Content-Type: application/json' -d '{"email":"demo@spellpaw.xyz","password":"password123"}' | jq -r .user.id)" = "demo-user" && echo "demo auth OK"
-test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3002/api/projects)" = "401" && echo "projects requires auth OK"
+test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/)" = "200" && echo "GET / OK"
+test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/project/proj_1)" = "200" && echo "SPA fallback OK"
+test "$(curl -s http://localhost:3001/skills/index.json | jq -r '.skills | length')" -gt 30 && echo "skills index OK"
+test "$(curl -s -X POST http://localhost:3001/api/auth/login -H 'Content-Type: application/json' -d '{"email":"demo@spellpaw.xyz","password":"password123"}' | jq -r .user.id)" = "demo-user" && echo "demo auth OK"
+test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/api/projects)" = "401" && echo "projects requires auth OK"
 
 kill $SERVER_PID
 wait $SERVER_PID 2>/dev/null || true
@@ -297,14 +297,14 @@ and renews it automatically — no separate certbot step.
 ```bash
 set -euo pipefail
 sudo tee /etc/caddy/Caddyfile >/dev/null <<EOF
-# Plain HTTP → HTTPS redirect
-http://$PUBLIC_HOST, http://$PUBLIC_HOST:3002 {
+# Plain HTTP → HTTPS redirect (Caddy owns :80; Express listens on :3001)
+http://$PUBLIC_HOST {
     redir https://$PUBLIC_HOST{uri} permanent
 }
 
 # Main site
 https://$PUBLIC_HOST {
-    reverse_proxy 127.0.0.1:3002 {
+    reverse_proxy 127.0.0.1:3001 {
         # WebSocket upgrade for /tool-ws
         header_up Host {host}
         header_up X-Real-IP {remote_host}
@@ -401,7 +401,9 @@ ProtectControlGroups=true
 RestrictSUIDSGID=true
 LockPersonality=true
 RestrictNamespaces=true
-MemoryDenyWriteExecute=true
+# MemoryDenyWriteExecute intentionally NOT set: it conflicts with
+# V8's JIT compiler (W^X mapping for executable code pages).
+# V8 falls back to interpreted mode and performance collapses.
 
 [Install]
 WantedBy=multi-user.target
@@ -421,7 +423,7 @@ sudo journalctl -u spellpaw -n 5 --no-pager
 
 The first two lines print `active` and `enabled`. The last command
 shows the most recent 5 log lines; you should see `🧙 Spellpaw Server
-running on http://localhost:3002` within the first ~10 seconds. If
+running on http://localhost:3001` within the first ~10 seconds. If
 you don't, run `sudo systemctl status spellpaw -l` for the last
 200 lines of logs.
 
@@ -510,13 +512,13 @@ to 443. From outside:
   (This is OUTSIDE the VM's ufw; the cloud provider may block it.)
 - Verify Caddy is listening on 443: `sudo ss -tlnp | grep :443`
 
-### A.5 Step 11 journal shows `EADDRINUSE :::3002`
+### A.5 Step 11 journal shows `EADDRINUSE :::3001`
 
 The smoke test from step 8 didn't fully release the port, or
-another process is using 3002. Find and kill it:
+another process is using 3001. Find and kill it:
 
 ```bash
-sudo lsof -i :3002        # who has the port
+sudo lsof -i :3001        # who has the port
 sudo systemctl restart spellpaw
 ```
 

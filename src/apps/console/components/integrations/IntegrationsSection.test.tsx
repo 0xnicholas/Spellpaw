@@ -31,9 +31,11 @@ describe('IntegrationsSection — Phase 4 capability-grouped', () => {
     vi.clearAllMocks();
   });
 
-  it('renders one card per capability', async () => {
+  it('renders one card per capability (chat + 9-fine media)', async () => {
     render(<IntegrationsSection />);
-    expect(await screen.findByText('文生图 (text2image)')).toBeInTheDocument();
+    // Chat (LLM) is the first card and tags as "Used for Copilot chat" via title prefix.
+    expect(await screen.findByText('Copilot chat (LLM)')).toBeInTheDocument();
+    expect(screen.getByText('文生图 (text2image)')).toBeInTheDocument();
     expect(screen.getByText('图生图 (image2image)')).toBeInTheDocument();
     expect(screen.getByText('局部重绘 (inpaint)')).toBeInTheDocument();
     expect(screen.getByText('文生视频 (text2video)')).toBeInTheDocument();
@@ -42,6 +44,14 @@ describe('IntegrationsSection — Phase 4 capability-grouped', () => {
     expect(screen.getByText('文生音频 (text2audio)')).toBeInTheDocument();
     expect(screen.getByText('文生模型 (text2model)')).toBeInTheDocument();
     expect(screen.getByText('图生模型 (image2model)')).toBeInTheDocument();
+  });
+
+  it('chat card defaults to DeepSeek and supports text-capable providers', async () => {
+    render(<IntegrationsSection />);
+    const chatBlock = (await screen.findByText('Copilot chat (LLM)')).closest('section')!;
+    const trigger = chatBlock.querySelector('[aria-haspopup="listbox"]')!;
+    // Chat (text bucket) is supported by deepseek, doubao, openai, minimax.
+    expect(trigger.textContent).toContain('DeepSeek');
   });
 
   it('filters providers per capability', async () => {

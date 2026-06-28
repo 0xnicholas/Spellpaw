@@ -25,21 +25,26 @@ function authHeaders(toolChoice?: ToolChoice): Record<string, string> {
   const token = useAuthStore.getState().token;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
-  // Per-capability shape: pick the `text` config for chat (Phase 4 default —
-  // the server re-routes per-call to image/video/etc. via the per-tool model
-  // header when the LLM actually issues a tool call).
+  // Per-capability shape: pick the `chat` config for Copilot (Phase 4).
+  // The server re-routes per-call to image/video/etc. via the per-tool
+  // model header when the LLM actually issues a tool call.
   const settings = getLLMSettings();
-  const text = settings.text;
-  logger.log('[spellpawProvider] getLLMSettings (text):', {
-    provider: text.provider,
-    hasApiKey: Boolean(text.apiKey),
-    baseUrl: text.baseUrl,
-    model: text.model,
+  const chat = settings.chat ?? {
+    provider: 'deepseek',
+    apiKey: '',
+    baseUrl: '',
+    model: '',
+  };
+  logger.log('[spellpawProvider] getLLMSettings (chat):', {
+    provider: chat.provider,
+    hasApiKey: Boolean(chat.apiKey),
+    baseUrl: chat.baseUrl,
+    model: chat.model,
   });
-  headers['X-LLM-Provider'] = text.provider;
-  if (text.apiKey) headers['X-LLM-API-Key'] = text.apiKey;
-  if (text.baseUrl) headers['X-LLM-Base-URL'] = text.baseUrl;
-  if (text.model) headers['X-LLM-Model'] = text.model;
+  headers['X-LLM-Provider'] = chat.provider;
+  if (chat.apiKey) headers['X-LLM-API-Key'] = chat.apiKey;
+  if (chat.baseUrl) headers['X-LLM-Base-URL'] = chat.baseUrl;
+  if (chat.model) headers['X-LLM-Model'] = chat.model;
   if (toolChoice && toolChoice !== 'auto') {
     headers['X-LLM-Tool-Choice'] = JSON.stringify(toolChoice);
   }

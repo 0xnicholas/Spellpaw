@@ -16,9 +16,16 @@
 
 import { authApi } from '@/shared/stores/authStore';
 import type { ProfileFormData, PasswordFormData } from '@console/types';
-import type { Capability as ConfigCapability, LLMProviderType } from '@shared/lib/providers';
+import type { Capability, LLMProviderType } from '@shared/lib/providers';
 
-export type { ConfigCapability };
+export type { Capability };
+
+/** Capability keys the user can configure in Console Integrations.
+ *
+ * Includes the Copilot chat LLM (`chat`) plus the 9-fine media-generation
+ * keys consumed by the drama canvas toolkit. Backed by the same JSON
+ * column on `User.llmConfigs`. */
+export type ConfigCapability = 'chat' | Capability;
 
 export interface ModelConfig {
   provider: LLMProviderType;

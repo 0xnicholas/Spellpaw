@@ -12,16 +12,21 @@ vi.mock('@/shared/stores/authStore', () => ({
 
 vi.mock('@console/lib/llmSettings', () => ({
   getLLMSettings: () => ({
-    text: {
+    chat: {
       provider: 'deepseek',
       apiKey: 'sk-deepseek',
       baseUrl: 'https://api.deepseek.com/v1',
       model: 'deepseek-v4-pro',
     },
-    image: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
-    video: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
-    audio: { provider: 'openai', apiKey: '', baseUrl: '', model: '' },
-    model3d: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
+    text2image: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
+    image2image: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
+    inpaint: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
+    text2video: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
+    image2video: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
+    styleTransfer: { provider: 'siliconflow', apiKey: '', baseUrl: '', model: '' },
+    text2audio: { provider: 'openai', apiKey: '', baseUrl: '', model: '' },
+    text2model: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
+    image2model: { provider: 'doubao', apiKey: '', baseUrl: '', model: '' },
   }),
 }));
 

@@ -19,7 +19,12 @@ function deriveNameFromEmail(email: string): string {
 // ── Phase 4: capability-grouped LLM configs ──────────────────────────
 //
 // `llmConfigs` is a JSON string with shape:
-//   { text: ModelConfig, image: ModelConfig, video: ModelConfig }
+//   { chat: ModelConfig, text2image: ModelConfig, image2image: ModelConfig, ... }
+//
+// `chat` is the LLM provider used by the Copilot chat surface (text
+// completion, tool calling, streaming). The 9-fine media-generation
+// keys (text2image, image2image, ...) configure the drama canvas
+// toolkit's per-intent image/video/audio/3D providers.
 //
 // ModelConfig = { provider, apiKey, baseUrl, model }
 //
@@ -36,12 +41,19 @@ interface ModelConfig {
 }
 
 const CONFIG_CAPABILITIES = [
+  // Copilot chat LLM (text completion / tool calling).
+  // Distinct from the media-generation keys below.
+  'chat',
+  // 9-fine media generation (drama canvas toolkit).
   'text2image',
   'image2image',
   'inpaint',
   'text2video',
   'image2video',
   'styleTransfer',
+  'text2audio',
+  'text2model',
+  'image2model',
 ] as const;
 
 type ConfigCapability = (typeof CONFIG_CAPABILITIES)[number];

@@ -1,30 +1,41 @@
 /**
  * Console-side LLM settings (Phase 4: capability-grouped).
  *
- * `spellpaw_llm_settings` localStorage entry stores one ModelConfig
- * per capability (text / image / video). Each capability has its own
- * provider + apiKey + baseUrl + model — keys are NOT shared across
- * capabilities, even for the same provider.
+ * `spellpaw_llm_settings` localStorage entry stores one ModelConfig per
+ * key the user can configure. Two namespaces share the same JSON column:
+ *
+ *   1. `chat`         — the LLM provider for Copilot chat (text completion,
+ *                       tool calling, streaming). 5-bucket text in the
+ *                       previous schema.
+ *   2. 9-fine media — `text2image`, `image2image`, `inpaint`, `text2video`,
+ *                       `image2video`, `styleTransfer`, `text2audio`,
+ *                       `text2model`, `image2model`. Consumed by the drama
+ *                       canvas toolkit's `capabilityConfig.ts`.
+ *
+ * Each key has its own provider + apiKey + baseUrl + model. Keys are NOT
+ * shared across capabilities, even for the same provider.
+ *
+ * The shape mirrors the server's `User.llmConfigs` JSON column, so the
+ * `syncUserSettings` round-trip is a structural copy (no lossy cast).
  *
  * Migration:
  *   Legacy `{ provider, apiKey, apiKeys, baseUrl, model }` shape is
- *   translated to per-capability defaults on read:
- *     text  ← legacy provider / apiKey / apiKeys[provider] / baseUrl / model
- *     image ← drama doubaoApiKey (or openai / default)
- *     video ← drama doubaoApiKey (or minimax / default)
- *   New writes always use the new shape.
+ *   translated to the new `chat` slot on read. New writes always use
+ *   the new shape.
  */
 
 import {
   defaultModelConfig,
   isValidLLMProvider,
   LLM_PROVIDER_REGISTRY,
+  CAPABILITY_TO_MEDIA,
+  type Capability,
   type MediaCapability,
 } from '@shared/lib/providers';
-import type { ModelConfig as ServerModelConfig } from './consoleApi';
+import type { ConfigCapability, ModelConfig as ServerModelConfig } from './consoleApi';
 
 export type ModelConfig = ServerModelConfig;
-export type LlmConfigs = Record<MediaCapability, ModelConfig>;
+export type LlmConfigs = Partial<Record<ConfigCapability, ModelConfig>>;
 
 const SETTINGS_KEY = 'spellpaw_llm_settings';
 
@@ -34,41 +45,60 @@ export interface DramaApiKeys {
   minimax?: string;
 }
 
+/** All known keys, in display order. */
+const ALL_KEYS: ConfigCapability[] = [
+  'chat',
+  'text2image',
+  'image2image',
+  'inpaint',
+  'text2video',
+  'image2video',
+  'styleTransfer',
+  'text2audio',
+  'text2model',
+  'image2model',
+];
+
 function buildDefaultConfigs(drama: DramaApiKeys): LlmConfigs {
-  const seed = (cap: MediaCapability): ModelConfig => ({
-    ...defaultModelConfig(cap),
-    apiKey: '',
-  });
-  const fresh: LlmConfigs = {
-    text: seed('text'),
-    image: seed('image'),
-    video: seed('video'),
-    audio: seed('audio'),
-    model3d: seed('model3d'),
-  };
+  // Default `chat` config — text-capability LLM (DeepSeek by default).
+  const chatDefault = { ...defaultModelConfig('text' as MediaCapability), apiKey: '' };
+  const fresh: LlmConfigs = { chat: chatDefault };
+
+  for (const cap of ALL_KEYS) {
+    if (cap === 'chat') continue;
+    const mediaCap = CAPABILITY_TO_MEDIA[cap as Capability];
+    fresh[cap] = { ...defaultModelConfig(mediaCap), apiKey: '' };
+  }
 
   if (drama.doubao) {
-    fresh.image.provider = 'doubao';
-    fresh.image.apiKey = drama.doubao;
-    const recommendedImage = LLM_PROVIDER_REGISTRY.doubao.recommended.image;
-    if (recommendedImage) fresh.image.model = recommendedImage;
-
-    fresh.video.provider = 'doubao';
-    fresh.video.apiKey = drama.doubao;
-    const recommendedVideo = LLM_PROVIDER_REGISTRY.doubao.recommended.video;
-    if (recommendedVideo) fresh.video.model = recommendedVideo;
-  } else {
-    if (drama.openai) {
-      fresh.image.provider = 'openai';
-      fresh.image.apiKey = drama.openai;
-      const recommended = LLM_PROVIDER_REGISTRY.openai.recommended.image;
-      if (recommended) fresh.image.model = recommended;
+    const img = fresh.text2image;
+    if (img) {
+      img.provider = 'doubao';
+      img.apiKey = drama.doubao;
+      const r = LLM_PROVIDER_REGISTRY.doubao.recommended.image;
+      if (r) img.model = r;
     }
-    if (drama.minimax) {
-      fresh.video.provider = 'minimax';
-      fresh.video.apiKey = drama.minimax;
-      const recommended = LLM_PROVIDER_REGISTRY.minimax.recommended.video;
-      if (recommended) fresh.video.model = recommended;
+    const vid = fresh.text2video;
+    if (vid) {
+      vid.provider = 'doubao';
+      vid.apiKey = drama.doubao;
+      const r = LLM_PROVIDER_REGISTRY.doubao.recommended.video;
+      if (r) vid.model = r;
+    }
+  } else {
+    const i2i = fresh.image2image;
+    if (i2i && drama.openai) {
+      i2i.provider = 'openai';
+      i2i.apiKey = drama.openai;
+      const r = LLM_PROVIDER_REGISTRY.openai.recommended.image;
+      if (r) i2i.model = r;
+    }
+    const i2v = fresh.image2video;
+    if (i2v && drama.minimax) {
+      i2v.provider = 'minimax';
+      i2v.apiKey = drama.minimax;
+      const r = LLM_PROVIDER_REGISTRY.minimax.recommended.video;
+      if (r) i2v.model = r;
     }
   }
 
@@ -100,7 +130,19 @@ function isNewShape(parsed: unknown): parsed is Partial<LlmConfigs> {
   return (
     !!parsed &&
     typeof parsed === 'object' &&
-    ('text' in parsed || 'image' in parsed || 'video' in parsed) &&
+    !Array.isArray(parsed) &&
+    (
+      'chat' in parsed ||
+      'text2image' in parsed ||
+      'image2image' in parsed ||
+      'inpaint' in parsed ||
+      'text2video' in parsed ||
+      'image2video' in parsed ||
+      'styleTransfer' in parsed ||
+      'text2audio' in parsed ||
+      'text2model' in parsed ||
+      'image2model' in parsed
+    ) &&
     !('provider' in parsed)
   );
 }
@@ -118,29 +160,30 @@ export function getLLMSettings(drama: DramaApiKeys = {}): LlmConfigs {
 
   if (!parsed) return fresh;
   if (!isNewShape(parsed)) {
-    // Legacy shape → derive text from old fields, image/video from drama keys.
+    // Legacy shape → derive `chat` from old fields, 9-fine media from drama keys.
     const legacy = parsed as LegacyShape;
-    const textProvider = isValidLLMProvider(legacy.provider) ? legacy.provider : 'deepseek';
-    const textCfg = LLM_PROVIDER_REGISTRY[textProvider];
+    const chatProvider = isValidLLMProvider(legacy.provider) ? legacy.provider : 'deepseek';
+    const chatCfg = LLM_PROVIDER_REGISTRY[chatProvider];
     const legacyApiKeys = legacy.apiKeys ?? {};
-    const textApiKey =
-      (typeof legacyApiKeys[textProvider] === 'string' ? legacyApiKeys[textProvider] : '') ||
+    const chatApiKey =
+      (typeof legacyApiKeys[chatProvider] === 'string' ? legacyApiKeys[chatProvider] : '') ||
       (typeof legacy.apiKey === 'string' ? legacy.apiKey : '');
-    fresh.text = {
-      provider: textProvider,
-      apiKey: textApiKey,
-      baseUrl: typeof legacy.baseUrl === 'string' && legacy.baseUrl ? legacy.baseUrl : textCfg.baseUrl,
-      model: typeof legacy.model === 'string' && legacy.model ? legacy.model : textCfg.model,
+    fresh.chat = {
+      provider: chatProvider,
+      apiKey: chatApiKey,
+      baseUrl: typeof legacy.baseUrl === 'string' && legacy.baseUrl ? legacy.baseUrl : chatCfg.baseUrl,
+      model: typeof legacy.model === 'string' && legacy.model ? legacy.model : chatCfg.model,
     };
-    // image/video come from drama keys via buildDefaultConfigs (called above).
     return fresh;
   }
 
-  // New shape → merge each capability that exists.
-  for (const cap of ['text', 'image', 'video', 'audio', 'model3d'] as MediaCapability[]) {
-    const incoming = parsed[cap];
-    if (incoming) {
-      fresh[cap] = coerceConfig(incoming, fresh[cap]);
+  // New shape → merge each known key that exists.
+  const obj = parsed as Record<string, unknown>;
+  for (const cap of ALL_KEYS) {
+    const incoming = obj[cap];
+    if (incoming && typeof incoming === 'object') {
+      const fallback = fresh[cap] ?? { provider: 'deepseek', apiKey: '', baseUrl: '', model: '' };
+      fresh[cap] = coerceConfig(incoming, fallback);
     }
   }
   return fresh;
@@ -161,10 +204,10 @@ export function setLLMSettings(configs: Partial<LlmConfigs>): void {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
 }
 
-export function setCapabilityConfig(capability: MediaCapability, config: ModelConfig): void {
+export function setCapabilityConfig(capability: ConfigCapability, config: ModelConfig): void {
   setLLMSettings({ [capability]: config });
 }
 
-export function getMediaCapabilityConfig(capability: MediaCapability): ModelConfig {
+export function getCapabilityConfigByKey(capability: ConfigCapability): ModelConfig | undefined {
   return getLLMSettings()[capability];
 }

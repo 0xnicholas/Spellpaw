@@ -20,13 +20,19 @@ import {
   type Capability,
   type LLMProviderType,
 } from '@shared/lib/providers';
-import { fetchSettings, updateSettings, type LlmConfigs, type ModelConfig } from '@console/lib/consoleApi';
+import {
+  fetchSettings,
+  updateSettings,
+  type ConfigCapability,
+  type LlmConfigs,
+  type ModelConfig,
+} from '@console/lib/consoleApi';
 import { syncUserSettings } from '@console/lib/syncSettings';
 
-// Drama canvas toolkit's Capability union — must stay in sync with
-// src/apps/drama/lib/canvasToolkit/types.ts. Listed explicitly here so
-// the UI can group / title them.
-const CAPABILITY_LIST: Capability[] = [
+/** Keys the user can configure. `chat` is shown first (Copilot LLM);
+ *  the rest are the 9-fine drama canvas toolkit capabilities. */
+const CAPABILITY_LIST: ConfigCapability[] = [
+  'chat',
   'text2image',
   'image2image',
   'inpaint',
@@ -38,10 +44,13 @@ const CAPABILITY_LIST: Capability[] = [
   'image2model',
 ];
 
-/** Map a drama Capability to the broad MediaCapability bucket used by
- *  LLM_PROVIDER_REGISTRY.capabilities. Re-exported from shared. */
+/** Group label for the chat card (visually separates it from media cards). */
+function isChatCapability(cap: ConfigCapability): cap is 'chat' {
+  return cap === 'chat';
+}
 
-const CAPABILITY_META: Record<Capability, { title: string; description: string }> = {
+const CAPABILITY_META: Record<ConfigCapability, { title: string; description: string }> = {
+  chat: { title: 'Copilot chat (LLM)', description: '对话 / 工具调用 / 流式补全 \u2014\u2014 Copilot 的 LLM provider' },
   text2image: { title: '文生图 (text2image)', description: '纯文字 → 图片，drama 画布新建 art 卡片' },
   image2image: { title: '图生图 (image2image)', description: '参考图 + 提示词 → 修改后的图' },
   inpaint: { title: '局部重绘 (inpaint)', description: '在原图指定区域重绘' },
@@ -53,7 +62,8 @@ const CAPABILITY_META: Record<Capability, { title: string; description: string }
   image2model: { title: '图生模型 (image2model)', description: '参考图 → 3D 模型（即将支持）' },
 };
 
-const CAPABILITY_DEFAULT_PROVIDER: Record<Capability, LLMProviderType> = {
+const CAPABILITY_DEFAULT_PROVIDER: Record<ConfigCapability, LLMProviderType> = {
+  chat: 'deepseek',
   text2image: 'doubao',
   image2image: 'doubao',
   inpaint: 'doubao',
@@ -73,9 +83,11 @@ const PROVIDER_LABELS: Record<LLMProviderType, string> = {
   siliconflow: '硅基流动',
 };
 
-function emptyConfig(capability: Capability, provider: LLMProviderType): ModelConfig {
+function emptyConfig(capability: ConfigCapability, provider: LLMProviderType): ModelConfig {
   const cfg = LLM_PROVIDER_REGISTRY[provider];
-  const media = CAPABILITY_TO_MEDIA[capability];
+  // The chat config uses the `text` media bucket (text-completion LLM).
+  // The 9-fine media keys use CAPABILITY_TO_MEDIA.
+  const media = mediaFor(capability);
   return {
     provider,
     apiKey: '',
@@ -84,16 +96,22 @@ function emptyConfig(capability: Capability, provider: LLMProviderType): ModelCo
   };
 }
 
+/** Resolve a ConfigCapability to the MediaCapability bucket used by
+ *  LLM_PROVIDER_REGISTRY. `chat` maps to `text`; 9-fine media map via CAPABILITY_TO_MEDIA. */
+function mediaFor(capability: ConfigCapability): 'text' | 'image' | 'video' | 'audio' | 'model3d' {
+  return isChatCapability(capability) ? 'text' : CAPABILITY_TO_MEDIA[capability];
+}
+
 export function IntegrationsSection() {
   const [llmConfigs, setLlmConfigs] = useState<LlmConfigs>({});
-  const [saved, setSaved] = useState<Record<Capability, boolean>>(
-    Object.fromEntries(CAPABILITY_LIST.map((c) => [c, false])) as Record<Capability, boolean>,
+  const [saved, setSaved] = useState<Record<ConfigCapability, boolean>>(
+    Object.fromEntries(CAPABILITY_LIST.map((c) => [c, false])) as Record<ConfigCapability, boolean>,
   );
-  const [errors, setErrors] = useState<Record<Capability, boolean>>(
-    Object.fromEntries(CAPABILITY_LIST.map((c) => [c, false])) as Record<Capability, boolean>,
+  const [errors, setErrors] = useState<Record<ConfigCapability, boolean>>(
+    Object.fromEntries(CAPABILITY_LIST.map((c) => [c, false])) as Record<ConfigCapability, boolean>,
   );
-  const [saving, setSaving] = useState<Record<Capability, boolean>>(
-    Object.fromEntries(CAPABILITY_LIST.map((c) => [c, false])) as Record<Capability, boolean>,
+  const [saving, setSaving] = useState<Record<ConfigCapability, boolean>>(
+    Object.fromEntries(CAPABILITY_LIST.map((c) => [c, false])) as Record<ConfigCapability, boolean>,
   );
   const [loading, setLoading] = useState(true);
 
@@ -109,7 +127,8 @@ export function IntegrationsSection() {
           const incoming = server?.llmConfigs?.[cap];
           if (incoming && isValidLLMProvider(incoming.provider)) {
             const cfg = LLM_PROVIDER_REGISTRY[incoming.provider];
-            const media = CAPABILITY_TO_MEDIA[cap];
+            // Chat config uses the `text` media bucket; 9-fine media use CAPABILITY_TO_MEDIA.
+            const media = isChatCapability(cap) ? 'text' : CAPABILITY_TO_MEDIA[cap as Capability];
             fresh[cap] = {
               provider: incoming.provider,
               apiKey: incoming.apiKey ?? '',
@@ -125,7 +144,7 @@ export function IntegrationsSection() {
       .finally(() => setLoading(false));
   }, []);
 
-  function updateCap(capability: Capability, patch: Partial<ModelConfig>) {
+  function updateCap(capability: ConfigCapability, patch: Partial<ModelConfig>) {
     setLlmConfigs((prev) => ({
       ...prev,
       [capability]: {
@@ -135,9 +154,9 @@ export function IntegrationsSection() {
     }));
   }
 
-  function changeProvider(capability: Capability, provider: LLMProviderType) {
+  function changeProvider(capability: ConfigCapability, provider: LLMProviderType) {
     const cfg = LLM_PROVIDER_REGISTRY[provider];
-    const media = CAPABILITY_TO_MEDIA[capability];
+    const media = mediaFor(capability);
     setLlmConfigs((prev) => {
       const cur = prev[capability] ?? emptyConfig(capability, provider);
       return {
@@ -152,7 +171,7 @@ export function IntegrationsSection() {
     });
   }
 
-  async function saveCapability(capability: Capability) {
+  async function saveCapability(capability: ConfigCapability) {
     const cfg = llmConfigs[capability];
     if (!cfg) return;
     setSaving((s) => ({ ...s, [capability]: true }));
@@ -200,7 +219,7 @@ export function IntegrationsSection() {
 }
 
 interface CapabilityCardProps {
-  capability: Capability;
+  capability: ConfigCapability;
   config: ModelConfig | undefined;
   saved: boolean;
   error: boolean;
@@ -221,10 +240,11 @@ function CapabilityCard({
   onSave,
 }: CapabilityCardProps) {
   const meta = CAPABILITY_META[capability];
+  const media = mediaFor(capability);
   // Providers that support this capability (text2image, image2image, …).
   // Each provider's `capabilities` array is filtered at the registry level.
   const supportedProviders = (Object.keys(LLM_PROVIDER_REGISTRY) as LLMProviderType[]).filter((p) =>
-    LLM_PROVIDER_REGISTRY[p].capabilities.includes(CAPABILITY_TO_MEDIA[capability]),
+    LLM_PROVIDER_REGISTRY[p].capabilities.includes(media),
   );
   const current = config ?? emptyConfig(capability, CAPABILITY_DEFAULT_PROVIDER[capability]);
   const providerSupports = supportedProviders.includes(current.provider);
@@ -238,7 +258,6 @@ function CapabilityCard({
     ? current
     : (() => {
         const fallback = LLM_PROVIDER_REGISTRY[effectiveProvider];
-        const media = CAPABILITY_TO_MEDIA[capability];
         return {
           provider: effectiveProvider,
           apiKey: current.apiKey,
@@ -284,7 +303,7 @@ function CapabilityCard({
             hint: LLM_PROVIDER_REGISTRY[p].apiKeyPlaceholder,
             recommended:
               p === CAPABILITY_DEFAULT_PROVIDER[capability] &&
-              LLM_PROVIDER_REGISTRY[p].recommended[CAPABILITY_TO_MEDIA[capability]] != null,
+              LLM_PROVIDER_REGISTRY[p].recommended[media] != null,
           }))}
           onChange={onChangeProvider}
         />
@@ -318,7 +337,7 @@ function CapabilityCard({
             onChange={(e) => onChange({ model: e.target.value })}
             className="text-xs"
             placeholder={
-              LLM_PROVIDER_REGISTRY[effectiveConfig.provider].recommended[CAPABILITY_TO_MEDIA[capability]] ??
+              LLM_PROVIDER_REGISTRY[effectiveConfig.provider].recommended[media] ??
               LLM_PROVIDER_REGISTRY[effectiveConfig.provider].model
             }
           />

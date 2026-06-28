@@ -1,5 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useProjectStore } from "@drama/stores/projectStore";
+import { useCanvasStore } from "@drama/stores/canvasStore";
 import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
+
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import {
@@ -17,6 +19,9 @@ import type { CanvasNodeType } from "@drama/types";
 
 export interface GenerateAssetParams {
 	action: "generate_asset";
+	/** Canvas card to use as prompt source (canvas-first). Alias: `nodeId` (deprecated). */
+	cardId?: string;
+	/** @deprecated Use `cardId`. Retained for backward compatibility with tree-era callers. */
 	nodeId?: string;
 	mediaType: MediaType;
 	prompt?: string;
@@ -25,22 +30,20 @@ export interface GenerateAssetParams {
 	cardType?: CanvasNodeType;
 }
 
+/**
+ * Default card type for generated assets. Video → videoClip, otherwise art.
+ * Legacy `deliverable` is no longer the default (use `videoClip` for video).
+ */
+function defaultCardType(mediaType: MediaType): CanvasNodeType {
+	return mediaType === "video" ? "videoClip" : "art";
+}
+
 export async function generateAsset(
 	params: GenerateAssetParams,
 ): Promise<ToolkitResult> {
-	const store = useProjectStore.getState();
-	const tree = null as any; /* Phase 4: tree deleted, canvas-based rewrite pending */
-	if (!tree) {
+	const projectId = useProjectStore.getState().currentProjectId;
+	if (!projectId) {
 		return { success: false, message: "当前没有打开的项目", retryable: false };
-	}
-
-	const node = params.nodeId ? findNode(tree, params.nodeId) : null;
-	if (params.nodeId && !node) {
-		return {
-			success: false,
-			message: `未找到节点: ${params.nodeId}`,
-			retryable: false,
-		};
 	}
 
 	if (params.mediaType !== "image" && params.mediaType !== "video") {
@@ -51,10 +54,25 @@ export async function generateAsset(
 		};
 	}
 
-	if (!node && !params.prompt) {
+	// Resolve source card (canvas-first; nodeId kept as alias for back-compat).
+	const targetCardId = params.cardId ?? params.nodeId;
+	let sourceCard: import("@drama/types").CanvasNode | null = null;
+	if (targetCardId) {
+		const nodes = useCanvasStore.getState().getCurrentNodes();
+		sourceCard = nodes.find((n) => n.id === targetCardId) ?? null;
+		if (!sourceCard) {
+			return {
+				success: false,
+				message: `未找到卡片: ${targetCardId}`,
+				retryable: false,
+			};
+		}
+	}
+
+	if (!sourceCard && !params.prompt) {
 		return {
 			success: false,
-			message: "未选择节点时，请提供生成提示词",
+			message: "未选择卡片时，请提供生成提示词",
 			retryable: false,
 		};
 	}
@@ -65,7 +83,7 @@ export async function generateAsset(
 	const input: GenerationInput = {
 		type: params.mediaType,
 		capability,
-		prompt: params.prompt ?? buildDefaultPrompt(node!),
+		prompt: params.prompt ?? buildDefaultPrompt(sourceCard!),
 		batchCount,
 	};
 
@@ -75,8 +93,7 @@ export async function generateAsset(
 	}
 
 	const provider = selection.provider;
-	const cardType =
-		params.cardType ?? (params.mediaType === "video" ? "deliverable" : "art");
+	const cardType = params.cardType ?? defaultCardType(params.mediaType);
 	const cardIds: string[] = [];
 	const pendingTaskIds: string[] = [];
 
@@ -91,16 +108,19 @@ export async function generateAsset(
 		}
 
 		const titleSuffix = batchCount > 1 ? ` 变体 ${i + 1}` : "";
-		const baseTitle = node?.title ?? input.prompt.slice(0, 20);
+		const baseTitle = sourceCard?.data.title ?? input.prompt.slice(0, 20);
 		const cardData: Record<string, unknown> = {
 			title: `${baseTitle}${titleSuffix}`,
 			description: input.prompt,
 			generatedPrompt: input.prompt,
 			status: "draft",
 			sourceProvider: provider.id,
+			linkedCardIds: sourceCard ? [sourceCard.id] : [],
 		};
-		if (cardType === "deliverable") {
-			cardData.deliverableType = "video";
+		if (cardType === "videoClip") {
+			cardData.source = "ai";
+		} else if (cardType === "asset") {
+			cardData.assetType = params.mediaType;
 		}
 
 		const card = await addEnrichedCard(cardType, cardData);
@@ -126,7 +146,7 @@ export async function generateAsset(
 			: "";
 	return {
 		success: true,
-		message: `已使用 ${provider.name} 创建 ${cardIds.length} 张${cardType === "deliverable" ? "视频" : "图片"}卡片${pendingSuffix}`,
+		message: `已使用 ${provider.name} 创建 ${cardIds.length} 张${cardType === "videoClip" ? "视频" : "图片"}卡片${pendingSuffix}`,
 		cardIds,
 		...(pendingTaskIds.length > 0 ? { taskId: pendingTaskIds[0] } : {}),
 	};

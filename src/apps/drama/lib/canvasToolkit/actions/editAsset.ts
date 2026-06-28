@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useProjectStore } from "@drama/stores/projectStore";
 import { useCanvasStore } from "@drama/stores/canvasStore";
 import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 
@@ -6,6 +6,7 @@ import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import { updateCardThumbnail, startPolling } from "../shared";
 import type { ToolkitResult, GenerationInput, Capability } from "../types";
+import type { CanvasNodeType } from "@drama/types";
 
 export interface EditAssetParams {
 	action: "edit_asset";
@@ -14,12 +15,19 @@ export interface EditAssetParams {
 	provider?: string;
 }
 
+/**
+ * Pick a sensible default card type for the edited copy.
+ * Editing a videoClip stays as videoClip; anything image-based becomes `art`.
+ */
+function defaultCardType(sourceType: CanvasNodeType): CanvasNodeType {
+	return sourceType === "videoClip" ? "videoClip" : "art";
+}
+
 export async function editAsset(
 	params: EditAssetParams,
 ): Promise<ToolkitResult> {
-	const store = useProjectStore.getState();
-	const tree = null as any; /* Phase 4: tree deleted, canvas-based rewrite pending */
-	if (!tree) {
+	const projectId = useProjectStore.getState().currentProjectId;
+	if (!projectId) {
 		return { success: false, message: "当前没有打开的项目", retryable: false };
 	}
 
@@ -35,15 +43,21 @@ export async function editAsset(
 		};
 	}
 
+	// Q1: image edit / style transfer require a reference image. Without a
+	// thumbnail the source card cannot be used as a reference, so fail fast
+	// with a clear error instead of misleadingly reporting "no provider".
+	if (!sourceCard.data.thumbnail) {
+		return {
+			success: false,
+			message: "源卡片没有图片，无法编辑",
+			retryable: false,
+		};
+	}
+
 	const sourcePrompt =
 		(sourceCard.data.generatedPrompt as string | undefined) ||
 		(sourceCard.data.description as string | undefined) ||
 		sourceCard.data.title;
-
-	const linkedNodeId = sourceCard.data.linkedTreeNodeId;
-	const linkedNode = linkedNodeId
-		? (findNode(tree, linkedNodeId) ?? null)
-		: null;
 
 	// Prefer a true image-editing provider; fall back to text2image with an edit-aware prompt.
 	const preferredCapabilities: Capability[] = [
@@ -79,9 +93,7 @@ export async function editAsset(
 	}
 
 	const provider = selectedProvider.provider;
-	const fallbackPrompt = sourceCard.data.thumbnail
-		? `Edited version of the reference image. ${params.prompt}\n\nOriginal scene: ${sourcePrompt}`
-		: `Edited version. ${params.prompt}\n\nOriginal scene: ${sourcePrompt}`;
+	const fallbackPrompt = `Edited version of the reference image. ${params.prompt}\n\nOriginal scene: ${sourcePrompt}`;
 
 	const task = await provider.submit({
 		type: "image",
@@ -99,15 +111,17 @@ export async function editAsset(
 		};
 	}
 
-	const title = linkedNode
-		? `${linkedNode.title}（编辑版）`
-		: `${sourceCard.data.title}（编辑版）`;
-	const card = await addEnrichedCard("art", {
+	const cardType = defaultCardType(sourceCard.type);
+	const title = `${sourceCard.data.title}（编辑版）`;
+	const card = await addEnrichedCard(cardType, {
 		title,
 		description: params.prompt,
-		generatedPrompt: fallbackPrompt, status: "draft",
+		generatedPrompt: fallbackPrompt,
+		status: "draft",
 		sourceProvider: provider.id,
+		linkedCardIds: [sourceCard.id],
 	});
+	useCanvasStore.getState().updateNodeData(card.id, { generationStatus: "generating" });
 
 	if (task.status === "done" && task.resultUrl) {
 		updateCardThumbnail(card.id, task.resultUrl, "image");

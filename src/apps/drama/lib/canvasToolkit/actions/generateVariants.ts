@@ -91,8 +91,8 @@ export async function generateVariants(
 		}
 
 		const titleSuffix = batchCount > 1 ? ` 变体 ${i + 1}` : "";
-		const title = node
-			? `${node.title}${titleSuffix}`
+		const title = card
+			? `${card.data.title}${titleSuffix}`
 			: `${basePrompt.slice(0, 20)}${titleSuffix}`;
 		const card = await addEnrichedCard("art", {
 			title,

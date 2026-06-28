@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useCanvasStore } from './canvasStore';
 import { useProjectStore } from './projectStore';
@@ -7,7 +6,7 @@ describe('canvasStore', () => {
   beforeEach(() => {
     // Ensure we have a project set so canvas operations work
     useProjectStore.setState({
-      projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }]},
+      projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
       currentProjectId: 'proj_1',
     });
     useCanvasStore.setState({
@@ -63,20 +62,20 @@ describe('canvasStore', () => {
       id: 'test_1',
       type: 'sceneCard',
       position: { x: 0, y: 0 },
-      data: { title: 'Original', : 'tree_1' },
+      data: { title: 'Original', linkedCardIds: ['tree_1'] },
     });
     useCanvasStore.getState().duplicateNode('test_1');
     const nodes = useCanvasStore.getState().getCurrentNodes();
     expect(nodes).toHaveLength(2);
     expect(nodes[1].data.title).toBe('Original');
-    expect(nodes[1].data.).toBeUndefined();
+    expect(nodes[1].data.linkedCardIds).toEqual([]);
   });
 });
 
 describe('selectedCardId', () => {
   beforeEach(() => {
     useProjectStore.setState({
-      projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }]},
+      projects: [{ id: 'proj_1', title: 'Test', description: '', updatedAt: '', sceneCount: 0, duration: 0, coverColor: '#6366f1' }],
       currentProjectId: 'proj_1',
     });
     useCanvasStore.setState({
@@ -123,10 +122,6 @@ describe('selectedCardId', () => {
     expect(useCanvasStore.getState().getSelectedCard()).toBeNull();
   });
 
-  it('selectedCardId is excluded from persist partialize', () => {
-    useCanvasStore.getState().setSelectedCardId('card_1');
-    const opts = useCanvasStore.persist.getOptions();
-    const partial = opts.partialize!(useCanvasStore.getState());
-    expect(partial).not.toHaveProperty('selectedCardId');
-  });
+  // Skipped: persist was removed in Phase 3 (server-only architecture).
+  // The selectedCardId is now UI state, not persisted, by design.
 });

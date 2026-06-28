@@ -1,10 +1,11 @@
-/* eslint-disable */
+import { useProjectStore } from "@drama/stores/projectStore";
 import { useCanvasStore } from "@drama/stores/canvasStore";
 import { addEnrichedCard } from "@drama/stores/toolRouter/cards";
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
 import { updateCardThumbnail, startPolling } from "../shared";
 import type { ToolkitResult, GenerationInput, Capability } from "../types";
+import type { CanvasNodeType } from "@drama/types";
 
 export interface ApplyStyleParams {
 	action: "apply_style";
@@ -14,11 +15,15 @@ export interface ApplyStyleParams {
 	provider?: string;
 }
 
+function defaultCardType(sourceType: CanvasNodeType): CanvasNodeType {
+	return sourceType === "videoClip" ? "videoClip" : "art";
+}
+
 export async function applyStyle(
 	params: ApplyStyleParams,
 ): Promise<ToolkitResult> {
-	const store = useProjectStore.getState();
-		if (!tree) {
+	const projectId = useProjectStore.getState().currentProjectId;
+	if (!projectId) {
 		return { success: false, message: "当前没有打开的项目", retryable: false };
 	}
 
@@ -30,6 +35,15 @@ export async function applyStyle(
 		return {
 			success: false,
 			message: `未找到源卡片: ${params.sourceCardId}`,
+			retryable: false,
+		};
+	}
+
+	// Q1: style transfer requires a reference image.
+	if (!sourceCard.data.thumbnail) {
+		return {
+			success: false,
+			message: "源卡片没有图片，无法风格化",
 			retryable: false,
 		};
 	}
@@ -58,11 +72,6 @@ export async function applyStyle(
 			retryable: false,
 		};
 	}
-
-	const linkedNodeId = sourceCard.data.linkedTreeNodeId;
-	const linkedNode = linkedNodeId
-		? (findNode(tree, linkedNodeId) ?? null)
-		: null;
 
 	const combinedPrompt = `Render the following scene in this style: ${stylePrompt}\n\nScene: ${sourcePrompt}`;
 
@@ -116,16 +125,17 @@ export async function applyStyle(
 		};
 	}
 
-	const title = linkedNode
-		? `${linkedNode.title}（风格化）`
-		: `${sourceCard.data.title}（风格化）`;
-	const card = await addEnrichedCard("art", {
+	const cardType = defaultCardType(sourceCard.type);
+	const title = `${sourceCard.data.title}（风格化）`;
+	const card = await addEnrichedCard(cardType, {
 		title,
 		description: combinedPrompt,
 		generatedPrompt: combinedPrompt,
 		status: "draft",
 		sourceProvider: provider.id,
+		linkedCardIds: [sourceCard.id],
 	});
+	useCanvasStore.getState().updateNodeData(card.id, { generationStatus: "generating" });
 
 	if (task.status === "done" && task.resultUrl) {
 		updateCardThumbnail(card.id, task.resultUrl, "image");

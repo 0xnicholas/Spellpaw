@@ -1,4 +1,4 @@
-import type { TreeNode } from "@drama/types";
+import type { CanvasNode, CardMetadata } from "@drama/types";
 import { useTaskStore } from "./taskStore";
 import { providerRegistry } from "./registry";
 import type { GenerationProvider } from "./types";
@@ -14,17 +14,30 @@ export function listProviders(): Array<{ id: string; name: string }> {
 	return providerRegistry.list().map((p) => ({ id: p.id, name: p.name }));
 }
 
-export function buildDefaultPrompt(_card: CanvasNode): string {
-	const m = (node.metadata ?? {}) as NonNullable<TreeNode["metadata"]>;
+/**
+ * Build a default image-generation prompt from a canvas card.
+ *
+ * Reads from both the canonical `card.data.metadata` (CardMetadata) and the
+ * legacy top-level fields on `card.data` (kept for backward compatibility with
+ * cards migrated from the old tree system).
+ */
+export function buildDefaultPrompt(card: CanvasNode): string {
+	const d = card.data;
+	const m: CardMetadata = d.metadata ?? {};
 	const parts: string[] = [
 		"Cinematic storyboard frame for a short drama scene.",
 	];
-	if (m.description) parts.push(m.description);
-	parts.push(`Scene: "${node.title}".`);
-	if (m.shotType) parts.push(`Shot type: ${m.shotType}.`);
-	if (m.location) parts.push(`Location: ${m.location}.`);
-	if (m.timeOfDay) parts.push(`Time of day: ${m.timeOfDay}.`);
-	if (m.visualStyle) parts.push(`Visual style: ${m.visualStyle}.`);
+	if (d.description) parts.push(d.description);
+	parts.push(`Scene: "${d.title}".`);
+	const shotType = m.shotType ?? d.shotType;
+	if (shotType) parts.push(`Shot type: ${shotType}.`);
+	const location = m.location ?? d.location;
+	if (location) parts.push(`Location: ${location}.`);
+	const timeOfDay = m.timeOfDay ?? d.timeOfDay;
+	if (timeOfDay) parts.push(`Time of day: ${timeOfDay}.`);
+	if (m.cameraMovement) parts.push(`Camera movement: ${m.cameraMovement}.`);
+	if (m.dialogue) parts.push(`Dialogue: ${m.dialogue}.`);
+	if (m.notes) parts.push(`Notes: ${m.notes}.`);
 	parts.push(
 		"Vertical 9:16 aspect ratio, cinematic lighting, photorealistic, unwatermarked.",
 	);
@@ -73,11 +86,13 @@ export function startPolling(
 				useTaskStore.getState().removeTask(taskId);
 				clearInterval(interval);
 			} else if (task.status === "failed") {
+				markCardGenerationFailed(cardId);
 				useTaskStore.getState().removeTask(taskId);
 				clearInterval(interval);
 			}
 		} catch {
 			if (attempts >= maxAttempts) {
+				markCardGenerationFailed(cardId);
 				useTaskStore.getState().removeTask(taskId);
 				clearInterval(interval);
 			}

@@ -178,7 +178,7 @@ export const useCanvasStore = create<CanvasState>()(
           ...node,
           id: generateId('canvas_'),
           position: { x: node.position.x + 40, y: node.position.y + 40 },
-          data: { ...node.data, linkedTreeNodeId: undefined },
+          data: { ...node.data, linkedCardIds: [] },
         };
         get().addNode(newNode);
       },

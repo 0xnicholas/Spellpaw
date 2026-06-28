@@ -1,26 +1,31 @@
-/* eslint-disable */
+import { useProjectStore } from "@drama/stores/projectStore";
+import { useCanvasStore } from "@drama/stores/canvasStore";
 import { addEnrichedCard } from '@drama/stores/toolRouter/cards';
 import { providerRegistry } from "../registry";
 import { useTaskStore } from "../taskStore";
-import {
-	buildDefaultPrompt,
-	updateCardThumbnail,
-	startPolling,
-} from "../shared";
+import { updateCardThumbnail, startPolling } from "../shared";
 import type { ToolkitResult, GenerationInput } from "../types";
+import type { CanvasNodeType } from "@drama/types";
 
 export interface BatchApplyStyleParams {
 	action: "batch_apply_style";
-	nodeIds: string[];
+	/** Canvas card ids to apply the style to (canvas-first). Alias: `nodeIds` (deprecated). */
+	cardIds?: string[];
+	/** @deprecated Use `cardIds`. Retained for backward compatibility with tree-era callers. */
+	nodeIds?: string[];
 	stylePrompt: string;
 	provider?: string;
+}
+
+function defaultCardType(sourceType: CanvasNodeType): CanvasNodeType {
+	return sourceType === "videoClip" ? "videoClip" : "art";
 }
 
 export async function batchApplyStyle(
 	params: BatchApplyStyleParams,
 ): Promise<ToolkitResult> {
-	const store = useProjectStore.getState();
-		if (!tree) {
+	const projectId = useProjectStore.getState().currentProjectId;
+	if (!projectId) {
 		return { success: false, message: "当前没有打开的项目", retryable: false };
 	}
 
@@ -28,9 +33,12 @@ export async function batchApplyStyle(
 		return { success: false, message: "请提供风格描述", retryable: false };
 	}
 
-	if (params.nodeIds.length === 0) {
-		return { success: false, message: "请至少选择一个节点", retryable: false };
+	const targetIds = params.cardIds ?? params.nodeIds ?? [];
+	if (targetIds.length === 0) {
+		return { success: false, message: "请至少选择一张卡片", retryable: false };
 	}
+
+	const canvasNodes = useCanvasStore.getState().getCurrentNodes();
 
 	const input: GenerationInput = {
 		type: "image",
@@ -48,41 +56,49 @@ export async function batchApplyStyle(
 	const pendingTaskIds: string[] = [];
 	const errors: string[] = [];
 
-	for (const nodeId of params.nodeIds) {
-		const node = findNode(tree, nodeId);
-		if (!node) {
-			errors.push(`未找到节点: ${nodeId}`);
+	for (const cardId of targetIds) {
+		const card = canvasNodes.find((n) => n.id === cardId);
+		if (!card) {
+			errors.push(`未找到卡片: ${cardId}`);
 			continue;
 		}
 
-		const basePrompt = buildDefaultPrompt(node);
+		// Canvas era: build the per-card prompt from card data. (Tree-era buildDefaultPrompt
+		// was removed because it relied on TreeNode metadata fields.)
+		const basePrompt =
+			(card.data.generatedPrompt as string | undefined) ??
+			(card.data.description as string | undefined) ??
+			card.data.title;
 		const styledPrompt = `Style: ${params.stylePrompt}.\n\n${basePrompt}`;
 
 		const task = await provider.submit({ ...input, prompt: styledPrompt });
 		if (task.status === "failed") {
-			errors.push(task.error ?? `「${node.title}」生成失败`);
+			errors.push(task.error ?? `「${card.data.title}」生成失败`);
 			continue;
 		}
 
-		const card = await addEnrichedCard("art", {
-			title: `${node.title}（${params.stylePrompt.slice(0, 12)}）`,
+		const cardType = defaultCardType(card.type);
+		const newCard = await addEnrichedCard(cardType, {
+			title: `${card.data.title}（${params.stylePrompt.slice(0, 12)}）`,
 			description: styledPrompt,
 			generatedPrompt: styledPrompt,
 			status: "draft",
 			sourceProvider: provider.id,
+			linkedCardIds: [card.id],
 		});
-		cardIds.push(card.id);
+		useCanvasStore.getState().updateNodeData(newCard.id, { generationStatus: "generating" });
+		cardIds.push(newCard.id);
 
 		if (task.status === "done" && task.resultUrl) {
-			updateCardThumbnail(card.id, task.resultUrl, "image");
+			updateCardThumbnail(newCard.id, task.resultUrl, "image");
 		} else if (task.status === "pending" || task.status === "processing") {
 			useTaskStore.getState().addTask({
 				taskId: task.taskId,
 				providerId: provider.id,
-				cardId: card.id,
+				cardId: newCard.id,
 				createdAt: new Date().toISOString(),
 			});
-			startPolling(task.taskId, provider, card.id);
+			startPolling(task.taskId, provider, newCard.id);
 			pendingTaskIds.push(task.taskId);
 		}
 	}

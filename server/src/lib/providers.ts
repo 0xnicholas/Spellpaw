@@ -14,7 +14,7 @@ export const SUPPORTED_LLM_PROVIDERS = [
 ] as const;
 export type SupportedLLMProvider = (typeof SUPPORTED_LLM_PROVIDERS)[number];
 
-export type Capability = 'text' | 'image' | 'video';
+export type Capability = 'text' | 'image' | 'video' | 'audio' | 'model3d';
 
 export interface LLMProviderDefaults {
   baseUrl: string;
@@ -57,10 +57,11 @@ export const LLM_PROVIDER_DEFAULTS: Record<SupportedLLMProvider, LLMProviderDefa
   openai: {
     baseUrl: 'https://api.openai.com/v1',
     model: 'gpt-5.5',
-    capabilities: ['text', 'image'],
+    capabilities: ['text', 'image', 'audio'],
     recommended: {
       text: 'gpt-5.5',
       image: 'gpt-image-2',
+      audio: 'tts-1',
     },
   },
   siliconflow: {
@@ -87,6 +88,8 @@ export const DEFAULT_PROVIDER_BY_CAPABILITY: Record<Capability, SupportedLLMProv
   text: 'deepseek',
   image: 'doubao',
   video: 'doubao',
+  audio: 'openai',
+  model3d: 'doubao',
 };
 
 export function defaultProviderFor(capability: Capability): SupportedLLMProvider {

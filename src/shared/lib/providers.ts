@@ -12,7 +12,11 @@
 export const LLM_PROVIDERS = ['doubao', 'minimax', 'deepseek', 'openai', 'siliconflow'] as const;
 export type LLMProviderType = (typeof LLM_PROVIDERS)[number];
 
-export type Capability = 'text' | 'image' | 'video';
+/** Media-level capability bucket used by LLM_PROVIDER_REGISTRY. Coarser
+ *  than the drama canvas toolkit's Capability union (which is per-intent:
+ *  text2image / image2image / …). To translate between the two, see
+ *  CAPABILITY_TO_MEDIA in console/IntegrationsSection. */
+export type Capability = 'text' | 'image' | 'video' | 'audio' | 'model3d';
 
 export interface LLMProviderConfig {
   baseUrl: string;
@@ -51,10 +55,11 @@ export const LLM_PROVIDER_REGISTRY: Record<LLMProviderType, LLMProviderConfig> =
     model: 'gpt-5.5',
     apiKeyPlaceholder: 'sk-...',
     models: ['gpt-5.5', 'gpt-5.5-pro', 'gpt-5.5-instant'],
-    capabilities: ['text', 'image'],
+    capabilities: ['text', 'image', 'audio'],
     recommended: {
       text: 'gpt-5.5',
       image: 'gpt-image-2',
+      audio: 'tts-1',
     },
   },
   deepseek: {
@@ -115,6 +120,8 @@ export const DEFAULT_PROVIDER_BY_CAPABILITY: Record<Capability, LLMProviderType>
   text: 'deepseek',
   image: 'doubao',
   video: 'doubao',
+  audio: 'openai',
+  model3d: 'doubao',
 };
 
 export function defaultModelConfig(capability: Capability): {

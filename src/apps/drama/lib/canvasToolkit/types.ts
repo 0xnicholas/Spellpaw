@@ -6,7 +6,12 @@ export type Capability =
   | 'inpaint'
   | 'text2video'
   | 'image2video'
-  | 'styleTransfer';
+  | 'styleTransfer'
+  // audio
+  | 'text2audio'
+  // 3D — no provider wired yet, UI scaffolding
+  | 'text2model'
+  | 'image2model';
 
 export interface GenerationInput {
   type: MediaType;

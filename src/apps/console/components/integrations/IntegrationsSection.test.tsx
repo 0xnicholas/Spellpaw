@@ -42,6 +42,9 @@ describe('IntegrationsSection — Phase 4 capability-grouped', () => {
     expect(screen.getByText('文生视频 (text2video)')).toBeInTheDocument();
     expect(screen.getByText('图生视频 (image2video)')).toBeInTheDocument();
     expect(screen.getByText('风格迁移 (styleTransfer)')).toBeInTheDocument();
+    expect(screen.getByText('文生音频 (text2audio)')).toBeInTheDocument();
+    expect(screen.getByText('文生模型 (text2model)')).toBeInTheDocument();
+    expect(screen.getByText('图生模型 (image2model)')).toBeInTheDocument();
   });
 
   it('filters providers per capability', async () => {
@@ -141,6 +144,26 @@ describe('IntegrationsSection — Phase 4 capability-grouped', () => {
     render(<IntegrationsSection />);
     const stBlock = (await screen.findByText('风格迁移 (styleTransfer)')).closest('section')!;
     expect(within(stBlock).getByText(/不支持/)).toBeInTheDocument();
+  });
+
+  it('text2audio card defaults to OpenAI', async () => {
+    render(<IntegrationsSection />);
+    await screen.findByText('文生音频 (text2audio)');
+    const audioBlock = screen.getByText('文生音频 (text2audio)').closest('section')!;
+    const selected = audioBlock.querySelector('button.bg-white')?.textContent;
+    expect(selected).toBe('OpenAI');
+  });
+
+  it('text2model and image2model have no providers (empty pill row)', async () => {
+    render(<IntegrationsSection />);
+    await screen.findByText('文生模型 (text2model)');
+    const block = screen.getByText('文生模型 (text2model)').closest('section')!;
+    // No provider buttons rendered when no provider supports the capability
+    const pills = block.querySelectorAll('button.bg-white, button:not([type="button"][class*="bg-"])');
+    const providerPills = Array.from(pills).filter((b) =>
+      ['豆包', 'OpenAI', 'DeepSeek', 'Minimax', '硅基流动'].includes(b.textContent ?? ''),
+    );
+    expect(providerPills.length).toBe(0);
   });
 
   it('routes different capabilities to different provider configs', async () => {

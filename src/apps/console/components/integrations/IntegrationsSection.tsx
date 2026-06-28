@@ -33,17 +33,23 @@ const CAPABILITY_LIST: Capability[] = [
   'text2video',
   'image2video',
   'styleTransfer',
+  'text2audio',
+  'text2model',
+  'image2model',
 ];
 
 /** Map a drama Capability to the broad MediaCapability bucket used by
  *  LLM_PROVIDER_REGISTRY.capabilities. */
-const CAPABILITY_TO_MEDIA: Record<Capability, 'text' | 'image' | 'video'> = {
+const CAPABILITY_TO_MEDIA: Record<Capability, 'text' | 'image' | 'video' | 'audio' | 'model3d'> = {
   text2image: 'image',
   image2image: 'image',
   inpaint: 'image',
   text2video: 'video',
   image2video: 'video',
   styleTransfer: 'image',
+  text2audio: 'audio',
+  text2model: 'model3d',
+  image2model: 'model3d',
 };
 
 const CAPABILITY_META: Record<Capability, { title: string; description: string }> = {
@@ -53,6 +59,9 @@ const CAPABILITY_META: Record<Capability, { title: string; description: string }
   text2video: { title: '文生视频 (text2video)', description: '纯文字 → 视频，drama 画布新建 videoClip 卡片' },
   image2video: { title: '图生视频 (image2video)', description: '参考图 + 提示词 → 视频' },
   styleTransfer: { title: '风格迁移 (styleTransfer)', description: '把风格应用到参考图上' },
+  text2audio: { title: '文生音频 (text2audio)', description: '文字 → 语音 / 音乐（TTS / 配音）' },
+  text2model: { title: '文生模型 (text2model)', description: '文字 → 3D 模型（即将支持）' },
+  image2model: { title: '图生模型 (image2model)', description: '参考图 → 3D 模型（即将支持）' },
 };
 
 const CAPABILITY_DEFAULT_PROVIDER: Record<Capability, LLMProviderType> = {
@@ -62,6 +71,9 @@ const CAPABILITY_DEFAULT_PROVIDER: Record<Capability, LLMProviderType> = {
   text2video: 'doubao',
   image2video: 'doubao',
   styleTransfer: 'siliconflow',
+  text2audio: 'openai',
+  text2model: 'doubao',
+  image2model: 'doubao',
 };
 
 const PROVIDER_LABELS: Record<LLMProviderType, string> = {
@@ -177,7 +189,7 @@ export function IntegrationsSection() {
       <div>
         <h3 className="text-base font-semibold text-[var(--color-text-primary)]">API 集成</h3>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          管理第三方 API 密钥。每个能力（文生图 / 图生图 / 局部重绘 / 文生视频 / 图生视频 / 风格迁移）独立配置 provider 和模型。
+          管理第三方 API 密钥。每个能力（文生图 / 图生图 / 局部重绘 / 文生视频 / 图生视频 / 风格迁移 / 文生音频 / 文生模型 / 图生模型）独立配置 provider 和模型。
         </p>
       </div>
 
@@ -228,6 +240,24 @@ function CapabilityCard({
   const current = config ?? emptyConfig(capability, CAPABILITY_DEFAULT_PROVIDER[capability]);
   const providerSupports = supportedProviders.includes(current.provider);
 
+  // If the chosen default isn't supported, fall back to the first supported
+  // provider so the UI shows a usable default instead of an unreachable one.
+  const effectiveProvider = providerSupports
+    ? current.provider
+    : (supportedProviders[0] ?? current.provider);
+  const effectiveConfig: ModelConfig = providerSupports
+    ? current
+    : (() => {
+        const fallback = LLM_PROVIDER_REGISTRY[effectiveProvider];
+        const media = CAPABILITY_TO_MEDIA[capability];
+        return {
+          provider: effectiveProvider,
+          apiKey: current.apiKey,
+          baseUrl: fallback.baseUrl,
+          model: fallback.recommended[media] ?? fallback.model,
+        };
+      })();
+
   return (
     <section
       className="rounded-[14px] border p-5"
@@ -250,7 +280,7 @@ function CapabilityCard({
             border: '1px solid oklch(60% 0.18 60 / 0.3)',
           }}
         >
-          当前 provider "{PROVIDER_LABELS[current.provider]}" 不支持 {meta.title}，请选择其他 provider。
+          当前 provider "{PROVIDER_LABELS[current.provider]}" 不支持 {meta.title}，已切换到 {PROVIDER_LABELS[effectiveProvider]}。
         </div>
       )}
 
@@ -264,12 +294,12 @@ function CapabilityCard({
               onClick={() => onChangeProvider(p)}
               className={cn(
                 'rounded-full px-3 py-1 text-[11px] font-medium transition-all',
-                current.provider === p
+                effectiveConfig.provider === p
                   ? 'bg-white text-[oklch(15%_0.02_270)] shadow-sm'
                   : 'text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]',
               )}
               style={
-                current.provider !== p
+                effectiveConfig.provider !== p
                   ? {
                       background: 'oklch(100% 0 0 / 0.04)',
                       border: '1px solid oklch(100% 0 0 / 0.08)',
@@ -287,8 +317,8 @@ function CapabilityCard({
         <label className="mb-1.5 block text-[11px] font-medium text-[var(--color-text-secondary)]">API Key</label>
         <Input
           type="password"
-          placeholder={LLM_PROVIDER_REGISTRY[current.provider].apiKeyPlaceholder}
-          value={current.apiKey}
+          placeholder={LLM_PROVIDER_REGISTRY[effectiveConfig.provider].apiKeyPlaceholder}
+          value={effectiveConfig.apiKey}
           onChange={(e) => onChange({ apiKey: e.target.value })}
           className="text-xs"
         />
@@ -298,7 +328,7 @@ function CapabilityCard({
         <div>
           <label className="mb-1.5 block text-[11px] font-medium text-[var(--color-text-secondary)]">Base URL</label>
           <Input
-            value={current.baseUrl}
+            value={effectiveConfig.baseUrl}
             onChange={(e) => onChange({ baseUrl: e.target.value })}
             className="text-xs"
             placeholder="https://api.example.com/v1"
@@ -307,12 +337,12 @@ function CapabilityCard({
         <div>
           <label className="mb-1.5 block text-[11px] font-medium text-[var(--color-text-secondary)]">Model</label>
           <Input
-            value={current.model}
+            value={effectiveConfig.model}
             onChange={(e) => onChange({ model: e.target.value })}
             className="text-xs"
             placeholder={
-              LLM_PROVIDER_REGISTRY[current.provider].recommended[capability] ??
-              LLM_PROVIDER_REGISTRY[current.provider].model
+              LLM_PROVIDER_REGISTRY[effectiveConfig.provider].recommended[CAPABILITY_TO_MEDIA[capability]] ??
+              LLM_PROVIDER_REGISTRY[effectiveConfig.provider].model
             }
           />
         </div>

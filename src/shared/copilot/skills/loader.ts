@@ -17,6 +17,11 @@ import type { Skill } from './types';
 let _skills: Skill[] = [];
 let _loaded = false;
 let _loading: Promise<void> | null = null;
+const _subscribers = new Set<() => void>();
+
+function notify(): void {
+  for (const fn of _subscribers) fn();
+}
 
 export async function loadSkills(): Promise<Skill[]> {
   if (_loaded) return _skills;
@@ -75,7 +80,19 @@ export async function loadSkills(): Promise<Skill[]> {
 /** Ensure skills are loaded. Safe to call multiple times — runs once. */
 export async function ensureSkillsLoaded(): Promise<void> {
   if (_loaded) return;
-  if (!_loading) _loading = loadSkills().then(() => { _loaded = true; });
+  if (!_loading) {
+    _loading = loadSkills()
+      .then(() => {
+        _loaded = true;
+      })
+      .finally(() => {
+        _loading = null;
+        notify();
+      });
+    // Notify synchronously so subscribers can flip isLoading=true before
+    // the (possibly slow) fetch resolves.
+    notify();
+  }
   return _loading;
 }
 
@@ -84,9 +101,29 @@ export function getSkills(): readonly Skill[] {
   return _skills;
 }
 
+/** True while a load is in flight and not yet settled. Useful for UI
+ *  loading-state rendering. Once a load settles (success or empty), this
+ *  returns false even if the result is empty. */
+export function isSkillsLoading(): boolean {
+  return _loading !== null;
+}
+
+/**
+ * Subscribe to skill-load lifecycle events. The callback fires whenever
+ * `ensureSkillsLoaded` settles (success or empty result). Returns an
+ * unsubscribe function.
+ */
+export function subscribeToSkills(fn: () => void): () => void {
+  _subscribers.add(fn);
+  return () => {
+    _subscribers.delete(fn);
+  };
+}
+
 /** Reset the loader (for tests). */
 export function _resetSkillsLoader(): void {
   _skills = [];
   _loaded = false;
   _loading = null;
+  _subscribers.clear();
 }

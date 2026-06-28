@@ -3,7 +3,13 @@
  * frontmatter, caches in module-scope.
  */
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
-import { ensureSkillsLoaded, getSkills, _resetSkillsLoader } from './loader';
+import {
+  ensureSkillsLoaded,
+  getSkills,
+  isSkillsLoading,
+  subscribeToSkills,
+  _resetSkillsLoader,
+} from './loader';
 import { installFetchStub } from './_testHelpers';
 
 describe('skill loader', () => {
@@ -79,5 +85,43 @@ describe('skill loader', () => {
     expect(getSkills().length).toBe(0);
     warnSpy.mockRestore();
     global.fetch = realFetch;
+  });
+});
+
+describe('skill loader — subscribe + isLoading', () => {
+  beforeAll(() => {
+    installFetchStub();
+  });
+
+  beforeEach(() => {
+    _resetSkillsLoader();
+  });
+
+  it('isSkillsLoading is true while a fetch is in flight', async () => {
+    expect(isSkillsLoading()).toBe(false);
+    const p = ensureSkillsLoaded();
+    expect(isSkillsLoading()).toBe(true);
+    await p;
+    expect(isSkillsLoading()).toBe(false);
+  });
+
+  it('subscribers are notified when loading settles', async () => {
+    let calls = 0;
+    const unsub = subscribeToSkills(() => {
+      calls++;
+    });
+    await ensureSkillsLoaded();
+    expect(calls).toBeGreaterThanOrEqual(1);
+    unsub();
+  });
+
+  it('unsubscribe stops notifications', async () => {
+    const calls: number[] = [];
+    const unsub = subscribeToSkills(() => {
+      calls.push(Date.now());
+    });
+    unsub();
+    await ensureSkillsLoaded();
+    expect(calls).toHaveLength(0);
   });
 });
